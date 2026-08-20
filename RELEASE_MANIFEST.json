@@ -2,7 +2,7 @@
   "release_version": "2026.08.20-rc3",
   "build_timestamp_utc": "2026-08-20T02:19:41Z",
   "source_checksum_algorithm": "sha256-of-sorted-file-sha256",
-  "source_checksum": "3fc887fc121de2a0208b5961fc0d1046f43d5f782252da9c5e862175afcd7d7c",
+  "source_checksum": "f76b0b4d4784ccd0f95734d18155eb06a82881c783f4d7cd5bd21398cb6e2822",
   "pre_change_snapshot_sha256": "936e1e94c938bb3096af81ed103695bc7de184c56ea270a266c7abf386b3aa25",
   "migration_head": "20260820_09",
   "verified_backup_sha256": "4955a47c6357e6d540f2bd1969cfc82e7e3ef7ca0a0af7e2e54badef05c0cef5",
