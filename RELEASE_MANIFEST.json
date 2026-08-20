@@ -2,7 +2,7 @@
   "release_version": "2026.08.20-rc7",
   "build_timestamp_utc": "2026-08-20T07:52:47Z",
   "source_checksum_algorithm": "sha256-of-git-ls-tree",
-  "source_checksum": null,
+  "source_checksum": "f79b465ae35f3c18f2c14a620f59cd4c6ffc199f17932adbb67ed8b0559ee2d8",
   "pre_change_snapshot_sha256": "9ccd8d191864d1a8e62f630f238d285b5695b55843760128b9cc31513d6c0ba2",
   "migration_head": "20260820_10",
   "verified_backup_sha256": "c7caa91a0cffad3d4bfbdabf4625b2824d5e96e4498faeaf5fd62de297f8885a",
@@ -10,7 +10,7 @@
     "package-lock.json": "880ad6fb0f3422cc07b9a326626161893570c99668b56fa7fb1c0441b63bac5f",
     "backend/requirements.txt": "0ebefe03b88009b97b6995180e133febd05944e6dfc921b40827862f5d5a2eeb"
   },
-  "git_commit": "b113467c2d3c9414974a111388aa10f4ed8fb6ac",
+  "git_commit": "f2f3bbd14fe0aeeb035b0533b3a33ce01a58609d",
   "web_image_digest": null,
   "api_image_digest": null,
   "provenance_complete": false,

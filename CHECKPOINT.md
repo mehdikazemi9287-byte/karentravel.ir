@@ -12,4 +12,4 @@
 - External blockers: public DNS/CA TLS; external Secret Manager and rotation; external monitoring/alert receiver; contracted SMS/OTP, Payment and Flight/Hotel/Tour credentials; approved invoice tax/legal policy; authorized target deployment; independent security certification.
 - Production readiness: **NO-GO**. No provider, payment, OTP, public TLS, target image or external monitoring success is claimed.
 - Exact next action: obtain an authorized target deployment plus Secret Manager references, then build immutable images, record their digests and run the documented public readiness/rollback/restore smoke gate before any traffic.
-- Source checkpoint commit: recorded in `RELEASE_MANIFEST.json`; final documentation commit is reported after commit.
+- Source checkpoint commit: `f2f3bbd14fe0aeeb035b0533b3a33ce01a58609d`; its tree checksum is recorded in `RELEASE_MANIFEST.json`. The final provenance-doc HEAD is reported after commit.
