@@ -10,7 +10,7 @@
     "package-lock.json": "880ad6fb0f3422cc07b9a326626161893570c99668b56fa7fb1c0441b63bac5f",
     "backend/requirements.txt": "0ebefe03b88009b97b6995180e133febd05944e6dfc921b40827862f5d5a2eeb"
   },
-  "git_commit": "fd6ecd35c5099a2b89c37696147b67959a4d618d",
+  "git_commit": "c9b3e18ca829483fb0631c9b65a290247f4b76a3",
   "web_image_digest": null,
   "api_image_digest": null,
   "provenance_complete": false,

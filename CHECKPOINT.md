@@ -12,4 +12,4 @@
 - External blockers: Public DNS/CA TLS, external Secret Manager and rotation, monitoring/alerting collector, SMS/OTP credential, Payment credential, contracted Flight/Hotel/Tour credentials, target deployment and independent security certification.
 - Production readiness: **NO-GO**. No external provider, payment transfer or OTP success is claimed.
 - Exact next action: provision an isolated PostgreSQL staging database from approved infrastructure, take a backup, apply `20260820_10`, run the direct 56-table RLS suite, then verify restore and rollback without touching Production.
-- Source checkpoint commit: recorded in the Git commit immediately containing this file; final HEAD is reported after commit.
+- Source checkpoint commit: `c9b3e18ca829483fb0631c9b65a290247f4b76a3`; the final provenance-doc HEAD is reported after commit.
