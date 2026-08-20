@@ -1340,6 +1340,22 @@ def my_invoices(user: User = Depends(current_user), db: Session = Depends(get_db
     return [_invoice_output(row) for row in rows]
 
 
+def _invoice_tax_policy() -> tuple[int, str]:
+    raw_bps = os.getenv("INVOICE_TAX_BPS")
+    reference = os.getenv("INVOICE_TAX_POLICY_REFERENCE", "").strip()
+    if raw_bps is None:
+        if ENVIRONMENT == "production":
+            raise HTTPException(status_code=503, detail="سیاست مالیاتی صورتحساب پیکربندی نشده است")
+        return 0, "development:not_configured"
+    try:
+        bps = int(raw_bps)
+    except ValueError as exc:
+        raise HTTPException(status_code=503, detail="پیکربندی نرخ مالیات صورتحساب نامعتبر است") from exc
+    if bps < 0 or bps > 10_000 or not reference:
+        raise HTTPException(status_code=503, detail="نرخ یا مرجع سیاست مالیاتی صورتحساب نامعتبر است")
+    return bps, reference
+
+
 @app.post("/reservations/{reservation_id}/invoice", status_code=status.HTTP_201_CREATED)
 def issue_invoice(reservation_id: str, user: User = Depends(require_permission("invoice:manage")), db: Session = Depends(get_db), idempotency_key: str = Header(alias="Idempotency-Key", min_length=8, max_length=120)) -> dict:
     prior = db.scalar(select(operational_models.Invoice).where(operational_models.Invoice.tenant_id == user.tenant_id, operational_models.Invoice.command_id == idempotency_key))
@@ -1352,8 +1368,9 @@ def issue_invoice(reservation_id: str, user: User = Depends(require_permission("
     try: snapshot = json.loads(reservation.price_snapshot_json); subtotal = int(snapshot["total_amount"]); currency = str(snapshot.get("currency", "IRR"))
     except (KeyError, TypeError, ValueError, json.JSONDecodeError): raise HTTPException(status_code=409, detail="قیمت معتبر برای صورتحساب وجود ندارد")
     if subtotal <= 0 or currency != "IRR": raise HTTPException(status_code=409, detail="مبلغ معتبر ریالی برای صورتحساب وجود ندارد")
+    tax_bps, tax_reference = _invoice_tax_policy(); tax_amount = subtotal * tax_bps // 10_000; total_amount = subtotal + tax_amount
     number = f"KSI-{user.tenant_id}-{datetime.now(timezone.utc):%Y%m%d}-{secrets.token_hex(4).upper()}"
-    row = operational_models.Invoice(tenant_id=user.tenant_id, reservation_id=reservation.id, user_id=reservation.user_id, invoice_number=number, command_id=idempotency_key, subtotal_amount=subtotal, tax_amount=0, total_amount=subtotal, currency=currency, snapshot_json=json.dumps({"reservation": _reservation_output(reservation), "tax_source": "not_configured", "issued_by": user.id}, sort_keys=True))
+    row = operational_models.Invoice(tenant_id=user.tenant_id, reservation_id=reservation.id, user_id=reservation.user_id, invoice_number=number, command_id=idempotency_key, subtotal_amount=subtotal, tax_amount=tax_amount, total_amount=total_amount, currency=currency, snapshot_json=json.dumps({"reservation": _reservation_output(reservation), "tax_bps": tax_bps, "tax_policy_reference": tax_reference, "issued_by": user.id}, sort_keys=True))
     db.add(row); db.flush(); db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="invoice", aggregate_id=row.id, event_type="invoice.issued", payload_json=json.dumps({"invoice_id": row.id, "reservation_id": reservation.id}), correlation_id=str(uuid.uuid4()), idempotency_key=idempotency_key)); db.commit(); return _invoice_output(row)
 
 

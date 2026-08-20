@@ -1,8 +1,8 @@
 # Implementation Roadmap
 
-## Next exact internal increment
+## Next exact release gate
 
-Invoice، support case/thread انسانی، installment execution، settlement posting و مدیریت role تکمیل و E2E شده‌اند. increment دقیق بعدی اجرای migration `20260820_10` و تست RLS/FORCE RLS هر ۵۶ جدول روی PostgreSQL staging ایزوله، سپس backup→restore و rollback rehearsal همان artifact است. پس از آن فقط اتصال providerهای قراردادی و certification target انجام می‌شود.
+تمام کارهای credential-independent این مرحله، شامل اجرای واقعی migration `20260820_10`، RLS/FORCE RLS هر ۵۶ جدول، backup→restore، rollback→upgrade، integrity و regression کامل شده‌اند. اقدام بعدی به‌صورت دقیق: دریافت target مجاز و Secret Manager references، build imageهای immutable و ثبت digest، سپس اجرای public readiness، restore و rollback smoke gate پیش از هر ترافیک. اتصال Providerها فقط پس از قرارداد و credential معتبر انجام می‌شود.
 
 | فاز | خروجی آزمون‌پذیر | معیار پذیرش |
 |---|---|---|
@@ -16,6 +16,6 @@ Invoice، support case/thread انسانی، installment execution، settlement 
 هر فاز ADR، acceptance criteria، security review، rollout و rollback plan دارد.
 # وضعیت تکمیل Production
 
-Identity core و financial command core به‌صورت افزایشی پیاده شده‌اند. اتصال SMS/Payment/Travel Provider، target deployment و certification بیرونی همچنان gate تجاری/زیرساختی هستند. ترتیب بعدی: contract provider واقعی → booking orchestration → operations delivery → controlled pilot → certification.
+Identity core و financial command core به‌صورت افزایشی پیاده شده‌اند. اتصال SMS/Payment/Travel Provider، target deployment و certification بیرونی همچنان gate تجاری/زیرساختی هستند. ترتیب بعدی: target hardening و immutable release → contract provider validation → controlled pilot → certification.
 
-Booking orchestration، customer account، panel mutationها، invoice، support case lifecycle، installment execution، settlement posting و admin user/role lifecycle اکنون متصل‌اند. کار داخلی باقیمانده محدود به staging rehearsal migration/RLS/restore و تنظیم مالیاتی/شماره‌گذاری قانونی صورتحساب پس از دریافت policy تجاری است؛ اتصال نهایی providerها و deliveryها credential-dependent است.
+Booking orchestration، customer account، panel mutationها، invoice، support case lifecycle، installment execution، settlement posting و admin user/role lifecycle اکنون متصل‌اند. staging rehearsal migration/RLS/restore نیز PASS است. مقدار مالیات و مرجع قانونی صورتحساب configurable و در Production بدون policy مصوب fail-closed است؛ اتصال نهایی providerها و deliveryها credential-dependent است.

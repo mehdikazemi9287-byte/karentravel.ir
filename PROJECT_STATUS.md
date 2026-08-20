@@ -1,5 +1,15 @@
 # وضعیت اجرایی پایلوت
 
+## Production-readiness closure — ۱۴۰۵/۰۵/۲۹
+
+- PostgreSQL 16.15 و Redis 7.4.10 کاملاً ایزوله اجرا شدند؛ migration `20260820_10` پس از backup اعمال و Alembic head/check بدون drift تأیید شد. هیچ Production target یا داده‌ای لمس نشد.
+- تمام ۵۶ جدول tenant-aware دارای RLS و FORCE RLS هستند. آزمون مستقیم own tenant، cross-tenant read/write و نبود `app.tenant_id` PASS شد؛ API با NOBYPASSRLS و worker با least privilege نیز دوباره اثبات شدند.
+- backup پیش از migration، restore جداگانه، downgrade 10→09، upgrade 09→10 و restore تا head 10 PASS شدند. integrity نهایی شامل ۱۳۷ foreign key، صفر constraint تأییدنشده و ۲۴۰ index معتبر/ready است.
+- نقص واقعی grant جدول‌های بازسازی‌شده در rollback با default privileges نقش API اصلاح و در چرخه دوم rollback/upgrade اثبات شد. checksum scripts اکنون روی Linux و macOS fail-closed کار می‌کند.
+- مالیات صورتحساب backend-configurable شد و در Production بدون نرخ و مرجع policy مصوب `503` می‌دهد؛ هیچ نرخ حقوقی/مالیاتی جعل نشده است.
+- QA نهایی: backend واقعی `70/70`، domain PostgreSQL `5/5`، Chromium `12/12`، lint/typecheck/build، compile، npm audit صفر، health/readiness/metrics و validation manifestها PASS است.
+- Completion واقعی `97%` است. Production به‌دلیل DNS/TLS عمومی، Secret Manager، monitoring خارجی، credentialهای قراردادی، target deployment/image digest، policy قانونی صورتحساب و certification مستقل همچنان **NO-GO** است.
+
 ## Final internal domain phase — ۱۴۰۵/۰۵/۲۹
 
 - migration افزایشی `20260820_10` چهار جدول `invoices`، `support_cases`، `support_thread_messages` و `installment_agreements` را با tenant key، PostgreSQL RLS و `FORCE RLS` اضافه می‌کند؛ downgrade فقط همین چهار جدول را برمی‌گرداند و هیچ migration مخربی وجود ندارد.

@@ -1,44 +1,34 @@
 {
-  "release_version": "2026.08.20-rc6",
-  "build_timestamp_utc": "2026-08-20T07:17:20Z",
+  "release_version": "2026.08.20-rc7",
+  "build_timestamp_utc": "2026-08-20T07:52:47Z",
   "source_checksum_algorithm": "sha256-of-git-ls-tree",
-  "source_checksum": "12873b6bb0d6c36f89b2586eb6b6255855212011f32b86a13da27d0cfe28f3d6",
-  "pre_change_snapshot_sha256": "936e1e94c938bb3096af81ed103695bc7de184c56ea270a266c7abf386b3aa25",
+  "source_checksum": null,
+  "pre_change_snapshot_sha256": "9ccd8d191864d1a8e62f630f238d285b5695b55843760128b9cc31513d6c0ba2",
   "migration_head": "20260820_10",
-  "verified_backup_sha256": "4955a47c6357e6d540f2bd1969cfc82e7e3ef7ca0a0af7e2e54badef05c0cef5",
+  "verified_backup_sha256": "c7caa91a0cffad3d4bfbdabf4625b2824d5e96e4498faeaf5fd62de297f8885a",
   "dependency_locks": {
     "package-lock.json": "880ad6fb0f3422cc07b9a326626161893570c99668b56fa7fb1c0441b63bac5f",
     "backend/requirements.txt": "0ebefe03b88009b97b6995180e133febd05944e6dfc921b40827862f5d5a2eeb"
   },
-  "git_commit": "c9b3e18ca829483fb0631c9b65a290247f4b76a3",
+  "git_commit": "b113467c2d3c9414974a111388aa10f4ed8fb6ac",
   "web_image_digest": null,
   "api_image_digest": null,
   "provenance_complete": false,
   "release_notes": [
-    "Tenant-safe offer, price-check, booking and voucher orchestration",
-    "Configurable multi-step approval engine with SLA and escalation",
-    "Persistent white-label, agency hierarchy and operational panel APIs",
-    "Grounded AI context and explainable comparison APIs",
-    "Signed notification receipts and worker queue metrics",
-    "Distributed provider throttling and circuit breaker",
-    "Tenant-first performance indexes and local load baseline",
-    "Tenant-scoped financial reconciliation read model",
-    "Frontend OTP/session API client wired to the operational pilot",
-    "Authenticated trips, timeline, manage-booking, comparison and organization UI",
-    "Tenant/RBAC-aware supplier, agency and backoffice read panels",
-    "Eight-flow Chromium E2E coverage for connected operational UI",
-    "Authenticated customer profile, travellers, personal wallet and notification preferences",
-    "Payment intent UI with credential-free fail-closed provider validation",
-    "Supplier, agency and backoffice mutation workflows with tenant/RBAC tests",
-    "Finance reconciliation and scoped customer support UI",
-    "Tenant-RLS invoice, support thread and installment execution migration",
-    "Backend-derived invoices and visibly separated human support messages",
-    "Idempotent pending settlement posting and installment decisions",
-    "Tenant Admin role workflow with anti-escalation controls",
-    "Twelve-flow Chromium E2E coverage"
+    "Migration 20260820_10 applied and drift-checked on isolated PostgreSQL 16.15",
+    "Direct PostgreSQL RLS and FORCE RLS verified for all 56 tenant tables",
+    "Missing tenant context and cross-tenant reads and writes fail closed",
+    "Invoice, support thread, installment, settlement and Admin RBAC suites pass on PostgreSQL",
+    "Pre-migration backup, isolated restore and migration rollback/re-upgrade verified",
+    "Restored schema integrity verified for foreign keys, constraints and indexes",
+    "API default privileges preserve least-privilege access after table recreation",
+    "Invoice tax policy is configurable and fail-closed in Production",
+    "Backup checksum scripts support sha256sum and shasum without weakening verification",
+    "Backend 70/70 and Chromium E2E 12/12 with complete frontend regression"
   ],
   "incomplete_reasons": [
-    "The imported workspace had no prior Git metadata or upstream provenance",
-    "Container runtime is unavailable, so immutable image digests were not produced"
+    "No Docker-compatible runtime exists on this validation host, so immutable image digests were not produced",
+    "Authorized target infrastructure, external credentials, public TLS, monitoring and independent certification are not available",
+    "Production invoice tax and legal numbering policy has not been approved"
   ]
 }

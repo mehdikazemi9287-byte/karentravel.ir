@@ -60,11 +60,15 @@ curl --fail http://127.0.0.1:3000/
 
 نقش API با `deploy/provision-api-role.sql` به‌صورت `NOBYPASSRLS` و بدون CREATE/role/database privilege ساخته می‌شود. اجرای هر دو template فقط توسط DBA و با password ورودی secret manager مجاز است.
 
+این template علاوه بر grantهای جدول‌های موجود، default privilegeهای owner migration را برای جدول/sequenceهای آینده ثبت می‌کند. پس از هر migration و به‌ویژه پس از downgrade/upgrade باید template دوباره idempotently اجرا و دسترسی جدول‌های جدید با نقش API آزموده شود؛ API هرگز نباید owner یا `BYPASSRLS` باشد.
+
 DBA می‌تواند template کنترل‌شده `deploy/provision-worker-role.sql` را با `psql --set=worker_password='...' --file=...` اجرا کند. password باید از secret manager وارد شود و در shell history یا repository ذخیره نشود. پس از provision، تست `TEST_WORKER_POSTGRES_URL` باید نبود دسترسی users و دسترسی محدود outbox را اثبات کند.
 
 ## Backup، restore و rollback
 
 پیش از هر migration، `deploy/preflight.sh` و سپس `deploy/backup.sh` اجرا می‌شود. restore باید ابتدا با `deploy/restore-verify.sh` فقط در یک دیتابیس ایزوله و غیر Production آزموده شود؛ script عمداً نام‌های `karenseir` و دیتابیس‌های سیستمی را رد می‌کند.
+
+هر دو script checksum را با `sha256sum` یا `shasum -a 256` محاسبه/تأیید و در نبود هر دو ابزار fail می‌کنند.
 
 ```bash
 docker compose exec -T db pg_dump -U karenseir -Fc karenseir > karenseir-before-upgrade.dump
@@ -101,3 +105,7 @@ curl --fail https://your-domain.example/
 ```
 
 تا وقتی production secret، دامنه HTTPS، PostgreSQL و adapter مجاز فراهم نشده‌اند، اجرای Production باید fail-closed بماند.
+
+## Policy مالیاتی صورتحساب
+
+`INVOICE_TAX_BPS` (basis points) و `INVOICE_TAX_POLICY_REFERENCE` باید از policy حقوقی/مالی تأییدشده target تأمین شوند. در `ENVIRONMENT=production` نبود، منفی/نامعتبر بودن نرخ یا نبود reference باعث `503` هنگام صدور صورتحساب می‌شود. مقدار صفر development صرفاً `development:not_configured` است و مجوز صدور Production محسوب نمی‌شود.

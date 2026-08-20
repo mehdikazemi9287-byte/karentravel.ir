@@ -17,3 +17,5 @@ Invoice issuance is derived from an authoritative reservation price snapshot. Cu
 ## Rollback
 
 Revert UI/API code, then downgrade revision `20260820_10`, which drops only the four new unused tables in dependency order. Existing reservations, payments, wallets, settlements, users and security policies are unchanged.
+
+The migration owner provisions `karenseir_api` after initial schema creation. That contract grants current objects and installs default table/sequence privileges so an additive rollback→upgrade cannot silently deny the least-privilege API role access to recreated objects.
