@@ -2,7 +2,7 @@
   "release_version": "2026.08.20-ecosystem-search-rc1",
   "build_timestamp_utc": "2026-08-20T09:07:00Z",
   "source_checksum_algorithm": "sha256-of-git-ls-tree",
-  "source_checksum": null,
+  "source_checksum": "7255025d3f1c543191f851ee6b8940dadcde6b948da8d2224929c509dac368e5",
   "pre_change_snapshot_sha256": "9ccd8d191864d1a8e62f630f238d285b5695b55843760128b9cc31513d6c0ba2",
   "migration_head": "20260820_10",
   "verified_backup_sha256": "c7caa91a0cffad3d4bfbdabf4625b2824d5e96e4498faeaf5fd62de297f8885a",
@@ -10,7 +10,7 @@
     "package-lock.json": "880ad6fb0f3422cc07b9a326626161893570c99668b56fa7fb1c0441b63bac5f",
     "backend/requirements.txt": "0ebefe03b88009b97b6995180e133febd05944e6dfc921b40827862f5d5a2eeb"
   },
-  "git_commit": "2054b84a29a14d18d28786c1220e2c0612496f18",
+  "git_commit": "d5013e70116435b6d96cda1c0013c6f283d5cf22",
   "web_image_digest": null,
   "api_image_digest": null,
   "provenance_complete": false,

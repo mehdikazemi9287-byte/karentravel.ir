@@ -13,4 +13,4 @@
 - External blockers: ZarinPal sandbox merchant credential (`PAYMENT TEST — BLOCKED BY CREDENTIAL`), map/places credential, travel provider credentials, SMS/OTP, public DNS/TLS, Secret Manager, monitoring, target deployment and security certification.
 - Production readiness: **NO-GO**; no sandbox/provider/payment success is claimed.
 - Exact next action: add an incremental tenant-RLS migration for Trip Basket/Wishlist and Verified Review, with PostgreSQL cross-tenant/idempotency tests, without touching Homepage.
-- Source checkpoint commit: recorded after commit in `RELEASE_MANIFEST.json`; final provenance-doc HEAD is reported after commit.
+- Source checkpoint commit: `d5013e70116435b6d96cda1c0013c6f283d5cf22`; tree checksum is recorded in `RELEASE_MANIFEST.json`. Final provenance-doc HEAD is reported after commit.
