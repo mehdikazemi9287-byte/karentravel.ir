@@ -14,6 +14,7 @@
 - External blockers: ZarinPal sandbox merchant, map provider, SMS/OTP, Flight/Hotel/Tour provider credentials, public DNS/TLS, Secret Manager, external monitoring/alerting, target deployment and independent security certification.
 - Production readiness: **NO-GO**.
 - Exact next action: run migration 11 on a disposable PostgreSQL staging with pre-backup, then execute missing-context/own/cross-tenant/FORCE RLS tests for all seven new tables and rerun backend with zero skips.
+- Source implementation commit: `29e114471262e1f9f407690f459a918f197f3f82`; final provenance commit is reported after saving this checkpoint.
 
 - Timestamp: `2026-08-20T09:07:00Z`
 - Branch: `main`
