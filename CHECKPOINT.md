@@ -1,5 +1,20 @@
 # KarenSeir Checkpoint
 
+## Saved-travel ecosystem checkpoint
+
+- Timestamp: `2026-08-20T09:34:20Z`
+- Branch: `main`
+- Baseline commit: `08de094bc193b26ee8e3ee56c7b1062ff0d85ab8`
+- Migration head: `20260820_11`; isolated Alembic upgrade/current/check PASS. Direct PostgreSQL validation for this new head is not claimed because no PostgreSQL/Docker runtime is installed.
+- Completion: `84%`; phase gates passed `10/16`. Phases 7, 8 and 16 remain blocked on the direct PostgreSQL head-11 RLS gate; 13–15 retain documented work/credential gates.
+- Completed: saved trips/wishlist/basket domain and connected UI; verified-review anti-forgery and moderation domain; destination hierarchy/routes; editable itinerary lifecycle; deterministic vertical comparison awards; map/list credential-free fallback.
+- QA: backend `73 passed, 5 skipped`; lint/typecheck/build PASS (26 routes); Chromium `14/14`; Homepage Desktop/Mobile regression PASS; npm audit 0; Alembic no drift; diff check PASS.
+- UI Freeze: no Homepage/CSS/asset file changed and visual structural screenshot gate remained green.
+- Remaining internal: direct PostgreSQL migration/RLS validation head 11; review UI; unified resumable checkout; ZarinPal-specific request/verify adapter and tests; SEO/CWV/RTL matrix; final security suite and release evidence refresh after those gates.
+- External blockers: ZarinPal sandbox merchant, map provider, SMS/OTP, Flight/Hotel/Tour provider credentials, public DNS/TLS, Secret Manager, external monitoring/alerting, target deployment and independent security certification.
+- Production readiness: **NO-GO**.
+- Exact next action: run migration 11 on a disposable PostgreSQL staging with pre-backup, then execute missing-context/own/cross-tenant/FORCE RLS tests for all seven new tables and rerun backend with zero skips.
+
 - Timestamp: `2026-08-20T09:07:00Z`
 - Branch: `main`
 - Baseline commit: `2054b84a29a14d18d28786c1220e2c0612496f18`

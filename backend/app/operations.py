@@ -7,7 +7,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint, select
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, Numeric, String, Text, UniqueConstraint, select
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from .database import Base
@@ -218,6 +218,100 @@ class SearchRequest(OperationalMixin, Base):
     service_type: Mapped[str] = mapped_column(String(48), index=True)
     criteria_json: Mapped[str] = mapped_column(Text, default="{}")
     correlation_id: Mapped[str] = mapped_column(String(64), index=True)
+
+
+class SavedTrip(OperationalMixin, Base):
+    __tablename__ = "saved_trips"
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    title: Mapped[str] = mapped_column(String(160))
+    status: Mapped[str] = mapped_column(String(24), default="active", index=True)
+    command_id: Mapped[str] = mapped_column(String(120))
+    __table_args__ = (UniqueConstraint("tenant_id", "command_id", name="uq_saved_trip_command"),)
+
+
+class SavedTripItem(OperationalMixin, Base):
+    __tablename__ = "saved_trip_items"
+    saved_trip_id: Mapped[str] = mapped_column(ForeignKey("saved_trips.id"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    offer_id: Mapped[Optional[str]] = mapped_column(ForeignKey("offers.id"), nullable=True, index=True)
+    service_type: Mapped[str] = mapped_column(String(48), index=True)
+    source_reference: Mapped[str] = mapped_column(String(200))
+    state: Mapped[str] = mapped_column(String(24), default="wishlist", index=True)
+    position: Mapped[int] = mapped_column(Integer, default=0)
+    snapshot_json: Mapped[str] = mapped_column(Text, default="{}")
+    command_id: Mapped[str] = mapped_column(String(120))
+    __table_args__ = (UniqueConstraint("tenant_id", "command_id", name="uq_saved_item_command"),)
+
+
+class Review(OperationalMixin, Base):
+    __tablename__ = "reviews"
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    reservation_id: Mapped[Optional[str]] = mapped_column(ForeignKey("reservations.id"), nullable=True, index=True)
+    service_type: Mapped[str] = mapped_column(String(48), index=True)
+    service_reference: Mapped[str] = mapped_column(String(200), index=True)
+    provider_reference: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
+    rating: Mapped[int] = mapped_column(Integer)
+    title: Mapped[str] = mapped_column(String(160))
+    body: Mapped[str] = mapped_column(Text)
+    verified_booking: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    moderation_state: Mapped[str] = mapped_column(String(24), default="pending", index=True)
+    analysis_state: Mapped[str] = mapped_column(String(24), default="not_requested")
+    command_id: Mapped[str] = mapped_column(String(120))
+    __table_args__ = (UniqueConstraint("tenant_id", "command_id", name="uq_review_command"),)
+
+
+class ReviewSupplierResponse(OperationalMixin, Base):
+    __tablename__ = "review_supplier_responses"
+    review_id: Mapped[str] = mapped_column(ForeignKey("reviews.id"), index=True)
+    supplier_id: Mapped[str] = mapped_column(ForeignKey("suppliers.id"), index=True)
+    responder_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    body: Mapped[str] = mapped_column(Text)
+    command_id: Mapped[str] = mapped_column(String(120))
+    __table_args__ = (UniqueConstraint("tenant_id", "review_id", name="uq_review_supplier_response"), UniqueConstraint("tenant_id", "command_id", name="uq_review_response_command"))
+
+
+class Destination(OperationalMixin, Base):
+    __tablename__ = "destinations"
+    parent_id: Mapped[Optional[str]] = mapped_column(ForeignKey("destinations.id"), nullable=True, index=True)
+    kind: Mapped[str] = mapped_column(String(24), index=True)
+    name_fa: Mapped[str] = mapped_column(String(160))
+    name_en: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
+    slug: Mapped[str] = mapped_column(String(160))
+    latitude: Mapped[Optional[float]] = mapped_column(Numeric(9, 6), nullable=True)
+    longitude: Mapped[Optional[float]] = mapped_column(Numeric(9, 6), nullable=True)
+    description: Mapped[str] = mapped_column(Text, default="")
+    seasonality_json: Mapped[str] = mapped_column(Text, default="[]")
+    categories_json: Mapped[str] = mapped_column(Text, default="[]")
+    highlights_json: Mapped[str] = mapped_column(Text, default="[]")
+    nearby_slugs_json: Mapped[str] = mapped_column(Text, default="[]")
+    status: Mapped[str] = mapped_column(String(24), default="published", index=True)
+    __table_args__ = (UniqueConstraint("tenant_id", "slug", name="uq_destination_slug"),)
+
+
+class EditableItinerary(OperationalMixin, Base):
+    __tablename__ = "editable_itineraries"
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    title: Mapped[str] = mapped_column(String(160))
+    destination_id: Mapped[Optional[str]] = mapped_column(ForeignKey("destinations.id"), nullable=True)
+    budget_amount: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    currency: Mapped[str] = mapped_column(String(3), default="IRR")
+    status: Mapped[str] = mapped_column(String(24), default="draft", index=True)
+    command_id: Mapped[str] = mapped_column(String(120))
+    __table_args__ = (UniqueConstraint("tenant_id", "command_id", name="uq_itinerary_command"),)
+
+
+class EditableItineraryItem(OperationalMixin, Base):
+    __tablename__ = "editable_itinerary_items"
+    itinerary_id: Mapped[str] = mapped_column(ForeignKey("editable_itineraries.id"), index=True)
+    offer_id: Mapped[Optional[str]] = mapped_column(ForeignKey("offers.id"), nullable=True, index=True)
+    service_type: Mapped[str] = mapped_column(String(48), index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    day_number: Mapped[int] = mapped_column(Integer)
+    position: Mapped[int] = mapped_column(Integer)
+    availability_state: Mapped[str] = mapped_column(String(48), default="needs_live_availability_check")
+    snapshot_json: Mapped[str] = mapped_column(Text, default="{}")
+    command_id: Mapped[str] = mapped_column(String(120))
+    __table_args__ = (UniqueConstraint("tenant_id", "command_id", name="uq_itinerary_item_command"), UniqueConstraint("tenant_id", "itinerary_id", "day_number", "position", name="uq_itinerary_position"))
 
 
 class Reservation(OperationalMixin, Base):

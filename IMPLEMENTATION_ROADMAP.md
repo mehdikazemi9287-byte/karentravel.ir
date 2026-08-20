@@ -2,6 +2,8 @@
 
 ## Next exact release gate
 
+اقدام دقیق بعدی: فراهم‌کردن PostgreSQL ایزوله روی میزبان validation، backup گرفتن از همان staging، اجرای migration `20260820_11` و اثبات fail-closed/cross-tenant/FORCE RLS برای هر ۷ جدول تازه؛ سپس اجرای backend بدون skip. بعد از آن، ZarinPal adapter request/verify با credential sandbox معتبر و unified checkout تکمیل می‌شود. تا پیش از این gate هیچ موفقیت پرداخت یا RLS واقعی جدید ادعا نمی‌شود.
+
 در scope جدید Product Ecosystem، Phase 1 و Search 2.0 داخلی بسته شده‌اند. اقدام داخلی دقیق بعدی: migration افزایشی tenant-RLS برای persisted Trip Basket/Wishlist و Verified Review، سپس APIهای idempotent و تست cross-tenant آن‌ها؛ Homepage frozen می‌ماند و UI فقط در routeهای اختصاصی افزوده می‌شود.
 
 تمام کارهای credential-independent این مرحله، شامل اجرای واقعی migration `20260820_10`، RLS/FORCE RLS هر ۵۶ جدول، backup→restore، rollback→upgrade، integrity و regression کامل شده‌اند. اقدام بعدی به‌صورت دقیق: دریافت target مجاز و Secret Manager references، build imageهای immutable و ثبت digest، سپس اجرای public readiness، restore و rollback smoke gate پیش از هر ترافیک. اتصال Providerها فقط پس از قرارداد و credential معتبر انجام می‌شود.

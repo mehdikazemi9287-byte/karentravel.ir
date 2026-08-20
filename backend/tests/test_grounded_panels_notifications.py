@@ -45,6 +45,8 @@ def test_explainable_comparison_and_ai_context_use_only_tenant_backend_data(clie
         db.add_all([first, second, reservation]); db.commit(); ids = [first.id, second.id]; reservation_id = reservation.id
     compared = client.post("/compare/offers", headers=auth(employee["access_token"]), json={"offer_ids": ids})
     assert compared.status_code == 200 and compared.json()["authoritative"] is True
+    assert compared.json()["award_logic"] == "deterministic-v1"
+    assert {award for row in compared.json()["results"] for award in row["awards"]} == {"Best Price", "Best Value", "Best Quality", "Best Flexible", "Best Location", "Recommended"}
     assert compared.json()["results"][0]["score"] > compared.json()["results"][1]["score"]
     assert set(compared.json()["results"][0]["breakdown"]) == {"price", "quality", "cancellation", "location", "amenities", "organization_policy"}
     assert client.post("/compare/offers", headers=auth(faraz["access_token"]), json={"offer_ids": ids}).status_code == 404

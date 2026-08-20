@@ -1,20 +1,28 @@
 {
-  "release_version": "2026.08.20-ecosystem-search-rc1",
-  "build_timestamp_utc": "2026-08-20T09:07:00Z",
+  "release_version": "2026.08.20-saved-travel-rc2",
+  "build_timestamp_utc": "2026-08-20T09:34:20Z",
   "source_checksum_algorithm": "sha256-of-git-ls-tree",
   "source_checksum": "7255025d3f1c543191f851ee6b8940dadcde6b948da8d2224929c509dac368e5",
   "pre_change_snapshot_sha256": "9ccd8d191864d1a8e62f630f238d285b5695b55843760128b9cc31513d6c0ba2",
-  "migration_head": "20260820_10",
+  "migration_head": "20260820_11",
   "verified_backup_sha256": "c7caa91a0cffad3d4bfbdabf4625b2824d5e96e4498faeaf5fd62de297f8885a",
   "dependency_locks": {
     "package-lock.json": "880ad6fb0f3422cc07b9a326626161893570c99668b56fa7fb1c0441b63bac5f",
     "backend/requirements.txt": "0ebefe03b88009b97b6995180e133febd05944e6dfc921b40827862f5d5a2eeb"
   },
-  "git_commit": "d5013e70116435b6d96cda1c0013c6f283d5cf22",
+  "git_commit": null,
   "web_image_digest": null,
   "api_image_digest": null,
   "provenance_complete": false,
   "release_notes": [
+    "Tenant-scoped saved trips, wishlist and Trip Basket with idempotent audited mutations",
+    "Verified reviews derive trust only from issued or completed owned reservations",
+    "Supplier review responses are separate and cannot rewrite customer review text",
+    "Destination hierarchy and dedicated tenant catalog routes",
+    "Editable persisted itineraries with explicit live-availability state",
+    "Vertical comparison fields and deterministic auditable awards",
+    "Independent map/list route with honest credential-free fallback",
+    "Frozen Homepage desktop and mobile regression remains green",
     "Product ecosystem page/domain audit with explicit 16-phase gates",
     "Unified Search 2.0 contract across fourteen travel and destination verticals",
     "Persian and Arabic character, diacritic, whitespace and half-space normalization",
@@ -34,6 +42,8 @@
     "Backend 70/70 and Chromium E2E 12/12 with complete frontend regression"
   ],
   "incomplete_reasons": [
+    "No PostgreSQL or Docker runtime exists on this validation host, so migration 20260820_11 direct RLS verification remains pending",
+    "ZarinPal-specific transport and sandbox request/verify cannot be certified without a sandbox merchant credential",
     "No Docker-compatible runtime exists on this validation host, so immutable image digests were not produced",
     "Authorized target infrastructure, external credentials, public TLS, monitoring and independent certification are not available",
     "Production invoice tax and legal numbering policy has not been approved"

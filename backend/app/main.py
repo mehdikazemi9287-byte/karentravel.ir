@@ -19,7 +19,7 @@ import jwt
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse, Response
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, Text, func, select, text, update
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
@@ -196,6 +196,20 @@ class SupportReplyIn(BaseModel): body: str = Field(min_length=3, max_length=4000
 class SupportAssignmentIn(BaseModel): assigned_to_user_id: Optional[int] = Field(default=None, gt=0); status: str = Field(pattern="^(open|in_progress|resolved|closed)$")
 class InstallmentDecisionIn(BaseModel): decision: str = Field(pattern="^(activate|reject)$"); reason: Optional[str] = Field(default=None, max_length=500)
 class AdminRoleIn(BaseModel): role: str = Field(pattern="^(employee|customer|manager|welfare_manager|organization_admin|agency_partner|supplier|backoffice_expert|finance_operator|tenant_admin)$"); reason: str = Field(min_length=3, max_length=500)
+class SavedTripIn(BaseModel): title: str = Field(min_length=2, max_length=160); command_id: str = Field(min_length=8, max_length=120)
+class SavedItemIn(BaseModel): service_type: str = Field(pattern="^(flight|hotel|train|tour|accommodation|car_rental|restaurant|attraction|event_hall|experience)$"); source_reference: str = Field(min_length=2, max_length=200); offer_id: Optional[str] = Field(default=None, min_length=36, max_length=36); state: str = Field(default="wishlist", pattern="^(wishlist|basket)$"); command_id: str = Field(min_length=8, max_length=120)
+class SavedItemMoveIn(BaseModel): state: str = Field(pattern="^(wishlist|basket)$"); command_id: str = Field(min_length=8, max_length=120)
+class CommandIn(BaseModel): command_id: str = Field(min_length=8, max_length=120)
+class ReviewIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    rating: int = Field(ge=1, le=5); title: str = Field(min_length=2, max_length=160); body: str = Field(min_length=10, max_length=5000); service_type: str = Field(pattern=ECOSYSTEM_SERVICE_PATTERN); service_reference: str = Field(min_length=2, max_length=200); provider_reference: Optional[str] = Field(default=None, max_length=160); reservation_id: Optional[str] = Field(default=None, min_length=36, max_length=36); command_id: str = Field(min_length=8, max_length=120)
+class ReviewModerationIn(BaseModel): state: str = Field(pattern="^(approved|rejected|flagged)$"); reason: str = Field(min_length=3, max_length=500)
+class ReviewResponseIn(BaseModel): supplier_id: str = Field(min_length=36, max_length=36); body: str = Field(min_length=3, max_length=2000); command_id: str = Field(min_length=8, max_length=120)
+class DestinationIn(BaseModel): parent_id: Optional[str] = Field(default=None, min_length=36, max_length=36); kind: str = Field(pattern="^(country|province|city|district|poi)$"); name_fa: str = Field(min_length=2, max_length=160); name_en: Optional[str] = Field(default=None, max_length=160); slug: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$", max_length=160); latitude: Optional[float] = Field(default=None, ge=-90, le=90); longitude: Optional[float] = Field(default=None, ge=-180, le=180); description: str = Field(default="", max_length=5000); seasonality: list[str] = Field(default_factory=list, max_length=12); categories: list[str] = Field(default_factory=list, max_length=30); highlights: list[str] = Field(default_factory=list, max_length=30); nearby_slugs: list[str] = Field(default_factory=list, max_length=30)
+class ItineraryIn(BaseModel): title: str = Field(min_length=2, max_length=160); destination_id: Optional[str] = Field(default=None, min_length=36, max_length=36); budget_amount: Optional[int] = Field(default=None, ge=0); command_id: str = Field(min_length=8, max_length=120)
+class ItineraryItemIn(BaseModel): offer_id: Optional[str] = Field(default=None, min_length=36, max_length=36); service_type: str = Field(pattern=ECOSYSTEM_SERVICE_PATTERN); title: str = Field(min_length=2, max_length=200); day_number: int = Field(ge=1, le=365); position: int = Field(ge=1, le=100); command_id: str = Field(min_length=8, max_length=120)
+class ItineraryItemUpdateIn(BaseModel): day_number: int = Field(ge=1, le=365); position: int = Field(ge=1, le=100); replacement_offer_id: Optional[str] = Field(default=None, min_length=36, max_length=36); command_id: str = Field(min_length=8, max_length=120)
+class ItineraryUpdateIn(BaseModel): title: str = Field(min_length=2, max_length=160); budget_amount: Optional[int] = Field(default=None, ge=0); status: str = Field(default="draft", pattern="^(draft|saved|archived)$"); command_id: str = Field(min_length=8, max_length=120)
 def token_for(user: User, tenant: Tenant) -> str:
     now = datetime.now(timezone.utc)
     return jwt.encode({"sub":str(user.id),"tenant":tenant.id,"role":user.role,"type":"access","iss":JWT_ISSUER,"aud":JWT_AUDIENCE,"iat":now,"jti":str(uuid.uuid4()),"exp":now+timedelta(minutes=15)}, JWT_SECRET, algorithm="HS256")
@@ -291,7 +305,7 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="KarenSeir Pilot API", version="0.2.0", lifespan=lifespan)
-app.add_middleware(CORSMiddleware, allow_origins=os.getenv("CORS_ORIGINS","http://localhost:3000").split(","), allow_credentials=False, allow_methods=["GET","POST","PUT"], allow_headers=["Authorization","Content-Type","Idempotency-Key","X-Request-ID","X-Correlation-ID"])
+app.add_middleware(CORSMiddleware, allow_origins=os.getenv("CORS_ORIGINS","http://localhost:3000").split(","), allow_credentials=False, allow_methods=["GET","POST","PUT","DELETE"], allow_headers=["Authorization","Content-Type","Idempotency-Key","X-Request-ID","X-Correlation-ID"])
 
 
 @app.middleware("http")
@@ -1267,9 +1281,13 @@ def compare_offers(data: CompareIn, user: User = Depends(current_user), db: Sess
         amenities_score = min(len(attrs.get("amenities", [])) * 2, 10)
         policy_score = 10.0 if attrs.get("organization_policy_compliant") is True else 0.0
         breakdown = {"price": price_score, "quality": quality_score, "cancellation": cancellation_score, "location": location_score, "amenities": amenities_score, "organization_policy": policy_score}
-        results.append({"offer_id": row.id, "service_type": row.service_type, "title": row.title, "amount": row.amount, "currency": row.currency, "score": round(sum(breakdown.values()), 2), "breakdown": breakdown, "explanation": [key for key, value in breakdown.items() if value > 0], "valid_until": row.valid_until.isoformat()})
+        vertical_fields = {key: attrs.get(key) for key in ({"room","breakfast","review","amenities","provider","location"} if row.service_type == "hotel" else {"airline","baggage","stops","departure","arrival","duration","refundability"} if row.service_type == "flight" else {"operator","class","departure","arrival","facilities","refund_rules"} if row.service_type == "train" else {"duration","transport","hotel","meals","guide","cancellation"}) if attrs.get(key) is not None}
+        results.append({"offer_id": row.id, "service_type": row.service_type, "title": row.title, "amount": row.amount, "currency": row.currency, "score": round(sum(breakdown.values()), 2), "breakdown": breakdown, "vertical_fields": vertical_fields, "awards": [], "explanation": [key for key, value in breakdown.items() if value > 0], "valid_until": row.valid_until.isoformat()})
     results.sort(key=lambda item: (-item["score"], item["amount"]))
-    return {"service_type": rows[0].service_type, "authoritative": True, "results": results}
+    award_rules = {"Best Price": lambda item: (-item["amount"], item["offer_id"]), "Best Value": lambda item: (item["score"], item["offer_id"]), "Best Quality": lambda item: (item["breakdown"]["quality"], item["offer_id"]), "Best Flexible": lambda item: (item["breakdown"]["cancellation"], item["offer_id"]), "Best Location": lambda item: (item["breakdown"]["location"], item["offer_id"]), "Recommended": lambda item: (item["score"], item["offer_id"])}
+    for award, selector in award_rules.items(): max(results, key=selector)["awards"].append(award)
+    comparison_id = str(uuid.uuid4()); db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="comparison", aggregate_id=comparison_id, event_type="comparison.scored", payload_json=json.dumps({"service_type": rows[0].service_type, "offer_ids": sorted(data.offer_ids), "award_logic": "deterministic-v1"}, sort_keys=True), correlation_id=comparison_id, idempotency_key=f"comparison:{comparison_id}")); db.commit()
+    return {"comparison_id": comparison_id, "service_type": rows[0].service_type, "authoritative": True, "award_logic": "deterministic-v1", "results": results}
 
 
 @app.get("/ai/grounded-context")
@@ -1594,3 +1612,222 @@ def change_user_role(target_user_id: int, data: AdminRoleIn, user: User = Depend
     if target.role == "platform_admin": raise HTTPException(status_code=403, detail="مدیر پلتفرم از tenant قابل تغییر نیست")
     if user.role == "organization_admin" and data.role not in {"employee", "customer", "manager", "welfare_manager"}: raise HTTPException(status_code=403, detail="مدیر سازمان مجاز به اعطای نقش سطح tenant نیست")
     previous = target.role; target.role = data.role; db.add(AuditEvent(tenant_id=user.tenant_id, actor_id=user.id, action="user.role_changed", entity="user", entity_id=target.id, detail=json.dumps({"from": previous, "to": target.role, "reason": data.reason}, sort_keys=True))); db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="user", aggregate_id=str(target.id), event_type="admin.user_role.changed", payload_json=json.dumps({"from": previous, "to": target.role, "actor_id": user.id}, sort_keys=True), correlation_id=str(uuid.uuid4()), idempotency_key=f"role:{target.id}:{uuid.uuid4()}")); db.commit(); return {"id": target.id, "name": target.name, "email": target.email, "role": target.role}
+
+
+def _saved_trip_output(db: Session, row: operational_models.SavedTrip) -> dict:
+    items = db.scalars(select(operational_models.SavedTripItem).where(operational_models.SavedTripItem.tenant_id == row.tenant_id, operational_models.SavedTripItem.saved_trip_id == row.id).order_by(operational_models.SavedTripItem.state, operational_models.SavedTripItem.position, operational_models.SavedTripItem.created_at)).all()
+    return {"id": row.id, "title": row.title, "status": row.status, "items": [{"id": item.id, "service_type": item.service_type, "source_reference": item.source_reference, "offer_id": item.offer_id, "state": item.state, "position": item.position, "snapshot": json.loads(item.snapshot_json)} for item in items]}
+
+
+@app.post("/saved-trips", status_code=status.HTTP_201_CREATED)
+def create_saved_trip(data: SavedTripIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    prior = db.scalar(select(operational_models.SavedTrip).where(operational_models.SavedTrip.tenant_id == user.tenant_id, operational_models.SavedTrip.command_id == data.command_id))
+    if prior:
+        if prior.user_id != user.id or prior.title != data.title.strip(): raise HTTPException(status_code=409, detail="کلید تکرار برای سفر دیگری استفاده شده است")
+        return _saved_trip_output(db, prior)
+    row = operational_models.SavedTrip(tenant_id=user.tenant_id, user_id=user.id, title=data.title.strip(), command_id=data.command_id); db.add(row); db.flush()
+    db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="saved_trip", aggregate_id=row.id, event_type="saved_trip.created", payload_json=json.dumps({"user_id": user.id, "title": row.title}), correlation_id=str(uuid.uuid4()), idempotency_key=data.command_id)); db.commit(); return _saved_trip_output(db, row)
+
+
+@app.get("/me/saved-trips")
+def my_saved_trips(user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
+    rows = db.scalars(select(operational_models.SavedTrip).where(operational_models.SavedTrip.tenant_id == user.tenant_id, operational_models.SavedTrip.user_id == user.id, operational_models.SavedTrip.status == "active").order_by(operational_models.SavedTrip.updated_at.desc())).all(); return [_saved_trip_output(db, row) for row in rows]
+
+
+@app.post("/saved-trips/{trip_id}/items", status_code=status.HTTP_201_CREATED)
+def add_saved_trip_item(trip_id: str, data: SavedItemIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    trip = db.scalar(select(operational_models.SavedTrip).where(operational_models.SavedTrip.id == trip_id, operational_models.SavedTrip.tenant_id == user.tenant_id, operational_models.SavedTrip.user_id == user.id).with_for_update())
+    if trip is None: raise HTTPException(status_code=404, detail="سفر ذخیره‌شده وجود ندارد")
+    prior = db.scalar(select(operational_models.SavedTripItem).where(operational_models.SavedTripItem.tenant_id == user.tenant_id, operational_models.SavedTripItem.command_id == data.command_id))
+    if prior:
+        if prior.saved_trip_id != trip.id or prior.source_reference != data.source_reference or prior.state != data.state: raise HTTPException(status_code=409, detail="کلید تکرار برای آیتم دیگری استفاده شده است")
+        return _saved_trip_output(db, trip)
+    offer = None
+    if data.offer_id:
+        offer = db.scalar(select(operational_models.Offer).where(operational_models.Offer.id == data.offer_id, operational_models.Offer.tenant_id == user.tenant_id))
+        if offer is None or offer.service_type != data.service_type: raise HTTPException(status_code=404, detail="Offer معتبر در این tenant وجود ندارد")
+    snapshot = {"authoritative": False, "needs_live_availability_check": True}
+    if offer:
+        now = datetime.now(timezone.utc); snapshot = {"authoritative": True, "offer_id": offer.id, "provider": offer.provider_key, "amount": offer.amount, "currency": offer.currency, "observed_at": _aware(offer.updated_at).isoformat(), "valid_until": _aware(offer.valid_until).isoformat(), "needs_live_availability_check": _aware(offer.valid_until) <= now}
+    position = db.scalar(select(func.coalesce(func.max(operational_models.SavedTripItem.position), 0)).where(operational_models.SavedTripItem.tenant_id == user.tenant_id, operational_models.SavedTripItem.saved_trip_id == trip.id, operational_models.SavedTripItem.state == data.state)) or 0
+    item = operational_models.SavedTripItem(tenant_id=user.tenant_id, saved_trip_id=trip.id, user_id=user.id, offer_id=data.offer_id, service_type=data.service_type, source_reference=data.source_reference, state=data.state, position=int(position) + 1, snapshot_json=json.dumps(snapshot, sort_keys=True), command_id=data.command_id); db.add(item); db.flush(); db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="saved_trip", aggregate_id=trip.id, event_type=f"saved_trip.item.{data.state}.added", payload_json=json.dumps({"item_id": item.id, "service_type": item.service_type}), correlation_id=str(uuid.uuid4()), idempotency_key=data.command_id)); db.commit(); return _saved_trip_output(db, trip)
+
+
+def _saved_item_mutation(trip_id: str, item_id: str, command_id: str, target_state: Optional[str], user: User, db: Session) -> dict:
+    scope = "saved_item.remove" if target_state is None else "saved_item.move"
+    request_hash = _secure_hash(f"{trip_id}:{item_id}:{target_state or 'removed'}")
+    prior = db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id == user.tenant_id, operational_models.IdempotencyKey.scope == scope, operational_models.IdempotencyKey.key == command_id))
+    if prior:
+        if prior.request_hash != request_hash: raise HTTPException(status_code=409, detail="کلید تکرار برای فرمان دیگری استفاده شده است")
+        return json.loads(prior.response_json or "{}")
+    trip = db.scalar(select(operational_models.SavedTrip).where(operational_models.SavedTrip.id == trip_id, operational_models.SavedTrip.tenant_id == user.tenant_id, operational_models.SavedTrip.user_id == user.id).with_for_update())
+    item = db.scalar(select(operational_models.SavedTripItem).where(operational_models.SavedTripItem.id == item_id, operational_models.SavedTripItem.saved_trip_id == trip_id, operational_models.SavedTripItem.tenant_id == user.tenant_id, operational_models.SavedTripItem.user_id == user.id).with_for_update()) if trip else None
+    if trip is None or item is None: raise HTTPException(status_code=404, detail="آیتم سفر ذخیره‌شده وجود ندارد")
+    event_type = "saved_trip.item.removed"
+    if target_state is None: db.delete(item)
+    else:
+        item.state = target_state; item.position = int(db.scalar(select(func.coalesce(func.max(operational_models.SavedTripItem.position), 0)).where(operational_models.SavedTripItem.tenant_id == user.tenant_id, operational_models.SavedTripItem.saved_trip_id == trip.id, operational_models.SavedTripItem.state == target_state)) or 0) + 1; event_type = f"saved_trip.item.moved_to_{target_state}"
+    db.flush(); response = _saved_trip_output(db, trip); db.add(operational_models.IdempotencyKey(tenant_id=user.tenant_id, scope=scope, key=command_id, request_hash=request_hash, response_json=json.dumps(response))); db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="saved_trip", aggregate_id=trip.id, event_type=event_type, payload_json=json.dumps({"item_id": item_id}), correlation_id=str(uuid.uuid4()), idempotency_key=command_id)); db.commit(); return response
+
+
+@app.put("/saved-trips/{trip_id}/items/{item_id}")
+def move_saved_item(trip_id: str, item_id: str, data: SavedItemMoveIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict: return _saved_item_mutation(trip_id, item_id, data.command_id, data.state, user, db)
+
+
+@app.delete("/saved-trips/{trip_id}/items/{item_id}")
+def remove_saved_item(trip_id: str, item_id: str, data: CommandIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict: return _saved_item_mutation(trip_id, item_id, data.command_id, None, user, db)
+
+
+def _review_output(row: operational_models.Review, response: Optional[operational_models.ReviewSupplierResponse] = None) -> dict:
+    return {"id": row.id, "rating": row.rating, "title": row.title, "body": row.body, "service_type": row.service_type, "service_reference": row.service_reference, "provider_reference": row.provider_reference, "reservation_id": row.reservation_id, "verified_booking": row.verified_booking, "moderation_state": row.moderation_state, "analysis": {"state": row.analysis_state, "summary": None, "topics": [], "sentiment": None}, "supplier_response": {"body": response.body, "created_at": response.created_at.isoformat()} if response else None, "created_at": row.created_at.isoformat(), "updated_at": row.updated_at.isoformat()}
+
+
+@app.post("/reviews", status_code=status.HTTP_201_CREATED)
+def create_review(data: ReviewIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    prior = db.scalar(select(operational_models.Review).where(operational_models.Review.tenant_id == user.tenant_id, operational_models.Review.command_id == data.command_id))
+    if prior:
+        if prior.user_id != user.id or prior.service_reference != data.service_reference: raise HTTPException(status_code=409, detail="کلید تکرار برای review دیگری استفاده شده است")
+        return _review_output(prior)
+    reservation = None
+    if data.reservation_id:
+        reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == data.reservation_id, operational_models.Reservation.tenant_id == user.tenant_id, operational_models.Reservation.user_id == user.id))
+        if reservation is None: raise HTTPException(status_code=404, detail="رزرو در این حساب وجود ندارد")
+        if reservation.service_type != data.service_type: raise HTTPException(status_code=422, detail="نوع review با رزرو سازگار نیست")
+    verified = bool(reservation and reservation.status in {"issued", "completed"} and reservation.provider_reference)
+    row = operational_models.Review(tenant_id=user.tenant_id, user_id=user.id, reservation_id=data.reservation_id, service_type=data.service_type, service_reference=data.service_reference, provider_reference=data.provider_reference or (reservation.provider_reference if reservation else None), rating=data.rating, title=data.title.strip(), body=data.body.strip(), verified_booking=verified, command_id=data.command_id); db.add(row); db.flush(); db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="review", aggregate_id=row.id, event_type="review.created", payload_json=json.dumps({"verified_booking": verified, "service_type": row.service_type}), correlation_id=str(uuid.uuid4()), idempotency_key=data.command_id)); db.commit(); return _review_output(row)
+
+
+@app.put("/reviews/{review_id}/moderation")
+def moderate_review(review_id: str, data: ReviewModerationIn, user: User = Depends(require_role("backoffice_expert", "tenant_admin", "platform_admin")), db: Session = Depends(get_db)) -> dict:
+    row = db.scalar(select(operational_models.Review).where(operational_models.Review.id == review_id, operational_models.Review.tenant_id == user.tenant_id).with_for_update())
+    if row is None: raise HTTPException(status_code=404, detail="Review در این tenant وجود ندارد")
+    row.moderation_state = data.state; db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="review", aggregate_id=row.id, event_type=f"review.moderation.{data.state}", payload_json=json.dumps({"actor_id": user.id, "reason": data.reason}), correlation_id=str(uuid.uuid4()), idempotency_key=f"review-moderation:{row.id}:{uuid.uuid4()}")); db.commit(); return _review_output(row)
+
+
+@app.post("/reviews/{review_id}/supplier-response", status_code=status.HTTP_201_CREATED)
+def supplier_review_response(review_id: str, data: ReviewResponseIn, user: User = Depends(require_role("supplier")), db: Session = Depends(get_db)) -> dict:
+    review = db.scalar(select(operational_models.Review).where(operational_models.Review.id == review_id, operational_models.Review.tenant_id == user.tenant_id))
+    supplier = db.scalar(select(operational_models.Supplier).where(operational_models.Supplier.id == data.supplier_id, operational_models.Supplier.tenant_id == user.tenant_id))
+    if review is None or supplier is None: raise HTTPException(status_code=404, detail="Review یا تأمین‌کننده در این tenant وجود ندارد")
+    prior = db.scalar(select(operational_models.ReviewSupplierResponse).where(operational_models.ReviewSupplierResponse.tenant_id == user.tenant_id, operational_models.ReviewSupplierResponse.command_id == data.command_id))
+    if prior:
+        if prior.review_id != review.id: raise HTTPException(status_code=409, detail="کلید تکرار برای پاسخ دیگری استفاده شده است")
+        return _review_output(review, prior)
+    if db.scalar(select(operational_models.ReviewSupplierResponse).where(operational_models.ReviewSupplierResponse.tenant_id == user.tenant_id, operational_models.ReviewSupplierResponse.review_id == review.id)): raise HTTPException(status_code=409, detail="پاسخ تأمین‌کننده قبلاً ثبت شده است")
+    response = operational_models.ReviewSupplierResponse(tenant_id=user.tenant_id, review_id=review.id, supplier_id=supplier.id, responder_user_id=user.id, body=data.body.strip(), command_id=data.command_id); db.add(response); db.flush(); db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="review", aggregate_id=review.id, event_type="review.supplier_response.created", payload_json=json.dumps({"response_id": response.id, "supplier_id": supplier.id}), correlation_id=str(uuid.uuid4()), idempotency_key=data.command_id)); db.commit(); return _review_output(review, response)
+
+
+@app.post("/destinations", status_code=status.HTTP_201_CREATED)
+def create_destination(data: DestinationIn, user: User = Depends(require_role("backoffice_expert", "tenant_admin", "platform_admin")), db: Session = Depends(get_db)) -> dict:
+    if data.parent_id and db.scalar(select(operational_models.Destination).where(operational_models.Destination.id == data.parent_id, operational_models.Destination.tenant_id == user.tenant_id)) is None: raise HTTPException(status_code=404, detail="مقصد والد وجود ندارد")
+    if db.scalar(select(operational_models.Destination).where(operational_models.Destination.tenant_id == user.tenant_id, operational_models.Destination.slug == data.slug)): raise HTTPException(status_code=409, detail="slug مقصد تکراری است")
+    row = operational_models.Destination(tenant_id=user.tenant_id, **{**data.model_dump(exclude={"seasonality", "categories", "highlights", "nearby_slugs"}), "seasonality_json": json.dumps(data.seasonality), "categories_json": json.dumps(data.categories), "highlights_json": json.dumps(data.highlights), "nearby_slugs_json": json.dumps(data.nearby_slugs)}); db.add(row); db.flush(); db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="destination", aggregate_id=row.id, event_type="destination.published", payload_json=json.dumps({"slug": row.slug, "kind": row.kind}), correlation_id=str(uuid.uuid4()), idempotency_key=f"destination:{row.id}")); db.commit(); return {"id": row.id, "slug": row.slug, "name_fa": row.name_fa, "kind": row.kind}
+
+
+def _destination_output(db: Session, row: operational_models.Destination) -> dict:
+    offers = db.scalars(select(operational_models.Offer).where(operational_models.Offer.tenant_id == row.tenant_id, operational_models.Offer.status == "active", operational_models.Offer.valid_until > datetime.now(timezone.utc))).all(); counts: dict[str, int] = {}
+    for offer in offers:
+        attrs = json.loads(offer.attributes_json or "{}")
+        if attrs.get("destination_slug") == row.slug: counts[offer.service_type] = counts.get(offer.service_type, 0) + 1
+    return {"id": row.id, "parent_id": row.parent_id, "kind": row.kind, "name_fa": row.name_fa, "name_en": row.name_en, "slug": row.slug, "geo": {"latitude": float(row.latitude) if row.latitude is not None else None, "longitude": float(row.longitude) if row.longitude is not None else None}, "description": row.description, "seasonality": json.loads(row.seasonality_json), "categories": json.loads(row.categories_json), "highlights": json.loads(row.highlights_json), "nearby_destinations": json.loads(row.nearby_slugs_json), "service_counts": counts}
+
+
+@app.get("/destinations")
+def list_destinations(user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
+    rows = db.scalars(select(operational_models.Destination).where(operational_models.Destination.tenant_id == user.tenant_id, operational_models.Destination.status == "published").order_by(operational_models.Destination.kind, operational_models.Destination.name_fa)).all(); return [_destination_output(db, row) for row in rows]
+
+
+@app.get("/destinations/{slug}")
+def destination_detail(slug: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    row = db.scalar(select(operational_models.Destination).where(operational_models.Destination.slug == slug, operational_models.Destination.tenant_id == user.tenant_id, operational_models.Destination.status == "published"))
+    if row is None: raise HTTPException(status_code=404, detail="مقصد وجود ندارد")
+    return _destination_output(db, row)
+
+
+def _itinerary_output(db: Session, row: operational_models.EditableItinerary) -> dict:
+    items = db.scalars(select(operational_models.EditableItineraryItem).where(operational_models.EditableItineraryItem.tenant_id == row.tenant_id, operational_models.EditableItineraryItem.itinerary_id == row.id).order_by(operational_models.EditableItineraryItem.day_number, operational_models.EditableItineraryItem.position)).all(); return {"id": row.id, "title": row.title, "destination_id": row.destination_id, "budget_amount": row.budget_amount, "currency": row.currency, "status": row.status, "items": [{"id": item.id, "offer_id": item.offer_id, "service_type": item.service_type, "title": item.title, "day_number": item.day_number, "position": item.position, "availability_state": item.availability_state, "snapshot": json.loads(item.snapshot_json)} for item in items]}
+
+
+@app.post("/itineraries", status_code=status.HTTP_201_CREATED)
+def create_itinerary(data: ItineraryIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    prior = db.scalar(select(operational_models.EditableItinerary).where(operational_models.EditableItinerary.tenant_id == user.tenant_id, operational_models.EditableItinerary.command_id == data.command_id))
+    if prior:
+        if prior.user_id != user.id or prior.title != data.title.strip(): raise HTTPException(status_code=409, detail="کلید تکرار برای برنامه دیگری استفاده شده است")
+        return _itinerary_output(db, prior)
+    if data.destination_id and db.scalar(select(operational_models.Destination).where(operational_models.Destination.id == data.destination_id, operational_models.Destination.tenant_id == user.tenant_id)) is None: raise HTTPException(status_code=404, detail="مقصد وجود ندارد")
+    row = operational_models.EditableItinerary(tenant_id=user.tenant_id, user_id=user.id, title=data.title.strip(), destination_id=data.destination_id, budget_amount=data.budget_amount, command_id=data.command_id); db.add(row); db.flush(); db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="itinerary", aggregate_id=row.id, event_type="itinerary.created", payload_json=json.dumps({"user_id": user.id}), correlation_id=str(uuid.uuid4()), idempotency_key=data.command_id)); db.commit(); return _itinerary_output(db, row)
+
+
+@app.get("/me/itineraries")
+def my_itineraries(user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
+    rows = db.scalars(select(operational_models.EditableItinerary).where(operational_models.EditableItinerary.tenant_id == user.tenant_id, operational_models.EditableItinerary.user_id == user.id).order_by(operational_models.EditableItinerary.updated_at.desc())).all(); return [_itinerary_output(db, row) for row in rows]
+
+
+@app.post("/itineraries/{itinerary_id}/items", status_code=status.HTTP_201_CREATED)
+def add_itinerary_item(itinerary_id: str, data: ItineraryItemIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    itinerary = db.scalar(select(operational_models.EditableItinerary).where(operational_models.EditableItinerary.id == itinerary_id, operational_models.EditableItinerary.tenant_id == user.tenant_id, operational_models.EditableItinerary.user_id == user.id).with_for_update())
+    if itinerary is None: raise HTTPException(status_code=404, detail="برنامه سفر وجود ندارد")
+    prior = db.scalar(select(operational_models.EditableItineraryItem).where(operational_models.EditableItineraryItem.tenant_id == user.tenant_id, operational_models.EditableItineraryItem.command_id == data.command_id))
+    if prior:
+        if prior.itinerary_id != itinerary.id: raise HTTPException(status_code=409, detail="کلید تکرار برای آیتم دیگری استفاده شده است")
+        return _itinerary_output(db, itinerary)
+    offer = db.scalar(select(operational_models.Offer).where(operational_models.Offer.id == data.offer_id, operational_models.Offer.tenant_id == user.tenant_id)) if data.offer_id else None
+    if data.offer_id and (offer is None or offer.service_type != data.service_type): raise HTTPException(status_code=404, detail="Offer معتبر وجود ندارد")
+    fresh = bool(offer and offer.status == "active" and offer.available_units > 0 and _aware(offer.valid_until) > datetime.now(timezone.utc)); snapshot = {"transactional_data_generated": False, "source": "search_offer" if offer else "user_plan", "offer_id": offer.id if offer else None, "amount": offer.amount if offer else None, "currency": offer.currency if offer else None, "valid_until": _aware(offer.valid_until).isoformat() if offer else None}
+    row = operational_models.EditableItineraryItem(tenant_id=user.tenant_id, itinerary_id=itinerary.id, offer_id=data.offer_id, service_type=data.service_type, title=data.title.strip(), day_number=data.day_number, position=data.position, availability_state="live_at_save_time" if fresh else "needs_live_availability_check", snapshot_json=json.dumps(snapshot), command_id=data.command_id); db.add(row); db.flush(); db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="itinerary", aggregate_id=itinerary.id, event_type="itinerary.item.added", payload_json=json.dumps({"item_id": row.id, "availability_state": row.availability_state}), correlation_id=str(uuid.uuid4()), idempotency_key=data.command_id)); db.commit(); return _itinerary_output(db, itinerary)
+
+
+@app.put("/itineraries/{itinerary_id}/items/{item_id}")
+def update_itinerary_item(itinerary_id: str, item_id: str, data: ItineraryItemUpdateIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    itinerary = db.scalar(select(operational_models.EditableItinerary).where(operational_models.EditableItinerary.id == itinerary_id, operational_models.EditableItinerary.tenant_id == user.tenant_id, operational_models.EditableItinerary.user_id == user.id).with_for_update()); item = db.scalar(select(operational_models.EditableItineraryItem).where(operational_models.EditableItineraryItem.id == item_id, operational_models.EditableItineraryItem.itinerary_id == itinerary_id, operational_models.EditableItineraryItem.tenant_id == user.tenant_id).with_for_update()) if itinerary else None
+    if itinerary is None or item is None: raise HTTPException(status_code=404, detail="آیتم برنامه سفر وجود ندارد")
+    key = db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id == user.tenant_id, operational_models.IdempotencyKey.scope == "itinerary.item.update", operational_models.IdempotencyKey.key == data.command_id)); request_hash = _secure_hash(data.model_dump_json())
+    if key:
+        if key.request_hash != request_hash: raise HTTPException(status_code=409, detail="کلید تکرار برای تغییر دیگری استفاده شده است")
+        return json.loads(key.response_json or "{}")
+    if data.replacement_offer_id:
+        offer = db.scalar(select(operational_models.Offer).where(operational_models.Offer.id == data.replacement_offer_id, operational_models.Offer.tenant_id == user.tenant_id, operational_models.Offer.service_type == item.service_type))
+        if offer is None: raise HTTPException(status_code=404, detail="Offer جایگزین معتبر نیست")
+        item.offer_id = offer.id; item.availability_state = "live_at_save_time" if offer.status == "active" and offer.available_units > 0 and _aware(offer.valid_until) > datetime.now(timezone.utc) else "needs_live_availability_check"; item.snapshot_json = json.dumps({"transactional_data_generated": False, "source": "search_offer", "offer_id": offer.id, "amount": offer.amount, "currency": offer.currency, "valid_until": _aware(offer.valid_until).isoformat()})
+    item.day_number = data.day_number; item.position = data.position; db.flush(); response = _itinerary_output(db, itinerary); db.add(operational_models.IdempotencyKey(tenant_id=user.tenant_id, scope="itinerary.item.update", key=data.command_id, request_hash=request_hash, response_json=json.dumps(response))); db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="itinerary", aggregate_id=itinerary.id, event_type="itinerary.item.updated", payload_json=json.dumps({"item_id": item.id, "day_number": item.day_number, "position": item.position}), correlation_id=str(uuid.uuid4()), idempotency_key=data.command_id)); db.commit(); return response
+
+
+@app.put("/itineraries/{itinerary_id}")
+def update_itinerary(itinerary_id: str, data: ItineraryUpdateIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    row = db.scalar(select(operational_models.EditableItinerary).where(operational_models.EditableItinerary.id == itinerary_id, operational_models.EditableItinerary.tenant_id == user.tenant_id, operational_models.EditableItinerary.user_id == user.id).with_for_update())
+    if row is None: raise HTTPException(status_code=404, detail="برنامه سفر وجود ندارد")
+    request_hash = _secure_hash(data.model_dump_json()); prior = db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id == user.tenant_id, operational_models.IdempotencyKey.scope == "itinerary.update", operational_models.IdempotencyKey.key == data.command_id))
+    if prior:
+        if prior.request_hash != request_hash: raise HTTPException(status_code=409, detail="کلید تکرار برای تغییر دیگری استفاده شده است")
+        return json.loads(prior.response_json or "{}")
+    row.title = data.title.strip(); row.budget_amount = data.budget_amount; row.status = data.status; db.flush(); response = _itinerary_output(db, row)
+    db.add(operational_models.IdempotencyKey(tenant_id=user.tenant_id, scope="itinerary.update", key=data.command_id, request_hash=request_hash, response_json=json.dumps(response))); db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="itinerary", aggregate_id=row.id, event_type="itinerary.updated", payload_json=json.dumps({"budget_amount": row.budget_amount, "status": row.status}), correlation_id=str(uuid.uuid4()), idempotency_key=data.command_id)); db.commit(); return response
+
+
+@app.delete("/itineraries/{itinerary_id}/items/{item_id}")
+def remove_itinerary_item(itinerary_id: str, item_id: str, data: CommandIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    row = db.scalar(select(operational_models.EditableItinerary).where(operational_models.EditableItinerary.id == itinerary_id, operational_models.EditableItinerary.tenant_id == user.tenant_id, operational_models.EditableItinerary.user_id == user.id).with_for_update()); item = db.scalar(select(operational_models.EditableItineraryItem).where(operational_models.EditableItineraryItem.id == item_id, operational_models.EditableItineraryItem.itinerary_id == itinerary_id, operational_models.EditableItineraryItem.tenant_id == user.tenant_id)) if row else None
+    if row is None or item is None: raise HTTPException(status_code=404, detail="آیتم برنامه سفر وجود ندارد")
+    scope = "itinerary.item.remove"; prior = db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id == user.tenant_id, operational_models.IdempotencyKey.scope == scope, operational_models.IdempotencyKey.key == data.command_id))
+    if prior: return json.loads(prior.response_json or "{}")
+    db.delete(item); db.flush(); response = _itinerary_output(db, row); db.add(operational_models.IdempotencyKey(tenant_id=user.tenant_id, scope=scope, key=data.command_id, request_hash=_secure_hash(item_id), response_json=json.dumps(response))); db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="itinerary", aggregate_id=row.id, event_type="itinerary.item.removed", payload_json=json.dumps({"item_id": item_id}), correlation_id=str(uuid.uuid4()), idempotency_key=data.command_id)); db.commit(); return response
+
+
+@app.post("/itineraries/{itinerary_id}/duplicate", status_code=status.HTTP_201_CREATED)
+def duplicate_itinerary(itinerary_id: str, data: CommandIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    source = db.scalar(select(operational_models.EditableItinerary).where(operational_models.EditableItinerary.id == itinerary_id, operational_models.EditableItinerary.tenant_id == user.tenant_id, operational_models.EditableItinerary.user_id == user.id))
+    if source is None: raise HTTPException(status_code=404, detail="برنامه سفر وجود ندارد")
+    prior = db.scalar(select(operational_models.EditableItinerary).where(operational_models.EditableItinerary.tenant_id == user.tenant_id, operational_models.EditableItinerary.command_id == data.command_id))
+    if prior: return _itinerary_output(db, prior)
+    clone = operational_models.EditableItinerary(tenant_id=user.tenant_id, user_id=user.id, title=f"کپی {source.title}"[:160], destination_id=source.destination_id, budget_amount=source.budget_amount, currency=source.currency, command_id=data.command_id); db.add(clone); db.flush()
+    items = db.scalars(select(operational_models.EditableItineraryItem).where(operational_models.EditableItineraryItem.tenant_id == user.tenant_id, operational_models.EditableItineraryItem.itinerary_id == source.id)).all()
+    for item in items: db.add(operational_models.EditableItineraryItem(tenant_id=user.tenant_id, itinerary_id=clone.id, offer_id=item.offer_id, service_type=item.service_type, title=item.title, day_number=item.day_number, position=item.position, availability_state=item.availability_state, snapshot_json=item.snapshot_json, command_id=f"{data.command_id}:{item.id}"[:120]))
+    db.flush(); db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="itinerary", aggregate_id=clone.id, event_type="itinerary.duplicated", payload_json=json.dumps({"source_itinerary_id": source.id}), correlation_id=str(uuid.uuid4()), idempotency_key=data.command_id)); db.commit(); return _itinerary_output(db, clone)
+
+
+@app.get("/me/reviews")
+def my_reviews(user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
+    rows = db.scalars(select(operational_models.Review).where(operational_models.Review.tenant_id == user.tenant_id, operational_models.Review.user_id == user.id).order_by(operational_models.Review.created_at.desc())).all(); result = []
+    for row in rows:
+        response = db.scalar(select(operational_models.ReviewSupplierResponse).where(operational_models.ReviewSupplierResponse.tenant_id == user.tenant_id, operational_models.ReviewSupplierResponse.review_id == row.id)); result.append(_review_output(row, response))
+    return result

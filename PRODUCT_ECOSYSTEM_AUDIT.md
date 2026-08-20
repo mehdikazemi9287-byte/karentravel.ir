@@ -60,3 +60,20 @@ These are behavior contracts only. KarenSeir keeps its approved Persian RTL/Vazi
 | 16 Security/Financial | PASS | prior real PostgreSQL 56/56 RLS plus current IDOR/payment/idempotency/RBAC regression |
 
 Passed phases: 6/16. The expanded ecosystem scope is estimated at 76%; the prior 97% remains the completion figure for the narrower production-hardening scope and is not reused to conceal new product gaps.
+
+## Increment checkpoint — 2026-08-20T09:34:20Z
+
+| Current phase | Gate | Evidence / remaining |
+|---|---|---|
+| 7 Trip Basket + Wishlist | BLOCKED | domain/API/UI/idempotency/audit/cross-tenant API PASS؛ PostgreSQL migration 11 direct RLS gate blocked by absent runtime |
+| 8 Verified Reviews | BLOCKED | server-derived verified flag، strict anti-forgery، moderation، supplier response separation و tenant tests PASS؛ direct PostgreSQL RLS gate remains |
+| 9 Destination Catalog | PASS | hierarchy/persistence/service counts و routeهای مستقل list/detail؛ Homepage unchanged |
+| 10 Editable Trip Assistant | PASS (internal) | persisted create/resume/add/remove/reorder/replace/budget/save/duplicate؛ bookable data references authoritative Offer و otherwise needs-live state |
+| 11 Comparison Completion | PASS | 2–4 offers، vertical fields، deterministic awards، audit event و tenant isolation |
+| 12 Map/List | PASS (credential-independent) | independent route، list/selection/coordinates/bounds contract؛ map transport explicitly blocked by credential |
+| 13 Unified Checkout | PARTIAL | existing traveller/price/availability/payment/invoice/confirmation domains remain separate؛ resumable cohesive UI pending |
+| 14 ZarinPal TEST | BLOCKED | merchant credential absent؛ dedicated adapter/request/verify remains internal work and no fake success exists |
+| 15 SEO/CWV/RTL | PARTIAL | destination metadata/build PASS؛ canonical/sitemap/structured data/CWV and full viewport/date matrix pending |
+| 16 Final Security | BLOCKED | API negative regression PASS؛ migration 11 direct PostgreSQL RLS and full security matrix pending |
+
+Current honest completion: `84%`; passed phases: `10/16`. Homepage visual regression remains zero.

@@ -52,6 +52,9 @@ export class KarenSeirApi {
   async put<T>(path: string, body: unknown) {
     return this.request<T>(path, { method: 'PUT', body: JSON.stringify(body) });
   }
+  async delete<T>(path: string, body: unknown) {
+    return this.request<T>(path, { method: 'DELETE', body: JSON.stringify(body) });
+  }
 
   private async refresh() {
     if (!this.session) throw new ApiError(401, 'نشست معتبر نیست.');

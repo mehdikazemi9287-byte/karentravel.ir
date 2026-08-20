@@ -1,5 +1,15 @@
 # وضعیت اجرایی پایلوت
 
+## Ecosystem saved travel increment — ۱۴۰۵/۰۵/۲۹
+
+- migration افزایشی `20260820_11` دامنه‌های tenant-aware سفر ذخیره‌شده/علاقه‌مندی/سبد سفر، Review و پاسخ مستقل تأمین‌کننده، کاتالوگ مقصد و itinerary قابل‌ویرایش را اضافه می‌کند. هفت جدول تازه policy استاندارد RLS و FORCE RLS دارند؛ destructive change وجود ندارد.
+- APIهای مالکیت کاربر، idempotency و audit/outbox برای ساخت/انتقال/حذف آیتم، چند سفر ذخیره‌شده، review با verified flag مشتق‌شده فقط از رزرو issued/completed، moderation نقش‌محور، پاسخ تأمین‌کننده، hierarchy مقصد و create/add/update/remove/duplicate itinerary تکمیل شد.
+- Comparison به schemaهای vertical و شش award قطعی با `deterministic-v1` و event قابل audit توسعه یافت. routeهای مستقل `/saved-trips`، `/itineraries`، `/destinations/[slug]` و `/map` به API واقعی وصل شدند؛ map بدون credential فقط fallback صادقانه فهرست/مختصات است.
+- Homepage، CSS، asset و layout تأییدشده تغییر نکرد. visual structural regression دسکتاپ و موبایل در Playwright PASS است.
+- QA: backend `73 passed, 5 skipped`؛ lint/typecheck/build برای ۲۶ route PASS؛ E2E `14/14` PASS؛ Alembic upgrade/current/check روی DB ایزوله تا head 11 PASS؛ npm audit صفر و `git diff --check` PASS.
+- PostgreSQL runtime/Docker در این میزبان موجود نیست؛ بنابراین اجرای مستقیم migration 11 و RLS/FORCE RLS هفت جدول تازه روی PostgreSQL واقعی **BLOCKED_INTERNAL_ENVIRONMENT** است و phaseهای 7/8 تا اجرای این gate نهایی تلقی نمی‌شوند. evidence قبلی head 10 و 56/56 حفظ شده است.
+- ZarinPal adapter اختصاصی، unified checkout، review UI/moderation، SEO/CWV/RTL matrix و security regression مستقیم PostgreSQL برای head 11 کار داخلی باقی‌مانده‌اند. Production همچنان **NO-GO** است.
+
 ## Ecosystem Search 2.0 + Product Audit — ۱۴۰۵/۰۵/۲۹
 
 - audit صفحه‌به‌صفحه و phase gate در `PRODUCT_ECOSYSTEM_AUDIT.md` ثبت شد؛ دامنه گسترده جدید completion اکوسیستم را `76%` نشان می‌دهد و عدد 97% قبلی فقط مربوط به hardening scope است.

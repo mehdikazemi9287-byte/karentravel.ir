@@ -215,3 +215,31 @@ test('finance workspace fails closed for customers and opens for finance role', 
   await page.getByRole('link', { name: 'مالی', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'پرداخت، کیف پول، اقساط و تسویه' })).toBeVisible();
 });
+
+test('saved travel, itinerary, destination and map fallback use tenant APIs', async ({ page, request }) => {
+  const suffix = Date.now().toString();
+  const backoffice = await login(request, 'backoffice@aftab.test');
+  const destination = await request.post(`${api}/destinations`, { headers: { Authorization: `Bearer ${backoffice.access_token}` }, data: { kind: 'city', name_fa: 'شیراز E2E', name_en: 'Shiraz', slug: `shiraz-e2e-${suffix}`, latitude: 29.59, longitude: 52.58, description: 'مقصد تست عملیاتی', seasonality: ['spring'], categories: ['historical'], highlights: ['حافظیه'], nearby_slugs: [] } });
+  expect(destination.status()).toBe(201);
+  await uiLogin(page, 'employee@aftab.test');
+  await page.goto('/saved-trips');
+  await page.getByLabel('عنوان سفر').fill(`سفر E2E ${suffix}`);
+  await page.getByRole('button', { name: 'ساخت سفر ذخیره‌شده' }).click();
+  await expect(page.getByRole('status')).toContainText('سفر ذخیره شد');
+  await page.getByLabel(`مرجع آیتم سفر E2E ${suffix}`).fill('attraction:hafezieh');
+  await page.getByRole('button', { name: 'ذخیره در علاقه‌مندی' }).click();
+  await expect(page.getByRole('status')).toContainText('علاقه‌مندی');
+  await page.getByRole('button', { name: 'انتقال' }).click();
+  await expect(page.getByRole('status')).toContainText('سبد سفر');
+  await page.goto('/itineraries');
+  await page.getByLabel('عنوان برنامه سفر').fill(`برنامه E2E ${suffix}`);
+  await page.getByRole('button', { name: 'ساخت برنامه' }).click();
+  await expect(page.getByRole('status')).toContainText('قابل‌ویرایش ساخته شد');
+  await page.getByRole('button', { name: 'افزودن آیتم' }).click();
+  await expect(page.getByText('نیازمند بررسی زنده موجودی')).toBeVisible();
+  await page.goto('/destinations');
+  await page.getByRole('link', { name: /شیراز E2E/ }).click();
+  await expect(page.getByText('Offer تازه‌ای برای این مقصد موجود نیست')).toBeVisible();
+  await page.goto('/map');
+  await expect(page.getByText('در نبود credential نقشه')).toBeVisible();
+});

@@ -1,5 +1,21 @@
 # Test Evidence
 
+## Saved Travel ecosystem increment — 2026-08-20T09:34:20Z
+
+| Check | Result |
+|---|---|
+| Full credential-independent backend | `73 passed, 5 skipped`؛ skipها فقط PostgreSQL/Redis/worker integration نیازمند runtime هستند |
+| New Saved Trip/Review/Destination/Itinerary API tests | `3/3 passed`؛ own/cross-tenant، idempotency، verified forgery، moderation RBAC، supplier response integrity و live-availability fallback |
+| Deterministic comparison awards | PASS؛ شش award و `deterministic-v1` تست شد |
+| Alembic isolated upgrade/current/check | PASS؛ `20260820_11 (head)` و no drift روی SQLite disposable |
+| PostgreSQL migration/RLS for migration 11 | BLOCKED؛ `docker`, `postgres` و `psql` در میزبان حاضر نیستند؛ evidence پیشین head 10 و `56/56` جایگزین این آزمون نشده است |
+| ESLint / strict TypeScript / Next build | PASS / PASS / PASS؛ ۲۶ route |
+| Chromium E2E | `14/14 passed`؛ شامل Saved Travel/Itinerary/Destination/Map fallback |
+| Frozen Homepage regression | PASS؛ Desktop 1440×1000 و Mobile 390×844، RTL و landmarkها؛ هیچ source file بصری Homepage تغییر نکرد |
+| npm dependency audit | PASS؛ `0 vulnerabilities` از registry رسمی |
+| `git diff --check` | PASS |
+| ZarinPal TEST | BLOCKED BY CREDENTIAL و adapter اختصاصی هنوز internal remaining؛ هیچ success جعلی ثبت نشد |
+
 ## Ecosystem Search increment — 2026-08-20T09:07:00Z
 
 | Check | Result |
