@@ -1,10 +1,10 @@
 {
-  "release_version": "2026.08.20-rc5",
-  "build_timestamp_utc": "2026-08-20T06:44:55Z",
+  "release_version": "2026.08.20-rc6",
+  "build_timestamp_utc": "2026-08-20T07:17:20Z",
   "source_checksum_algorithm": "sha256-of-git-ls-tree",
   "source_checksum": "12873b6bb0d6c36f89b2586eb6b6255855212011f32b86a13da27d0cfe28f3d6",
   "pre_change_snapshot_sha256": "936e1e94c938bb3096af81ed103695bc7de184c56ea270a266c7abf386b3aa25",
-  "migration_head": "20260820_09",
+  "migration_head": "20260820_10",
   "verified_backup_sha256": "4955a47c6357e6d540f2bd1969cfc82e7e3ef7ca0a0af7e2e54badef05c0cef5",
   "dependency_locks": {
     "package-lock.json": "880ad6fb0f3422cc07b9a326626161893570c99668b56fa7fb1c0441b63bac5f",
@@ -30,7 +30,12 @@
     "Authenticated customer profile, travellers, personal wallet and notification preferences",
     "Payment intent UI with credential-free fail-closed provider validation",
     "Supplier, agency and backoffice mutation workflows with tenant/RBAC tests",
-    "Finance reconciliation and scoped customer support UI"
+    "Finance reconciliation and scoped customer support UI",
+    "Tenant-RLS invoice, support thread and installment execution migration",
+    "Backend-derived invoices and visibly separated human support messages",
+    "Idempotent pending settlement posting and installment decisions",
+    "Tenant Admin role workflow with anti-escalation controls",
+    "Twelve-flow Chromium E2E coverage"
   ],
   "incomplete_reasons": [
     "The imported workspace had no prior Git metadata or upstream provenance",

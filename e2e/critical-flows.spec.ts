@@ -165,5 +165,36 @@ test('supplier, agency and backoffice mutations remain role-scoped', async ({ pa
   const statusMutation = page.getByRole('button', { name: /تعلیق|فعال‌سازی/ }).first();
   await expect(statusMutation).toBeVisible();
   await statusMutation.click();
-  await expect(page.getByRole('status')).toContainText('وضعیت تأمین‌کننده ثبت شد');
+  await expect(page.getByText('وضعیت تأمین‌کننده ثبت شد.', { exact: true })).toBeVisible();
+});
+
+test('support case thread keeps customer and human-agent messages distinct', async ({ page, request }) => {
+  const reservationId = await createOperationalFixture(request, 'support-thread');
+  await uiLogin(page, 'employee@aftab.test');
+  await page.getByRole('link', { name: 'سفرهای من' }).click();
+  await page.locator(`a[href="/manage-booking/${reservationId}"]`).click();
+  await page.getByRole('link', { name: 'گفت‌وگو با پشتیبانی انسانی' }).click();
+  await page.getByLabel('شرح درخواست').fill('واچر این رزرو نیاز به بررسی انسانی دارد');
+  await page.getByRole('button', { name: 'ایجاد پرونده انسانی' }).click();
+  await expect(page.getByRole('status')).toContainText('پرونده پشتیبانی انسانی ثبت شد');
+  await expect(page.getByText('مشتری', { exact: true })).toBeVisible();
+
+  await uiLogin(page, 'backoffice@aftab.test');
+  await page.getByRole('link', { name: 'عملیات', exact: true }).click();
+  await page.getByLabel('پرونده پشتیبانی').selectOption({ index: 1 });
+  await page.getByLabel('پیام کارشناس انسانی').fill('کارشناس انسانی واچر را بررسی کرد');
+  await page.getByRole('button', { name: 'ارسال با برچسب کارشناس انسانی' }).click();
+  await expect(page.getByRole('status')).toContainText('پاسخ کارشناس انسانی ثبت شد');
+});
+
+test('finance workspace fails closed for customers and opens for finance role', async ({ page }) => {
+  await uiLogin(page, 'employee@aftab.test');
+  await page.getByRole('link', { name: 'سفرهای من' }).click();
+  await page.getByRole('link', { name: 'مالی', exact: true }).click();
+  await expect(page.getByText('نقش شما به این بخش دسترسی ندارد.')).toBeVisible();
+
+  await uiLogin(page, 'finance@aftab.test');
+  await page.getByRole('link', { name: 'عملیات', exact: true }).click();
+  await page.getByRole('link', { name: 'مالی', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'پرداخت، کیف پول، اقساط و تسویه' })).toBeVisible();
 });

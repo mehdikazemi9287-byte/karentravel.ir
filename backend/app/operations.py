@@ -316,6 +316,21 @@ class InstallmentPlan(OperationalMixin, Base):
     status: Mapped[str] = mapped_column(String(24), default="disabled")
 
 
+class InstallmentAgreement(OperationalMixin, Base):
+    __tablename__ = "installment_agreements"
+    plan_id: Mapped[str] = mapped_column(ForeignKey("installment_plans.id"), index=True)
+    reservation_id: Mapped[str] = mapped_column(ForeignKey("reservations.id"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    command_id: Mapped[str] = mapped_column(String(120))
+    principal_amount: Mapped[int] = mapped_column(Integer)
+    total_payable: Mapped[int] = mapped_column(Integer)
+    currency: Mapped[str] = mapped_column(String(3), default="IRR")
+    schedule_json: Mapped[str] = mapped_column(Text, default="[]")
+    status: Mapped[str] = mapped_column(String(24), default="requested", index=True)
+    activated_by_user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    __table_args__ = (UniqueConstraint("tenant_id", "command_id", name="uq_installment_agreement_command"), UniqueConstraint("tenant_id", "reservation_id", name="uq_installment_reservation"))
+
+
 class PricingRule(OperationalMixin, Base):
     __tablename__ = "pricing_rules"
     rule_type: Mapped[str] = mapped_column(String(32), index=True)
@@ -378,6 +393,22 @@ class RefundRecord(OperationalMixin, Base):
     status: Mapped[str] = mapped_column(String(32), default="requested", index=True)
     provider_reference: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
     __table_args__ = (UniqueConstraint("tenant_id", "command_id", name="uq_refund_command"),)
+
+
+class Invoice(OperationalMixin, Base):
+    __tablename__ = "invoices"
+    reservation_id: Mapped[str] = mapped_column(ForeignKey("reservations.id"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    invoice_number: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    command_id: Mapped[str] = mapped_column(String(120))
+    subtotal_amount: Mapped[int] = mapped_column(Integer)
+    tax_amount: Mapped[int] = mapped_column(Integer, default=0)
+    total_amount: Mapped[int] = mapped_column(Integer)
+    currency: Mapped[str] = mapped_column(String(3), default="IRR")
+    status: Mapped[str] = mapped_column(String(24), default="issued", index=True)
+    snapshot_json: Mapped[str] = mapped_column(Text, default="{}")
+    issued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    __table_args__ = (UniqueConstraint("tenant_id", "command_id", name="uq_invoice_command"), UniqueConstraint("tenant_id", "reservation_id", name="uq_invoice_reservation"))
 
 
 class ApprovalWorkflow(OperationalMixin, Base):
@@ -489,6 +520,27 @@ class SupportMessage(OperationalMixin, Base):
     trip_id: Mapped[Optional[str]] = mapped_column(ForeignKey("trips.id"), nullable=True)
     reservation_id: Mapped[Optional[str]] = mapped_column(ForeignKey("reservations.id"), nullable=True)
     sender_type: Mapped[str] = mapped_column(String(32), index=True)
+    body: Mapped[str] = mapped_column(Text)
+
+
+class SupportCase(OperationalMixin, Base):
+    __tablename__ = "support_cases"
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    reservation_id: Mapped[Optional[str]] = mapped_column(ForeignKey("reservations.id"), nullable=True, index=True)
+    trip_id: Mapped[Optional[str]] = mapped_column(ForeignKey("trips.id"), nullable=True, index=True)
+    subject: Mapped[str] = mapped_column(String(200))
+    status: Mapped[str] = mapped_column(String(24), default="open", index=True)
+    priority: Mapped[str] = mapped_column(String(16), default="normal")
+    assigned_to_user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    command_id: Mapped[str] = mapped_column(String(120))
+    __table_args__ = (UniqueConstraint("tenant_id", "command_id", name="uq_support_case_command"),)
+
+
+class SupportThreadMessage(OperationalMixin, Base):
+    __tablename__ = "support_thread_messages"
+    case_id: Mapped[str] = mapped_column(ForeignKey("support_cases.id"), index=True)
+    sender_type: Mapped[str] = mapped_column(String(32), index=True)
+    sender_user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
     body: Mapped[str] = mapped_column(Text)
 
 

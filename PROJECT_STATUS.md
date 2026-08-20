@@ -1,5 +1,14 @@
 # وضعیت اجرایی پایلوت
 
+## Final internal domain phase — ۱۴۰۵/۰۵/۲۹
+
+- migration افزایشی `20260820_10` چهار جدول `invoices`، `support_cases`، `support_thread_messages` و `installment_agreements` را با tenant key، PostgreSQL RLS و `FORCE RLS` اضافه می‌کند؛ downgrade فقط همین چهار جدول را برمی‌گرداند و هیچ migration مخربی وجود ندارد.
+- صورتحساب backend-derived و idempotent، پرونده/رشته پشتیبانی با منبع صریح `customer`/`human_agent`، اجرای اقساط سازمانی، settlement posting در وضعیت `pending` و workflow تغییر نقش tenant-scoped تکمیل شد.
+- UI موجود بدون redesign به invoice read/issue، support thread انسانی، installment decision، settlement posting و Admin role management متصل شد؛ موفقیت انتقال وجه یا provider بیرونی ادعا نمی‌شود.
+- QA این pass: backend `64 passed, 5 skipped`، Chromium E2E `12/12`، ESLint، TypeScript strict، build ۲۲ route، Python compile، Alembic upgrade/head/check و `git diff --check` همگی PASS هستند.
+- RLS metadata اکنون ۵۶ جدول tenant-scoped دارد. اجرای مستقیم PostgreSQL برای چهار جدول تازه در این pass به target دست نزد؛ policy SQL و تست‌های API cross-tenant سبزند و staging target باید migration/restore drill کنترل‌شده را پیش از rollout تکرار کند.
+- Completion داخلی `94%` و وضعیت Production همچنان **NO-GO** است؛ فقط اتصال‌ها و certification بیرونی و validation migration روی PostgreSQL target باقی مانده‌اند.
+
 ## Final autonomous checkpoint — ۱۴۰۵/۰۵/۲۹
 
 - فاز Customer/Panel mutation تکمیل شد: `/account` به profile، owned travellers، personal wallet ledger، payment intents/initiation fail-closed، installment eligibility و notification preferences متصل است.
