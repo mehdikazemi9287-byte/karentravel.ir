@@ -11,4 +11,4 @@
 - Tests and E2E: see `TEST_EVIDENCE.md`.
 - Production readiness: NO-GO; see `PRODUCTION_READINESS.md`.
 - Exact next action: connect `/trips`, `/manage-booking`, `/compare`, `/organization`, supplier, agency and backoffice UI states to the authenticated API client, then run the same QA matrix before any target deployment.
-- Git checkpoint commit: recorded by the repository log created immediately after this file is saved; self-referential commit hashes cannot be embedded in the commit that creates this file.
+- Git source checkpoint commit at save time: `a2a12fd06f6ff35a181add2339846a528da85096` on branch `main`. A documentation/provenance follow-up commit records this hash; the final HEAD is reported in the handoff.
