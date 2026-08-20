@@ -2,6 +2,11 @@
 
 ## Final autonomous checkpoint — ۱۴۰۵/۰۵/۲۹
 
+- فاز Customer/Panel mutation تکمیل شد: `/account` به profile، owned travellers، personal wallet ledger، payment intents/initiation fail-closed، installment eligibility و notification preferences متصل است.
+- Supplier onboarding/inventory status، Agency creation/markup، BackOffice supplier status و Finance reconciliation UI با RBAC/tenant scope واقعی متصل شدند. پیام پشتیبانی مشتری فقط برای reservation/trip متعلق به همان حساب ثبت می‌شود.
+- schema و migration تغییر نکرد؛ UI تأییدشده redesign نشد. backend برابر `60 passed, 5 skipped`، E2E برابر `10/10` و lint/typecheck/build ۲۱ route PASS است.
+- invoice domain، support case thread کامل، installment execution و settlement posting همچنان توسعه داخلی بعدی‌اند؛ Production به‌علت blockerهای بیرونی و certification همچنان **NO-GO** است.
+
 - authenticated client اکنون در root session مشترک است و routeهای `/trips`، Trip Timeline واقعی، `/manage-booking`، `/compare`، `/organization`، `/supplier`، `/agency` و `/backoffice` را بدون redesign به API tenant-scoped متصل می‌کند.
 - read modelهای رزرو، سفر، اعلان و سازمان، onboarding idempotent تأمین‌کننده و تست‌های RBAC/cross-tenant افزوده شدند؛ schema یا migration تغییر نکرد.
 - QA این pass: backend `57 passed, 5 skipped`، ESLint، TypeScript strict، build ۱۹ route و Chromium E2E `8/8` PASS است.

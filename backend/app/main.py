@@ -169,6 +169,13 @@ class CompareIn(BaseModel): offer_ids: list[str] = Field(min_length=2, max_lengt
 class NotificationPreferenceIn(BaseModel): topic: str = Field(min_length=2, max_length=48); channel: str = Field(pattern="^(web|app|push|sms)$"); enabled: bool
 class AgencyIn(BaseModel): display_name: str = Field(min_length=2, max_length=180); parent_agency_id: Optional[str] = Field(default=None, min_length=36, max_length=36); markup_bps: int = Field(ge=0, le=10000); commission_bps: int = Field(ge=0, le=10000)
 class VoucherReissueIn(BaseModel): command_id: str = Field(min_length=8, max_length=120); document_reference: str = Field(min_length=3, max_length=240); reason: str = Field(min_length=3, max_length=500)
+class ProfileIn(BaseModel): name: str = Field(min_length=2, max_length=160); locale: str = Field(default="fa-IR", pattern="^(fa-IR|en-US)$")
+class TravellerIn(BaseModel): full_name: str = Field(min_length=3, max_length=160); profile_reference: Optional[str] = Field(default=None, max_length=160)
+class WalletCreateIn(BaseModel): currency: str = Field(default="IRR", pattern="^IRR$")
+class SupplierOfferUpdateIn(BaseModel): amount: Optional[int] = Field(default=None, gt=0); available_units: Optional[int] = Field(default=None, ge=0, le=100000); status: Optional[str] = Field(default=None, pattern="^(active|paused)$")
+class AgencyUpdateIn(BaseModel): display_name: Optional[str] = Field(default=None, min_length=2, max_length=180); markup_bps: Optional[int] = Field(default=None, ge=0, le=10000); commission_bps: Optional[int] = Field(default=None, ge=0, le=10000); status: Optional[str] = Field(default=None, pattern="^(active|suspended)$")
+class SupplierStatusIn(BaseModel): status: str = Field(pattern="^(active|suspended)$"); reason: str = Field(min_length=3, max_length=500)
+class SupportMessageIn(BaseModel): reservation_id: Optional[str] = Field(default=None, min_length=36, max_length=36); trip_id: Optional[str] = Field(default=None, min_length=36, max_length=36); body: str = Field(min_length=3, max_length=4000)
 def token_for(user: User, tenant: Tenant) -> str:
     now = datetime.now(timezone.utc)
     return jwt.encode({"sub":str(user.id),"tenant":tenant.id,"role":user.role,"type":"access","iss":JWT_ISSUER,"aud":JWT_AUDIENCE,"iat":now,"jti":str(uuid.uuid4()),"exp":now+timedelta(minutes=15)}, JWT_SECRET, algorithm="HS256")
@@ -523,6 +530,102 @@ def my_trips(user: User = Depends(require_permission("trip:read")), db: Session 
 def my_notifications(user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
     rows = db.scalars(select(operational_models.NotificationRecord).where(operational_models.NotificationRecord.tenant_id == user.tenant_id, operational_models.NotificationRecord.user_id == user.id).order_by(operational_models.NotificationRecord.created_at.desc()).limit(50)).all()
     return [{"id": row.id, "topic": row.topic, "title": row.title, "message": row.message, "deep_link": row.deep_link, "status": row.status, "created_at": row.created_at.isoformat()} for row in rows]
+
+
+@app.get("/me/profile")
+def my_profile(user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    profile = db.scalar(select(operational_models.UserProfile).where(operational_models.UserProfile.tenant_id == user.tenant_id, operational_models.UserProfile.user_id == user.id))
+    return {"user_id": user.id, "name": user.name, "email": user.email, "role": user.role, "locale": profile.locale if profile else "fa-IR"}
+
+
+@app.put("/me/profile")
+def update_my_profile(data: ProfileIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    profile = db.scalar(select(operational_models.UserProfile).where(operational_models.UserProfile.tenant_id == user.tenant_id, operational_models.UserProfile.user_id == user.id).with_for_update())
+    if profile is None:
+        profile = operational_models.UserProfile(tenant_id=user.tenant_id, user_id=user.id, profile_type="customer", locale=data.locale); db.add(profile)
+    else: profile.locale = data.locale
+    user.name = data.name.strip()
+    db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="user_profile", aggregate_id=str(user.id), event_type="profile.updated", payload_json=json.dumps({"locale": data.locale}), correlation_id=str(uuid.uuid4()), idempotency_key=f"profile:{user.id}:{uuid.uuid4()}"))
+    db.commit()
+    return {"user_id": user.id, "name": user.name, "email": user.email, "role": user.role, "locale": profile.locale}
+
+
+@app.get("/me/travellers")
+def my_travellers(user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
+    rows = db.scalars(select(operational_models.Traveller).where(operational_models.Traveller.tenant_id == user.tenant_id, operational_models.Traveller.user_id == user.id).order_by(operational_models.Traveller.created_at)).all()
+    return [{"id": row.id, "full_name": row.full_name, "profile_reference": row.profile_reference} for row in rows]
+
+
+@app.post("/me/travellers", status_code=status.HTTP_201_CREATED)
+def create_my_traveller(data: TravellerIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    row = operational_models.Traveller(tenant_id=user.tenant_id, user_id=user.id, full_name=data.full_name.strip(), profile_reference=data.profile_reference)
+    db.add(row); db.commit()
+    return {"id": row.id, "full_name": row.full_name, "profile_reference": row.profile_reference}
+
+
+@app.put("/me/travellers/{traveller_id}")
+def update_my_traveller(traveller_id: str, data: TravellerIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    row = db.scalar(select(operational_models.Traveller).where(operational_models.Traveller.id == traveller_id, operational_models.Traveller.tenant_id == user.tenant_id, operational_models.Traveller.user_id == user.id).with_for_update())
+    if row is None: raise HTTPException(status_code=404, detail="مسافر در این حساب وجود ندارد")
+    row.full_name = data.full_name.strip(); row.profile_reference = data.profile_reference; db.commit()
+    return {"id": row.id, "full_name": row.full_name, "profile_reference": row.profile_reference}
+
+
+@app.post("/me/travellers/{traveller_id}/remove")
+def remove_my_traveller(traveller_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    row = db.scalar(select(operational_models.Traveller).where(operational_models.Traveller.id == traveller_id, operational_models.Traveller.tenant_id == user.tenant_id, operational_models.Traveller.user_id == user.id).with_for_update())
+    if row is None: raise HTTPException(status_code=404, detail="مسافر در این حساب وجود ندارد")
+    linked = db.scalar(select(func.count()).select_from(operational_models.ReservationTraveller).where(operational_models.ReservationTraveller.traveller_id == row.id)) or 0
+    if linked: raise HTTPException(status_code=409, detail="مسافر متصل به رزرو قابل حذف نیست")
+    db.delete(row); db.commit(); return {"status": "removed", "id": traveller_id}
+
+
+@app.get("/me/wallets")
+def my_wallets(user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
+    rows = db.scalars(select(operational_models.Wallet).where(operational_models.Wallet.tenant_id == user.tenant_id, operational_models.Wallet.owner_type == "user", operational_models.Wallet.owner_reference == str(user.id))).all()
+    return [{"id": row.id, "owner_type": row.owner_type, "currency": row.currency, **operational_models.wallet_balances(db, tenant_id=user.tenant_id, wallet_id=row.id)} for row in rows]
+
+
+@app.post("/me/wallets", status_code=status.HTTP_201_CREATED)
+def create_my_wallet(data: WalletCreateIn, user: User = Depends(current_user), db: Session = Depends(get_db), idempotency_key: str = Header(alias="Idempotency-Key", min_length=8, max_length=120)) -> dict:
+    request_hash = _secure_hash(f"{user.id}:{data.currency}")
+    prior = db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id == user.tenant_id, operational_models.IdempotencyKey.scope == "wallet.create", operational_models.IdempotencyKey.key == idempotency_key))
+    if prior:
+        if prior.request_hash != request_hash: raise HTTPException(status_code=409, detail="کلید تکرار برای درخواست دیگری استفاده شده است")
+        return json.loads(prior.response_json or "{}")
+    row = db.scalar(select(operational_models.Wallet).where(operational_models.Wallet.tenant_id == user.tenant_id, operational_models.Wallet.owner_type == "user", operational_models.Wallet.owner_reference == str(user.id), operational_models.Wallet.currency == data.currency).with_for_update())
+    if row is None: row = operational_models.Wallet(tenant_id=user.tenant_id, owner_type="user", owner_reference=str(user.id), currency=data.currency); db.add(row); db.flush()
+    response = {"id": row.id, "owner_type": row.owner_type, "currency": row.currency, **operational_models.wallet_balances(db, tenant_id=user.tenant_id, wallet_id=row.id)}
+    db.add(operational_models.IdempotencyKey(tenant_id=user.tenant_id, scope="wallet.create", key=idempotency_key, request_hash=request_hash, response_json=json.dumps(response))); db.commit(); return response
+
+
+@app.get("/me/payments")
+def my_payments(user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
+    rows = db.scalars(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.tenant_id == user.tenant_id, operational_models.PaymentIntent.user_id == user.id).order_by(operational_models.PaymentIntent.created_at.desc())).all()
+    return [{"id": row.id, "reservation_id": row.reservation_id, "status": row.status, "amount": row.amount, "currency": row.currency, "captured_amount": row.captured_amount, "refunded_amount": row.refunded_amount, "provider_connected": bool(row.provider_reference)} for row in rows]
+
+
+@app.get("/me/installment-plans")
+def my_installment_plans(user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
+    assignments = db.scalars(select(operational_models.EmployeeAssignment).where(operational_models.EmployeeAssignment.tenant_id == user.tenant_id, operational_models.EmployeeAssignment.user_id == user.id)).all()
+    organization_ids = [row.organization_id for row in assignments]
+    if not organization_ids: return []
+    rows = db.scalars(select(operational_models.InstallmentPlan).where(operational_models.InstallmentPlan.tenant_id == user.tenant_id, operational_models.InstallmentPlan.organization_id.in_(organization_ids), operational_models.InstallmentPlan.status == "active")).all()
+    return [{"id": row.id, "title": row.title, "terms": json.loads(row.terms_json), "status": row.status} for row in rows]
+
+
+def _owned_support_scope(db: Session, user: User, reservation_id: Optional[str], trip_id: Optional[str]) -> None:
+    if bool(reservation_id) == bool(trip_id): raise HTTPException(status_code=422, detail="دقیقاً یک سفر یا رزرو باید انتخاب شود")
+    if reservation_id and db.scalar(select(operational_models.Reservation.id).where(operational_models.Reservation.id == reservation_id, operational_models.Reservation.tenant_id == user.tenant_id, operational_models.Reservation.user_id == user.id)) is None: raise HTTPException(status_code=404, detail="رزرو در این حساب وجود ندارد")
+    if trip_id and db.scalar(select(operational_models.Trip.id).where(operational_models.Trip.id == trip_id, operational_models.Trip.tenant_id == user.tenant_id, operational_models.Trip.user_id == user.id)) is None: raise HTTPException(status_code=404, detail="سفر در این حساب وجود ندارد")
+
+
+@app.post("/me/support/messages", status_code=status.HTTP_201_CREATED)
+def create_support_message(data: SupportMessageIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    _owned_support_scope(db, user, data.reservation_id, data.trip_id)
+    row = operational_models.SupportMessage(tenant_id=user.tenant_id, reservation_id=data.reservation_id, trip_id=data.trip_id, sender_type="customer", body=data.body.strip())
+    db.add(row); db.flush(); db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="support_message", aggregate_id=row.id, event_type="support.customer_message.created", payload_json=json.dumps({"reservation_id": data.reservation_id, "trip_id": data.trip_id}), correlation_id=str(uuid.uuid4()), idempotency_key=f"support:{row.id}")); db.commit()
+    return {"id": row.id, "sender_type": row.sender_type, "body": row.body, "reservation_id": row.reservation_id, "trip_id": row.trip_id}
 
 
 @app.get("/reservations/{reservation_id}")
@@ -1125,13 +1228,38 @@ def supplier_dashboard(user: User = Depends(require_permission("inventory:manage
     suppliers = db.scalars(select(operational_models.Supplier).where(operational_models.Supplier.tenant_id == user.tenant_id)).all(); supplier_ids = {item.id for item in suppliers}
     offers = db.scalars(select(operational_models.Offer).where(operational_models.Offer.tenant_id == user.tenant_id, operational_models.Offer.supplier_id.in_(supplier_ids))).all() if supplier_ids else []
     settlements = db.scalars(select(operational_models.SettlementRecord).where(operational_models.SettlementRecord.tenant_id == user.tenant_id, operational_models.SettlementRecord.supplier_id.in_(supplier_ids))).all() if supplier_ids else []
-    return {"suppliers": len(suppliers), "offers": len(offers), "available_units": sum(item.available_units for item in offers), "settlements": {"count": len(settlements), "amount": sum(item.amount for item in settlements)}}
+    return {"suppliers": len(suppliers), "offers": len(offers), "available_units": sum(item.available_units for item in offers), "settlements": {"count": len(settlements), "amount": sum(item.amount for item in settlements)}, "supplier_records": [{"id": row.id, "name": row.display_name, "type": row.supplier_type, "status": row.status} for row in suppliers], "offer_records": [{"id": row.id, "supplier_id": row.supplier_id, "title": row.title, "service_type": row.service_type, "amount": row.amount, "currency": row.currency, "available_units": row.available_units, "status": row.status} for row in offers]}
+
+
+@app.put("/supplier/offers/{offer_id}")
+def update_supplier_offer(offer_id: str, data: SupplierOfferUpdateIn, user: User = Depends(require_permission("inventory:manage")), db: Session = Depends(get_db)) -> dict:
+    row = db.scalar(select(operational_models.Offer).where(operational_models.Offer.id == offer_id, operational_models.Offer.tenant_id == user.tenant_id).with_for_update())
+    if row is None: raise HTTPException(status_code=404, detail="Offer در این تأمین‌کننده وجود ندارد")
+    supplier = db.scalar(select(operational_models.Supplier.id).where(operational_models.Supplier.id == row.supplier_id, operational_models.Supplier.tenant_id == user.tenant_id))
+    if supplier is None: raise HTTPException(status_code=404, detail="Offer در این تأمین‌کننده وجود ندارد")
+    if data.amount is not None: row.amount = data.amount
+    if data.available_units is not None: row.available_units = data.available_units
+    if data.status is not None: row.status = data.status
+    db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="offer", aggregate_id=row.id, event_type="supplier.offer.updated", payload_json=json.dumps(data.model_dump(exclude_none=True), sort_keys=True), correlation_id=str(uuid.uuid4()), idempotency_key=f"offer-update:{row.id}:{uuid.uuid4()}")); db.commit()
+    return {"id": row.id, "amount": row.amount, "available_units": row.available_units, "status": row.status}
 
 
 @app.get("/agency/dashboard")
 def agency_dashboard(user: User = Depends(require_permission("agency:manage")), db: Session = Depends(get_db)) -> dict:
-    agencies = db.scalars(select(operational_models.Agency).where(operational_models.Agency.tenant_id == user.tenant_id)).all()
+    agencies = db.scalars(select(operational_models.Agency).where(operational_models.Agency.tenant_id == user.tenant_id).order_by(operational_models.Agency.created_at.desc())).all()
     return {"agencies": [{"id": row.id, "name": row.display_name, "parent_agency_id": row.parent_agency_id, "markup_bps": row.markup_bps, "commission_bps": row.commission_bps} for row in agencies]}
+
+
+@app.put("/agency/agencies/{agency_id}")
+def update_agency(agency_id: str, data: AgencyUpdateIn, user: User = Depends(require_permission("agency:manage")), db: Session = Depends(get_db)) -> dict:
+    row = db.scalar(select(operational_models.Agency).where(operational_models.Agency.id == agency_id, operational_models.Agency.tenant_id == user.tenant_id).with_for_update())
+    if row is None: raise HTTPException(status_code=404, detail="آژانس در این tenant وجود ندارد")
+    if data.display_name is not None: row.display_name = data.display_name.strip()
+    if data.markup_bps is not None: row.markup_bps = data.markup_bps
+    if data.commission_bps is not None: row.commission_bps = data.commission_bps
+    if data.status is not None: row.status = data.status
+    db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="agency", aggregate_id=row.id, event_type="agency.updated", payload_json=json.dumps(data.model_dump(exclude_none=True), sort_keys=True), correlation_id=str(uuid.uuid4()), idempotency_key=f"agency-update:{row.id}:{uuid.uuid4()}")); db.commit()
+    return {"id": row.id, "name": row.display_name, "status": row.status, "markup_bps": row.markup_bps, "commission_bps": row.commission_bps}
 
 
 @app.get("/backoffice/overview")
@@ -1142,7 +1270,17 @@ def backoffice_overview(user: User = Depends(require_permission("backoffice:read
     for key, adapter in ADAPTERS.items():
         try: health = adapter.health(); provider_health.append({"key": key, "status": health.status, "mode": health.mode})
         except Exception: provider_health.append({"key": key, "status": "configuration_error", "mode": getattr(adapter, "mode", "unknown")})
-    return {"tenant_id": user.tenant_id, "counts": {"users": count(User), "suppliers": count(operational_models.Supplier), "agencies": count(operational_models.Agency), "reservations": count(operational_models.Reservation), "payments": count(operational_models.PaymentIntent), "refunds": count(operational_models.RefundRecord), "wallets": count(operational_models.Wallet), "notifications": count(operational_models.NotificationRecord), "security_events": count(operational_models.AuthenticationAudit)}, "providers": provider_health}
+    suppliers = db.scalars(select(operational_models.Supplier).where(operational_models.Supplier.tenant_id == user.tenant_id).order_by(operational_models.Supplier.created_at.desc()).limit(50)).all()
+    return {"tenant_id": user.tenant_id, "counts": {"users": count(User), "suppliers": count(operational_models.Supplier), "agencies": count(operational_models.Agency), "reservations": count(operational_models.Reservation), "payments": count(operational_models.PaymentIntent), "refunds": count(operational_models.RefundRecord), "wallets": count(operational_models.Wallet), "notifications": count(operational_models.NotificationRecord), "security_events": count(operational_models.AuthenticationAudit)}, "providers": provider_health, "suppliers": [{"id": row.id, "name": row.display_name, "type": row.supplier_type, "status": row.status} for row in suppliers]}
+
+
+@app.put("/backoffice/suppliers/{supplier_id}/status")
+def backoffice_supplier_status(supplier_id: str, data: SupplierStatusIn, user: User = Depends(require_permission("backoffice:read")), db: Session = Depends(get_db)) -> dict:
+    row = db.scalar(select(operational_models.Supplier).where(operational_models.Supplier.id == supplier_id, operational_models.Supplier.tenant_id == user.tenant_id).with_for_update())
+    if row is None: raise HTTPException(status_code=404, detail="تأمین‌کننده در این tenant وجود ندارد")
+    previous = row.status; row.status = data.status
+    db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="supplier", aggregate_id=row.id, event_type="backoffice.supplier_status.changed", payload_json=json.dumps({"from": previous, "to": row.status, "reason": data.reason, "actor_id": user.id}, sort_keys=True), correlation_id=str(uuid.uuid4()), idempotency_key=f"supplier-status:{row.id}:{uuid.uuid4()}")); db.commit()
+    return {"id": row.id, "name": row.display_name, "status": row.status}
 
 
 @app.get("/finance/reconciliation")

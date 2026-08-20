@@ -49,6 +49,9 @@ export class KarenSeirApi {
   async post<T>(path: string, body: unknown, idempotencyKey?: string) {
     return this.request<T>(path, { method: 'POST', headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined, body: JSON.stringify(body) });
   }
+  async put<T>(path: string, body: unknown) {
+    return this.request<T>(path, { method: 'PUT', body: JSON.stringify(body) });
+  }
 
   private async refresh() {
     if (!this.session) throw new ApiError(401, 'نشست معتبر نیست.');

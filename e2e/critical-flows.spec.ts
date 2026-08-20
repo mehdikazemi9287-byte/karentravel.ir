@@ -119,3 +119,51 @@ test('supplier, agency and backoffice panels read only authorized APIs', async (
     await expect(page.getByRole('heading', { name: heading })).toBeVisible();
   }
 });
+
+test('customer account connects profile, travellers, wallet, payment and notification preferences', async ({ page, request }) => {
+  await createOperationalFixture(request, 'account');
+  await uiLogin(page, 'employee@aftab.test');
+  await page.getByRole('link', { name: 'سفرهای من' }).click();
+  await page.getByRole('link', { name: 'حساب من' }).click();
+  await expect(page.getByRole('heading', { name: 'پروفایل، مسافران و امور مالی' })).toBeVisible();
+  await page.getByLabel('نام مسافر').fill('مسافر E2E');
+  await page.getByRole('button', { name: 'افزودن' }).click();
+  await expect(page.getByRole('status')).toContainText('مسافر افزوده شد');
+  if (await page.getByRole('button', { name: 'ایجاد کیف پول ریالی' }).isVisible()) {
+    await page.getByRole('button', { name: 'ایجاد کیف پول ریالی' }).click();
+    await expect(page.getByRole('status')).toContainText('کیف پول ایجاد شد');
+  }
+  const paymentButton = page.getByRole('button', { name: /ساخت پرداخت برای/ }).first();
+  if (await paymentButton.isVisible()) {
+    await paymentButton.click();
+    await expect(page.getByRole('status')).toContainText('Payment Intent ایجاد شد');
+  }
+  const gateway = page.getByRole('button', { name: 'اتصال به درگاه' }).first();
+  await expect(gateway).toBeVisible();
+  await gateway.click();
+  await expect(page.getByRole('status')).toContainText('درگاه پرداخت معتبر در دسترس نیست');
+  const smsPreference = page.getByRole('switch', { name: /تغییرات سفر · sms/ });
+  await smsPreference.focus();
+  await page.keyboard.press('Space');
+  await expect(page.getByRole('status')).toContainText('ترجیحات اعلان ذخیره شد');
+});
+
+test('supplier, agency and backoffice mutations remain role-scoped', async ({ page, request }) => {
+  await createOperationalFixture(request, 'panel-mutations');
+  await uiLogin(page, 'supplier@aftab.test');
+  await page.getByRole('link', { name: 'تأمین‌کننده', exact: true }).click();
+  await page.getByLabel('نام تأمین‌کننده').fill('تأمین‌کننده UI');
+  await page.getByRole('button', { name: 'ثبت' }).click();
+  await expect(page.getByRole('status')).toContainText('تأمین‌کننده ثبت شد');
+  await uiLogin(page, 'agency@aftab.test');
+  await page.getByRole('link', { name: 'آژانس', exact: true }).click();
+  await page.getByLabel('نام زیرآژانس').fill('زیرآژانس UI');
+  await page.getByRole('button', { name: 'ثبت' }).click();
+  await expect(page.getByRole('status')).toContainText('زیرآژانس ثبت شد');
+  await uiLogin(page, 'backoffice@aftab.test');
+  await page.getByRole('link', { name: 'عملیات', exact: true }).click();
+  const statusMutation = page.getByRole('button', { name: /تعلیق|فعال‌سازی/ }).first();
+  await expect(statusMutation).toBeVisible();
+  await statusMutation.click();
+  await expect(page.getByRole('status')).toContainText('وضعیت تأمین‌کننده ثبت شد');
+});
