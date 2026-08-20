@@ -142,6 +142,9 @@ class SupplierOfferIn(BaseModel):
     attributes: dict = Field(default_factory=dict)
     fulfillment_mode: str = Field(pattern="^(manual_supplier|provider)$")
     provider_key: str = Field(default="manual_supplier", min_length=2, max_length=64)
+class SupplierOnboardingIn(BaseModel):
+    supplier_type: str = Field(pattern="^(flight|hotel|tour|package|multi_service)$")
+    display_name: str = Field(min_length=2, max_length=180)
 class OfferSearchIn(BaseModel): service_type: str = Field(pattern="^(flight|hotel|tour|package)$")
 class PriceCheckIn(BaseModel): units: int = Field(ge=1, le=20); command_id: str = Field(min_length=8, max_length=120)
 class OrchestrationBookingIn(BaseModel): price_check_id: str = Field(min_length=36, max_length=36); command_id: str = Field(min_length=8, max_length=120)
@@ -507,14 +510,26 @@ def integrations(user: User = Depends(require_role("welfare_manager","organizati
 @app.get("/me/reservations")
 def reservations(user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
     rows = db.scalars(select(operational_models.Reservation).where(operational_models.Reservation.tenant_id == user.tenant_id, operational_models.Reservation.user_id == user.id).order_by(operational_models.Reservation.created_at.desc())).all()
-    return [{"id": row.id, "service_type": row.service_type, "status": row.status, "provider_connected": False, "created_at": row.created_at.isoformat()} for row in rows]
+    return [{**_reservation_output(row), "provider_connected": bool(row.provider_reference), "created_at": row.created_at.isoformat(), "manage_link": f"/manage-booking/{row.id}"} for row in rows]
+
+
+@app.get("/me/trips")
+def my_trips(user: User = Depends(require_permission("trip:read")), db: Session = Depends(get_db)) -> list[dict]:
+    rows = db.scalars(select(operational_models.Trip).where(operational_models.Trip.tenant_id == user.tenant_id, operational_models.Trip.user_id == user.id).order_by(operational_models.Trip.created_at.desc())).all()
+    return [{"id": row.id, "title": row.title, "origin": row.origin, "destination": row.destination, "starts_at": row.starts_at.isoformat() if row.starts_at else None, "ends_at": row.ends_at.isoformat() if row.ends_at else None, "status": row.status, "timeline_link": f"/trips/{row.id}"} for row in rows]
+
+
+@app.get("/me/notifications")
+def my_notifications(user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
+    rows = db.scalars(select(operational_models.NotificationRecord).where(operational_models.NotificationRecord.tenant_id == user.tenant_id, operational_models.NotificationRecord.user_id == user.id).order_by(operational_models.NotificationRecord.created_at.desc()).limit(50)).all()
+    return [{"id": row.id, "topic": row.topic, "title": row.title, "message": row.message, "deep_link": row.deep_link, "status": row.status, "created_at": row.created_at.isoformat()} for row in rows]
 
 
 @app.get("/reservations/{reservation_id}")
 def reservation_detail(reservation_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
     row = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == reservation_id, operational_models.Reservation.tenant_id == user.tenant_id, operational_models.Reservation.user_id == user.id))
     if row is None: raise HTTPException(status_code=404, detail="رزرو در این حساب وجود ندارد")
-    return {"id": row.id, "service_type": row.service_type, "status": row.status, "price_snapshot": row.price_snapshot_json, "policy_at_booking": row.policy_at_booking_json, "current_policy": row.current_policy_json, "provider_connected": False, "manage_link": f"/manage-booking/{row.id}"}
+    return {**_reservation_output(row), "current_policy": json.loads(row.current_policy_json), "provider_connected": bool(row.provider_reference), "manage_link": f"/manage-booking/{row.id}"}
 
 
 @app.post("/reservations/{reservation_id}/commands")
@@ -771,6 +786,21 @@ def create_supplier_offer(data: SupplierOfferIn, user: User = Depends(require_pe
     return {"id": offer.id, "service_type": offer.service_type, "status": offer.status, "available_units": offer.available_units}
 
 
+@app.post("/supplier/onboarding", status_code=status.HTTP_201_CREATED)
+def onboard_supplier(data: SupplierOnboardingIn, idempotency_key: str = Header(alias="Idempotency-Key", min_length=8, max_length=120), user: User = Depends(require_permission("inventory:manage")), db: Session = Depends(get_db)) -> dict:
+    request_hash = _secure_hash(data.model_dump_json())
+    prior = db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id == user.tenant_id, operational_models.IdempotencyKey.scope == "supplier.onboarding", operational_models.IdempotencyKey.key == idempotency_key))
+    if prior and prior.response_json:
+        if prior.request_hash != request_hash: raise HTTPException(status_code=409, detail="کلید تکرار برای درخواست دیگری استفاده شده است")
+        return json.loads(prior.response_json)
+    row = operational_models.Supplier(tenant_id=user.tenant_id, supplier_type=data.supplier_type, display_name=data.display_name, status="active")
+    db.add(row); db.flush()
+    response = {"id": row.id, "supplier_type": row.supplier_type, "display_name": row.display_name, "status": row.status}
+    db.add(operational_models.IdempotencyKey(tenant_id=user.tenant_id, scope="supplier.onboarding", key=idempotency_key, request_hash=request_hash, response_json=json.dumps(response)))
+    db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="supplier", aggregate_id=row.id, event_type="supplier.onboarded", payload_json=json.dumps({"supplier_id": row.id, "supplier_type": row.supplier_type}), correlation_id=str(uuid.uuid4()), idempotency_key=idempotency_key))
+    db.commit(); return response
+
+
 @app.post("/search/offers")
 def search_offers(data: OfferSearchIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
     now = datetime.now(timezone.utc)
@@ -925,6 +955,21 @@ def create_approval_template(organization_id: str, data: ApprovalTemplateIn, use
         db.add(operational_models.ApprovalTemplateStep(tenant_id=user.tenant_id, template_id=template.id, step_order=order, required_role=item.required_role, sla_minutes=item.sla_minutes))
     db.commit()
     return {"id": template.id, "name": template.name, "version": template.version, "steps": len(data.steps)}
+
+
+@app.get("/organization/overview")
+def organization_overview(user: User = Depends(require_role("manager", "welfare_manager", "organization_admin", "finance_operator", "tenant_admin", "platform_admin")), db: Session = Depends(get_db)) -> dict:
+    organizations = db.scalars(select(operational_models.Organization).where(operational_models.Organization.tenant_id == user.tenant_id).order_by(operational_models.Organization.name)).all()
+    departments = db.scalars(select(operational_models.Department).where(operational_models.Department.tenant_id == user.tenant_id).order_by(operational_models.Department.name)).all()
+    cost_centers = db.scalars(select(operational_models.CostCenter).where(operational_models.CostCenter.tenant_id == user.tenant_id).order_by(operational_models.CostCenter.name)).all()
+    workflows = db.scalars(select(operational_models.ApprovalWorkflow).where(operational_models.ApprovalWorkflow.tenant_id == user.tenant_id).order_by(operational_models.ApprovalWorkflow.created_at.desc()).limit(50)).all()
+    return {
+        "tenant_id": user.tenant_id,
+        "organizations": [{"id": row.id, "name": row.name, "status": row.status} for row in organizations],
+        "departments": [{"id": row.id, "organization_id": row.organization_id, "name": row.name, "code": row.code} for row in departments],
+        "cost_centers": [{"id": row.id, "organization_id": row.organization_id, "name": row.name, "code": row.code, "budget_amount": row.budget_amount} for row in cost_centers],
+        "workflows": [{"id": row.id, "reservation_id": row.reservation_id, "status": row.status, "current_step": row.current_step_order, "escalation_count": row.escalation_count, "rejection_reason": row.rejection_reason, "created_at": row.created_at.isoformat()} for row in workflows],
+    }
 
 
 @app.post("/reservations/{reservation_id}/approval-workflows", status_code=status.HTTP_201_CREATED)

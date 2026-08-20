@@ -8,6 +8,31 @@ async function login(request: APIRequestContext, email: string) {
   return response.json();
 }
 
+async function uiLogin(page: import('@playwright/test').Page, email: string) {
+  await page.goto('/pilot');
+  await page.getByLabel('حساب آزمایشی توسعه').selectOption({ label: email });
+  await page.getByRole('button', { name: 'ورود و دریافت هتل‌ها' }).click();
+  await expect(page.getByText(/خوش آمدید/)).toBeVisible();
+}
+
+async function createOperationalFixture(request: APIRequestContext, suffix = 'manage') {
+  const supplier = await login(request, 'supplier@aftab.test');
+  const onboarded = await request.post(`${api}/supplier/onboarding`, { headers: { Authorization: `Bearer ${supplier.access_token}`, 'Idempotency-Key': `e2e-supplier-${suffix}` }, data: { supplier_type: 'hotel', display_name: `تأمین‌کننده E2E ${suffix}` } });
+  expect(onboarded.status()).toBe(201);
+  const supplierId = (await onboarded.json()).id;
+  const policy = { verified: true, source: 'e2e-contract', verified_at: new Date().toISOString(), cancellation: { refundable: true, penalty_amount: 100000 } };
+  const offerIds: string[] = [];
+  for (const [index, amount] of [[0, 2_000_000], [1, 2_400_000]]) {
+    const response = await request.post(`${api}/supplier/offers`, { headers: { Authorization: `Bearer ${supplier.access_token}` }, data: { supplier_id: supplierId, service_type: 'hotel', title: `هتل عملیاتی ${index + 1}`, amount, available_units: 5, valid_minutes: 60, policy, attributes: { rating: 4.5 - index * .2, location_score: 8 - index, amenities: ['wifi'], organization_policy_compliant: true }, fulfillment_mode: 'manual_supplier', provider_key: 'manual_supplier' } });
+    expect(response.status()).toBe(201); offerIds.push((await response.json()).id);
+  }
+  const employee = await login(request, 'employee@aftab.test');
+  const check = await request.post(`${api}/offers/${offerIds[0]}/price-check`, { headers: { Authorization: `Bearer ${employee.access_token}` }, data: { units: 1, command_id: `e2e-price-${suffix}` } });
+  const booking = await request.post(`${api}/orchestration/bookings`, { headers: { Authorization: `Bearer ${employee.access_token}` }, data: { price_check_id: (await check.json()).id, command_id: `e2e-booking-${suffix}` } });
+  expect(booking.status()).toBe(201);
+  return (await booking.json()).id as string;
+}
+
 test('login, search and booking flow through the pilot UI', async ({ page }) => {
   const response = await page.goto('/pilot');
   expect(response?.headers()['content-security-policy']).toContain("frame-ancestors 'none'");
@@ -47,4 +72,50 @@ test('cancellation and refund preview remains non-destructive', async ({ page })
   await page.getByRole('checkbox').check();
   await page.getByRole('button', { name: 'تأیید درخواست' }).click();
   await expect(page.getByText('✓ درخواست ثبت شد و رزرو فعلی بدون تغییر باقی ماند.')).toBeVisible();
+});
+
+test('connected trips and manage-booking use the authenticated tenant API', async ({ page, request }) => {
+  const reservationId = await createOperationalFixture(request);
+  await uiLogin(page, 'employee@aftab.test');
+  await page.getByRole('link', { name: 'سفرهای من' }).click();
+  await expect(page.getByText('رزروهای من')).toBeVisible();
+  const manage = page.locator(`a[href="/manage-booking/${reservationId}"]`);
+  await expect(manage).toBeVisible();
+  await manage.click();
+  await expect(page.getByRole('heading', { name: /مدیریت KS-/ })).toBeVisible();
+  await page.getByRole('button', { name: 'درخواست کنسلی' }).click();
+  await expect(page.getByRole('status')).toContainText('ثبت شد');
+});
+
+test('connected comparison is explainable and backend-authoritative', async ({ page, request }) => {
+  await createOperationalFixture(request, 'compare');
+  await uiLogin(page, 'employee@aftab.test');
+  await page.getByRole('link', { name: 'مقایسه', exact: true }).click();
+  await expect(page.getByText('هتل عملیاتی 1').first()).toBeVisible();
+  await expect(page.getByText(/امتیاز/).first()).toBeVisible();
+});
+
+test('connected private pages fail closed without a browser session', async ({ page }) => {
+  await page.goto('/trips');
+  await expect(page.getByText('برای مشاهده این بخش وارد شوید.')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'ورود امن' })).toBeVisible();
+});
+
+test('organization and role panels enforce frontend RBAC states', async ({ page }) => {
+  await uiLogin(page, 'employee@aftab.test');
+  await page.getByRole('link', { name: 'سازمان', exact: true }).click();
+  await expect(page.getByText('نقش شما به این بخش دسترسی ندارد.')).toBeVisible();
+  await page.goBack();
+  await page.getByLabel('حساب آزمایشی توسعه').selectOption({ label: 'org-admin@aftab.test' });
+  await page.getByRole('button', { name: 'ورود و دریافت هتل‌ها' }).click();
+  await page.getByRole('link', { name: 'سازمان', exact: true }).click();
+  await expect(page.getByText('ساختار سازمانی')).toBeVisible();
+});
+
+test('supplier, agency and backoffice panels read only authorized APIs', async ({ page }) => {
+  for (const [email, link, heading] of [['supplier@aftab.test','تأمین‌کننده','پنل تأمین‌کننده'],['agency@aftab.test','آژانس','پنل آژانس'],['backoffice@aftab.test','عملیات','BackOffice / Admin']] as const) {
+    await uiLogin(page, email);
+    await page.getByRole('link', { name: link, exact: true }).click();
+    await expect(page.getByRole('heading', { name: heading })).toBeVisible();
+  }
 });

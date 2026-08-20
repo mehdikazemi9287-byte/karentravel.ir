@@ -14,5 +14,5 @@ The credential-independent core is suitable for continued staging and controlled
 
 - Public DNS/CA TLS, external secret manager/rotation, external collector/alert receiver and target deployment evidence are absent.
 - Contracted SMS, payment and Flight/Hotel/Tour credentials are absent.
-- Public UI is not fully connected to authoritative APIs for all product/panel flows.
+- Core operational UI reads and manage-booking requests are connected, but customer-account and role-panel mutation workflows are not all production-complete.
 - Independent penetration testing, target backup drill, target rollback, release image digest and controlled rollout evidence are absent.

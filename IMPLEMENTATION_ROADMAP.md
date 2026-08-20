@@ -2,7 +2,7 @@
 
 ## Next exact internal increment
 
-اتصال تدریجی routeهای موجود `/trips`، `/manage-booking`، `/compare` و پنل‌های نقش‌محور به `KarenSeirApi` با حفظ کامل layout؛ سپس افزودن E2E برای orchestration جدید و panel mutationها. اتصال providerهای بیرونی فقط پس از credential قراردادی انجام می‌شود.
+اتصال routeهای `/trips`، Trip Timeline، `/manage-booking`، `/compare` و پنل‌های سازمان/تأمین‌کننده/آژانس/BackOffice به `KarenSeirApi` تکمیل و E2E شده است. increment بعدی اتصال profile/travelers/wallet/payment/notification preferences و سپس mutationهای نقش‌محور است. اتصال providerهای بیرونی فقط پس از credential قراردادی انجام می‌شود.
 
 | فاز | خروجی آزمون‌پذیر | معیار پذیرش |
 |---|---|---|
@@ -18,4 +18,4 @@
 
 Identity core و financial command core به‌صورت افزایشی پیاده شده‌اند. اتصال SMS/Payment/Travel Provider، target deployment و certification بیرونی همچنان gate تجاری/زیرساختی هستند. ترتیب بعدی: contract provider واقعی → booking orchestration → operations delivery → controlled pilot → certification.
 
-Booking orchestration و approval/panel read models اکنون کامل شده‌اند. کار داخلی باقیمانده اصلی، اتصال تمام صفحه‌های نمایشی frontend به session/API مشترک و reconciliation حسابداری target است؛ اتصال نهایی providerها و deliveryها credential-dependent است.
+Booking orchestration، approval/panel read models و routeهای عملیاتی اصلی اکنون متصل‌اند. کار داخلی باقیمانده اصلی customer account، mutationهای پنل‌ها، support case management و reconciliation حسابداری target است؛ اتصال نهایی providerها و deliveryها credential-dependent است.

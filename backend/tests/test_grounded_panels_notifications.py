@@ -7,7 +7,7 @@ from sqlalchemy import select
 
 import app.main as main_module
 from app.main import SessionLocal, User
-from app.operations import NotificationDeliveryAttempt, NotificationRecord, Offer, PaymentIntent, RefundRecord, Reservation, Supplier
+from app.operations import NotificationDeliveryAttempt, NotificationRecord, Offer, Organization, PaymentIntent, RefundRecord, Reservation, Supplier, Trip
 
 
 def auth(token): return {"Authorization": f"Bearer {token}"}
@@ -109,3 +109,39 @@ def test_finance_reconciliation_is_tenant_scoped_read_only_and_role_guarded(clie
     assert row["issues"] == [] and row["succeeded_refund_amount"] == 200
     assert all(item["intent_amount"] != 9000 for item in body["payments"])
     assert client.get("/finance/reconciliation", headers=auth(employee["access_token"])).status_code == 403
+
+
+def test_authenticated_frontend_read_models_are_tenant_and_role_scoped(client):
+    employee = login(client, "employee@aftab.test")
+    faraz = login(client, "employee@faraz.test")
+    organization_admin = login(client, "org-admin@aftab.test")
+    with SessionLocal() as db:
+        aftab_user = db.scalar(select(User).where(User.email == "employee@aftab.test"))
+        faraz_user = db.scalar(select(User).where(User.email == "employee@faraz.test"))
+        own_trip = Trip(tenant_id=aftab_user.tenant_id, user_id=aftab_user.id, title="سفر معتبر آفتاب", destination="یزد", status="planned")
+        hidden_trip = Trip(tenant_id=faraz_user.tenant_id, user_id=faraz_user.id, title="سفر محرمانه فراز", destination="تبریز", status="planned")
+        own_notice = NotificationRecord(tenant_id=aftab_user.tenant_id, user_id=aftab_user.id, topic="trip_changes", title="تغییر معتبر", message="جزئیات", status="pending")
+        hidden_notice = NotificationRecord(tenant_id=faraz_user.tenant_id, user_id=faraz_user.id, topic="trip_changes", title="اعلان فراز", message="محرمانه", status="pending")
+        organization = Organization(tenant_id=aftab_user.tenant_id, name="سازمان آفتاب", status="active")
+        db.add_all([own_trip, hidden_trip, own_notice, hidden_notice, organization]); db.commit()
+    trips = client.get("/me/trips", headers=auth(employee["access_token"]))
+    assert trips.status_code == 200 and [row["title"] for row in trips.json()] == ["سفر معتبر آفتاب"]
+    notices = client.get("/me/notifications", headers=auth(employee["access_token"]))
+    assert notices.status_code == 200 and all(row["title"] != "اعلان فراز" for row in notices.json())
+    overview = client.get("/organization/overview", headers=auth(organization_admin["access_token"]))
+    assert overview.status_code == 200 and "سازمان آفتاب" in [row["name"] for row in overview.json()["organizations"]]
+    assert client.get("/organization/overview", headers=auth(employee["access_token"])).status_code == 403
+    assert client.get("/me/trips", headers=auth(faraz["access_token"])).json()[0]["title"] == "سفر محرمانه فراز"
+
+
+def test_supplier_onboarding_is_idempotent_tenant_scoped_and_role_guarded(client):
+    supplier = login(client, "supplier@aftab.test")
+    employee = login(client, "employee@aftab.test")
+    headers = {**auth(supplier["access_token"]), "Idempotency-Key": "supplier-onboarding-test"}
+    payload = {"supplier_type": "hotel", "display_name": "تأمین‌کننده معتبر تست"}
+    first = client.post("/supplier/onboarding", headers=headers, json=payload)
+    replay = client.post("/supplier/onboarding", headers=headers, json=payload)
+    conflict = client.post("/supplier/onboarding", headers=headers, json={**payload, "display_name": "نام متفاوت"})
+    assert first.status_code == 201 and replay.json() == first.json()
+    assert conflict.status_code == 409
+    assert client.post("/supplier/onboarding", headers={**auth(employee["access_token"]), "Idempotency-Key": "supplier-denied-test"}, json=payload).status_code == 403

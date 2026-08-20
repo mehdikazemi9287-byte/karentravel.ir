@@ -6,13 +6,17 @@ import { BookingCard, VoucherCard } from '../../../components/journey/TripCards'
 import { TripEventFeed } from '../../../components/journey/TripEventFeed';
 import { mockTrip, mockTripEvents } from '../../../lib/domain/mock-data';
 import type { TripStage } from '../../../lib/domain/travel';
+import { ConnectedTripTimeline } from '../../../components/operational/ConnectedViews';
 
 const stageLabels:Record<TripStage,string>={before:'قبل از سفر',during:'حین سفر',after:'بعد از سفر'};
 
 export default async function TripDetailPage({params,searchParams}:{params:Promise<{id:string}>;searchParams:Promise<{stage?:string;support?:string;event?:string}>}){
   const {id}=await params;
   const query=await searchParams;
-  if(id!==mockTrip.id)notFound();
+  if(id!==mockTrip.id){
+    if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))notFound();
+    return <JourneyShell><main className="journey-main"><ConnectedTripTimeline tripId={id}/></main></JourneyShell>;
+  }
   const stage:TripStage=query.stage==='during'||query.stage==='after'?query.stage:'before';
   const items=mockTrip.itinerary.filter(item=>item.stage===stage);
 

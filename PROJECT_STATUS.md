@@ -2,6 +2,11 @@
 
 ## Final autonomous checkpoint — ۱۴۰۵/۰۵/۲۹
 
+- authenticated client اکنون در root session مشترک است و routeهای `/trips`، Trip Timeline واقعی، `/manage-booking`، `/compare`، `/organization`، `/supplier`، `/agency` و `/backoffice` را بدون redesign به API tenant-scoped متصل می‌کند.
+- read modelهای رزرو، سفر، اعلان و سازمان، onboarding idempotent تأمین‌کننده و تست‌های RBAC/cross-tenant افزوده شدند؛ schema یا migration تغییر نکرد.
+- QA این pass: backend `57 passed, 5 skipped`، ESLint، TypeScript strict، build ۱۹ route و Chromium E2E `8/8` PASS است.
+- Production همچنان **NO-GO** است؛ credential خارجی و certification هدف موجود نیست و پنل‌های mutation-heavy/customer account هنوز کار داخلی بعدی‌اند.
+
 - ممیزی مجدد repository، اسناد، migrations، امنیت، providerها، frontend و QA انجام شد؛ پیش از این pass پوشه `.git` وجود نداشت.
 - reconciliation مالی tenant-scoped و read-only برای payment/refund/settlement/wallet افزوده و با RBAC و cross-tenant test پوشش داده شد.
 - client مشترک frontend برای OTP واقعی، refresh rotation، logout، correlation ID و request idempotency افزوده شد؛ صفحه `/pilot` بدون redesign به OTP Production fail-closed و dev-login صریح متصل شد.

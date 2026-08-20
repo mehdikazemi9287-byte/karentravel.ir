@@ -1,6 +1,6 @@
 # Final Project Audit
 
-Timestamp: `2026-08-20T02:19:41Z`
+Timestamp: `2026-08-20T03:37:57Z`
 
 ## Verified state
 
@@ -10,11 +10,11 @@ Timestamp: `2026-08-20T02:19:41Z`
 - Corporate and role panels: configurable approval steps/SLA/escalation, supplier/agency/backoffice read models, White Label persistence, grounded AI context and explainable comparison backend are implemented and tenant/RBAC tested.
 - Finance: payment callback/refund duplicate protection and a tenant-scoped reconciliation read model are implemented. Reconciliation is deliberately read-only and flags mismatches for operator review.
 - Operations: Trip events, timeline storage, outbox notification preferences/attempts/receipts, retry/dead letter and worker queue metrics are implemented.
-- UI: approved RTL/Vazirmatn homepage and visual identity remain unchanged. `/pilot` is API-connected for OTP/dev login and legacy hotel booking. Most customer/panel presentation routes still consume explicitly labelled sample data and are not production-complete.
+- UI: approved RTL/Vazirmatn homepage and visual identity remain unchanged. Authenticated trips/timeline, manage-booking, comparison, organization, supplier, agency and backoffice routes now consume tenant-scoped APIs with explicit state handling. Legacy sample journeys remain separately labelled and unchanged.
 
 ## Partial or missing internal scope
 
-- Full customer, supplier, agency and admin UI mutation flows are not connected end-to-end to the new APIs.
+- Full customer account and supplier/agency/admin mutation flows are not yet connected end-to-end to the new APIs; the role-panel read models are connected.
 - Real Trip Operations ingestion adapters, human support case management, invoices, favorites, traveler/profile mutations, installment execution and automated settlement posting are not complete.
 - Strict nonce-based CSP is not adopted; tested CSP retains `unsafe-inline` for the current static Next rendering.
 - Independent penetration test, realistic production-data query plan review and target load/soak test remain certification work.

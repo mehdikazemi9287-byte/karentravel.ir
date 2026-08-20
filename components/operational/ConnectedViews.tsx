@@ -1,0 +1,87 @@
+'use client';
+
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { useAuth } from '../../lib/api/auth-context';
+import { ApiError } from '../../lib/api/karenseir-client';
+
+type LoadState<T> = { kind: 'loading' } | { kind: 'ready'; data: T } | { kind: 'error'; status: number; message: string };
+type Reservation = { id: string; booking_reference?: string | null; service_type: string; status: string; price_snapshot?: { total_amount?: number; currency?: string }; policy_at_booking?: Record<string, unknown>; created_at?: string; manage_link?: string };
+type Trip = { id: string; title: string; origin?: string | null; destination: string; starts_at?: string | null; status: string; timeline_link: string };
+type Notice = { id: string; title: string; message: string; deep_link?: string | null; status: string };
+type Offer = { id: string; title: string; amount: number; currency: string; service_type: string; provider_status: string };
+
+function ErrorState({ status, message }: { status: number; message: string }) {
+  const title = status === 401 ? 'برای مشاهده این بخش وارد شوید.' : status === 403 ? 'نقش شما به این بخش دسترسی ندارد.' : status === 503 ? 'سرویس موردنیاز فعلاً در دسترس نیست.' : 'دریافت اطلاعات انجام نشد.';
+  return <section role="alert" className="mx-auto my-8 max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 text-center"><h2 className="text-xl font-black">{title}</h2><p className="mt-2 text-sm text-slate-600">{message}</p>{status===401&&<Link className="button primary mt-4" href="/pilot">ورود امن</Link>}</section>;
+}
+
+function LoadingState() { return <div role="status" className="mx-auto my-8 max-w-3xl animate-pulse rounded-2xl bg-white p-8 text-center text-slate-600">در حال دریافت اطلاعات معتبر…</div>; }
+function EmptyState({ children }: { children: React.ReactNode }) { return <div role="status" className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-600">{children}</div>; }
+function errorOf(error: unknown) { return error instanceof ApiError ? { status: error.status, message: error.message } : { status: 0, message: 'خطای پیش‌بینی‌نشده رخ داد.' }; }
+const money = (amount?: number, currency='IRR') => amount == null ? '—' : `${amount.toLocaleString('fa-IR')} ${currency==='IRR'?'ریال':currency}`;
+
+export function ConnectedTrips() {
+  const { api, session } = useAuth();
+  const [state, setState] = useState<LoadState<{trips: Trip[]; reservations: Reservation[]; notices: Notice[]}>>({kind:'loading'});
+  useEffect(() => {
+    if (!session) return;
+    let active=true;
+    Promise.all([api.get<Trip[]>('/me/trips'),api.get<Reservation[]>('/me/reservations'),api.get<Notice[]>('/me/notifications')])
+      .then(([trips,reservations,notices])=>active&&setState({kind:'ready',data:{trips,reservations,notices}}))
+      .catch(error=>{const item=errorOf(error);if(active)setState({kind:'error',...item});});
+    return()=>{active=false};
+  },[api,session]);
+  if(!session)return <ErrorState status={401} message="نشست مرورگر موجود نیست."/>;
+  if(state.kind==='loading')return <LoadingState/>;
+  if(state.kind==='error')return <ErrorState status={state.status} message={state.message}/>;
+  const {trips,reservations,notices}=state.data;
+  return <div className="grid gap-6"><section><h2 className="mb-3 text-xl font-black">سفرهای معتبر</h2>{trips.length===0?<EmptyState>هنوز سفری در حساب شما ساخته نشده است.</EmptyState>:<div className="grid gap-3 sm:grid-cols-2">{trips.map(t=><Link href={t.timeline_link} key={t.id} className="rounded-2xl border border-slate-200 bg-white p-5"><span className="tag">{t.status}</span><h3 className="mt-3 font-black">{t.title}</h3><p className="text-sm text-slate-600">{t.origin?`${t.origin} ← `:''}{t.destination}</p></Link>)}</div>}</section><section><h2 className="mb-3 text-xl font-black">رزروهای من</h2>{reservations.length===0?<EmptyState>رزرو عملیاتی برای این حساب وجود ندارد.</EmptyState>:<div className="grid gap-3 sm:grid-cols-2">{reservations.map(r=><article key={r.id} className="rounded-2xl border border-slate-200 bg-white p-5"><span className="tag">{r.status}</span><h3 className="mt-3 font-black">{r.booking_reference||'در انتظار مرجع رزرو'}</h3><p>{r.service_type} · {money(r.price_snapshot?.total_amount,r.price_snapshot?.currency)}</p><Link className="text-link" href={r.manage_link||`/manage-booking/${r.id}`}>مدیریت رزرو ←</Link></article>)}</div>}</section><aside><h2 className="mb-3 text-xl font-black">اعلان‌ها</h2>{notices.length===0?<EmptyState>اعلان تازه‌ای ندارید.</EmptyState>:notices.map(n=><article className="mb-2 rounded-xl bg-cyan-50 p-4" key={n.id}><b>{n.title}</b><p className="text-sm">{n.message}</p>{n.deep_link&&<Link href={n.deep_link}>مشاهده جزئیات</Link>}</article>)}</aside></div>;
+}
+
+type TimelineEvent = { id:string; type:string; severity:string; source:string; title:string; message:string; requires_action:boolean; deep_link?:string|null };
+export function ConnectedTripTimeline({tripId}:{tripId:string}) {
+  const {api,session}=useAuth();
+  const [state,setState]=useState<LoadState<{trip:{id:string;destination:string;status:string};events:TimelineEvent[]}>>({kind:'loading'});
+  useEffect(()=>{if(!session)return;let active=true;api.get<Extract<typeof state,{kind:'ready'}>['data']>(`/trips/${tripId}/timeline`).then(data=>active&&setState({kind:'ready',data})).catch(error=>{const item=errorOf(error);if(active)setState({kind:'error',...item});});return()=>{active=false};},[api,session,tripId]);
+  if(!session)return <ErrorState status={401} message="نشست مرورگر موجود نیست."/>;
+  if(state.kind==='loading')return <LoadingState/>;
+  if(state.kind==='error')return <ErrorState status={state.status} message={state.message}/>;
+  const {trip,events}=state.data;
+  return <div className="grid gap-6"><header className="trip-hero"><div><span>سفر عملیاتی</span><h1>{trip.destination}</h1><p>وضعیت: {trip.status}</p></div></header><section className="trip-timeline"><header><span>Trip Operations Center</span><h2>چه چیزی در سفر من تغییر کرده؟</h2></header>{events.length===0?<EmptyState>تغییر جدیدی برای این سفر ثبت نشده است.</EmptyState>:events.map(event=><article key={event.id} className={`timeline-${event.requires_action?'active':'done'}`}><div><span className="tag">{event.source} · {event.severity}</span><h3>{event.title}</h3><p>{event.message}</p>{event.requires_action&&<strong>این رویداد نیاز به اقدام شما دارد.</strong>}{event.deep_link&&<Link className="text-link" href={event.deep_link}>مشاهده اقدام ←</Link>}</div></article>)}</section></div>;
+}
+
+export function ConnectedManageBooking({ reservationId }: { reservationId: string }) {
+  const {api,session}=useAuth();
+  const [state,setState]=useState<LoadState<{reservation:Reservation;history:{history:Array<{from?:string;to:string;at:string;reason?:string}>};quote?:Record<string,unknown>}>>({kind:'loading'});
+  const [result,setResult]=useState('');
+  useEffect(()=>{if(!session)return;let active=true;Promise.all([api.get<Reservation>(`/reservations/${reservationId}`),api.get<{history:Array<{from?:string;to:string;at:string;reason?:string}>}>(`/reservations/${reservationId}/history`),api.get<Record<string,unknown>>(`/reservations/${reservationId}/cancellation-quote`).catch(error=>{if(error instanceof ApiError&&error.status===409)return undefined;throw error;})]).then(([reservation,history,quote])=>active&&setState({kind:'ready',data:{reservation,history,quote}})).catch(error=>{const item=errorOf(error);if(active)setState({kind:'error',...item});});return()=>{active=false};},[api,session,reservationId]);
+  async function submit(request_type:'cancel'|'change'|'refund'){setResult('در حال ثبت درخواست…');try{const data=await api.post<{id:string;status:string}>(`/reservations/${reservationId}/service-requests`,{request_type,reason:'درخواست ثبت‌شده توسط مسافر'},crypto.randomUUID());setResult(`درخواست ${data.id} با وضعیت ${data.status} ثبت شد.`);}catch(error){setResult(errorOf(error).message)}}
+  if(!session)return <ErrorState status={401} message="نشست مرورگر موجود نیست."/>;if(state.kind==='loading')return <LoadingState/>;if(state.kind==='error')return <ErrorState status={state.status} message={state.message}/>;
+  const {reservation,history,quote}=state.data;
+  return <div className="grid gap-5"><article className="rounded-2xl border border-slate-200 bg-white p-6"><span className="tag">{reservation.status}</span><h1 className="mt-3 text-2xl font-black">مدیریت {reservation.booking_reference||reservation.id}</h1><p>{reservation.service_type} · {money(reservation.price_snapshot?.total_amount,reservation.price_snapshot?.currency)}</p></article><section className="rounded-2xl border border-slate-200 bg-white p-6"><h2 className="text-xl font-black">قوانین و برآورد استرداد</h2>{quote?<pre className="mt-3 whitespace-pre-wrap text-sm">{JSON.stringify(quote,null,2)}</pre>:<p role="status" className="mt-3 text-slate-600">برآورد معتبر در دسترس نیست؛ مبلغ یا جریمه حدس زده نمی‌شود.</p>}<div className="mt-5 flex flex-wrap gap-2"><button className="button secondary" onClick={()=>submit('change')}>درخواست تغییر</button><button className="button secondary" onClick={()=>submit('cancel')}>درخواست کنسلی</button><button className="button primary" onClick={()=>submit('refund')}>درخواست استرداد</button></div>{result&&<p role="status" className="mt-4 rounded-xl bg-cyan-50 p-3">{result}</p>}</section><section className="rounded-2xl border border-slate-200 bg-white p-6"><h2 className="text-xl font-black">تاریخچه وضعیت</h2>{history.history.length===0?<EmptyState>تاریخچه‌ای ثبت نشده است.</EmptyState>:history.history.map((h,index)=><div className="mt-3 border-r-2 border-cyan-700 pr-4" key={`${h.at}-${index}`}><b>{h.from||'شروع'} ← {h.to}</b><small className="block text-slate-500">{new Date(h.at).toLocaleString('fa-IR')}</small></div>)}</section></div>;
+}
+
+export function ConnectedCompare() {
+  const {api,session}=useAuth();const [type,setType]=useState('hotel');const [state,setState]=useState<LoadState<{offers:Offer[];comparison?:{results:Array<{offer_id:string;title:string;score:number;amount:number;currency:string;breakdown:Record<string,number>;explanation:string[]}>}}>>({kind:'loading'});
+  useEffect(()=>{if(!session)return;let active=true;api.post<Offer[]>('/search/offers',{service_type:type}).then(async offers=>{const comparison=offers.length>=2?await api.post<{results:Array<{offer_id:string;title:string;score:number;amount:number;currency:string;breakdown:Record<string,number>;explanation:string[]}>}>('/compare/offers',{offer_ids:offers.slice(0,4).map(x=>x.id)}):undefined;if(active)setState({kind:'ready',data:{offers,comparison}})}).catch(error=>{const item=errorOf(error);if(active)setState({kind:'error',...item});});return()=>{active=false};},[api,session,type]);
+  if(!session)return <ErrorState status={401} message="نشست مرورگر موجود نیست."/>;if(state.kind==='error')return <ErrorState status={state.status} message={state.message}/>;
+  return <div className="container compare-wrap"><label className="mb-5 block font-bold">نوع خدمت<select value={type} onChange={e=>{setType(e.target.value);setState({kind:'loading'})}} className="mr-3 rounded-xl border border-slate-300 p-3"><option value="flight">پرواز</option><option value="hotel">هتل</option><option value="tour">تور</option><option value="package">پرواز + هتل</option></select></label>{state.kind==='loading'?<LoadingState/>:!state.data.comparison?<EmptyState>حداقل دو Offer معتبر و هم‌نوع برای مقایسه لازم است.</EmptyState>:<div className="grid gap-4 sm:grid-cols-2">{state.data.comparison.results.map(row=><article className="rounded-2xl border border-slate-200 bg-white p-5" key={row.offer_id}><span className="tag">امتیاز {row.score.toLocaleString('fa-IR')}</span><h3 className="mt-3 text-lg font-black">{row.title}</h3><p>{money(row.amount,row.currency)}</p><ul className="mt-3 text-sm">{Object.entries(row.breakdown).map(([key,value])=><li key={key}>{key}: {value.toLocaleString('fa-IR')}</li>)}</ul></article>)}</div>}</div>;
+}
+
+export function ConnectedOrganization() {
+  const {api,session}=useAuth();const [state,setState]=useState<LoadState<{organizations:Array<{id:string;name:string;status:string}>;departments:Array<{id:string;name:string;code:string}>;cost_centers:Array<{id:string;name:string;budget_amount:number}>;workflows:Array<{id:string;status:string;current_step:number;escalation_count:number}>}>>({kind:'loading'});
+  useEffect(()=>{if(!session)return;let active=true;api.get<Extract<typeof state,{kind:'ready'}>['data']>('/organization/overview').then(data=>active&&setState({kind:'ready',data})).catch(error=>{const item=errorOf(error);if(active)setState({kind:'error',...item});});return()=>{active=false};},[api,session]);
+  if(!session)return <ErrorState status={401} message="نشست مرورگر موجود نیست."/>;if(state.kind==='loading')return <LoadingState/>;if(state.kind==='error')return <ErrorState status={state.status} message={state.message}/>;const d=state.data;
+  return <div className="dashboard container"><section className="metrics"><div><small>سازمان‌ها</small><strong>{d.organizations.length.toLocaleString('fa-IR')}</strong><span>داده معتبر tenant</span></div><div><small>گردش‌های تأیید</small><strong>{d.workflows.length.toLocaleString('fa-IR')}</strong><span>{d.workflows.filter(x=>x.status==='pending').length.toLocaleString('fa-IR')} در انتظار</span></div><div><small>مراکز هزینه</small><strong>{d.cost_centers.length.toLocaleString('fa-IR')}</strong><span>Backend authoritative</span></div></section><section className="dashboard-grid"><article className="panel"><div className="panel-head"><h3>گردش تأیید</h3></div>{d.workflows.length===0?<EmptyState>گردش تأییدی وجود ندارد.</EmptyState>:d.workflows.map(w=><div className="activity" key={w.id}><div><strong>{w.status}</strong><small>مرحله {w.current_step.toLocaleString('fa-IR')} · escalation {w.escalation_count.toLocaleString('fa-IR')}</small></div></div>)}</article><article className="panel"><div className="panel-head"><h3>ساختار سازمانی</h3></div>{d.organizations.map(o=><p key={o.id}><b>{o.name}</b> · {o.status}</p>)}<p>{d.departments.length.toLocaleString('fa-IR')} واحد سازمانی</p></article></section></div>;
+}
+
+type PanelKind='supplier'|'agency'|'backoffice';
+const PANEL_PATHS={supplier:'/supplier/dashboard',agency:'/agency/dashboard',backoffice:'/backoffice/overview'} as const;
+export function ConnectedRolePanel({kind}:{kind:PanelKind}) {
+  const {api,session}=useAuth();const [state,setState]=useState<LoadState<Record<string,unknown>>>({kind:'loading'});
+  useEffect(()=>{if(!session)return;let active=true;api.get<Record<string,unknown>>(PANEL_PATHS[kind]).then(data=>active&&setState({kind:'ready',data})).catch(error=>{const item=errorOf(error);if(active)setState({kind:'error',...item});});return()=>{active=false};},[api,session,kind]);
+  if(!session)return <ErrorState status={401} message="نشست مرورگر موجود نیست."/>;if(state.kind==='loading')return <LoadingState/>;if(state.kind==='error')return <ErrorState status={state.status} message={state.message}/>;
+  const entries=Object.entries(state.data);
+  return <div className="dashboard container"><div className="dashboard-title"><div><span className="eyebrow">پنل متصل و نقش‌محور</span><h1>{kind==='supplier'?'پنل تأمین‌کننده':kind==='agency'?'پنل آژانس':'BackOffice / Admin'}</h1><p>اطلاعات فقط از API مجاز همان tenant دریافت شده است.</p></div></div>{entries.length===0?<EmptyState>داده‌ای برای نمایش وجود ندارد.</EmptyState>:<section className="grid gap-4 sm:grid-cols-2">{entries.map(([key,value])=><article className="panel" key={key}><h2 className="font-black">{key}</h2><pre className="mt-3 whitespace-pre-wrap text-sm">{JSON.stringify(value,null,2)}</pre></article>)}</section>}</div>;
+}
