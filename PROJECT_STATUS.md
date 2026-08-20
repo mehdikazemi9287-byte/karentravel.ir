@@ -1,5 +1,14 @@
 # وضعیت اجرایی پایلوت
 
+## Ecosystem Search 2.0 + Product Audit — ۱۴۰۵/۰۵/۲۹
+
+- audit صفحه‌به‌صفحه و phase gate در `PRODUCT_ECOSYSTEM_AUDIT.md` ثبت شد؛ دامنه گسترده جدید completion اکوسیستم را `76%` نشان می‌دهد و عدد 97% قبلی فقط مربوط به hardening scope است.
+- Search contract موجود بدون schema/migration موازی به ۱۴ vertical توسعه یافت: normalization فارسی/عربی و نیم‌فاصله، autocomplete tenant-safe، recent search، flexible-date intent، فیلتر قیمت/review/cancellation/amenity/instant، map bounds و sort.
+- هر result اکنون provider، observation/availability/price timestamp، TTL، freshness، مالیات/کارمزد/قیمت نهایی، inventory state، policy verification، review/quality/location و ranking explanation data دارد. stale به‌طور پیش‌فرض حذف و در inspection صریح `available=false` برمی‌گردد.
+- Homepage و تمام فایل‌های UI/CSS/تصویر مرجع بدون تغییر باقی ماندند. Playwright ساختار frozen Homepage را در 1440×1000 و 390×844 همراه screenshot render، RTL، Header/Hero/Search/AI/Comparison/Footer کنترل کرد.
+- QA: backend `70 passed, 5 skipped` در محیط credential-independent؛ focused Search/booking `13/13`؛ lint/typecheck/build 22 route؛ E2E `13/13`؛ compile و npm audit صفر PASS.
+- ZarinPal TEST همچنان `BLOCKED BY CREDENTIAL` است و transport/callback موفقیت جعلی نشده است. جزئیات phaseهای PARTIAL/MISSING در audit ثبت شده‌اند.
+
 ## Production-readiness closure — ۱۴۰۵/۰۵/۲۹
 
 - PostgreSQL 16.15 و Redis 7.4.10 کاملاً ایزوله اجرا شدند؛ migration `20260820_10` پس از backup اعمال و Alembic head/check بدون drift تأیید شد. هیچ Production target یا داده‌ای لمس نشد.

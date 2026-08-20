@@ -1,5 +1,19 @@
 # Test Evidence
 
+## Ecosystem Search increment — 2026-08-20T09:07:00Z
+
+| Check | Result |
+|---|---|
+| Search 2.0 + booking focused backend | `13/13 passed` |
+| Full credential-independent backend | `70 passed, 5 skipped` (the five existing PostgreSQL/Redis/worker integration gates retain prior real-staging PASS evidence) |
+| Search vertical/normalization/freshness/filter/map/tenant tests | `5/5 passed` |
+| ESLint / strict TypeScript / Next production build | PASS / PASS / PASS, 22 routes |
+| Chromium E2E | `13/13 passed` in 54.9s |
+| Frozen Homepage Desktop/Mobile | PASS at 1440×1000 and 390×844; rendered screenshots non-empty, RTL and approved structural landmarks present; no UI source diff |
+| Python compile | PASS with isolated pycache |
+| npm production audit | PASS, 0 vulnerabilities |
+| ZarinPal sandbox purchase | BLOCKED BY CREDENTIAL; no request/verify success claimed |
+
 Timestamp: `2026-08-20T07:52:47Z`
 
 | Check | Result |

@@ -33,6 +33,23 @@ async function createOperationalFixture(request: APIRequestContext, suffix = 'ma
   return (await booking.json()).id as string;
 }
 
+test('frozen Homepage keeps approved structure on desktop and mobile', async ({ page }) => {
+  for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844 }]) {
+    await page.setViewportSize(viewport);
+    await page.goto('/');
+    await expect(page.getByRole('banner')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('سفر را');
+    await expect(page.getByRole('tab', { name: 'پرواز', exact: true })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'هتل', exact: true })).toBeVisible();
+    await expect(page.getByText('دستیار هوشمند سفر کارن‌سیر')).toBeVisible();
+    await expect(page.getByText('قبل از انتخاب، کنار هم ببین.')).toBeVisible();
+    await expect(page.locator('.ref-footer')).toHaveCount(1);
+    const screenshot = await page.screenshot({ fullPage: true, animations: 'disabled' });
+    expect(screenshot.byteLength).toBeGreaterThan(100_000);
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+  }
+});
+
 test('login, search and booking flow through the pilot UI', async ({ page }) => {
   const response = await page.goto('/pilot');
   expect(response?.headers()['content-security-policy']).toContain("frame-ancestors 'none'");

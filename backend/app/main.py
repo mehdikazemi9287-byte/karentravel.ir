@@ -7,6 +7,7 @@ import logging
 import os
 import secrets
 import time
+import unicodedata
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
@@ -131,9 +132,11 @@ class LogoutIn(BaseModel): refresh_token: str = Field(min_length=32, max_length=
 class CreditCommandIn(BaseModel): command_id: str = Field(min_length=8, max_length=120); entry_type: str = Field(pattern="^(allocate|reserve|capture|release|reverse_capture)$"); amount: int = Field(gt=0)
 class ApprovalDecisionIn(BaseModel): decision: str = Field(pattern="^(approve|reject)$"); rejection_reason: Optional[str] = Field(default=None, max_length=500)
 class RefundIn(BaseModel): amount: int = Field(gt=0); command_id: str = Field(min_length=8, max_length=120)
+ECOSYSTEM_SERVICE_PATTERN = "^(flight|hotel|train|tour|package|accommodation|car_rental|restaurant|event_hall|pool_sport|attraction|travel_guide|handicraft|tourist_transportation)$"
+
 class SupplierOfferIn(BaseModel):
     supplier_id: str = Field(min_length=36, max_length=36)
-    service_type: str = Field(pattern="^(flight|hotel|tour|package)$")
+    service_type: str = Field(pattern=ECOSYSTEM_SERVICE_PATTERN)
     title: str = Field(min_length=3, max_length=200)
     amount: int = Field(gt=0)
     available_units: int = Field(ge=1, le=100000)
@@ -143,9 +146,21 @@ class SupplierOfferIn(BaseModel):
     fulfillment_mode: str = Field(pattern="^(manual_supplier|provider)$")
     provider_key: str = Field(default="manual_supplier", min_length=2, max_length=64)
 class SupplierOnboardingIn(BaseModel):
-    supplier_type: str = Field(pattern="^(flight|hotel|tour|package|multi_service)$")
+    supplier_type: str = Field(pattern="^(flight|hotel|train|tour|package|accommodation|car_rental|restaurant|event_hall|pool_sport|attraction|travel_guide|handicraft|tourist_transportation|multi_service)$")
     display_name: str = Field(min_length=2, max_length=180)
-class OfferSearchIn(BaseModel): service_type: str = Field(pattern="^(flight|hotel|tour|package)$")
+class OfferSearchIn(BaseModel):
+    service_type: str = Field(pattern=ECOSYSTEM_SERVICE_PATTERN)
+    query: Optional[str] = Field(default=None, max_length=200)
+    min_price: Optional[int] = Field(default=None, ge=0)
+    max_price: Optional[int] = Field(default=None, ge=0)
+    min_review_score: Optional[float] = Field(default=None, ge=0, le=10)
+    refundable: Optional[bool] = None
+    amenities: list[str] = Field(default_factory=list, max_length=20)
+    instant_booking: Optional[bool] = None
+    flexible_dates: bool = False
+    map_bounds: Optional[dict[str, float]] = None
+    sort: str = Field(default="recommended", pattern="^(recommended|price_asc|price_desc|review_desc|freshness)$")
+    include_stale: bool = False
 class PriceCheckIn(BaseModel): units: int = Field(ge=1, le=20); command_id: str = Field(min_length=8, max_length=120)
 class OrchestrationBookingIn(BaseModel): price_check_id: str = Field(min_length=36, max_length=36); command_id: str = Field(min_length=8, max_length=120)
 class FulfillmentIn(BaseModel): command_id: str = Field(min_length=8, max_length=120); provider_reference: str = Field(min_length=3, max_length=160); document_reference: str = Field(min_length=3, max_length=240)
@@ -909,11 +924,103 @@ def onboard_supplier(data: SupplierOnboardingIn, idempotency_key: str = Header(a
     db.commit(); return response
 
 
+_SEARCH_TRANSLATION = str.maketrans({"ي": "ی", "ى": "ی", "ك": "ک", "ة": "ه", "ۀ": "ه", "ؤ": "و", "إ": "ا", "أ": "ا", "ٱ": "ا", "‌": " ", "‍": " "})
+_AUTOCOMPLETE_ENTITIES = (
+    ("تهران", "city"), ("شیراز", "city"), ("مشهد", "city"), ("یزد", "city"),
+    ("اصفهان", "city"), ("کیش", "city"), ("قشم", "city"), ("فرودگاه مهرآباد", "airport"),
+    ("فرودگاه امام خمینی", "airport"), ("حافظیه", "poi"), ("تخت جمشید", "poi"),
+)
+
+
+def _normalize_search_text(value: str) -> str:
+    translated = unicodedata.normalize("NFKC", value).translate(_SEARCH_TRANSLATION)
+    without_marks = "".join(char for char in translated if unicodedata.category(char) != "Mn")
+    return " ".join(without_marks.casefold().split())
+
+
+def _search_datetime(value: object, fallback: datetime) -> datetime:
+    if isinstance(value, str):
+        try:
+            return _aware(datetime.fromisoformat(value.replace("Z", "+00:00")))
+        except ValueError:
+            return fallback
+    return fallback
+
+
+@app.get("/search/autocomplete")
+def search_autocomplete(q: str, service_type: Optional[str] = None, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    normalized = _normalize_search_text(q)
+    if len(normalized) < 2:
+        raise HTTPException(status_code=422, detail="حداقل دو نویسه برای پیشنهاد لازم است")
+    if service_type and not __import__("re").fullmatch(ECOSYSTEM_SERVICE_PATTERN[1:-1], service_type):
+        raise HTTPException(status_code=422, detail="نوع خدمت معتبر نیست")
+    statement = select(operational_models.Offer).where(operational_models.Offer.tenant_id == user.tenant_id, operational_models.Offer.status == "active")
+    if service_type: statement = statement.where(operational_models.Offer.service_type == service_type)
+    rows = db.scalars(statement.limit(100)).all()
+    suggestions: list[dict] = []
+    seen: set[tuple[str, str]] = set()
+    for label, entity_type in _AUTOCOMPLETE_ENTITIES:
+        if normalized in _normalize_search_text(label):
+            seen.add((label, entity_type)); suggestions.append({"label": label, "normalized": _normalize_search_text(label), "entity_type": entity_type, "source": "karenseir_geo_catalog"})
+    for row in rows:
+        if normalized in _normalize_search_text(row.title) and (row.title, row.service_type) not in seen:
+            seen.add((row.title, row.service_type)); suggestions.append({"label": row.title, "normalized": _normalize_search_text(row.title), "entity_type": row.service_type, "source": "tenant_offer"})
+    return {"query": q, "normalized_query": normalized, "suggestions": suggestions[:10]}
+
+
 @app.post("/search/offers")
 def search_offers(data: OfferSearchIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
+    if data.min_price is not None and data.max_price is not None and data.min_price > data.max_price:
+        raise HTTPException(status_code=422, detail="بازه قیمت معتبر نیست")
+    bounds = data.map_bounds
+    if bounds is not None:
+        required = {"north", "south", "east", "west"}
+        if set(bounds) != required or bounds["north"] <= bounds["south"] or bounds["east"] <= bounds["west"]:
+            raise HTTPException(status_code=422, detail="محدوده نقشه معتبر نیست")
     now = datetime.now(timezone.utc)
-    rows = db.scalars(select(operational_models.Offer).where(operational_models.Offer.tenant_id == user.tenant_id, operational_models.Offer.service_type == data.service_type, operational_models.Offer.status == "active", operational_models.Offer.available_units > 0, operational_models.Offer.valid_until > now).order_by(operational_models.Offer.amount)).all()
-    return [{"id": row.id, "service_type": row.service_type, "title": row.title, "amount": row.amount, "currency": row.currency, "available": True, "valid_until": row.valid_until.isoformat(), "provider_status": "supplier_verified" if row.fulfillment_mode == "manual_supplier" else "provider_required"} for row in rows]
+    statement = select(operational_models.Offer).where(operational_models.Offer.tenant_id == user.tenant_id, operational_models.Offer.service_type == data.service_type, operational_models.Offer.status == "active", operational_models.Offer.available_units > 0, operational_models.Offer.valid_until > now)
+    if data.min_price is not None: statement = statement.where(operational_models.Offer.amount >= data.min_price)
+    if data.max_price is not None: statement = statement.where(operational_models.Offer.amount <= data.max_price)
+    rows = db.scalars(statement).all()
+    normalized_query = _normalize_search_text(data.query or "")
+    results: list[dict] = []
+    for row in rows:
+        attrs = json.loads(row.attributes_json or "{}")
+        policy = json.loads(row.policy_json or "{}")
+        searchable = _normalize_search_text(" ".join(str(value) for value in [row.title, attrs.get("city", ""), attrs.get("origin", ""), attrs.get("destination", ""), attrs.get("province", ""), attrs.get("airport", ""), attrs.get("poi", "")]))
+        if normalized_query and normalized_query not in searchable: continue
+        review_score = float(attrs.get("review_score", attrs.get("rating", 0)) or 0)
+        if data.min_review_score is not None and review_score < data.min_review_score: continue
+        cancellation = policy.get("cancellation", {}) if policy.get("verified") is True else None
+        if data.refundable is not None and (cancellation or {}).get("refundable") is not data.refundable: continue
+        available_amenities = {_normalize_search_text(str(item)) for item in attrs.get("amenities", [])}
+        if any(_normalize_search_text(item) not in available_amenities for item in data.amenities): continue
+        if data.instant_booking is not None and bool(attrs.get("instant_booking", row.fulfillment_mode == "manual_supplier")) is not data.instant_booking: continue
+        if bounds is not None:
+            lat, lng = attrs.get("latitude"), attrs.get("longitude")
+            if not isinstance(lat, (int, float)) or not isinstance(lng, (int, float)) or not (bounds["south"] <= lat <= bounds["north"] and bounds["west"] <= lng <= bounds["east"]): continue
+        fallback_observed = _aware(row.updated_at or row.created_at or now)
+        observed_at = _search_datetime(attrs.get("observed_at"), fallback_observed)
+        ttl_default = 3600 if row.fulfillment_mode == "manual_supplier" else 300
+        ttl_seconds = max(30, min(int(attrs.get("freshness_ttl_seconds", ttl_default)), 86400))
+        stale = observed_at + timedelta(seconds=ttl_seconds) <= now
+        if stale and not data.include_stale: continue
+        taxes = max(0, int(attrs.get("taxes", 0) or 0)); fees = max(0, int(attrs.get("fees", 0) or 0))
+        result = {"id": row.id, "service_type": row.service_type, "title": row.title, "provider": row.provider_key, "provider_status": "supplier_verified" if row.fulfillment_mode == "manual_supplier" else "provider_required", "last_updated_at": observed_at.isoformat(), "availability_checked_at": _search_datetime(attrs.get("availability_checked_at"), observed_at).isoformat(), "price_checked_at": _search_datetime(attrs.get("price_checked_at"), observed_at).isoformat(), "freshness_ttl_seconds": ttl_seconds, "freshness": "stale" if stale else "live", "amount": row.amount, "taxes": taxes, "fees": fees, "total_amount": row.amount + taxes + fees, "currency": row.currency, "available": not stale, "inventory_status": "available" if not stale else "stale_unknown", "available_units": row.available_units if not stale else None, "cancellation_policy": cancellation, "policy_verified": policy.get("verified") is True, "quality_score": attrs.get("quality_score", attrs.get("quality")), "review_score": review_score or None, "location": {key: attrs.get(key) for key in ("city", "province", "latitude", "longitude") if attrs.get(key) is not None}, "attributes": attrs, "valid_until": _aware(row.valid_until).isoformat()}
+        result["ranking_score"] = round((1000000000 / max(result["total_amount"], 1)) + review_score * 10 + (10 if cancellation and cancellation.get("refundable") else 0) + (5 if attrs.get("organization_policy_compliant") else 0), 4)
+        results.append(result)
+    sorters = {"price_asc": lambda item: (item["total_amount"], -item["ranking_score"]), "price_desc": lambda item: (-item["total_amount"], -item["ranking_score"]), "review_desc": lambda item: (-(item["review_score"] or 0), item["total_amount"]), "freshness": lambda item: (item["freshness"] != "live", item["last_updated_at"]), "recommended": lambda item: (-item["ranking_score"], item["total_amount"])}
+    results.sort(key=sorters[data.sort])
+    criteria = data.model_dump(); criteria["normalized_query"] = normalized_query; criteria["result_count"] = len(results)
+    db.add(operational_models.SearchRequest(tenant_id=user.tenant_id, user_id=user.id, service_type=data.service_type, criteria_json=json.dumps(criteria, sort_keys=True), correlation_id=str(uuid.uuid4())))
+    db.commit()
+    return results
+
+
+@app.get("/search/recent")
+def recent_searches(user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
+    rows = db.scalars(select(operational_models.SearchRequest).where(operational_models.SearchRequest.tenant_id == user.tenant_id, operational_models.SearchRequest.user_id == user.id).order_by(operational_models.SearchRequest.created_at.desc()).limit(10)).all()
+    return [{"id": row.id, "service_type": row.service_type, "criteria": json.loads(row.criteria_json), "searched_at": row.created_at.isoformat()} for row in rows]
 
 
 @app.post("/offers/{offer_id}/price-check", status_code=status.HTTP_201_CREATED)
