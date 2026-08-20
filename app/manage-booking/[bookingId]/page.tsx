@@ -1,0 +1,5 @@
+import { notFound } from 'next/navigation';
+import { JourneyShell, MockNotice } from '../../../components/journey/JourneyShell';
+import { ManageBooking } from '../../../components/journey/ManageBooking';
+import { mockCancellationQuote, mockCurrentPolicy, mockHotelCancellationQuote, mockHotelCurrentPolicy, mockHotelPolicyAtBooking, mockPolicyAtBooking, mockTrip } from '../../../lib/domain/mock-data';
+export default async function ManageBookingPage({params}:{params:Promise<{bookingId:string}>}){const {bookingId}=await params;const booking=mockTrip.bookings.find(item=>item.id===bookingId);if(!booking)notFound();const isStay=booking.type==='accommodation';return <JourneyShell disruption={booking.disruptionStatus!=='none'}><main className="journey-main manage-booking-page"><MockNotice/><ManageBooking booking={booking} trip={mockTrip} policyAtBooking={isStay?mockHotelPolicyAtBooking:mockPolicyAtBooking} currentPolicy={isStay?mockHotelCurrentPolicy:mockCurrentPolicy} quote={isStay?mockHotelCancellationQuote:mockCancellationQuote}/></main></JourneyShell>}

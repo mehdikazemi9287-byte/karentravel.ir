@@ -1,0 +1,81 @@
+services:
+  web:
+    build: .
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    depends_on:
+      api:
+        condition: service_healthy
+    ports: ["3000:3000"]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/ >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+  api:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://karenseir:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@db:5432/karenseir
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+      ENVIRONMENT: production
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      REDIS_URL: redis://redis:6379/0
+      FLIGHT_PROVIDER_MODE: ${FLIGHT_PROVIDER_MODE:-disabled}
+      HOTEL_PROVIDER_MODE: ${HOTEL_PROVIDER_MODE:-disabled}
+      TOUR_HOTEL_PROVIDER_MODE: ${TOUR_HOTEL_PROVIDER_MODE:-disabled}
+      PAYMENT_PROVIDER_MODE: ${PAYMENT_PROVIDER_MODE:-disabled}
+      OTP_PROVIDER_MODE: ${OTP_PROVIDER_MODE:-disabled}
+      NOTIFICATION_PROVIDER_MODE: ${NOTIFICATION_PROVIDER_MODE:-disabled}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports: ["8000:8000"]
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=3)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  worker:
+    build: ./backend
+    command: ["python", "-m", "app.outbox_worker"]
+    environment:
+      DATABASE_URL: ${WORKER_DATABASE_URL:?set WORKER_DATABASE_URL for a least-privilege BYPASSRLS worker role}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+      ENVIRONMENT: production
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      REDIS_URL: redis://redis:6379/0
+      NOTIFICATION_PROVIDER_MODE: ${NOTIFICATION_PROVIDER_MODE:-disabled}
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:9101/health', timeout=3)\""]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: karenseir
+      POSTGRES_USER: karenseir
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U karenseir -d karenseir"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes", "--save", "60", "1"]
+    volumes: [redis_data:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+volumes:
+  postgres_data:
+  redis_data:

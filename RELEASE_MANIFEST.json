@@ -1,0 +1,32 @@
+{
+  "release_version": "2026.08.20-rc3",
+  "build_timestamp_utc": "2026-08-20T02:19:41Z",
+  "source_checksum_algorithm": "sha256-of-sorted-file-sha256",
+  "source_checksum": "2ea37550b0650e7b2f72030346eb3c829293f1a4cecd5305bb888cdb7476bbbc",
+  "pre_change_snapshot_sha256": "936e1e94c938bb3096af81ed103695bc7de184c56ea270a266c7abf386b3aa25",
+  "migration_head": "20260820_09",
+  "verified_backup_sha256": "4955a47c6357e6d540f2bd1969cfc82e7e3ef7ca0a0af7e2e54badef05c0cef5",
+  "dependency_locks": {
+    "package-lock.json": "880ad6fb0f3422cc07b9a326626161893570c99668b56fa7fb1c0441b63bac5f",
+    "backend/requirements.txt": "0ebefe03b88009b97b6995180e133febd05944e6dfc921b40827862f5d5a2eeb"
+  },
+  "git_commit": null,
+  "web_image_digest": null,
+  "api_image_digest": null,
+  "provenance_complete": false,
+  "release_notes": [
+    "Tenant-safe offer, price-check, booking and voucher orchestration",
+    "Configurable multi-step approval engine with SLA and escalation",
+    "Persistent white-label, agency hierarchy and operational panel APIs",
+    "Grounded AI context and explainable comparison APIs",
+    "Signed notification receipts and worker queue metrics",
+    "Distributed provider throttling and circuit breaker",
+    "Tenant-first performance indexes and local load baseline",
+    "Tenant-scoped financial reconciliation read model",
+    "Frontend OTP/session API client wired to the operational pilot"
+  ],
+  "incomplete_reasons": [
+    "The imported workspace had no prior Git metadata or upstream provenance",
+    "Container runtime is unavailable, so immutable image digests were not produced"
+  ]
+}

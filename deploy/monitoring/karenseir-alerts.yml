@@ -1,0 +1,45 @@
+groups:
+  - name: karenseir-api
+    rules:
+      - alert: KarenSeirApiDown
+        expr: up{job="karenseir-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: KarenSeir API metrics target is down
+      - alert: KarenSeirHighServerErrorRate
+        expr: sum(rate(karenseir_http_requests_total{status_class="5xx"}[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: KarenSeir API is returning sustained 5xx responses
+      - alert: KarenSeirRateLimitSpike
+        expr: sum(rate(karenseir_http_requests_total{status="429"}[5m])) > 5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: KarenSeir API has an elevated 4xx response rate; inspect 429 logs
+      - alert: KarenSeirHighAverageLatency
+        expr: rate(karenseir_http_request_duration_seconds_total[5m]) / clamp_min(sum(rate(karenseir_http_requests_total[5m])), 0.001) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: KarenSeir API average latency exceeds one second
+      - alert: KarenSeirOutboxBacklog
+        expr: karenseir_outbox_queue_depth > 1000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: KarenSeir outbox backlog exceeds 1000 events
+      - alert: KarenSeirDeadLettersPresent
+        expr: karenseir_outbox_dead_letter_depth > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: KarenSeir outbox has dead-letter events

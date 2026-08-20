@@ -1,0 +1,67 @@
+name: quality-release
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: karenseir_ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d karenseir_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 20, cache: npm}
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12", cache: pip}
+      - run: npm ci
+      - run: pip install -r backend/requirements.txt
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - run: npm run build
+      - run: alembic upgrade head && alembic check
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql+psycopg://postgres:postgres@127.0.0.1:5432/karenseir_ci
+      - name: Seed isolated integration database
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql+psycopg://postgres:postgres@127.0.0.1:5432/karenseir_ci
+        run: python -c "from app.main import SessionLocal,seed; db=SessionLocal(); seed(db); db.close()"
+      - name: Provision isolated least-privilege roles
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h 127.0.0.1 -U postgres -d karenseir_ci --set=api_password=api-ci-password --file=deploy/provision-api-role.sql
+          psql -h 127.0.0.1 -U postgres -d karenseir_ci --set=worker_password=worker-ci-password --file=deploy/provision-worker-role.sql
+      - run: python -m pytest tests -q
+        working-directory: backend
+        env:
+          TEST_POSTGRES_URL: postgresql+psycopg://karenseir_api:api-ci-password@127.0.0.1:5432/karenseir_ci
+          TEST_WORKER_POSTGRES_URL: postgresql+psycopg://karenseir_worker:worker-ci-password@127.0.0.1:5432/karenseir_ci
+          TEST_REDIS_URL: redis://127.0.0.1:6379/15
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+        env:
+          PLAYWRIGHT_CHANNEL: chromium
+          E2E_PYTHON: python
+      - run: docker build -t karenseir-web:${{ github.sha }} .
+      - run: docker build -t karenseir-api:${{ github.sha }} backend

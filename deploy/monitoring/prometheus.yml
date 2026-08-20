@@ -1,0 +1,17 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - /etc/prometheus/karenseir-alerts.yml
+
+scrape_configs:
+  - job_name: karenseir-api
+    metrics_path: /metrics
+    scheme: https
+    static_configs:
+      - targets: [api.your-domain.example]
+  - job_name: karenseir-worker
+    metrics_path: /metrics
+    static_configs:
+      - targets: [worker:9101]

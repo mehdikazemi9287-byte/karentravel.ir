@@ -1,0 +1,14 @@
+.env
+.venv/
+.next/
+node_modules/
+*.db
+*.pyc
+__pycache__/
+.pytest_cache/
+coverage/
+test-results/
+playwright-report/
+blob-report/
+*.tsbuildinfo
+dist/
