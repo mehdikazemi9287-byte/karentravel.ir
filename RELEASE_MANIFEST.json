@@ -1,8 +1,8 @@
 {
-  "release_version": "2026.08.20-rc3",
-  "build_timestamp_utc": "2026-08-20T02:19:41Z",
-  "source_checksum_algorithm": "sha256-of-sorted-file-sha256",
-  "source_checksum": "f76b0b4d4784ccd0f95734d18155eb06a82881c783f4d7cd5bd21398cb6e2822",
+  "release_version": "2026.08.20-rc4",
+  "build_timestamp_utc": "2026-08-20T04:39:44Z",
+  "source_checksum_algorithm": "sha256-of-git-ls-tree",
+  "source_checksum": "db742788cd81cfecdfe2e4146fd594848331e0edcbb31c666027327ce33c3b42",
   "pre_change_snapshot_sha256": "936e1e94c938bb3096af81ed103695bc7de184c56ea270a266c7abf386b3aa25",
   "migration_head": "20260820_09",
   "verified_backup_sha256": "4955a47c6357e6d540f2bd1969cfc82e7e3ef7ca0a0af7e2e54badef05c0cef5",
@@ -10,7 +10,7 @@
     "package-lock.json": "880ad6fb0f3422cc07b9a326626161893570c99668b56fa7fb1c0441b63bac5f",
     "backend/requirements.txt": "0ebefe03b88009b97b6995180e133febd05944e6dfc921b40827862f5d5a2eeb"
   },
-  "git_commit": "a2a12fd06f6ff35a181add2339846a528da85096",
+  "git_commit": "ba17620f15dde55c7b78c91c8eab4378415554d6",
   "web_image_digest": null,
   "api_image_digest": null,
   "provenance_complete": false,
@@ -23,7 +23,10 @@
     "Distributed provider throttling and circuit breaker",
     "Tenant-first performance indexes and local load baseline",
     "Tenant-scoped financial reconciliation read model",
-    "Frontend OTP/session API client wired to the operational pilot"
+    "Frontend OTP/session API client wired to the operational pilot",
+    "Authenticated trips, timeline, manage-booking, comparison and organization UI",
+    "Tenant/RBAC-aware supplier, agency and backoffice read panels",
+    "Eight-flow Chromium E2E coverage for connected operational UI"
   ],
   "incomplete_reasons": [
     "The imported workspace had no prior Git metadata or upstream provenance",
