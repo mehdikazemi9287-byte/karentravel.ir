@@ -1,8 +1,8 @@
 {
-  "release_version": "2026.08.20-rc4",
-  "build_timestamp_utc": "2026-08-20T04:39:44Z",
+  "release_version": "2026.08.20-rc5",
+  "build_timestamp_utc": "2026-08-20T06:44:55Z",
   "source_checksum_algorithm": "sha256-of-git-ls-tree",
-  "source_checksum": "db742788cd81cfecdfe2e4146fd594848331e0edcbb31c666027327ce33c3b42",
+  "source_checksum": "12873b6bb0d6c36f89b2586eb6b6255855212011f32b86a13da27d0cfe28f3d6",
   "pre_change_snapshot_sha256": "936e1e94c938bb3096af81ed103695bc7de184c56ea270a266c7abf386b3aa25",
   "migration_head": "20260820_09",
   "verified_backup_sha256": "4955a47c6357e6d540f2bd1969cfc82e7e3ef7ca0a0af7e2e54badef05c0cef5",
@@ -10,7 +10,7 @@
     "package-lock.json": "880ad6fb0f3422cc07b9a326626161893570c99668b56fa7fb1c0441b63bac5f",
     "backend/requirements.txt": "0ebefe03b88009b97b6995180e133febd05944e6dfc921b40827862f5d5a2eeb"
   },
-  "git_commit": "ba17620f15dde55c7b78c91c8eab4378415554d6",
+  "git_commit": "fd6ecd35c5099a2b89c37696147b67959a4d618d",
   "web_image_digest": null,
   "api_image_digest": null,
   "provenance_complete": false,
@@ -26,7 +26,11 @@
     "Frontend OTP/session API client wired to the operational pilot",
     "Authenticated trips, timeline, manage-booking, comparison and organization UI",
     "Tenant/RBAC-aware supplier, agency and backoffice read panels",
-    "Eight-flow Chromium E2E coverage for connected operational UI"
+    "Eight-flow Chromium E2E coverage for connected operational UI",
+    "Authenticated customer profile, travellers, personal wallet and notification preferences",
+    "Payment intent UI with credential-free fail-closed provider validation",
+    "Supplier, agency and backoffice mutation workflows with tenant/RBAC tests",
+    "Finance reconciliation and scoped customer support UI"
   ],
   "incomplete_reasons": [
     "The imported workspace had no prior Git metadata or upstream provenance",
