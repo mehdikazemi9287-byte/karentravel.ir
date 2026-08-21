@@ -1,0 +1,4 @@
+import Link from 'next/link';
+import { JourneyShell } from '../../components/journey/JourneyShell';
+export const metadata={title:'تورهای سفر',description:'جست‌وجو و مقایسه تورها با قیمت و موجودی timestampدار',alternates:{canonical:'/tours'},openGraph:{title:'تورهای سفر | کارن‌سیر',description:'تور را کشف، مقایسه و با بررسی زنده انتخاب کنید',url:'/tours',type:'website'}};
+export default function ToursPage(){return <JourneyShell><main className="journey-main"><section className="dashboard container"><header className="dashboard-title"><div><span className="eyebrow">Tour Discovery</span><h1>تورهای سفر</h1><p>قیمت و موجودی نهایی فقط پس از Search و recheck معتبر نمایش داده می‌شود.</p></div></header><div className="panel"><h2 className="font-black">جست‌وجوی تور</h2><p className="mt-2">برای دیدن Offerهای تازه و provider-aware وارد بخش مقایسه شوید.</p><Link className="button primary mt-4" href="/compare">جست‌وجو و مقایسه</Link></div></section></main></JourneyShell>}

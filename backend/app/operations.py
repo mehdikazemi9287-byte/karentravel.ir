@@ -220,6 +220,35 @@ class SearchRequest(OperationalMixin, Base):
     correlation_id: Mapped[str] = mapped_column(String(64), index=True)
 
 
+class SearchEntity(OperationalMixin, Base):
+    __tablename__ = "search_entities"
+    entity_type: Mapped[str] = mapped_column(String(48), index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    subtitle: Mapped[Optional[str]] = mapped_column(String(240), nullable=True)
+    normalized_title: Mapped[str] = mapped_column(String(240), index=True)
+    aliases_json: Mapped[str] = mapped_column(Text, default="[]")
+    city: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    country: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    code: Mapped[Optional[str]] = mapped_column(String(16), nullable=True, index=True)
+    latitude: Mapped[Optional[float]] = mapped_column(Numeric(9, 6), nullable=True)
+    longitude: Mapped[Optional[float]] = mapped_column(Numeric(9, 6), nullable=True)
+    popularity_score: Mapped[int] = mapped_column(Integer, default=0)
+    status: Mapped[str] = mapped_column(String(24), default="active", index=True)
+    __table_args__ = (UniqueConstraint("tenant_id", "entity_type", "normalized_title", name="uq_search_entity_normalized"),)
+
+
+class SavedSearch(OperationalMixin, Base):
+    __tablename__ = "saved_searches"
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    title: Mapped[str] = mapped_column(String(160))
+    query_json: Mapped[str] = mapped_column(Text)
+    query_hash: Mapped[str] = mapped_column(String(64), index=True)
+    command_id: Mapped[str] = mapped_column(String(120))
+    alert_type: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    alert_status: Mapped[str] = mapped_column(String(24), default="disabled")
+    __table_args__ = (UniqueConstraint("tenant_id", "command_id", name="uq_saved_search_command"), UniqueConstraint("tenant_id", "user_id", "query_hash", name="uq_saved_search_query"))
+
+
 class SavedTrip(OperationalMixin, Base):
     __tablename__ = "saved_trips"
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
@@ -268,6 +297,17 @@ class ReviewSupplierResponse(OperationalMixin, Base):
     body: Mapped[str] = mapped_column(Text)
     command_id: Mapped[str] = mapped_column(String(120))
     __table_args__ = (UniqueConstraint("tenant_id", "review_id", name="uq_review_supplier_response"), UniqueConstraint("tenant_id", "command_id", name="uq_review_response_command"))
+
+
+class ReviewReport(OperationalMixin, Base):
+    __tablename__ = "review_reports"
+    review_id: Mapped[str] = mapped_column(ForeignKey("reviews.id"), index=True)
+    reporter_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    reason: Mapped[str] = mapped_column(String(48))
+    detail: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    command_id: Mapped[str] = mapped_column(String(120))
+    status: Mapped[str] = mapped_column(String(24), default="open", index=True)
+    __table_args__ = (UniqueConstraint("tenant_id", "command_id", name="uq_review_report_command"), UniqueConstraint("tenant_id", "review_id", "reporter_user_id", name="uq_review_report_once"))
 
 
 class Destination(OperationalMixin, Base):
@@ -327,6 +367,20 @@ class Reservation(OperationalMixin, Base):
     booking_reference: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, unique=True)
     price_check_id: Mapped[Optional[str]] = mapped_column(ForeignKey("price_checks.id"), nullable=True, index=True)
     confirmed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class CheckoutSession(OperationalMixin, Base):
+    __tablename__ = "checkout_sessions"
+    reservation_id: Mapped[str] = mapped_column(ForeignKey("reservations.id"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    command_id: Mapped[str] = mapped_column(String(120))
+    stage: Mapped[str] = mapped_column(String(32), default="review", index=True)
+    price_snapshot_hash: Mapped[str] = mapped_column(String(64))
+    policy_snapshot_hash: Mapped[str] = mapped_column(String(64))
+    state_json: Mapped[str] = mapped_column(Text, default="{}")
+    payment_intent_id: Mapped[Optional[str]] = mapped_column(ForeignKey("payment_intents.id"), nullable=True, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    __table_args__ = (UniqueConstraint("tenant_id", "command_id", name="uq_checkout_command"),)
 
 
 class BookingStatusHistory(OperationalMixin, Base):
@@ -464,6 +518,8 @@ class PaymentIntent(OperationalMixin, Base):
     status: Mapped[str] = mapped_column(String(32), default="created", index=True)
     provider_key: Mapped[str] = mapped_column(String(64), default="payment")
     provider_reference: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
+    provider_authority: Mapped[Optional[str]] = mapped_column(String(160), nullable=True, index=True)
+    provider_capture_reference: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
     captured_amount: Mapped[int] = mapped_column(Integer, default=0)
     refunded_amount: Mapped[int] = mapped_column(Integer, default=0)
     __table_args__ = (UniqueConstraint("tenant_id", "command_id", name="uq_payment_command"),)

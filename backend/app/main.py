@@ -5,10 +5,12 @@ import hmac
 import json
 import logging
 import os
+import re
 import secrets
 import time
 import unicodedata
 import uuid
+from difflib import SequenceMatcher
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
@@ -16,7 +18,7 @@ from typing import Generator, Optional
 from urllib.parse import urlparse
 
 import jwt
-from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse, Response
 from pydantic import BaseModel, ConfigDict, Field
@@ -161,7 +163,33 @@ class OfferSearchIn(BaseModel):
     map_bounds: Optional[dict[str, float]] = None
     sort: str = Field(default="recommended", pattern="^(recommended|price_asc|price_desc|review_desc|freshness)$")
     include_stale: bool = False
-class PriceCheckIn(BaseModel): units: int = Field(ge=1, le=20); command_id: str = Field(min_length=8, max_length=120)
+class UnifiedSearchIn(BaseModel):
+    verticals: list[str] = Field(min_length=1, max_length=4)
+    query: Optional[str] = Field(default=None, max_length=500)
+    origin: Optional[str] = Field(default=None, max_length=120)
+    destination: Optional[str] = Field(default=None, max_length=120)
+    flexibility: str = Field(default="exact", pattern="^(exact|plus_minus_1|plus_minus_3|weekend|whole_month|flexible_month|nearby_dates)$")
+    travellers: int = Field(default=1, ge=1, le=20)
+    filters: dict = Field(default_factory=dict)
+    sort: str = Field(default="recommended", pattern="^(recommended|lowest_price|best_value|highest_rated|best_location|most_flexible|cheapest|best|fastest)$")
+    include_stale: bool = False
+    page: int = Field(default=1, ge=1, le=1000)
+    page_size: int = Field(default=20, ge=1, le=100)
+class SavedSearchIn(BaseModel):
+    title: str = Field(min_length=2, max_length=160)
+    query: dict
+    command_id: str = Field(min_length=8, max_length=120)
+    alert_type: Optional[str] = Field(default=None, pattern="^(price|availability|fare_drop)$")
+class BudgetTripIn(BaseModel):
+    origin: str = Field(min_length=2, max_length=120)
+    destination: Optional[str] = Field(default=None, max_length=120)
+    travellers: int = Field(default=1, ge=1, le=20)
+    budget: int = Field(gt=0)
+    interests: list[str] = Field(default_factory=list, max_length=20)
+class PriceCheckIn(BaseModel):
+    units: int = Field(ge=1, le=20)
+    command_id: str = Field(min_length=8, max_length=120)
+    expected_final_price: Optional[int] = Field(default=None, gt=0)
 class OrchestrationBookingIn(BaseModel): price_check_id: str = Field(min_length=36, max_length=36); command_id: str = Field(min_length=8, max_length=120)
 class FulfillmentIn(BaseModel): command_id: str = Field(min_length=8, max_length=120); provider_reference: str = Field(min_length=3, max_length=160); document_reference: str = Field(min_length=3, max_length=240)
 class OrganizationDimensionIn(BaseModel): name: str = Field(min_length=2, max_length=160); code: str = Field(min_length=2, max_length=64); budget_amount: Optional[int] = Field(default=None, ge=0)
@@ -205,11 +233,14 @@ class ReviewIn(BaseModel):
     rating: int = Field(ge=1, le=5); title: str = Field(min_length=2, max_length=160); body: str = Field(min_length=10, max_length=5000); service_type: str = Field(pattern=ECOSYSTEM_SERVICE_PATTERN); service_reference: str = Field(min_length=2, max_length=200); provider_reference: Optional[str] = Field(default=None, max_length=160); reservation_id: Optional[str] = Field(default=None, min_length=36, max_length=36); command_id: str = Field(min_length=8, max_length=120)
 class ReviewModerationIn(BaseModel): state: str = Field(pattern="^(approved|rejected|flagged)$"); reason: str = Field(min_length=3, max_length=500)
 class ReviewResponseIn(BaseModel): supplier_id: str = Field(min_length=36, max_length=36); body: str = Field(min_length=3, max_length=2000); command_id: str = Field(min_length=8, max_length=120)
+class ReviewReportIn(BaseModel): reason: str = Field(pattern="^(spam|fraud|abuse|privacy|irrelevant|other)$"); detail: Optional[str] = Field(default=None, max_length=500); command_id: str = Field(min_length=8, max_length=120)
 class DestinationIn(BaseModel): parent_id: Optional[str] = Field(default=None, min_length=36, max_length=36); kind: str = Field(pattern="^(country|province|city|district|poi)$"); name_fa: str = Field(min_length=2, max_length=160); name_en: Optional[str] = Field(default=None, max_length=160); slug: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$", max_length=160); latitude: Optional[float] = Field(default=None, ge=-90, le=90); longitude: Optional[float] = Field(default=None, ge=-180, le=180); description: str = Field(default="", max_length=5000); seasonality: list[str] = Field(default_factory=list, max_length=12); categories: list[str] = Field(default_factory=list, max_length=30); highlights: list[str] = Field(default_factory=list, max_length=30); nearby_slugs: list[str] = Field(default_factory=list, max_length=30)
 class ItineraryIn(BaseModel): title: str = Field(min_length=2, max_length=160); destination_id: Optional[str] = Field(default=None, min_length=36, max_length=36); budget_amount: Optional[int] = Field(default=None, ge=0); command_id: str = Field(min_length=8, max_length=120)
 class ItineraryItemIn(BaseModel): offer_id: Optional[str] = Field(default=None, min_length=36, max_length=36); service_type: str = Field(pattern=ECOSYSTEM_SERVICE_PATTERN); title: str = Field(min_length=2, max_length=200); day_number: int = Field(ge=1, le=365); position: int = Field(ge=1, le=100); command_id: str = Field(min_length=8, max_length=120)
 class ItineraryItemUpdateIn(BaseModel): day_number: int = Field(ge=1, le=365); position: int = Field(ge=1, le=100); replacement_offer_id: Optional[str] = Field(default=None, min_length=36, max_length=36); command_id: str = Field(min_length=8, max_length=120)
 class ItineraryUpdateIn(BaseModel): title: str = Field(min_length=2, max_length=160); budget_amount: Optional[int] = Field(default=None, ge=0); status: str = Field(default="draft", pattern="^(draft|saved|archived)$"); command_id: str = Field(min_length=8, max_length=120)
+class CheckoutCreateIn(BaseModel): command_id: str = Field(min_length=8, max_length=120)
+class CheckoutStepIn(BaseModel): command_id: str = Field(min_length=8, max_length=120); traveller_ids: list[str] = Field(default_factory=list, max_length=20); acknowledged: Optional[bool] = None; wallet_amount: int = Field(default=0, ge=0); credit_amount: int = Field(default=0, ge=0)
 def token_for(user: User, tenant: Tenant) -> str:
     now = datetime.now(timezone.utc)
     return jwt.encode({"sub":str(user.id),"tenant":tenant.id,"role":user.role,"type":"access","iss":JWT_ISSUER,"aud":JWT_AUDIENCE,"iat":now,"jti":str(uuid.uuid4()),"exp":now+timedelta(minutes=15)}, JWT_SECRET, algorithm="HS256")
@@ -817,7 +848,8 @@ def initiate_payment(payment_id: str, user: User = Depends(current_user), db: Se
         return {"id": intent.id, "status": intent.status}
     from .providers import ADAPTERS, ProviderContext
     try:
-        result = ADAPTERS["payment"].execute("initiate", {"payment_intent_id": intent.id, "amount": intent.amount, "currency": intent.currency}, ProviderContext(tenant_id=user.tenant_id, correlation_id=str(uuid.uuid4()), idempotency_key=intent.command_id))
+        callback_state = jwt.encode({"iss": JWT_ISSUER, "aud": "karenseir-zarinpal-callback", "tenant_id": user.tenant_id, "payment_intent_id": intent.id, "user_id": user.id, "amount": intent.amount, "exp": datetime.now(timezone.utc) + timedelta(minutes=30), "iat": datetime.now(timezone.utc), "jti": str(uuid.uuid4())}, JWT_SECRET, algorithm="HS256")
+        result = ADAPTERS["payment"].execute("initiate", {"payment_intent_id": intent.id, "amount": intent.amount, "currency": intent.currency, "callback_state": callback_state}, ProviderContext(tenant_id=user.tenant_id, correlation_id=str(uuid.uuid4()), idempotency_key=intent.command_id))
     except Exception:
         logging.getLogger("karenseir.payment").exception("payment_provider_unavailable")
         record_business_event("provider", "payment_unavailable")
@@ -831,9 +863,37 @@ def initiate_payment(payment_id: str, user: User = Depends(current_user), db: Se
         raise HTTPException(status_code=502, detail="پاسخ درگاه پرداخت معتبر نیست")
     intent.status = "initiated"
     intent.provider_reference = str(result.get("reference", ""))[:160] or None
+    intent.provider_authority = str(result.get("authority", result.get("reference", "")))[:160] or None
     db.commit()
     record_business_event("payment", "initiated")
     return {"id": intent.id, "status": intent.status, "redirect_url": redirect_url}
+
+
+@app.get("/payments/zarinpal/callback")
+def zarinpal_callback(state_token: str = Query(alias="state", min_length=20), authority: str = Query(alias="Authority", min_length=36, max_length=36), callback_status: str = Query(alias="Status", pattern="^(OK|NOK)$"), db: Session = Depends(get_db)) -> dict:
+    try:
+        claims = jwt.decode(state_token, JWT_SECRET, algorithms=["HS256"], audience="karenseir-zarinpal-callback", issuer=JWT_ISSUER, options={"require": ["exp", "iat", "jti", "tenant_id", "payment_intent_id", "user_id", "amount"]})
+        tenant_id = int(claims["tenant_id"]); payment_id = str(claims["payment_intent_id"]); user_id = int(claims["user_id"]); claimed_amount = int(claims["amount"])
+    except (jwt.InvalidTokenError, TypeError, ValueError, KeyError): raise HTTPException(status_code=401, detail="state پرداخت نامعتبر یا منقضی است")
+    set_tenant_context(db, tenant_id)
+    intent = db.scalar(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.id == payment_id, operational_models.PaymentIntent.tenant_id == tenant_id, operational_models.PaymentIntent.user_id == user_id).with_for_update())
+    if intent is None: raise HTTPException(status_code=404, detail="Payment Intent در tenant معتبر وجود ندارد")
+    if claimed_amount != intent.amount: raise HTTPException(status_code=409, detail="مبلغ state با Payment Intent تطابق ندارد")
+    if intent.provider_authority != authority: raise HTTPException(status_code=409, detail="Authority با Payment Intent تطابق ندارد")
+    if callback_status != "OK":
+        if intent.status == "initiated": intent.status = "failed"; db.add(operational_models.OutboxEvent(tenant_id=tenant_id, aggregate_type="payment", aggregate_id=intent.id, event_type="payment.zarinpal.cancelled", payload_json="{}", correlation_id=str(uuid.uuid4()), idempotency_key=f"zarinpal-cancel:{authority}")); db.commit()
+        return {"status": "cancelled", "payment_status": intent.status}
+    if intent.status == "captured" and intent.provider_capture_reference: return {"status": "duplicate", "payment_status": "captured", "ref_id": intent.provider_capture_reference}
+    if intent.status != "initiated": raise HTTPException(status_code=409, detail="Payment Intent قابل verify نیست")
+    from .providers import ADAPTERS, ProviderContext
+    result = ADAPTERS["payment"].execute("verify", {"payment_intent_id": intent.id, "amount": intent.amount, "currency": intent.currency, "authority": authority}, ProviderContext(tenant_id=tenant_id, correlation_id=str(uuid.uuid4()), idempotency_key=f"zarinpal-verify:{authority}"))
+    if not result.get("ok") or result.get("authority") != authority or int(result.get("amount", 0)) != intent.amount: raise HTTPException(status_code=502, detail="تأیید server-side زرین‌پال ناموفق بود")
+    ref_id = str(result.get("ref_id", ""))[:160]
+    if not ref_id: raise HTTPException(status_code=502, detail="RefID معتبر دریافت نشد")
+    event_id = f"zarinpal:{authority}:{ref_id}"; prior = db.scalar(select(operational_models.PaymentEvent).where(operational_models.PaymentEvent.provider_key == "zarinpal", operational_models.PaymentEvent.provider_event_id == event_id))
+    if prior: return {"status": "duplicate", "payment_status": intent.status, "ref_id": ref_id}
+    intent.status = "captured"; intent.captured_amount = intent.amount; intent.provider_capture_reference = ref_id; intent.provider_reference = ref_id
+    db.add(operational_models.PaymentEvent(tenant_id=tenant_id, payment_intent_id=intent.id, provider_key="zarinpal", provider_event_id=event_id, event_type="captured", payload_hash=_secure_hash(f"{authority}:{intent.amount}:{ref_id}"))); db.add(operational_models.OutboxEvent(tenant_id=tenant_id, aggregate_type="payment", aggregate_id=intent.id, event_type="payment.zarinpal.captured", payload_json=json.dumps({"authority": authority, "ref_id": ref_id}), correlation_id=str(uuid.uuid4()), idempotency_key=event_id)); db.commit(); record_business_event("payment", "captured"); return {"status": "accepted", "payment_status": "captured", "ref_id": ref_id}
 
 
 @app.post("/payments/callback/{provider_key}")
@@ -938,18 +998,37 @@ def onboard_supplier(data: SupplierOnboardingIn, idempotency_key: str = Header(a
     db.commit(); return response
 
 
-_SEARCH_TRANSLATION = str.maketrans({"ي": "ی", "ى": "ی", "ك": "ک", "ة": "ه", "ۀ": "ه", "ؤ": "و", "إ": "ا", "أ": "ا", "ٱ": "ا", "‌": " ", "‍": " "})
+_SEARCH_TRANSLATION = str.maketrans({"ي": "ی", "ى": "ی", "ك": "ک", "ة": "ه", "ۀ": "ه", "ؤ": "و", "إ": "ا", "أ": "ا", "ٱ": "ا", "‌": " ", "‍": " ", "۰": "0", "۱": "1", "۲": "2", "۳": "3", "۴": "4", "۵": "5", "۶": "6", "۷": "7", "۸": "8", "۹": "9", "٠": "0", "١": "1", "٢": "2", "٣": "3", "٤": "4", "٥": "5", "٦": "6", "٧": "7", "٨": "8", "٩": "9"})
 _AUTOCOMPLETE_ENTITIES = (
-    ("تهران", "city"), ("شیراز", "city"), ("مشهد", "city"), ("یزد", "city"),
-    ("اصفهان", "city"), ("کیش", "city"), ("قشم", "city"), ("فرودگاه مهرآباد", "airport"),
-    ("فرودگاه امام خمینی", "airport"), ("حافظیه", "poi"), ("تخت جمشید", "poi"),
+    {"id": "city-tehran", "title": "تهران", "type": "city", "code": "THR", "country": "ایران", "popularity": 100, "aliases": ["تهرون", "Tehran"]},
+    {"id": "city-shiraz", "title": "شیراز", "type": "city", "code": "SYZ", "country": "ایران", "popularity": 92, "aliases": ["Shiraz"]},
+    {"id": "city-mashhad", "title": "مشهد", "type": "city", "code": "MHD", "country": "ایران", "popularity": 96, "aliases": ["Mashhad"]},
+    {"id": "city-yazd", "title": "یزد", "type": "city", "code": "AZD", "country": "ایران", "popularity": 78, "aliases": ["Yazd"]},
+    {"id": "city-isfahan", "title": "اصفهان", "type": "city", "code": "IFN", "country": "ایران", "popularity": 90, "aliases": ["Isfahan", "Esfahan"]},
+    {"id": "city-kish", "title": "کیش", "type": "city", "code": "KIH", "country": "ایران", "popularity": 86, "aliases": ["Kish"]},
+    {"id": "city-qeshm", "title": "قشم", "type": "city", "code": "GSM", "country": "ایران", "popularity": 82, "aliases": ["Qeshm"]},
+    {"id": "airport-thr", "title": "فرودگاه مهرآباد", "type": "airport", "code": "THR", "city": "تهران", "country": "ایران", "popularity": 94, "aliases": ["Mehrabad"]},
+    {"id": "airport-ika", "title": "فرودگاه امام خمینی", "type": "airport", "code": "IKA", "city": "تهران", "country": "ایران", "popularity": 91, "aliases": ["Imam Khomeini Airport"]},
+    {"id": "poi-hafezieh", "title": "حافظیه", "type": "attraction", "city": "شیراز", "country": "ایران", "popularity": 75, "aliases": ["Hafezieh"]},
+    {"id": "poi-persepolis", "title": "تخت جمشید", "type": "attraction", "city": "مرودشت", "country": "ایران", "popularity": 88, "aliases": ["Persepolis"]},
 )
 
 
 def _normalize_search_text(value: str) -> str:
     translated = unicodedata.normalize("NFKC", value).translate(_SEARCH_TRANSLATION)
     without_marks = "".join(char for char in translated if unicodedata.category(char) != "Mn")
-    return " ".join(without_marks.casefold().split())
+    without_punctuation = " ".join(re.sub(r"[^\w\s]", " ", without_marks, flags=re.UNICODE).casefold().split())
+    aliases = {"tehran": "تهران", "تهرون": "تهران", "thr": "تهران", "shiraz": "شیراز", "syz": "شیراز", "mashhad": "مشهد", "mhd": "مشهد", "isfahan": "اصفهان", "esfahan": "اصفهان", "ifn": "اصفهان"}
+    return " ".join(aliases.get(token, token) for token in without_punctuation.split())
+
+
+def _match_score(query: str, candidate: str, aliases: list[str] | None = None) -> tuple[int, str]:
+    values = [_normalize_search_text(candidate), *[_normalize_search_text(item) for item in aliases or []]]
+    if query in values: return 400, "exact"
+    if any(value.startswith(query) for value in values): return 300, "prefix"
+    if any(query in value for value in values): return 200, "contains"
+    ratio = max((SequenceMatcher(None, query, value).ratio() for value in values), default=0)
+    return (100 + int(ratio * 50), "fuzzy") if ratio >= 0.72 else (0, "none")
 
 
 def _search_datetime(value: object, fallback: datetime) -> datetime:
@@ -973,13 +1052,20 @@ def search_autocomplete(q: str, service_type: Optional[str] = None, user: User =
     rows = db.scalars(statement.limit(100)).all()
     suggestions: list[dict] = []
     seen: set[tuple[str, str]] = set()
-    for label, entity_type in _AUTOCOMPLETE_ENTITIES:
-        if normalized in _normalize_search_text(label):
-            seen.add((label, entity_type)); suggestions.append({"label": label, "normalized": _normalize_search_text(label), "entity_type": entity_type, "source": "karenseir_geo_catalog"})
+    persisted = db.scalars(select(operational_models.SearchEntity).where(operational_models.SearchEntity.tenant_id == user.tenant_id, operational_models.SearchEntity.status == "active").limit(100)).all()
+    candidates = [*list(_AUTOCOMPLETE_ENTITIES), *[{"id": row.id, "title": row.title, "type": row.entity_type, "code": row.code, "city": row.city, "country": row.country, "subtitle": row.subtitle, "popularity": row.popularity_score, "aliases": json.loads(row.aliases_json or "[]"), "coordinates": [float(row.latitude), float(row.longitude)] if row.latitude is not None and row.longitude is not None else None} for row in persisted]]
+    for item in candidates:
+        score, match_type = _match_score(normalized, item["title"], item.get("aliases", []) + ([item["code"]] if item.get("code") else []))
+        if score:
+            key = (item["title"], item["type"]); seen.add(key)
+            suggestions.append({"id": item["id"], "title": item["title"], "label": item["title"], "subtitle": item.get("subtitle") or " · ".join(filter(None, [item.get("city"), item.get("country")])), "normalized": _normalize_search_text(item["title"]), "entity_type": item["type"], "city": item.get("city"), "country": item.get("country"), "code": item.get("code"), "coordinates": item.get("coordinates"), "popularity_score": item.get("popularity", 0), "match_type": match_type, "ranking_score": score + item.get("popularity", 0), "source": "tenant_entity_catalog" if isinstance(item["id"], str) and len(item["id"]) == 36 else "karenseir_geo_catalog"})
     for row in rows:
-        if normalized in _normalize_search_text(row.title) and (row.title, row.service_type) not in seen:
-            seen.add((row.title, row.service_type)); suggestions.append({"label": row.title, "normalized": _normalize_search_text(row.title), "entity_type": row.service_type, "source": "tenant_offer"})
-    return {"query": q, "normalized_query": normalized, "suggestions": suggestions[:10]}
+        score, match_type = _match_score(normalized, row.title)
+        if score and (row.title, row.service_type) not in seen:
+            attrs = json.loads(row.attributes_json or "{}")
+            seen.add((row.title, row.service_type)); suggestions.append({"id": row.id, "title": row.title, "label": row.title, "subtitle": attrs.get("city"), "normalized": _normalize_search_text(row.title), "entity_type": row.service_type, "city": attrs.get("city"), "country": attrs.get("country", "ایران"), "code": attrs.get("code"), "coordinates": [attrs.get("latitude"), attrs.get("longitude")] if attrs.get("latitude") is not None else None, "popularity_score": int(attrs.get("popularity_score", 0)), "match_type": match_type, "ranking_score": score + int(attrs.get("popularity_score", 0)), "source": "tenant_offer"})
+    suggestions.sort(key=lambda item: (-item["ranking_score"], item["title"]))
+    return {"query": q, "normalized_query": normalized, "suggestions": suggestions[:10], "cache_policy": "private_tenant_30s"}
 
 
 @app.post("/search/offers")
@@ -1019,9 +1105,13 @@ def search_offers(data: OfferSearchIn, user: User = Depends(current_user), db: S
         ttl_seconds = max(30, min(int(attrs.get("freshness_ttl_seconds", ttl_default)), 86400))
         stale = observed_at + timedelta(seconds=ttl_seconds) <= now
         if stale and not data.include_stale: continue
-        taxes = max(0, int(attrs.get("taxes", 0) or 0)); fees = max(0, int(attrs.get("fees", 0) or 0))
-        result = {"id": row.id, "service_type": row.service_type, "title": row.title, "provider": row.provider_key, "provider_status": "supplier_verified" if row.fulfillment_mode == "manual_supplier" else "provider_required", "last_updated_at": observed_at.isoformat(), "availability_checked_at": _search_datetime(attrs.get("availability_checked_at"), observed_at).isoformat(), "price_checked_at": _search_datetime(attrs.get("price_checked_at"), observed_at).isoformat(), "freshness_ttl_seconds": ttl_seconds, "freshness": "stale" if stale else "live", "amount": row.amount, "taxes": taxes, "fees": fees, "total_amount": row.amount + taxes + fees, "currency": row.currency, "available": not stale, "inventory_status": "available" if not stale else "stale_unknown", "available_units": row.available_units if not stale else None, "cancellation_policy": cancellation, "policy_verified": policy.get("verified") is True, "quality_score": attrs.get("quality_score", attrs.get("quality")), "review_score": review_score or None, "location": {key: attrs.get(key) for key in ("city", "province", "latitude", "longitude") if attrs.get(key) is not None}, "attributes": attrs, "valid_until": _aware(row.valid_until).isoformat()}
-        result["ranking_score"] = round((1000000000 / max(result["total_amount"], 1)) + review_score * 10 + (10 if cancellation and cancellation.get("refundable") else 0) + (5 if attrs.get("organization_policy_compliant") else 0), 4)
+        taxes = max(0, int(attrs.get("taxes", 0) or 0)); fees = max(0, int(attrs.get("fees", 0) or 0)); discounts = max(0, int(attrs.get("discounts", 0) or 0))
+        final_price = max(0, row.amount + taxes + fees - discounts)
+        entity_id = attrs.get("entity_id") or hashlib.sha256(f"{row.service_type}:{_normalize_search_text(row.title)}:{_normalize_search_text(str(attrs.get('city', '')))}".encode()).hexdigest()[:24]
+        result = {"id": row.id, "offer_id": row.id, "entity_id": entity_id, "service_type": row.service_type, "title": row.title, "provider": row.provider_key, "provider_status": "supplier_verified" if row.fulfillment_mode == "manual_supplier" else "provider_required", "last_updated_at": observed_at.isoformat(), "observed_at": observed_at.isoformat(), "availability_checked_at": _search_datetime(attrs.get("availability_checked_at"), observed_at).isoformat(), "price_checked_at": _search_datetime(attrs.get("price_checked_at"), observed_at).isoformat(), "freshness_ttl_seconds": ttl_seconds, "freshness": "stale" if stale else "live", "freshness_state": "STALE" if stale else "LIVE", "amount": row.amount, "base_price": row.amount, "taxes": taxes, "fees": fees, "discounts": discounts, "total_amount": final_price, "final_price": final_price, "currency": row.currency, "available": not stale, "availability_state": "REQUIRES_RECHECK" if stale else "CONFIRMED", "inventory_status": "available" if not stale else "stale_unknown", "available_units": row.available_units if not stale else None, "cancellation_policy": cancellation, "policy_verified": policy.get("verified") is True, "quality_score": attrs.get("quality_score", attrs.get("quality")), "review_score": review_score or None, "location": {key: attrs.get(key) for key in ("city", "province", "latitude", "longitude") if attrs.get(key) is not None}, "attributes": attrs, "valid_until": _aware(row.valid_until).isoformat()}
+        breakdown = {"price": round(1000000000 / max(result["total_amount"], 1), 4), "reviews": review_score * 10, "flexibility": 10 if cancellation and cancellation.get("refundable") else 0, "policy": 5 if attrs.get("organization_policy_compliant") else 0, "freshness": 0 if stale else 15, "provider_reliability": float(attrs.get("provider_reliability", 5))}
+        result["ranking_breakdown"] = breakdown; result["ranking_score"] = round(sum(breakdown.values()), 4)
+        result["ranking_explanation"] = [label for enabled, label in ((not stale, "داده تازه"), (review_score >= 8, "امتیاز کاربران بالا"), (bool(cancellation and cancellation.get("refundable")), "امکان استرداد"), (bool(attrs.get("organization_policy_compliant")), "منطبق با سیاست سازمان")) if enabled]
         results.append(result)
     sorters = {"price_asc": lambda item: (item["total_amount"], -item["ranking_score"]), "price_desc": lambda item: (-item["total_amount"], -item["ranking_score"]), "review_desc": lambda item: (-(item["review_score"] or 0), item["total_amount"]), "freshness": lambda item: (item["freshness"] != "live", item["last_updated_at"]), "recommended": lambda item: (-item["ranking_score"], item["total_amount"])}
     results.sort(key=sorters[data.sort])
@@ -1037,6 +1127,86 @@ def recent_searches(user: User = Depends(current_user), db: Session = Depends(ge
     return [{"id": row.id, "service_type": row.service_type, "criteria": json.loads(row.criteria_json), "searched_at": row.created_at.isoformat()} for row in rows]
 
 
+def _structured_search_intent(data: UnifiedSearchIn) -> dict:
+    normalized = _normalize_search_text(data.query or "")
+    destination = data.destination
+    if not destination:
+        for item in _AUTOCOMPLETE_ENTITIES:
+            entity_terms = [_normalize_search_text(item["title"]), *[_normalize_search_text(alias) for alias in item.get("aliases", [])]]
+            if item["type"] == "city" and any(term in normalized.split() for term in entity_terms):
+                destination = item["title"]; break
+    numbers = [int(value) for value in re.findall(r"\d+", normalized)]
+    travellers = next((value for value in numbers if re.search(rf"{value}\s*(نفر|مسافر)", normalized)), data.travellers)
+    nights = next((value for value in numbers if re.search(rf"{value}\s*(شب|روز)", normalized)), None)
+    star = next((value for value in range(1, 6) if re.search(rf"{value}\s*ستاره", normalized)), None)
+    departure_window = "morning" if "صبح" in normalized else "evening" if "عصر" in normalized else None
+    return {"normalized_query": normalized, "origin": data.origin, "destination": destination, "travellers": travellers, "nights": nights, "star_rating": star, "departure_window": departure_window, "flexibility": data.flexibility, "filters": data.filters, "transactional_data_source": "provider_offer_layer"}
+
+
+@app.post("/search/v2")
+def unified_search(data: UnifiedSearchIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    started = time.perf_counter()
+    allowed = re.compile(ECOSYSTEM_SERVICE_PATTERN)
+    if any(not allowed.fullmatch(vertical) for vertical in data.verticals):
+        raise HTTPException(status_code=422, detail="نوع خدمت معتبر نیست")
+    intent = _structured_search_intent(data)
+    query = data.destination or intent.get("destination") or data.query
+    allowed_filter_keys = {"min_price", "max_price", "min_review_score", "refundable", "amenities", "instant_booking", "map_bounds"}
+    safe_filters = {key: value for key, value in data.filters.items() if key in allowed_filter_keys}
+    legacy_sort = {"lowest_price": "price_asc", "cheapest": "price_asc", "highest_rated": "review_desc"}.get(data.sort, "recommended")
+    offers: list[dict] = []
+    for vertical in data.verticals:
+        offers.extend(search_offers(OfferSearchIn(service_type=vertical, query=query, flexible_dates=data.flexibility != "exact", sort=legacy_sort, include_stale=data.include_stale, **safe_filters), user, db))
+    groups: dict[str, dict] = {}
+    for offer in offers:
+        group = groups.setdefault(offer["entity_id"], {"entity_id": offer["entity_id"], "title": offer["title"], "service_type": offer["service_type"], "offers": []})
+        group["offers"].append(offer)
+    entities = []
+    for group in groups.values():
+        group["offers"].sort(key=lambda item: (item["final_price"], -item["ranking_score"]))
+        group["best_offer"] = group["offers"][0]; group["provider_count"] = len({item["provider"] for item in group["offers"]})
+        group["ranking_score"] = max(item["ranking_score"] for item in group["offers"]); entities.append(group)
+    entity_sorters = {"lowest_price": lambda item: item["best_offer"]["final_price"], "cheapest": lambda item: item["best_offer"]["final_price"], "highest_rated": lambda item: -(item["best_offer"]["review_score"] or 0), "best_location": lambda item: -float(item["best_offer"]["attributes"].get("location_score", 0)), "most_flexible": lambda item: not bool((item["best_offer"].get("cancellation_policy") or {}).get("refundable"))}
+    entities.sort(key=entity_sorters.get(data.sort, lambda item: -item["ranking_score"]))
+    offset = (data.page - 1) * data.page_size; page_items = entities[offset:offset + data.page_size]
+    recovery = [] if entities else [{"type": "nearby_dates", "message": "تاریخ‌های ±۱ روز را بررسی کنید", "fabricated_price": False}, {"type": "fewer_filters", "message": "برخی فیلترها را حذف کنید", "fabricated_price": False}]
+    record_business_event("search", "success" if entities else "zero_result")
+    return {"structured_query": intent, "entities": page_items, "pagination": {"page": data.page, "page_size": data.page_size, "total": len(entities)}, "freshness_policy": "provider_and_vertical_specific", "availability_recheck_required_before_checkout": True, "price_recheck_required_before_checkout": True, "zero_result_recovery": recovery, "provider_diagnostics": [{"provider": key, "status": "available", "offer_count": sum(1 for item in offers if item["provider"] == key)} for key in sorted({item["provider"] for item in offers})], "elapsed_ms": round((time.perf_counter() - started) * 1000, 3)}
+
+
+@app.post("/search/saved", status_code=status.HTTP_201_CREATED)
+def save_search(data: SavedSearchIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    encoded = json.dumps(data.query, sort_keys=True, separators=(",", ":")); query_hash = _secure_hash(encoded)
+    row = db.scalar(select(operational_models.SavedSearch).where(operational_models.SavedSearch.tenant_id == user.tenant_id, operational_models.SavedSearch.user_id == user.id, (operational_models.SavedSearch.command_id == data.command_id) | (operational_models.SavedSearch.query_hash == query_hash)))
+    if row:
+        if row.query_hash != query_hash: raise HTTPException(status_code=409, detail="کلید تکرار برای جست‌وجوی دیگری استفاده شده است")
+    else:
+        row = operational_models.SavedSearch(tenant_id=user.tenant_id, user_id=user.id, title=data.title, query_json=encoded, query_hash=query_hash, command_id=data.command_id, alert_type=data.alert_type, alert_status="external_blocked" if data.alert_type else "disabled")
+        db.add(row); db.flush(); db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="saved_search", aggregate_id=row.id, event_type="search.saved", payload_json=json.dumps({"saved_search_id": row.id}), correlation_id=str(uuid.uuid4()), idempotency_key=data.command_id)); db.commit()
+    return {"id": row.id, "title": row.title, "query": json.loads(row.query_json), "alert_type": row.alert_type, "alert_status": row.alert_status, "external_delivery": False}
+
+
+@app.get("/search/saved")
+def list_saved_searches(user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
+    rows = db.scalars(select(operational_models.SavedSearch).where(operational_models.SavedSearch.tenant_id == user.tenant_id, operational_models.SavedSearch.user_id == user.id).order_by(operational_models.SavedSearch.created_at.desc())).all()
+    return [{"id": row.id, "title": row.title, "query": json.loads(row.query_json), "alert_type": row.alert_type, "alert_status": row.alert_status} for row in rows]
+
+
+@app.delete("/search/saved/{saved_search_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_saved_search(saved_search_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> Response:
+    row = db.scalar(select(operational_models.SavedSearch).where(operational_models.SavedSearch.id == saved_search_id, operational_models.SavedSearch.tenant_id == user.tenant_id, operational_models.SavedSearch.user_id == user.id))
+    if row is None: raise HTTPException(status_code=404, detail="جست‌وجوی ذخیره‌شده پیدا نشد")
+    db.delete(row); db.commit(); return Response(status_code=204)
+
+
+@app.post("/search/budget-trips")
+def budget_trips(data: BudgetTripIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    results = unified_search(UnifiedSearchIn(verticals=["flight", "hotel", "tour", "package"], origin=data.origin, destination=data.destination, travellers=data.travellers, filters={"max_price": data.budget}, sort="best_value", page_size=100), user, db)
+    candidates = [item for item in results["entities"] if item["best_offer"]["final_price"] * data.travellers <= data.budget and item["best_offer"]["freshness_state"] == "LIVE"]
+    cheapest = min(candidates, key=lambda item: item["best_offer"]["final_price"], default=None); quality = max(candidates, key=lambda item: item["best_offer"]["quality_score"] or 0, default=None); value = max(candidates, key=lambda item: item["ranking_score"], default=None)
+    return {"budget": data.budget, "categories": {"cheapest": cheapest, "best_value": value, "best_quality": quality, "ai_recommended": None}, "bookable_only_with_live_inventory": True, "ai_status": "not_configured"}
+
+
 @app.post("/offers/{offer_id}/price-check", status_code=status.HTTP_201_CREATED)
 def price_check(offer_id: str, data: PriceCheckIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
     existing = db.scalar(select(operational_models.PriceCheck).where(operational_models.PriceCheck.tenant_id == user.tenant_id, operational_models.PriceCheck.command_id == data.command_id))
@@ -1048,7 +1218,10 @@ def price_check(offer_id: str, data: PriceCheckIn, user: User = Depends(current_
     now = datetime.now(timezone.utc)
     if offer is None or offer.status != "active" or _aware(offer.valid_until) <= now or offer.available_units < data.units:
         raise HTTPException(status_code=409, detail="Offer قابل قیمت‌سنجی نیست")
-    snapshot = {"offer_id": offer.id, "service_type": offer.service_type, "supplier_id": offer.supplier_id, "title": offer.title, "unit_amount": offer.amount, "units": data.units, "total_amount": offer.amount * data.units, "currency": offer.currency, "policy": json.loads(offer.policy_json), "attributes": json.loads(offer.attributes_json), "provider_key": offer.provider_key, "fulfillment_mode": offer.fulfillment_mode, "checked_at": now.isoformat()}
+    attributes = json.loads(offer.attributes_json); final_unit_price = max(0, offer.amount + int(attributes.get("taxes", 0) or 0) + int(attributes.get("fees", 0) or 0) - int(attributes.get("discounts", 0) or 0)); final_total = final_unit_price * data.units
+    if data.expected_final_price is not None and data.expected_final_price != final_total:
+        raise HTTPException(status_code=409, detail={"code": "PRICE_CHANGED", "old_price": data.expected_final_price, "new_price": final_total, "delta": final_total - data.expected_final_price, "checked_at": now.isoformat()})
+    snapshot = {"offer_id": offer.id, "service_type": offer.service_type, "supplier_id": offer.supplier_id, "title": offer.title, "unit_amount": final_unit_price, "units": data.units, "total_amount": final_total, "currency": offer.currency, "policy": json.loads(offer.policy_json), "attributes": attributes, "provider_key": offer.provider_key, "fulfillment_mode": offer.fulfillment_mode, "checked_at": now.isoformat(), "availability_state": "CONFIRMED", "price_state": "RECHECKED"}
     encoded = json.dumps(snapshot, sort_keys=True, separators=(",", ":"))
     expires_at = min(_aware(offer.valid_until), now + timedelta(minutes=10))
     row = operational_models.PriceCheck(tenant_id=user.tenant_id, offer_id=offer.id, user_id=user.id, command_id=data.command_id, amount=snapshot["total_amount"], currency=offer.currency, units=data.units, snapshot_json=encoded, snapshot_hash=_secure_hash(encoded), expires_at=expires_at)
@@ -1744,6 +1917,24 @@ def destination_detail(slug: str, user: User = Depends(current_user), db: Sessio
     return _destination_output(db, row)
 
 
+def _public_tenant(db: Session, tenant_slug: str) -> Tenant:
+    tenant = db.scalar(select(Tenant).where(Tenant.slug == tenant_slug))
+    if tenant is None: raise HTTPException(status_code=404, detail="کاتالوگ عمومی tenant وجود ندارد")
+    set_tenant_context(db, tenant.id); return tenant
+
+
+@app.get("/public/tenants/{tenant_slug}/destinations")
+def public_destinations(tenant_slug: str, db: Session = Depends(get_db)) -> list[dict]:
+    tenant = _public_tenant(db, tenant_slug); rows = db.scalars(select(operational_models.Destination).where(operational_models.Destination.tenant_id == tenant.id, operational_models.Destination.status == "published").order_by(operational_models.Destination.kind, operational_models.Destination.name_fa)).all(); return [_destination_output(db, row) for row in rows]
+
+
+@app.get("/public/tenants/{tenant_slug}/destinations/{slug}")
+def public_destination_detail(tenant_slug: str, slug: str, db: Session = Depends(get_db)) -> dict:
+    tenant = _public_tenant(db, tenant_slug); row = db.scalar(select(operational_models.Destination).where(operational_models.Destination.tenant_id == tenant.id, operational_models.Destination.slug == slug, operational_models.Destination.status == "published"))
+    if row is None: raise HTTPException(status_code=404, detail="مقصد منتشرشده وجود ندارد")
+    return _destination_output(db, row)
+
+
 def _itinerary_output(db: Session, row: operational_models.EditableItinerary) -> dict:
     items = db.scalars(select(operational_models.EditableItineraryItem).where(operational_models.EditableItineraryItem.tenant_id == row.tenant_id, operational_models.EditableItineraryItem.itinerary_id == row.id).order_by(operational_models.EditableItineraryItem.day_number, operational_models.EditableItineraryItem.position)).all(); return {"id": row.id, "title": row.title, "destination_id": row.destination_id, "budget_amount": row.budget_amount, "currency": row.currency, "status": row.status, "items": [{"id": item.id, "offer_id": item.offer_id, "service_type": item.service_type, "title": item.title, "day_number": item.day_number, "position": item.position, "availability_state": item.availability_state, "snapshot": json.loads(item.snapshot_json)} for item in items]}
 
@@ -1831,3 +2022,108 @@ def my_reviews(user: User = Depends(current_user), db: Session = Depends(get_db)
     for row in rows:
         response = db.scalar(select(operational_models.ReviewSupplierResponse).where(operational_models.ReviewSupplierResponse.tenant_id == user.tenant_id, operational_models.ReviewSupplierResponse.review_id == row.id)); result.append(_review_output(row, response))
     return result
+
+
+@app.get("/reviews")
+def list_reviews(service_type: str = Query(pattern=ECOSYSTEM_SERVICE_PATTERN), service_reference: str = Query(min_length=2, max_length=200), page: int = Query(default=1, ge=1), page_size: int = Query(default=10, ge=1, le=50), user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    base = select(operational_models.Review).where(operational_models.Review.tenant_id == user.tenant_id, operational_models.Review.service_type == service_type, operational_models.Review.service_reference == service_reference, operational_models.Review.moderation_state == "approved")
+    total = int(db.scalar(select(func.count()).select_from(base.subquery())) or 0); rows = db.scalars(base.order_by(operational_models.Review.verified_booking.desc(), operational_models.Review.created_at.desc()).offset((page - 1) * page_size).limit(page_size)).all(); items = []
+    for row in rows:
+        response = db.scalar(select(operational_models.ReviewSupplierResponse).where(operational_models.ReviewSupplierResponse.tenant_id == user.tenant_id, operational_models.ReviewSupplierResponse.review_id == row.id)); items.append(_review_output(row, response))
+    return {"items": items, "page": page, "page_size": page_size, "total": total, "pages": (total + page_size - 1) // page_size}
+
+
+@app.post("/reviews/{review_id}/reports", status_code=status.HTTP_201_CREATED)
+def report_review(review_id: str, data: ReviewReportIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    review = db.scalar(select(operational_models.Review).where(operational_models.Review.id == review_id, operational_models.Review.tenant_id == user.tenant_id, operational_models.Review.moderation_state == "approved"))
+    if review is None: raise HTTPException(status_code=404, detail="Review قابل گزارش وجود ندارد")
+    prior = db.scalar(select(operational_models.ReviewReport).where(operational_models.ReviewReport.tenant_id == user.tenant_id, operational_models.ReviewReport.command_id == data.command_id))
+    if prior:
+        if prior.review_id != review.id or prior.reporter_user_id != user.id or prior.reason != data.reason: raise HTTPException(status_code=409, detail="کلید تکرار برای گزارش دیگری استفاده شده است")
+        return {"id": prior.id, "status": prior.status}
+    if db.scalar(select(operational_models.ReviewReport).where(operational_models.ReviewReport.tenant_id == user.tenant_id, operational_models.ReviewReport.review_id == review.id, operational_models.ReviewReport.reporter_user_id == user.id)): raise HTTPException(status_code=409, detail="این Review قبلاً گزارش شده است")
+    row = operational_models.ReviewReport(tenant_id=user.tenant_id, review_id=review.id, reporter_user_id=user.id, reason=data.reason, detail=data.detail, command_id=data.command_id); db.add(row); db.flush(); db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="review", aggregate_id=review.id, event_type="review.reported", payload_json=json.dumps({"report_id": row.id, "reason": row.reason}), correlation_id=str(uuid.uuid4()), idempotency_key=data.command_id)); db.commit(); return {"id": row.id, "status": row.status}
+
+
+CHECKOUT_STAGES = ("review", "traveller", "recheck", "policy", "funding", "invoice", "payment", "awaiting_payment", "awaiting_fulfillment", "completed")
+
+
+def _checkout_output(row: operational_models.CheckoutSession, reservation: operational_models.Reservation) -> dict:
+    return {"id": row.id, "reservation": _reservation_output(reservation), "stage": row.stage, "state": json.loads(row.state_json), "payment_intent_id": row.payment_intent_id, "expires_at": row.expires_at.isoformat(), "server_authoritative": True}
+
+
+@app.post("/reservations/{reservation_id}/checkout-sessions", status_code=status.HTTP_201_CREATED)
+def create_checkout(reservation_id: str, data: CheckoutCreateIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    prior = db.scalar(select(operational_models.CheckoutSession).where(operational_models.CheckoutSession.tenant_id == user.tenant_id, operational_models.CheckoutSession.command_id == data.command_id))
+    if prior:
+        if prior.reservation_id != reservation_id or prior.user_id != user.id: raise HTTPException(status_code=409, detail="کلید تکرار برای checkout دیگری استفاده شده است")
+        reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == prior.reservation_id, operational_models.Reservation.tenant_id == user.tenant_id)); return _checkout_output(prior, reservation)
+    reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == reservation_id, operational_models.Reservation.tenant_id == user.tenant_id, operational_models.Reservation.user_id == user.id).with_for_update())
+    if reservation is None: raise HTTPException(status_code=404, detail="رزرو در این حساب وجود ندارد")
+    if reservation.status not in {"reserved", "pending_approval", "approved"}: raise HTTPException(status_code=409, detail="رزرو در وضعیت قابل checkout نیست")
+    price_hash = _secure_hash(reservation.price_snapshot_json); policy_hash = _secure_hash(reservation.policy_at_booking_json)
+    row = operational_models.CheckoutSession(tenant_id=user.tenant_id, reservation_id=reservation.id, user_id=user.id, command_id=data.command_id, price_snapshot_hash=price_hash, policy_snapshot_hash=policy_hash, state_json=json.dumps({"reviewed": True, "funding": {"wallet_amount": 0, "credit_amount": 0}}, sort_keys=True), expires_at=datetime.now(timezone.utc) + timedelta(minutes=30)); db.add(row); db.flush(); db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="checkout", aggregate_id=row.id, event_type="checkout.started", payload_json=json.dumps({"reservation_id": reservation.id}), correlation_id=str(uuid.uuid4()), idempotency_key=data.command_id)); db.commit(); return _checkout_output(row, reservation)
+
+
+@app.get("/checkout-sessions/{checkout_id}")
+def get_checkout(checkout_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    row = db.scalar(select(operational_models.CheckoutSession).where(operational_models.CheckoutSession.id == checkout_id, operational_models.CheckoutSession.tenant_id == user.tenant_id, operational_models.CheckoutSession.user_id == user.id)); reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == row.reservation_id, operational_models.Reservation.tenant_id == user.tenant_id, operational_models.Reservation.user_id == user.id)) if row else None
+    if row is None or reservation is None: raise HTTPException(status_code=404, detail="Checkout در این حساب وجود ندارد")
+    return _checkout_output(row, reservation)
+
+
+@app.put("/checkout-sessions/{checkout_id}/steps/{step}")
+def advance_checkout(checkout_id: str, step: str, data: CheckoutStepIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    if step not in {"traveller", "recheck", "policy", "funding", "invoice", "payment", "confirmation"}: raise HTTPException(status_code=404, detail="مرحله checkout وجود ندارد")
+    row = db.scalar(select(operational_models.CheckoutSession).where(operational_models.CheckoutSession.id == checkout_id, operational_models.CheckoutSession.tenant_id == user.tenant_id, operational_models.CheckoutSession.user_id == user.id).with_for_update()); reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == row.reservation_id, operational_models.Reservation.tenant_id == user.tenant_id, operational_models.Reservation.user_id == user.id).with_for_update()) if row else None
+    if row is None or reservation is None: raise HTTPException(status_code=404, detail="Checkout در این حساب وجود ندارد")
+    if _aware(row.expires_at) <= datetime.now(timezone.utc): raise HTTPException(status_code=409, detail="Checkout منقضی شده است")
+    scope = f"checkout.step.{step}"; request_hash = _secure_hash(f"{checkout_id}:{data.model_dump_json()}"); prior = db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id == user.tenant_id, operational_models.IdempotencyKey.scope == scope, operational_models.IdempotencyKey.key == data.command_id))
+    if prior:
+        if prior.request_hash != request_hash: raise HTTPException(status_code=409, detail="کلید تکرار برای مرحله دیگری استفاده شده است")
+        return json.loads(prior.response_json or "{}")
+    expected = {"traveller": "review", "recheck": "traveller", "policy": "recheck", "funding": "policy", "invoice": "funding", "payment": "invoice", "confirmation": "awaiting_payment"}
+    if row.stage != expected[step]: raise HTTPException(status_code=409, detail=f"مرحله جاری checkout برابر {row.stage} است")
+    state = json.loads(row.state_json)
+    if step == "traveller":
+        if not data.traveller_ids: raise HTTPException(status_code=422, detail="حداقل یک مسافر معتبر لازم است")
+        travellers = db.scalars(select(operational_models.Traveller).where(operational_models.Traveller.tenant_id == user.tenant_id, operational_models.Traveller.user_id == user.id, operational_models.Traveller.id.in_(data.traveller_ids))).all()
+        if len(travellers) != len(set(data.traveller_ids)): raise HTTPException(status_code=404, detail="یک یا چند مسافر در این حساب وجود ندارد")
+        existing = set(db.scalars(select(operational_models.ReservationTraveller.traveller_id).where(operational_models.ReservationTraveller.reservation_id == reservation.id)).all())
+        for traveller_id in set(data.traveller_ids) - existing: db.add(operational_models.ReservationTraveller(reservation_id=reservation.id, traveller_id=traveller_id))
+        state["traveller_ids"] = sorted(set(data.traveller_ids)); row.stage = "traveller"
+    elif step == "recheck":
+        if row.price_snapshot_hash != _secure_hash(reservation.price_snapshot_json): raise HTTPException(status_code=409, detail="قیمت رزرو تغییر کرده و checkout باید از نو آغاز شود")
+        item = db.scalar(select(operational_models.BookingItem).where(operational_models.BookingItem.tenant_id == user.tenant_id, operational_models.BookingItem.reservation_id == reservation.id)); snapshot = json.loads(item.snapshot_json) if item else {}; offer_id = snapshot.get("offer_id"); offer = db.scalar(select(operational_models.Offer).where(operational_models.Offer.id == offer_id, operational_models.Offer.tenant_id == user.tenant_id).with_for_update()) if offer_id else None
+        price = json.loads(reservation.price_snapshot_json); units = int(price.get("units", 1)); total = int(price.get("total_amount", 0))
+        if offer is None or offer.status != "active" or _aware(offer.valid_until) <= datetime.now(timezone.utc): raise HTTPException(status_code=409, detail="موجودی یا Offer تازه در دسترس نیست")
+        if offer.amount * units != total: raise HTTPException(status_code=409, detail="قیمت stale یا دستکاری‌شده است")
+        state["recheck"] = {"checked_at": datetime.now(timezone.utc).isoformat(), "total_amount": total, "currency": price.get("currency", "IRR"), "offer_id": offer.id}; row.stage = "recheck"
+    elif step == "policy":
+        if data.acknowledged is not True: raise HTTPException(status_code=422, detail="تأیید صریح policy الزامی است")
+        if row.policy_snapshot_hash != _secure_hash(reservation.policy_at_booking_json): raise HTTPException(status_code=409, detail="Policy رزرو تغییر کرده است")
+        policy = json.loads(reservation.policy_at_booking_json)
+        if policy.get("verified") is not True or not policy.get("source") or not policy.get("verified_at"): raise HTTPException(status_code=409, detail="Policy معتبر و timestampدار موجود نیست")
+        state["policy_acknowledged"] = True; state["policy_source"] = policy["source"]; row.stage = "policy"
+    elif step == "funding":
+        total = int(json.loads(reservation.price_snapshot_json).get("total_amount", 0))
+        if data.credit_amount: raise HTTPException(status_code=409, detail="حساب اعتبار سازمانی مشخص و معتبر برای این checkout انتخاب نشده است")
+        if data.wallet_amount > total: raise HTTPException(status_code=409, detail="مبلغ کیف پول از مبلغ رزرو بیشتر است")
+        if data.wallet_amount:
+            wallet = db.scalar(select(operational_models.Wallet).where(operational_models.Wallet.tenant_id == user.tenant_id, operational_models.Wallet.owner_type == "user", operational_models.Wallet.owner_reference == str(user.id), operational_models.Wallet.currency == "IRR").with_for_update())
+            if wallet is None: raise HTTPException(status_code=409, detail="کیف پول ریالی معتبر وجود ندارد")
+            try: operational_models.apply_credit_command(db, tenant_id=user.tenant_id, wallet_id=wallet.id, command_id=f"checkout:{row.id}:wallet:{data.command_id}"[:80], entry_type="reserve", amount=data.wallet_amount, reservation_id=reservation.id)
+            except ValueError as exc: raise HTTPException(status_code=409, detail="موجودی قابل استفاده کیف پول کافی نیست") from exc
+        state["funding"] = {"wallet_amount": data.wallet_amount, "credit_amount": 0, "payable_amount": total - data.wallet_amount}; row.stage = "funding"
+    elif step == "invoice":
+        price = json.loads(reservation.price_snapshot_json); state["invoice_preview"] = {"subtotal_amount": int(price["total_amount"]), "currency": price.get("currency", "IRR"), "final_invoice_after_confirmation": True}; row.stage = "invoice"
+    elif step == "payment":
+        payable = int(state.get("funding", {}).get("payable_amount", 0))
+        if payable <= 0: row.stage = "awaiting_fulfillment"
+        else:
+            intent = operational_models.PaymentIntent(tenant_id=user.tenant_id, reservation_id=reservation.id, user_id=user.id, command_id=f"checkout:{data.command_id}"[:120], amount=payable, currency="IRR"); db.add(intent); db.flush(); row.payment_intent_id = intent.id; row.stage = "awaiting_payment"; db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="payment", aggregate_id=intent.id, event_type="payment.intent.created", payload_json=json.dumps({"checkout_id": row.id}), correlation_id=str(uuid.uuid4()), idempotency_key=intent.command_id))
+    else:
+        intent = db.scalar(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.id == row.payment_intent_id, operational_models.PaymentIntent.tenant_id == user.tenant_id, operational_models.PaymentIntent.user_id == user.id)) if row.payment_intent_id else None
+        if intent is None or intent.status != "captured" or intent.captured_amount != intent.amount: raise HTTPException(status_code=409, detail="پرداخت server-verified و کامل وجود ندارد")
+        row.stage = "awaiting_fulfillment"; state["payment_confirmed_at"] = datetime.now(timezone.utc).isoformat()
+    row.state_json = json.dumps(state, sort_keys=True); db.flush(); response = _checkout_output(row, reservation); db.add(operational_models.IdempotencyKey(tenant_id=user.tenant_id, scope=scope, key=data.command_id, request_hash=request_hash, response_json=json.dumps(response))); db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="checkout", aggregate_id=row.id, event_type=f"checkout.{step}.completed", payload_json=json.dumps({"stage": row.stage}), correlation_id=str(uuid.uuid4()), idempotency_key=data.command_id)); db.commit(); return response

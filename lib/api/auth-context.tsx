@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { AuthSession, KarenSeirApi } from './karenseir-client';
 
 type AuthContextValue = {
@@ -17,6 +17,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const api = useMemo(() => new KarenSeirApi(), []);
   const [session, setSession] = useState<AuthSession | null>(null);
+  useEffect(()=>{const handle=window.setTimeout(()=>setSession(api.getSession()),0);return()=>window.clearTimeout(handle)},[api]);
   const value = useMemo<AuthContextValue>(() => ({
     api, session,
     async devLogin(email) { const next = await api.devLogin(email); setSession(next); return next; },

@@ -24,7 +24,9 @@ def process_batch(limit: int = 50, *, adapter=None) -> int:
     with SessionLocal() as db:
         set_gauge("karenseir_outbox_queue_depth", db.scalar(select(func.count()).select_from(OutboxEvent).where(OutboxEvent.status.in_(["pending", "retry"]))) or 0)
         set_gauge("karenseir_outbox_dead_letter_depth", db.scalar(select(func.count()).select_from(OutboxEvent).where(OutboxEvent.status == "dead_letter")) or 0)
-        events = db.scalars(select(OutboxEvent).where(OutboxEvent.status.in_(["pending", "retry"]), OutboxEvent.available_at <= datetime.now(timezone.utc)).order_by(OutboxEvent.created_at).limit(limit).with_for_update(skip_locked=True)).all()
+        # Due retries (especially near dead-letter) must not starve behind a large
+        # notification burst. The ordering remains deterministic within priority.
+        events = db.scalars(select(OutboxEvent).where(OutboxEvent.status.in_(["pending", "retry"]), OutboxEvent.available_at <= datetime.now(timezone.utc)).order_by(OutboxEvent.attempts.desc(), OutboxEvent.available_at, OutboxEvent.created_at).limit(limit).with_for_update(skip_locked=True)).all()
         for event in events:
             event.attempts += 1
             result = delivery_adapter.execute("publish_outbox", {"event_id": event.id}, ProviderContext(event.tenant_id, event.correlation_id or event.id, event.idempotency_key or event.id))

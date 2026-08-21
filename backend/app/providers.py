@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import os
 import time
+import json
+import re
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 from dataclasses import dataclass
 from typing import Any, Mapping, Protocol
-from urllib.parse import urlparse
+from urllib.parse import parse_qsl, urlencode, urlparse, urlsplit, urlunsplit
+from urllib.request import Request, urlopen
 
 
 @dataclass(frozen=True)
@@ -118,6 +121,68 @@ class NotificationAdapter(DisabledMockAdapter):
         return self.execute(f"deliver_{channel}", {"notification_id": notification_id}, context)
 
 
+class ZarinPalTransport(Protocol):
+    def post_json(self, url: str, payload: Mapping[str, Any], timeout_seconds: float) -> Mapping[str, Any]: ...
+
+
+class ZarinPalHttpTransport:
+    def post_json(self, url: str, payload: Mapping[str, Any], timeout_seconds: float) -> Mapping[str, Any]:
+        request = Request(url, data=json.dumps(dict(payload)).encode("utf-8"), headers={"Content-Type": "application/json", "Accept": "application/json"}, method="POST")
+        with urlopen(request, timeout=timeout_seconds) as response:  # noqa: S310 - endpoints are fixed by mode
+            return json.loads(response.read().decode("utf-8"))
+
+
+class ZarinPalAdapter:
+    key = "payment"
+    retry_policy = RetryPolicy(max_attempts=2)
+
+    def __init__(self, *, mode: str, merchant_id: str, callback_url: str, transport: ZarinPalTransport | None = None, timeout_seconds: float = 8.0) -> None:
+        self.mode = mode
+        self.merchant_id = merchant_id.strip()
+        self.callback_url = callback_url.strip()
+        self.transport = transport or ZarinPalHttpTransport()
+        self.timeout_seconds = timeout_seconds
+
+    @property
+    def api_base(self) -> str:
+        return "https://sandbox.zarinpal.com/pg/v4/payment" if self.mode == "sandbox" else "https://payment.zarinpal.com/pg/v4/payment"
+
+    @property
+    def redirect_base(self) -> str:
+        return "https://sandbox.zarinpal.com/pg/StartPay" if self.mode == "sandbox" else "https://www.zarinpal.com/pg/StartPay"
+
+    def validate_configuration(self) -> None:
+        if self.mode not in {"sandbox", "production"}: raise RuntimeError("zarinpal: mode must be sandbox or production")
+        if not re.fullmatch(r"[0-9a-fA-F-]{36}", self.merchant_id): raise RuntimeError("zarinpal: merchant id is missing or invalid")
+        parsed = urlparse(self.callback_url)
+        if parsed.scheme != "https" or not parsed.hostname: raise RuntimeError("zarinpal: callback URL must be explicit HTTPS")
+
+    def health(self) -> ProviderHealth:
+        try: self.validate_configuration()
+        except RuntimeError as exc: return ProviderHealth(status="configuration_error", mode=self.mode, detail=str(exc))
+        return ProviderHealth(status="configured_not_verified", mode=self.mode, detail="Credentials configured; no purchase is claimed")
+
+    def execute(self, operation: str, payload: Mapping[str, Any], context: ProviderContext) -> Mapping[str, Any]:
+        try: self.validate_configuration()
+        except RuntimeError as exc: return {"ok": False, "status": "not_sent", "provider": "zarinpal", "reason": "invalid_configuration", "error": ProviderError("invalid_configuration", str(exc), False, context.correlation_id).__dict__}
+        amount = int(payload.get("amount", 0))
+        if amount <= 0 or payload.get("currency") != "IRR": return {"ok": False, "status": "not_sent", "provider": "zarinpal", "reason": "invalid_amount", "error": ProviderError("invalid_amount", "Positive IRR amount is required", False, context.correlation_id).__dict__}
+        if operation == "initiate":
+            callback_parts = urlsplit(self.callback_url); callback_query = dict(parse_qsl(callback_parts.query, keep_blank_values=True)); callback_query["state"] = str(payload.get("callback_state", "")); callback_url = urlunsplit((callback_parts.scheme, callback_parts.netloc, callback_parts.path, urlencode(callback_query), ""))
+            response = self.transport.post_json(f"{self.api_base}/request.json", {"merchant_id": self.merchant_id, "amount": amount, "callback_url": callback_url, "description": str(payload.get("description", "KarenSeir payment"))[:255], "metadata": {"payment_intent_id": str(payload["payment_intent_id"])}}, self.timeout_seconds)
+            data = response.get("data") if isinstance(response, Mapping) else None; authority = str((data or {}).get("authority", "")); code = int((data or {}).get("code", 0) or 0)
+            if code != 100 or not re.fullmatch(r"A[0-9A-Za-z]{35}", authority): return {"ok": False, "status": "failed", "provider": "zarinpal", "reason": "request_rejected", "error": ProviderError("request_rejected", "ZarinPal request was rejected", False, context.correlation_id).__dict__}
+            return {"ok": True, "status": "initiated", "provider": "zarinpal", "reference": authority, "authority": authority, "redirect_url": f"{self.redirect_base}/{authority}"}
+        if operation == "verify":
+            authority = str(payload.get("authority", ""))
+            if not re.fullmatch(r"A[0-9A-Za-z]{35}", authority): return {"ok": False, "status": "failed", "provider": "zarinpal", "reason": "authority_mismatch", "error": ProviderError("authority_mismatch", "Authority is invalid", False, context.correlation_id).__dict__}
+            response = self.transport.post_json(f"{self.api_base}/verify.json", {"merchant_id": self.merchant_id, "amount": amount, "authority": authority}, self.timeout_seconds)
+            data = response.get("data") if isinstance(response, Mapping) else None; code = int((data or {}).get("code", 0) or 0); ref_id = str((data or {}).get("ref_id", ""))
+            if code not in {100, 101} or not ref_id: return {"ok": False, "status": "failed", "provider": "zarinpal", "reason": "verify_rejected", "error": ProviderError("verify_rejected", "ZarinPal verification failed", False, context.correlation_id).__dict__}
+            return {"ok": True, "status": "verified", "provider": "zarinpal", "already_verified": code == 101, "authority": authority, "ref_id": ref_id, "amount": amount}
+        return {"ok": False, "status": "not_sent", "provider": "zarinpal", "reason": "unsupported_operation", "error": ProviderError("unsupported_operation", "Unsupported operation", False, context.correlation_id).__dict__}
+
+
 class ResilientAdapter:
     """Distributed provider throttle/circuit wrapper; it never converts failure to success."""
 
@@ -224,7 +289,9 @@ def validate_provider_modes(environment: str, demo_mode: bool, keys: tuple[str, 
             raise RuntimeError(f"Mock providers are forbidden in production: {', '.join(mocked)}")
 
 
-def configured_adapter(key: str) -> DisabledMockAdapter:
+def configured_adapter(key: str) -> IntegrationAdapter:
+    if key == "payment" and os.getenv("ZARINPAL_MODE", "disabled") != "disabled":
+        return ZarinPalAdapter(mode=os.getenv("ZARINPAL_MODE", "disabled"), merchant_id=os.getenv("ZARINPAL_MERCHANT_ID", ""), callback_url=os.getenv("ZARINPAL_CALLBACK_URL", ""))
     mode = configured_mode(key)
     if mode in {"disabled", "mock"}:
         return DisabledMockAdapter(key, mode=mode)

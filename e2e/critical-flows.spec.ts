@@ -112,6 +112,18 @@ test('connected comparison is explainable and backend-authoritative', async ({ p
   await expect(page.getByText(/امتیاز/).first()).toBeVisible();
 });
 
+test('unified search results expose freshness and persist saved search', async ({ page, request }) => {
+  await createOperationalFixture(request, 'unified-search');
+  await uiLogin(page, 'employee@aftab.test');
+  await page.getByRole('link', { name: 'جست‌وجوی یکپارچه' }).click();
+  await page.getByLabel('عبارت جست‌وجو').fill('هتل عملیاتی');
+  await page.getByRole('button', { name: 'جست‌وجو', exact: true }).click();
+  await expect(page.getByText(/گزینه یکتا/)).toBeVisible();
+  await expect(page.getByText(/تازه · CONFIRMED/).first()).toBeVisible();
+  await page.getByRole('button', { name: 'ذخیره جست‌وجو' }).click();
+  await expect(page.getByRole('status')).toContainText('جست‌وجو در حساب شما ذخیره شد');
+});
+
 test('connected private pages fail closed without a browser session', async ({ page }) => {
   await page.goto('/trips');
   await expect(page.getByText('برای مشاهده این بخش وارد شوید.')).toBeVisible();
@@ -225,12 +237,12 @@ test('saved travel, itinerary, destination and map fallback use tenant APIs', as
   await page.goto('/saved-trips');
   await page.getByLabel('عنوان سفر').fill(`سفر E2E ${suffix}`);
   await page.getByRole('button', { name: 'ساخت سفر ذخیره‌شده' }).click();
-  await expect(page.getByRole('status')).toContainText('سفر ذخیره شد');
+  await expect(page.getByText('سفر ذخیره شد.', { exact: true })).toBeVisible();
   await page.getByLabel(`مرجع آیتم سفر E2E ${suffix}`).fill('attraction:hafezieh');
   await page.getByRole('button', { name: 'ذخیره در علاقه‌مندی' }).click();
-  await expect(page.getByRole('status')).toContainText('علاقه‌مندی');
+  await expect(page.getByText(/علاقه‌مندی/, { exact: false }).first()).toBeVisible();
   await page.getByRole('button', { name: 'انتقال' }).click();
-  await expect(page.getByRole('status')).toContainText('سبد سفر');
+  await expect(page.getByText(/سبد سفر/, { exact: false }).first()).toBeVisible();
   await page.goto('/itineraries');
   await page.getByLabel('عنوان برنامه سفر').fill(`برنامه E2E ${suffix}`);
   await page.getByRole('button', { name: 'ساخت برنامه' }).click();

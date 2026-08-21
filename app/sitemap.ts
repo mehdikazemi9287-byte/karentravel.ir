@@ -1,0 +1,2 @@
+import type { MetadataRoute } from 'next';
+export default function sitemap():MetadataRoute.Sitemap{const base=process.env.NEXT_PUBLIC_SITE_URL??'http://localhost:3000';const modified=new Date('2026-08-20T00:00:00Z');return [{url:base,lastModified:modified,changeFrequency:'daily',priority:1},{url:`${base}/destinations`,lastModified:modified,changeFrequency:'daily',priority:.9},{url:`${base}/tours`,lastModified:modified,changeFrequency:'daily',priority:.8},{url:`${base}/experiences`,lastModified:modified,changeFrequency:'daily',priority:.8}]}

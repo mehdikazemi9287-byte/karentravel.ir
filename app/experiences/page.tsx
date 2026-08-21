@@ -1,0 +1,4 @@
+import Link from 'next/link';
+import { JourneyShell } from '../../components/journey/JourneyShell';
+export const metadata={title:'تجربه‌های مقصد',description:'تجربه‌ها و خدمات مقصد در اکوسیستم سفر کارن‌سیر',alternates:{canonical:'/experiences'},openGraph:{title:'تجربه‌های مقصد | کارن‌سیر',description:'جاذبه، رستوران، رویداد و تجربه‌های مقصد',url:'/experiences',type:'website'}};
+export default function ExperiencesPage(){return <JourneyShell><main className="journey-main"><section className="dashboard container"><header className="dashboard-title"><div><span className="eyebrow">Destination Experiences</span><h1>تجربه‌های مقصد</h1><p>جاذبه، رستوران و رویدادها در کنار برنامه سفر؛ بدون نمایش موجودی جعلی.</p></div></header><div className="panel"><Link className="button primary" href="/destinations">انتخاب مقصد</Link><Link className="button secondary mr-2" href="/itineraries">افزودن به برنامه سفر</Link></div></section></main></JourneyShell>}

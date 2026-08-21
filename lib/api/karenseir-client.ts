@@ -17,11 +17,15 @@ export class KarenSeirApi {
   constructor(baseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000') {
     this.baseUrl = baseUrl.replace(/\/$/, '');
     this.deviceId = typeof window === 'undefined' ? 'server-render' : (sessionStorage.getItem('karenseir-device-id') ?? crypto.randomUUID());
-    if (typeof window !== 'undefined') sessionStorage.setItem('karenseir-device-id', this.deviceId);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('karenseir-device-id', this.deviceId);
+      try { const stored=sessionStorage.getItem('karenseir-auth-session');if(stored)this.session=JSON.parse(stored) as AuthSession; } catch { sessionStorage.removeItem('karenseir-auth-session'); }
+    }
   }
 
   get authenticated() { return this.session !== null; }
-  setSession(session: AuthSession) { this.session = session; }
+  getSession() { return this.session; }
+  setSession(session: AuthSession) { this.session = session; if(typeof window!=='undefined')sessionStorage.setItem('karenseir-auth-session',JSON.stringify(session)); }
 
   async requestOtp(tenant_slug: string, identifier: string) {
     return this.request<{ status: string; challenge_id: string; expires_in: number }>('/auth/otp/request', { method: 'POST', body: JSON.stringify({ tenant_slug, identifier }) }, false);
@@ -29,23 +33,24 @@ export class KarenSeirApi {
 
   async verifyOtp(tenant_slug: string, challenge_id: string, code: string) {
     const session = await this.request<AuthSession>('/auth/otp/verify', { method: 'POST', body: JSON.stringify({ tenant_slug, challenge_id, code, device_id: this.deviceId }) }, false);
-    this.session = session;
+    this.setSession(session);
     return session;
   }
 
   async devLogin(email: string) {
     const session = await this.request<AuthSession>('/auth/dev-login', { method: 'POST', body: JSON.stringify({ email }) }, false);
-    this.session = session;
+    this.setSession(session);
     return session;
   }
 
   async logout() {
     if (!this.session) return;
     await this.request<void>('/auth/logout', { method: 'POST', body: JSON.stringify({ refresh_token: this.session.refresh_token }) });
-    this.session = null;
+    this.session = null;if(typeof window!=='undefined')sessionStorage.removeItem('karenseir-auth-session');
   }
 
   async get<T>(path: string) { return this.request<T>(path); }
+  async publicGet<T>(path: string) { return this.request<T>(path, {}, false); }
   async post<T>(path: string, body: unknown, idempotencyKey?: string) {
     return this.request<T>(path, { method: 'POST', headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined, body: JSON.stringify(body) });
   }
@@ -59,7 +64,7 @@ export class KarenSeirApi {
   private async refresh() {
     if (!this.session) throw new ApiError(401, 'نشست معتبر نیست.');
     const next = await this.request<AuthSession>('/auth/refresh', { method: 'POST', body: JSON.stringify({ refresh_token: this.session.refresh_token, device_id: this.deviceId }) }, false, false);
-    this.session = { ...this.session, ...next };
+    this.setSession({ ...this.session, ...next });
   }
 
   private async request<T>(path: string, init: RequestInit = {}, authenticated = true, retry = true): Promise<T> {
