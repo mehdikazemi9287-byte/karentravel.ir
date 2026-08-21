@@ -1,5 +1,11 @@
 # Implementation Roadmap
 
+## Search UX operational gate — PASS — 2026-08-21
+
+The visible Search journey is connected end to end: autocomplete and Persian typo recovery, exact/flexible dates, passengers/cabin/rooms, trip type, structured URL submit, responsive results, filter/sort, selected-Offer comparison, Wishlist/Trip Basket mutations and authoritative price/availability recheck. Nine Browser artifacts and `16/16` full Chromium scenarios are the acceptance evidence. Homepage identity outside its existing Search interaction remains frozen.
+
+Next exact gate: provide one authorized sandbox travel-provider credential and run bounded fan-out, timeout/partial-failure and P50/P95 certification. Dated price hints remain disabled until a real Provider supplies them.
+
 ## Search UX gate — PASS — 2026-08-21
 
 The existing Homepage Search Box now exposes the completed backend capabilities through accessible autocomplete, date flexibility, passenger/room/cabin controls, trip type and URL-restorable submission. The dedicated results route provides real authenticated Offer cards, filters, sorting, comparison and complete operational states on Desktop and Mobile. Six visual evidence files and `16/16` Chromium scenarios are green.
@@ -35,3 +41,15 @@ Next exact gate: provide one authorized sandbox travel-provider credential, then
 Identity core و financial command core به‌صورت افزایشی پیاده شده‌اند. اتصال SMS/Payment/Travel Provider، target deployment و certification بیرونی همچنان gate تجاری/زیرساختی هستند. ترتیب بعدی: target hardening و immutable release → contract provider validation → controlled pilot → certification.
 
 Booking orchestration، customer account، panel mutationها، invoice، support case lifecycle، installment execution، settlement posting و admin user/role lifecycle اکنون متصل‌اند. staging rehearsal migration/RLS/restore نیز PASS است. مقدار مالیات و مرجع قانونی صورتحساب configurable و در Production بدون policy مصوب fail-closed است؛ اتصال نهایی providerها و deliveryها credential-dependent است.
+## Travel Commerce checkpoint — 2026-08-21
+
+- [x] ADR-020 benchmark-derived domain boundaries and fail-closed rules.
+- [x] Additive migration 14 for Vacation Rental, Tour, Cruise and Visa tables; isolated Alembic validation.
+- [x] Vacation Rental availability/overlap/idempotency/tenant tests and dedicated list/detail UI.
+- [x] Tour departure capacity/oversell/pricing/checkout handoff and dedicated list/detail/booking UI.
+- [x] Cruise catalog/API/UI fail-closed when no live provider exists.
+- [x] Visa product/application/applicant/document/human-review/timeline APIs and dedicated UI.
+- [x] Chromium screenshots and full 17-flow regression with frozen Homepage.
+- [ ] Run migration 14 against disposable PostgreSQL, verify all new tables RLS+FORCE/missing-context/own/cross-tenant/API NOBYPASSRLS, backup/restore and rollback/re-upgrade.
+- [ ] Add seasonal per-night rental calendar, cancellation settlement, supplier rental/tour management forms and deeper Tour↔Visa↔Trip Timeline linkage.
+- [ ] Certify ZarinPal sandbox, Cruise and travel Provider fulfillment only after authorized credentials/contracts.

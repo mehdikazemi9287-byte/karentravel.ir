@@ -6,7 +6,7 @@ export type AuthSession = {
 };
 
 export class ApiError extends Error {
-  constructor(public readonly status: number, message: string) { super(message); }
+  constructor(public readonly status: number, message: string, public readonly detail?: unknown) { super(message); }
 }
 
 export class KarenSeirApi {
@@ -82,8 +82,9 @@ export class KarenSeirApi {
     }
     if (!response.ok) {
       let message = 'ارتباط با سرویس انجام نشد.';
-      try { message = (await response.json()).detail ?? message; } catch { /* non-JSON upstream */ }
-      throw new ApiError(response.status, message);
+      let detail: unknown;
+      try { detail = (await response.json()).detail; message = typeof detail === 'string' ? detail : message; } catch { /* non-JSON upstream */ }
+      throw new ApiError(response.status, message, detail);
     }
     if (response.status === 204) return undefined as T;
     return response.json() as Promise<T>;

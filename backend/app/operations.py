@@ -354,6 +354,153 @@ class EditableItineraryItem(OperationalMixin, Base):
     __table_args__ = (UniqueConstraint("tenant_id", "command_id", name="uq_itinerary_item_command"), UniqueConstraint("tenant_id", "itinerary_id", "day_number", "position", name="uq_itinerary_position"))
 
 
+class VacationProperty(OperationalMixin, Base):
+    __tablename__ = "vacation_properties"
+    supplier_id: Mapped[str] = mapped_column(ForeignKey("suppliers.id"), index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    slug: Mapped[str] = mapped_column(String(180))
+    city: Mapped[str] = mapped_column(String(120), index=True)
+    property_type: Mapped[str] = mapped_column(String(48), index=True)
+    capacity: Mapped[int] = mapped_column(Integer)
+    bedrooms: Mapped[int] = mapped_column(Integer, default=0)
+    status: Mapped[str] = mapped_column(String(24), default="draft", index=True)
+    details_json: Mapped[str] = mapped_column(Text, default="{}")
+    __table_args__ = (UniqueConstraint("tenant_id", "slug", name="uq_vacation_property_slug"),)
+
+
+class VacationUnit(OperationalMixin, Base):
+    __tablename__ = "vacation_units"
+    property_id: Mapped[str] = mapped_column(ForeignKey("vacation_properties.id"), index=True)
+    title: Mapped[str] = mapped_column(String(160))
+    capacity: Mapped[int] = mapped_column(Integer)
+    available_units: Mapped[int] = mapped_column(Integer, default=1)
+    nightly_price: Mapped[int] = mapped_column(Integer)
+    currency: Mapped[str] = mapped_column(String(3), default="IRR")
+    status: Mapped[str] = mapped_column(String(24), default="active", index=True)
+
+
+class VacationReservation(OperationalMixin, Base):
+    __tablename__ = "vacation_reservations"
+    unit_id: Mapped[str] = mapped_column(ForeignKey("vacation_units.id"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    reservation_id: Mapped[str] = mapped_column(ForeignKey("reservations.id"), index=True)
+    check_in: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    check_out: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    guests: Mapped[int] = mapped_column(Integer)
+    total_amount: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(24), default="held", index=True)
+    command_id: Mapped[str] = mapped_column(String(120))
+    __table_args__ = (UniqueConstraint("tenant_id", "command_id", name="uq_vacation_reservation_command"),)
+
+
+class TourProduct(OperationalMixin, Base):
+    __tablename__ = "tour_products"
+    supplier_id: Mapped[str] = mapped_column(ForeignKey("suppliers.id"), index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    slug: Mapped[str] = mapped_column(String(180))
+    origin: Mapped[str] = mapped_column(String(120), index=True)
+    destination: Mapped[str] = mapped_column(String(120), index=True)
+    tour_type: Mapped[str] = mapped_column(String(48), index=True)
+    status: Mapped[str] = mapped_column(String(24), default="draft", index=True)
+    details_json: Mapped[str] = mapped_column(Text, default="{}")
+    __table_args__ = (UniqueConstraint("tenant_id", "slug", name="uq_tour_product_slug"),)
+
+
+class TourDeparture(OperationalMixin, Base):
+    __tablename__ = "tour_departures"
+    tour_id: Mapped[str] = mapped_column(ForeignKey("tour_products.id"), index=True)
+    starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    ends_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    booking_deadline: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    capacity: Mapped[int] = mapped_column(Integer)
+    remaining: Mapped[int] = mapped_column(Integer)
+    base_price: Mapped[int] = mapped_column(Integer)
+    currency: Mapped[str] = mapped_column(String(3), default="IRR")
+    status: Mapped[str] = mapped_column(String(24), default="active", index=True)
+    pricing_json: Mapped[str] = mapped_column(Text, default="{}")
+
+
+class TourReservation(OperationalMixin, Base):
+    __tablename__ = "tour_reservations"
+    departure_id: Mapped[str] = mapped_column(ForeignKey("tour_departures.id"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    reservation_id: Mapped[str] = mapped_column(ForeignKey("reservations.id"), index=True)
+    travellers: Mapped[int] = mapped_column(Integer)
+    room_type: Mapped[str] = mapped_column(String(32), default="double")
+    total_amount: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(24), default="held", index=True)
+    command_id: Mapped[str] = mapped_column(String(120))
+    voucher_reference: Mapped[Optional[str]] = mapped_column(String(240), nullable=True)
+    __table_args__ = (UniqueConstraint("tenant_id", "command_id", name="uq_tour_reservation_command"),)
+
+
+class CruiseSailing(OperationalMixin, Base):
+    __tablename__ = "cruise_sailings"
+    supplier_id: Mapped[Optional[str]] = mapped_column(ForeignKey("suppliers.id"), nullable=True, index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    cruise_line: Mapped[str] = mapped_column(String(160))
+    ship: Mapped[str] = mapped_column(String(160))
+    departure_port: Mapped[str] = mapped_column(String(160))
+    arrival_port: Mapped[str] = mapped_column(String(160))
+    starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    nights: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(24), default="catalog_only", index=True)
+    details_json: Mapped[str] = mapped_column(Text, default="{}")
+
+
+class VisaProduct(OperationalMixin, Base):
+    __tablename__ = "visa_products"
+    destination_country: Mapped[str] = mapped_column(String(120), index=True)
+    visa_type: Mapped[str] = mapped_column(String(64), index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    status: Mapped[str] = mapped_column(String(24), default="published", index=True)
+    source_url: Mapped[str] = mapped_column(String(500))
+    source_verified_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    details_json: Mapped[str] = mapped_column(Text, default="{}")
+
+
+class VisaApplication(OperationalMixin, Base):
+    __tablename__ = "visa_applications"
+    product_id: Mapped[str] = mapped_column(ForeignKey("visa_products.id"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    trip_id: Mapped[Optional[str]] = mapped_column(ForeignKey("trips.id"), nullable=True, index=True)
+    purpose: Mapped[str] = mapped_column(String(80))
+    travel_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    status: Mapped[str] = mapped_column(String(32), default="started", index=True)
+    case_manager_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    command_id: Mapped[str] = mapped_column(String(120))
+    __table_args__ = (UniqueConstraint("tenant_id", "command_id", name="uq_visa_application_command"),)
+
+
+class VisaApplicant(OperationalMixin, Base):
+    __tablename__ = "visa_applicants"
+    application_id: Mapped[str] = mapped_column(ForeignKey("visa_applications.id"), index=True)
+    full_name: Mapped[str] = mapped_column(String(160))
+    passport_country: Mapped[str] = mapped_column(String(120))
+    passport_reference: Mapped[str] = mapped_column(String(160))
+
+
+class VisaDocument(OperationalMixin, Base):
+    __tablename__ = "visa_documents"
+    application_id: Mapped[str] = mapped_column(ForeignKey("visa_applications.id"), index=True)
+    document_type: Mapped[str] = mapped_column(String(64), index=True)
+    status: Mapped[str] = mapped_column(String(32), default="missing", index=True)
+    storage_reference: Mapped[Optional[str]] = mapped_column(String(240), nullable=True)
+    review_note: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    __table_args__ = (UniqueConstraint("tenant_id", "application_id", "document_type", name="uq_visa_document_type"),)
+
+
+class VisaTimelineEvent(OperationalMixin, Base):
+    __tablename__ = "visa_timeline_events"
+    application_id: Mapped[str] = mapped_column(ForeignKey("visa_applications.id"), index=True)
+    event_type: Mapped[str] = mapped_column(String(64), index=True)
+    source_type: Mapped[str] = mapped_column(String(32))
+    actor_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    message: Mapped[str] = mapped_column(Text)
+    event_key: Mapped[str] = mapped_column(String(120))
+    __table_args__ = (UniqueConstraint("tenant_id", "event_key", name="uq_visa_timeline_event_key"),)
+
+
 class Reservation(OperationalMixin, Base):
     __tablename__ = "reservations"
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)

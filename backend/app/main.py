@@ -134,7 +134,7 @@ class LogoutIn(BaseModel): refresh_token: str = Field(min_length=32, max_length=
 class CreditCommandIn(BaseModel): command_id: str = Field(min_length=8, max_length=120); entry_type: str = Field(pattern="^(allocate|reserve|capture|release|reverse_capture)$"); amount: int = Field(gt=0)
 class ApprovalDecisionIn(BaseModel): decision: str = Field(pattern="^(approve|reject)$"); rejection_reason: Optional[str] = Field(default=None, max_length=500)
 class RefundIn(BaseModel): amount: int = Field(gt=0); command_id: str = Field(min_length=8, max_length=120)
-ECOSYSTEM_SERVICE_PATTERN = "^(flight|hotel|train|tour|package|accommodation|car_rental|restaurant|event_hall|pool_sport|attraction|travel_guide|handicraft|tourist_transportation)$"
+ECOSYSTEM_SERVICE_PATTERN = "^(flight|hotel|train|tour|package|accommodation|vacation_rental|cruise|visa|car_rental|restaurant|event_hall|pool_sport|attraction|travel_guide|handicraft|tourist_transportation)$"
 
 class SupplierOfferIn(BaseModel):
     supplier_id: str = Field(min_length=36, max_length=36)
@@ -148,7 +148,7 @@ class SupplierOfferIn(BaseModel):
     fulfillment_mode: str = Field(pattern="^(manual_supplier|provider)$")
     provider_key: str = Field(default="manual_supplier", min_length=2, max_length=64)
 class SupplierOnboardingIn(BaseModel):
-    supplier_type: str = Field(pattern="^(flight|hotel|train|tour|package|accommodation|car_rental|restaurant|event_hall|pool_sport|attraction|travel_guide|handicraft|tourist_transportation|multi_service)$")
+    supplier_type: str = Field(pattern="^(flight|hotel|train|tour|package|accommodation|vacation_rental|cruise|visa|car_rental|restaurant|event_hall|pool_sport|attraction|travel_guide|handicraft|tourist_transportation|multi_service)$")
     display_name: str = Field(min_length=2, max_length=180)
 class OfferSearchIn(BaseModel):
     service_type: str = Field(pattern=ECOSYSTEM_SERVICE_PATTERN)
@@ -186,6 +186,30 @@ class BudgetTripIn(BaseModel):
     travellers: int = Field(default=1, ge=1, le=20)
     budget: int = Field(gt=0)
     interests: list[str] = Field(default_factory=list, max_length=20)
+class VacationPropertyIn(BaseModel):
+    supplier_id: str = Field(min_length=36, max_length=36); title: str = Field(min_length=3, max_length=200); slug: str = Field(pattern=r"^[a-z0-9-]{3,180}$"); city: str = Field(min_length=2, max_length=120); property_type: str = Field(pattern="^(villa|suite|furnished_apartment|cabin|ecolodge|rural|coastal|forest|mountain)$"); capacity: int = Field(ge=1, le=100); bedrooms: int = Field(ge=0, le=50); details: dict = Field(default_factory=dict)
+class VacationUnitIn(BaseModel):
+    title: str = Field(min_length=2, max_length=160); capacity: int = Field(ge=1, le=100); available_units: int = Field(ge=1, le=100); nightly_price: int = Field(gt=0)
+class VacationBookIn(BaseModel):
+    check_in: datetime; check_out: datetime; guests: int = Field(ge=1, le=100); command_id: str = Field(min_length=8, max_length=120)
+class TourProductIn(BaseModel):
+    supplier_id: str = Field(min_length=36, max_length=36); title: str = Field(min_length=3, max_length=200); slug: str = Field(pattern=r"^[a-z0-9-]{3,180}$"); origin: str = Field(min_length=2, max_length=120); destination: str = Field(min_length=2, max_length=120); tour_type: str = Field(min_length=2, max_length=48); details: dict = Field(default_factory=dict)
+class TourDepartureIn(BaseModel):
+    starts_at: datetime; ends_at: datetime; booking_deadline: datetime; capacity: int = Field(ge=1, le=10000); base_price: int = Field(gt=0); pricing: dict = Field(default_factory=dict)
+class TourBookIn(BaseModel):
+    travellers: int = Field(ge=1, le=100); room_type: str = Field(default="double", pattern="^(single|double|triple|extra_bed)$"); command_id: str = Field(min_length=8, max_length=120)
+class CruiseSailingIn(BaseModel):
+    supplier_id: Optional[str] = Field(default=None, min_length=36, max_length=36); title: str = Field(min_length=3, max_length=200); cruise_line: str = Field(min_length=2, max_length=160); ship: str = Field(min_length=2, max_length=160); departure_port: str = Field(min_length=2, max_length=160); arrival_port: str = Field(min_length=2, max_length=160); starts_at: datetime; nights: int = Field(ge=1, le=365); details: dict = Field(default_factory=dict)
+class VisaProductIn(BaseModel):
+    destination_country: str = Field(min_length=2, max_length=120); visa_type: str = Field(min_length=2, max_length=64); title: str = Field(min_length=3, max_length=200); source_url: str = Field(pattern=r"^https://"); source_verified_at: datetime; details: dict = Field(default_factory=dict)
+class VisaApplicationIn(BaseModel):
+    purpose: str = Field(min_length=2, max_length=80); travel_at: datetime; trip_id: Optional[str] = Field(default=None, min_length=36, max_length=36); command_id: str = Field(min_length=8, max_length=120)
+class VisaApplicantIn(BaseModel):
+    full_name: str = Field(min_length=3, max_length=160); passport_country: str = Field(min_length=2, max_length=120); passport_reference: str = Field(min_length=6, max_length=160)
+class VisaDocumentIn(BaseModel):
+    document_type: str = Field(min_length=2, max_length=64); storage_reference: str = Field(min_length=6, max_length=240)
+class VisaDocumentReviewIn(BaseModel):
+    status: str = Field(pattern="^(accepted|rejected|needs_replacement)$"); review_note: Optional[str] = Field(default=None, max_length=500)
 class PriceCheckIn(BaseModel):
     units: int = Field(ge=1, le=20)
     command_id: str = Field(min_length=8, max_length=120)
@@ -225,7 +249,7 @@ class SupportAssignmentIn(BaseModel): assigned_to_user_id: Optional[int] = Field
 class InstallmentDecisionIn(BaseModel): decision: str = Field(pattern="^(activate|reject)$"); reason: Optional[str] = Field(default=None, max_length=500)
 class AdminRoleIn(BaseModel): role: str = Field(pattern="^(employee|customer|manager|welfare_manager|organization_admin|agency_partner|supplier|backoffice_expert|finance_operator|tenant_admin)$"); reason: str = Field(min_length=3, max_length=500)
 class SavedTripIn(BaseModel): title: str = Field(min_length=2, max_length=160); command_id: str = Field(min_length=8, max_length=120)
-class SavedItemIn(BaseModel): service_type: str = Field(pattern="^(flight|hotel|train|tour|accommodation|car_rental|restaurant|attraction|event_hall|experience)$"); source_reference: str = Field(min_length=2, max_length=200); offer_id: Optional[str] = Field(default=None, min_length=36, max_length=36); state: str = Field(default="wishlist", pattern="^(wishlist|basket)$"); command_id: str = Field(min_length=8, max_length=120)
+class SavedItemIn(BaseModel): service_type: str = Field(pattern=ECOSYSTEM_SERVICE_PATTERN); source_reference: str = Field(min_length=2, max_length=200); offer_id: Optional[str] = Field(default=None, min_length=36, max_length=36); state: str = Field(default="wishlist", pattern="^(wishlist|basket)$"); command_id: str = Field(min_length=8, max_length=120)
 class SavedItemMoveIn(BaseModel): state: str = Field(pattern="^(wishlist|basket)$"); command_id: str = Field(min_length=8, max_length=120)
 class CommandIn(BaseModel): command_id: str = Field(min_length=8, max_length=120)
 class ReviewIn(BaseModel):
@@ -967,6 +991,165 @@ def request_refund(payment_id: str, data: RefundIn, user: User = Depends(current
     return {"id": refund.id, "status": refund.status, "amount": refund.amount}
 
 
+# Travel-commerce verticals are additive and deliberately keep provider/payment
+# success outside the catalog and inventory transactions below.
+def _commerce_event(db: Session, *, tenant_id: int, kind: str, aggregate_id: str, command_id: str, payload: dict) -> None:
+    db.add(operational_models.OutboxEvent(tenant_id=tenant_id, aggregate_type=kind, aggregate_id=aggregate_id, event_type=f"{kind}.changed", payload_json=json.dumps(payload, sort_keys=True), correlation_id=str(uuid.uuid4()), idempotency_key=command_id))
+
+
+@app.post("/supplier/vacation-properties", status_code=201)
+def create_vacation_property(data: VacationPropertyIn, user: User = Depends(require_permission("inventory:manage")), db: Session = Depends(get_db)) -> dict:
+    supplier = db.scalar(select(operational_models.Supplier).where(operational_models.Supplier.id == data.supplier_id, operational_models.Supplier.tenant_id == user.tenant_id, operational_models.Supplier.status == "active"))
+    if supplier is None: raise HTTPException(409, "تأمین‌کننده فعال وجود ندارد")
+    row = operational_models.VacationProperty(tenant_id=user.tenant_id, supplier_id=supplier.id, title=data.title, slug=data.slug, city=data.city, property_type=data.property_type, capacity=data.capacity, bedrooms=data.bedrooms, status="published", details_json=json.dumps(data.details, sort_keys=True)); db.add(row); db.flush(); _commerce_event(db, tenant_id=user.tenant_id, kind="vacation_property", aggregate_id=row.id, command_id=f"property:{row.id}", payload={"status": row.status}); db.commit(); return {"id": row.id, "slug": row.slug, "status": row.status}
+
+
+@app.post("/supplier/vacation-properties/{property_id}/units", status_code=201)
+def create_vacation_unit(property_id: str, data: VacationUnitIn, user: User = Depends(require_permission("inventory:manage")), db: Session = Depends(get_db)) -> dict:
+    prop = db.scalar(select(operational_models.VacationProperty).where(operational_models.VacationProperty.id == property_id, operational_models.VacationProperty.tenant_id == user.tenant_id))
+    if prop is None: raise HTTPException(404, "اقامتگاه وجود ندارد")
+    row = operational_models.VacationUnit(tenant_id=user.tenant_id, property_id=prop.id, title=data.title, capacity=data.capacity, available_units=data.available_units, nightly_price=data.nightly_price); db.add(row); db.commit(); return {"id": row.id, "property_id": row.property_id, "status": row.status}
+
+
+@app.get("/vacation-rentals")
+def list_vacation_rentals(city: Optional[str] = None, user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
+    query = select(operational_models.VacationProperty).where(operational_models.VacationProperty.tenant_id == user.tenant_id, operational_models.VacationProperty.status == "published")
+    if city: query = query.where(operational_models.VacationProperty.city == city)
+    rows = db.scalars(query.order_by(operational_models.VacationProperty.created_at.desc())).all()
+    return [{"id": r.id, "slug": r.slug, "title": r.title, "city": r.city, "property_type": r.property_type, "capacity": r.capacity, "bedrooms": r.bedrooms, "details": json.loads(r.details_json)} for r in rows]
+
+
+@app.get("/vacation-rentals/{property_id}")
+def vacation_rental_detail(property_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    row = db.scalar(select(operational_models.VacationProperty).where(operational_models.VacationProperty.id == property_id, operational_models.VacationProperty.tenant_id == user.tenant_id, operational_models.VacationProperty.status == "published"))
+    if row is None: raise HTTPException(404, "اقامتگاه وجود ندارد")
+    units = db.scalars(select(operational_models.VacationUnit).where(operational_models.VacationUnit.property_id == row.id, operational_models.VacationUnit.tenant_id == user.tenant_id, operational_models.VacationUnit.status == "active")).all()
+    return {"id": row.id, "title": row.title, "city": row.city, "property_type": row.property_type, "capacity": row.capacity, "bedrooms": row.bedrooms, "details": json.loads(row.details_json), "units": [{"id": u.id, "title": u.title, "capacity": u.capacity, "available_units": u.available_units, "nightly_price": u.nightly_price, "currency": u.currency} for u in units]}
+
+
+@app.post("/vacation-units/{unit_id}/reservations", status_code=201)
+def book_vacation_unit(unit_id: str, data: VacationBookIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    prior = db.scalar(select(operational_models.VacationReservation).where(operational_models.VacationReservation.tenant_id == user.tenant_id, operational_models.VacationReservation.command_id == data.command_id))
+    if prior:
+        if prior.unit_id != unit_id: raise HTTPException(409, "کلید تکرار برای رزرو دیگری استفاده شده است")
+        return {"id": prior.id, "status": prior.status, "total_amount": prior.total_amount}
+    check_in, check_out = _aware(data.check_in), _aware(data.check_out)
+    if check_out <= check_in or check_in < datetime.now(timezone.utc): raise HTTPException(422, "بازه اقامت معتبر نیست")
+    unit = db.scalar(select(operational_models.VacationUnit).where(operational_models.VacationUnit.id == unit_id, operational_models.VacationUnit.tenant_id == user.tenant_id, operational_models.VacationUnit.status == "active").with_for_update())
+    if unit is None or data.guests > unit.capacity: raise HTTPException(409, "واحد یا ظرفیت معتبر نیست")
+    overlaps = db.scalar(select(func.count()).select_from(operational_models.VacationReservation).where(operational_models.VacationReservation.tenant_id == user.tenant_id, operational_models.VacationReservation.unit_id == unit.id, operational_models.VacationReservation.status.in_(("held", "confirmed")), operational_models.VacationReservation.check_in < check_out, operational_models.VacationReservation.check_out > check_in)) or 0
+    if overlaps >= unit.available_units: raise HTTPException(409, "این بازه دیگر موجود نیست")
+    nights = (check_out.date() - check_in.date()).days; total = unit.nightly_price * nights; reservation = operational_models.Reservation(tenant_id=user.tenant_id, user_id=user.id, service_type="vacation_rental", status="reserved", booking_reference=f"KS-VILLA-{uuid.uuid4().hex[:10].upper()}", price_snapshot_json=json.dumps({"total_amount": total, "currency": unit.currency, "nights": nights, "guests": data.guests}, sort_keys=True), policy_at_booking_json="{}", current_policy_json="{}"); db.add(reservation); db.flush(); row = operational_models.VacationReservation(tenant_id=user.tenant_id, unit_id=unit.id, user_id=user.id, reservation_id=reservation.id, check_in=check_in, check_out=check_out, guests=data.guests, total_amount=total, command_id=data.command_id); db.add(row); db.flush(); _commerce_event(db, tenant_id=user.tenant_id, kind="vacation_reservation", aggregate_id=row.id, command_id=data.command_id, payload={"status": row.status, "reservation_id": reservation.id}); db.commit(); return {"id": row.id, "reservation_id": reservation.id, "status": row.status, "total_amount": row.total_amount, "currency": unit.currency, "payment_required": True, "checkout_url": f"/checkout/{reservation.id}"}
+
+
+@app.post("/supplier/tours", status_code=201)
+def create_tour(data: TourProductIn, user: User = Depends(require_permission("inventory:manage")), db: Session = Depends(get_db)) -> dict:
+    supplier = db.scalar(select(operational_models.Supplier).where(operational_models.Supplier.id == data.supplier_id, operational_models.Supplier.tenant_id == user.tenant_id, operational_models.Supplier.status == "active"))
+    if supplier is None: raise HTTPException(409, "تأمین‌کننده فعال وجود ندارد")
+    row = operational_models.TourProduct(tenant_id=user.tenant_id, supplier_id=supplier.id, title=data.title, slug=data.slug, origin=data.origin, destination=data.destination, tour_type=data.tour_type, status="published", details_json=json.dumps(data.details, sort_keys=True)); db.add(row); db.commit(); return {"id": row.id, "slug": row.slug, "status": row.status}
+
+
+@app.post("/supplier/tours/{tour_id}/departures", status_code=201)
+def create_tour_departure(tour_id: str, data: TourDepartureIn, user: User = Depends(require_permission("inventory:manage")), db: Session = Depends(get_db)) -> dict:
+    tour = db.scalar(select(operational_models.TourProduct).where(operational_models.TourProduct.id == tour_id, operational_models.TourProduct.tenant_id == user.tenant_id))
+    if tour is None or _aware(data.ends_at) <= _aware(data.starts_at) or _aware(data.booking_deadline) > _aware(data.starts_at): raise HTTPException(422, "تور یا تاریخ حرکت معتبر نیست")
+    row = operational_models.TourDeparture(tenant_id=user.tenant_id, tour_id=tour.id, starts_at=data.starts_at, ends_at=data.ends_at, booking_deadline=data.booking_deadline, capacity=data.capacity, remaining=data.capacity, base_price=data.base_price, pricing_json=json.dumps(data.pricing, sort_keys=True)); db.add(row); db.commit(); return {"id": row.id, "remaining": row.remaining, "status": row.status}
+
+
+@app.get("/tour-products")
+def list_tours(destination: Optional[str] = None, user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
+    query = select(operational_models.TourProduct).where(operational_models.TourProduct.tenant_id == user.tenant_id, operational_models.TourProduct.status == "published")
+    if destination: query = query.where(operational_models.TourProduct.destination == destination)
+    rows = db.scalars(query).all(); return [{"id": r.id, "slug": r.slug, "title": r.title, "origin": r.origin, "destination": r.destination, "tour_type": r.tour_type, "details": json.loads(r.details_json)} for r in rows]
+
+
+@app.get("/tour-products/{tour_id}")
+def tour_detail(tour_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    row = db.scalar(select(operational_models.TourProduct).where(operational_models.TourProduct.id == tour_id, operational_models.TourProduct.tenant_id == user.tenant_id, operational_models.TourProduct.status == "published"))
+    if row is None: raise HTTPException(404, "تور وجود ندارد")
+    departures = db.scalars(select(operational_models.TourDeparture).where(operational_models.TourDeparture.tour_id == row.id, operational_models.TourDeparture.tenant_id == user.tenant_id, operational_models.TourDeparture.status == "active")).all()
+    return {"id": row.id, "title": row.title, "origin": row.origin, "destination": row.destination, "tour_type": row.tour_type, "details": json.loads(row.details_json), "departures": [{"id": d.id, "starts_at": d.starts_at.isoformat(), "ends_at": d.ends_at.isoformat(), "remaining": d.remaining, "base_price": d.base_price, "currency": d.currency, "pricing": json.loads(d.pricing_json)} for d in departures]}
+
+
+@app.post("/tour-departures/{departure_id}/reservations", status_code=201)
+def book_tour(departure_id: str, data: TourBookIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    prior = db.scalar(select(operational_models.TourReservation).where(operational_models.TourReservation.tenant_id == user.tenant_id, operational_models.TourReservation.command_id == data.command_id))
+    if prior:
+        if prior.departure_id != departure_id: raise HTTPException(409, "کلید تکرار برای رزرو دیگری استفاده شده است")
+        return {"id": prior.id, "status": prior.status, "total_amount": prior.total_amount}
+    departure = db.scalar(select(operational_models.TourDeparture).where(operational_models.TourDeparture.id == departure_id, operational_models.TourDeparture.tenant_id == user.tenant_id).with_for_update())
+    now = datetime.now(timezone.utc)
+    if departure is None or departure.status != "active" or _aware(departure.booking_deadline) <= now or departure.remaining < data.travellers: raise HTTPException(409, "ظرفیت یا مهلت رزرو تور معتبر نیست")
+    pricing = json.loads(departure.pricing_json); surcharge = int(pricing.get(f"{data.room_type}_surcharge", 0)); total = (departure.base_price + surcharge) * data.travellers
+    tour = db.scalar(select(operational_models.TourProduct).where(operational_models.TourProduct.id == departure.tour_id, operational_models.TourProduct.tenant_id == user.tenant_id)); details = json.loads(tour.details_json) if tour else {}; policy = details.get("cancellation_policy") if isinstance(details.get("cancellation_policy"), dict) else {}; reservation = operational_models.Reservation(tenant_id=user.tenant_id, user_id=user.id, service_type="tour", status="reserved", booking_reference=f"KS-TOUR-{uuid.uuid4().hex[:10].upper()}", price_snapshot_json=json.dumps({"total_amount": total, "currency": departure.currency, "travellers": data.travellers, "room_type": data.room_type, "departure_id": departure.id}, sort_keys=True), policy_at_booking_json=json.dumps(policy, sort_keys=True), current_policy_json=json.dumps(policy, sort_keys=True)); db.add(reservation); db.flush(); departure.remaining -= data.travellers; row = operational_models.TourReservation(tenant_id=user.tenant_id, departure_id=departure.id, user_id=user.id, reservation_id=reservation.id, travellers=data.travellers, room_type=data.room_type, total_amount=total, command_id=data.command_id); db.add(row); db.flush(); _commerce_event(db, tenant_id=user.tenant_id, kind="tour_reservation", aggregate_id=row.id, command_id=data.command_id, payload={"status": row.status, "remaining": departure.remaining, "reservation_id": reservation.id}); db.commit(); return {"id": row.id, "reservation_id": reservation.id, "checkout_url": f"/checkout/{reservation.id}", "status": row.status, "total_amount": row.total_amount, "currency": departure.currency, "payment_required": True, "voucher": None}
+
+
+@app.get("/cruises")
+def list_cruises(user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    rows = db.scalars(select(operational_models.CruiseSailing).where(operational_models.CruiseSailing.tenant_id == user.tenant_id)).all()
+    return {"items": [{"id": r.id, "title": r.title, "cruise_line": r.cruise_line, "ship": r.ship, "departure_port": r.departure_port, "arrival_port": r.arrival_port, "starts_at": r.starts_at.isoformat(), "nights": r.nights, "status": r.status, "details": json.loads(r.details_json)} for r in rows], "live_booking": False, "provider_status": "BLOCKED_EXTERNAL_CREDENTIAL"}
+
+
+@app.post("/cruises/{sailing_id}/book")
+def book_cruise(sailing_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    row = db.scalar(select(operational_models.CruiseSailing).where(operational_models.CruiseSailing.id == sailing_id, operational_models.CruiseSailing.tenant_id == user.tenant_id))
+    if row is None: raise HTTPException(404, "سفر دریایی وجود ندارد")
+    raise HTTPException(503, detail={"code": "LIVE_PROVIDER_UNAVAILABLE", "message": "رزرو زنده کروز تا اتصال Provider قراردادی غیرفعال است"})
+
+
+@app.post("/backoffice/visa-products", status_code=201)
+def create_visa_product(data: VisaProductIn, user: User = Depends(require_permission("support:manage")), db: Session = Depends(get_db)) -> dict:
+    row = operational_models.VisaProduct(tenant_id=user.tenant_id, destination_country=data.destination_country, visa_type=data.visa_type, title=data.title, source_url=data.source_url, source_verified_at=data.source_verified_at, details_json=json.dumps(data.details, sort_keys=True)); db.add(row); db.commit(); return {"id": row.id, "status": row.status}
+
+
+@app.get("/visa-products")
+def list_visa_products(destination_country: Optional[str] = None, user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
+    query = select(operational_models.VisaProduct).where(operational_models.VisaProduct.tenant_id == user.tenant_id, operational_models.VisaProduct.status == "published")
+    if destination_country: query = query.where(operational_models.VisaProduct.destination_country == destination_country)
+    rows = db.scalars(query).all(); return [{"id": r.id, "title": r.title, "destination_country": r.destination_country, "visa_type": r.visa_type, "source_url": r.source_url, "source_verified_at": r.source_verified_at.isoformat(), "details": json.loads(r.details_json), "guarantee": False, "eligibility": "requires_human_review"} for r in rows]
+
+
+@app.post("/visa-products/{product_id}/applications", status_code=201)
+def start_visa_application(product_id: str, data: VisaApplicationIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    prior = db.scalar(select(operational_models.VisaApplication).where(operational_models.VisaApplication.tenant_id == user.tenant_id, operational_models.VisaApplication.command_id == data.command_id))
+    if prior: return {"id": prior.id, "status": prior.status}
+    product = db.scalar(select(operational_models.VisaProduct).where(operational_models.VisaProduct.id == product_id, operational_models.VisaProduct.tenant_id == user.tenant_id, operational_models.VisaProduct.status == "published"))
+    if product is None: raise HTTPException(404, "خدمت ویزا وجود ندارد")
+    if data.trip_id and db.scalar(select(operational_models.Trip.id).where(operational_models.Trip.id == data.trip_id, operational_models.Trip.tenant_id == user.tenant_id, operational_models.Trip.user_id == user.id)) is None: raise HTTPException(404, "سفر متعلق به این حساب نیست")
+    row = operational_models.VisaApplication(tenant_id=user.tenant_id, product_id=product.id, user_id=user.id, trip_id=data.trip_id, purpose=data.purpose, travel_at=data.travel_at, command_id=data.command_id); db.add(row); db.flush(); db.add(operational_models.VisaTimelineEvent(tenant_id=user.tenant_id, application_id=row.id, event_type="started", source_type="system", message="پرونده ایجاد شد؛ صدور ویزا تضمین نمی‌شود.", event_key=f"visa-start:{row.id}")); db.commit(); return {"id": row.id, "status": row.status, "guarantee": False}
+
+
+@app.post("/visa-applications/{application_id}/applicants", status_code=201)
+def add_visa_applicant(application_id: str, data: VisaApplicantIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    app_row = db.scalar(select(operational_models.VisaApplication).where(operational_models.VisaApplication.id == application_id, operational_models.VisaApplication.tenant_id == user.tenant_id, operational_models.VisaApplication.user_id == user.id))
+    if app_row is None: raise HTTPException(404, "پرونده در این حساب وجود ندارد")
+    row = operational_models.VisaApplicant(tenant_id=user.tenant_id, application_id=app_row.id, full_name=data.full_name, passport_country=data.passport_country, passport_reference=_secure_hash(data.passport_reference)); db.add(row); db.commit(); return {"id": row.id, "full_name": row.full_name, "passport_country": row.passport_country}
+
+
+@app.post("/visa-applications/{application_id}/documents", status_code=201)
+def upload_visa_document(application_id: str, data: VisaDocumentIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    app_row = db.scalar(select(operational_models.VisaApplication).where(operational_models.VisaApplication.id == application_id, operational_models.VisaApplication.tenant_id == user.tenant_id, operational_models.VisaApplication.user_id == user.id))
+    if app_row is None: raise HTTPException(404, "پرونده در این حساب وجود ندارد")
+    row = db.scalar(select(operational_models.VisaDocument).where(operational_models.VisaDocument.tenant_id == user.tenant_id, operational_models.VisaDocument.application_id == app_row.id, operational_models.VisaDocument.document_type == data.document_type))
+    if row is None: row = operational_models.VisaDocument(tenant_id=user.tenant_id, application_id=app_row.id, document_type=data.document_type); db.add(row)
+    row.storage_reference = data.storage_reference; row.status = "uploaded"; row.review_note = None; db.commit(); return {"id": row.id, "document_type": row.document_type, "status": row.status}
+
+
+@app.put("/backoffice/visa-documents/{document_id}")
+def review_visa_document(document_id: str, data: VisaDocumentReviewIn, user: User = Depends(require_permission("support:manage")), db: Session = Depends(get_db)) -> dict:
+    row = db.scalar(select(operational_models.VisaDocument).where(operational_models.VisaDocument.id == document_id, operational_models.VisaDocument.tenant_id == user.tenant_id).with_for_update())
+    if row is None: raise HTTPException(404, "مدرک وجود ندارد")
+    row.status = data.status; row.review_note = data.review_note; db.add(operational_models.VisaTimelineEvent(tenant_id=user.tenant_id, application_id=row.application_id, event_type="document_reviewed", source_type="human_agent", actor_id=user.id, message=f"وضعیت مدرک {row.document_type}: {row.status}", event_key=f"visa-doc:{row.id}:{row.updated_at.isoformat()}")); db.commit(); return {"id": row.id, "status": row.status, "source_type": "human_agent"}
+
+
+@app.get("/visa-applications/{application_id}")
+def visa_application_detail(application_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    row = db.scalar(select(operational_models.VisaApplication).where(operational_models.VisaApplication.id == application_id, operational_models.VisaApplication.tenant_id == user.tenant_id, operational_models.VisaApplication.user_id == user.id))
+    if row is None: raise HTTPException(404, "پرونده در این حساب وجود ندارد")
+    applicants = db.scalars(select(operational_models.VisaApplicant).where(operational_models.VisaApplicant.application_id == row.id, operational_models.VisaApplicant.tenant_id == user.tenant_id)).all(); documents = db.scalars(select(operational_models.VisaDocument).where(operational_models.VisaDocument.application_id == row.id, operational_models.VisaDocument.tenant_id == user.tenant_id)).all(); timeline = db.scalars(select(operational_models.VisaTimelineEvent).where(operational_models.VisaTimelineEvent.application_id == row.id, operational_models.VisaTimelineEvent.tenant_id == user.tenant_id).order_by(operational_models.VisaTimelineEvent.created_at)).all()
+    return {"id": row.id, "status": row.status, "purpose": row.purpose, "travel_at": row.travel_at.isoformat(), "guarantee": False, "applicants": [{"id": a.id, "full_name": a.full_name, "passport_country": a.passport_country} for a in applicants], "documents": [{"id": d.id, "document_type": d.document_type, "status": d.status, "review_note": d.review_note} for d in documents], "timeline": [{"event_type": e.event_type, "source_type": e.source_type, "message": e.message, "created_at": e.created_at.isoformat()} for e in timeline]}
+
+
 @app.post("/supplier/offers", status_code=status.HTTP_201_CREATED)
 def create_supplier_offer(data: SupplierOfferIn, user: User = Depends(require_permission("inventory:manage")), db: Session = Depends(get_db)) -> dict:
     supplier = db.scalar(select(operational_models.Supplier).where(operational_models.Supplier.id == data.supplier_id, operational_models.Supplier.tenant_id == user.tenant_id).with_for_update())
@@ -1181,7 +1364,7 @@ def unified_search(data: UnifiedSearchIn, user: User = Depends(current_user), db
         group["offers"].sort(key=lambda item: (item["final_price"], -item["ranking_score"]))
         group["best_offer"] = group["offers"][0]; group["provider_count"] = len({item["provider"] for item in group["offers"]})
         group["ranking_score"] = max(item["ranking_score"] for item in group["offers"]); entities.append(group)
-    entity_sorters = {"lowest_price": lambda item: item["best_offer"]["final_price"], "cheapest": lambda item: item["best_offer"]["final_price"], "highest_rated": lambda item: -(item["best_offer"]["review_score"] or 0), "best_location": lambda item: -float(item["best_offer"]["attributes"].get("location_score", 0)), "most_flexible": lambda item: not bool((item["best_offer"].get("cancellation_policy") or {}).get("refundable"))}
+    entity_sorters = {"lowest_price": lambda item: item["best_offer"]["final_price"], "cheapest": lambda item: item["best_offer"]["final_price"], "highest_rated": lambda item: -(item["best_offer"]["review_score"] or 0), "best_location": lambda item: -float(item["best_offer"]["attributes"].get("location_score", 0)), "most_flexible": lambda item: not bool((item["best_offer"].get("cancellation_policy") or {}).get("refundable")), "fastest": lambda item: float(item["best_offer"]["attributes"].get("duration_minutes", 10**9))}
     entities.sort(key=entity_sorters.get(data.sort, lambda item: -item["ranking_score"]))
     offset = (data.page - 1) * data.page_size; page_items = entities[offset:offset + data.page_size]
     recovery = [] if entities else [{"type": "nearby_dates", "message": "تاریخ‌های ±۱ روز را بررسی کنید", "fabricated_price": False}, {"type": "fewer_filters", "message": "برخی فیلترها را حذف کنید", "fabricated_price": False}]

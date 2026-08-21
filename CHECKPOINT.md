@@ -1,5 +1,34 @@
 # KarenSeir Checkpoint
 
+## KARENSEIR TRAVEL COMMERCE RESUME FROM HERE
+
+- Timestamp: `2026-08-21T14:24:38Z`; branch `main`; baseline HEAD `ecbfae349a5a9cd4384ede22b42b09cb71aa9ef1`; final commit is recorded after save.
+- Migration head: `20260821_14`. Empty isolated SQLite upgrade/current/check/no-drift PASS. Direct PostgreSQL validation for the twelve new tenant tables is **not claimed** because this host has neither Docker nor a PostgreSQL runtime.
+- Search state: Browser-visible Search Box/results flow remains PASS and mock-free; autocomplete/date/passengers/trip type/filter/sort/compare/save/recheck work. Homepage identity remains unchanged.
+- Villa state: property/unit catalog، date-range reservation، overlap/double-booking protection، idempotency، tenant ownership، Reservation/Checkout handoff and list/detail UI PASS.
+- Tour state: product/departure inventory، capacity/deadline، room surcharge، oversell prevention، Reservation/Checkout handoff and list/detail/booking UI PASS. Unpaid voucher remains null by design.
+- Cruise state: catalog/domain/API/UI foundation PASS; live booking returns fail-closed `LIVE_PROVIDER_UNAVAILABLE` until a contracted Provider is configured.
+- Visa state: timestamped source، application، multiple applicants، hashed passport reference، documents، human-only review and system/human timeline PASS. Embassy/VAC submission and decision are external.
+- Tests: local backend `87 passed, 5 existing infrastructure skips`; Travel Commerce `3/3`; ESLint/strict type/build PASS; isolated Alembic PASS; Chromium `17/17`; Homepage Desktop/Mobile PASS; screenshots saved under `artifacts/search-ux/` and `artifacts/travel-commerce/`.
+- Remaining internal: disposable PostgreSQL head-14 RLS/FORCE/backup/restore/rollback validation; seasonal rental calendar and cancellation settlement; supplier management UI; deeper Tour↔Visa↔Trip Timeline linkage.
+- Credentials required: ZarinPal sandbox merchant، Flight/Hotel/Tour/Cruise Provider contracts، SMS/OTP، Map، external Secret Manager and monitoring collector.
+- Completion: ecosystem `94%` by internal implementation gates; Production **NO-GO**.
+- NEXT EXACT ACTION: provision an isolated PostgreSQL 16 runtime, backup it, upgrade to `20260821_14`, then run missing-context/own/cross-tenant/write/FORCE-RLS and concurrency tests for all twelve new tables before any provider credential work.
+
+
+## SEARCH UX RESUME FROM HERE — operational browser gate
+
+- Timestamp: `2026-08-21T13:49:55Z`; branch `main`; baseline HEAD `ecbfae349a5a9cd4384ede22b42b09cb71aa9ef1`; final source/evidence commits are recorded below after save.
+- Migration: unchanged `20260820_13`. This UI phase did not mutate PostgreSQL or weaken RLS/RBAC.
+- Search UX: **PASS**. No Mock/demo success remains inside the Search Box/results flow. Autocomplete, Persian typo UX, date flexibility, trip type, passengers, URL-restorable submit, results, filters, sort, selected-Offer comparison, Wishlist/Trip Basket and authoritative recheck are Browser-visible.
+- PASS: focused backend `15/15`; local backend `84 passed`; frontend lint/strict type/build; npm audit 0; Search UX focused E2E; full Chromium `16/16`; nine screenshots manually reviewed; Homepage Desktop/Mobile identity unchanged; `git diff --check`.
+- Infrastructure note: five local backend tests are environment gates and were skipped because live isolated Redis/PostgreSQL/worker URLs were unavailable. No new skip exists; last real PostgreSQL/Redis evidence remains `87/87` and RLS/FORCE `67/67` at this migration head.
+- Screenshots: `homepage-search-desktop.png`, `homepage-autocomplete.png`, `destination-autocomplete.png`, `date-picker.png`, `passenger-picker.png`, `search-results-desktop.png`, `filter-panel.png`, `comparison.png`, `search-results-mobile.png` under `artifacts/search-ux/`.
+- External blockers: authorized Flight/Hotel/Tour/rail Provider credentials and contracts; ZarinPal merchant; SMS/OTP; map; public DNS/TLS; Secret Manager; monitoring/alerting collector; target deployment and independent security certification.
+- Remaining internal: no blocker for the requested Search UX gate. Provider fan-out performance/price-calendar/alerts cannot be certified without real authorized transports.
+- NEXT EXACT ACTION: inject one authorized sandbox travel-provider credential through the external Secret Manager, then run provider timeout/partial-failure and Search/provider P50/P95 certification without changing Homepage.
+
+
 ## SEARCH UX RESUME FROM HERE
 
 - Timestamp: `2026-08-21T12:49:21Z`; branch `main`; source implementation commit `8e7bfe04b630392f5d231d9ac844bb0663a1ab07`.

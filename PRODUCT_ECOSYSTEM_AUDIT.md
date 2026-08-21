@@ -106,3 +106,14 @@ Passed phases: 6/16. The expanded ecosystem scope is estimated at 76%; the prior
 | 16 Final Security | BLOCKED | API negative regression PASS؛ migration 11 direct PostgreSQL RLS and full security matrix pending |
 
 Current honest completion: `84%`; passed phases: `10/16`. Homepage visual regression remains zero.
+# Search UX correction — 2026-08-21
+
+The prior backend completion is no longer used as a proxy for user-visible completion. Browser QA now proves the Search Box and dedicated results route are interactive. Real SavedTrip mutations, selected-Offer comparison and price/availability recheck replace the previous UI-only links/buttons. Nine reviewed screenshots cover default Search, both autocompletes, date and passenger pickers, Desktop results, filters, comparison and Mobile results. Ecosystem completion is now assessed at `94%`; production remains NO-GO for external dependencies.
+## Travel Commerce gate — 2026-08-21
+
+- Vacation Rental: **PASS internal** — dedicated property/unit/reservation domain، date overlap guard، tenant ownership، UI routes و Checkout handoff. Seasonal date-level pricing، host onboarding UI و full cancellation settlement هنوز refinement داخلی‌اند.
+- Tour: **PASS internal booking** — tour/departure inventory، room pricing، capacity lock، search/list/detail، booking hold و Checkout handoff. Payment sandbox و voucher issuance نیازمند credential/Provider fulfillment واقعی‌اند و success ادعا نشده است.
+- Cruise: **PASS foundation / BLOCKED live** — sailing/cabin-ready catalog contract و honest unavailable UX؛ live inventory/booking وابسته به Provider قراردادی است.
+- Visa: **PASS case foundation** — source-timestamped product، applicant/documents، human review separation و timeline. Embassy/VAC submission و decision external-authority blockers هستند.
+- Benchmark logic used: date/guest eligibility and blocked calendars (Airbnb)، disclosed tour departure/services/visa state (Iranian public tour patterns)، sailing/cabin/fee separation (Royal Caribbean/NCL)، and document/biometric/human authority workflow (France-Visas/German Consular Portal/Canada). No visual design was copied.
+- Homepage identity remains frozen; all new presentation lives on dedicated routes.

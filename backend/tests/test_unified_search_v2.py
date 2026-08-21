@@ -61,6 +61,19 @@ def test_unified_multi_vertical_deduplicates_offers_and_explains_ranking(client)
     assert hotel["best_offer"]["ranking_explanation"] and payload["availability_recheck_required_before_checkout"] is True
 
 
+def test_fastest_sort_uses_provider_duration_without_inventing_values(client):
+    offer(title="پرواز کند", service_type="flight", amount=1_000_000, entity_id="slow-flight")
+    offer(title="پرواز سریع", service_type="flight", amount=2_000_000, entity_id="fast-flight")
+    with SessionLocal() as db:
+        rows = db.scalars(select(Offer).where(Offer.title.in_(["پرواز کند", "پرواز سریع"]))).all()
+        for row in rows:
+            attrs = json.loads(row.attributes_json); attrs["duration_minutes"] = 120 if row.title == "پرواز کند" else 75; row.attributes_json = json.dumps(attrs)
+        db.commit()
+    token = login(client, "employee@aftab.test")["access_token"]
+    result = client.post("/search/v2", headers=auth(token), json={"verticals": ["flight"], "query": "پرواز", "sort": "fastest"}).json()
+    assert [item["title"] for item in result["entities"][:2]] == ["پرواز سریع", "پرواز کند"]
+
+
 def test_stale_is_explicit_and_price_recheck_rejects_tampering(client):
     stale_id = offer(title="تور قدیمی", service_type="tour", stale=True, entity_id="tour-stale")
     live_id = offer(title="تور تازه", service_type="tour", amount=1_000_000, entity_id="tour-live")

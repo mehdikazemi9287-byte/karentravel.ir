@@ -311,3 +311,21 @@ Policy/quote باید از Provider یا policy store امضاشده دریاف�
 - رنگ آبی قبلی از این بخش حذف و طراحی آن فقط با کرم، بنفش عمیق و کورال Homepage یکپارچه شد؛ ظاهر آن از ورودی پشتیبانی انسانی متمایز است.
 - در Mobile دکمهٔ ثابت کوچک «دستیار AI» بالاتر از SupportDock قرار دارد و در Desktop/Tablet مخفی است. breakpointهای Desktop، Tablet و Mobile بدون تغییر layout سایر بخش‌ها تعریف شدند.
 - QA: lint و TypeScript موفق؛ backend `2 passed`؛ `/` و `/assistant` برابر `200`. ترتیب زندهٔ DOM برابر Selected Trips → AI Assistant → Comparison تأیید شد. مرورگر تعاملی متصل نبود، بنابراین screenshot QA ادعا نمی‌شود.
+# Search UX operational completion — 2026-08-21
+
+- Search UX is now **PASS** by browser evidence, not inferred from backend status. The frozen Homepage identity remains unchanged while its existing Search Box performs public-safe Persian autocomplete, typo recovery, date flexibility, passenger/cabin selection, trip type and URL-restorable submission.
+- `/search/results` renders authenticated tenant Offer data with final price, provider, freshness, availability, refundability, vertical details, server-backed filters/sorts, honest empty/error states and responsive Desktop/Mobile layouts.
+- Wishlist and Trip Basket actions now execute idempotent SavedTrip mutations; price/availability recheck calls the authoritative backend and displays confirmed, changed-price or unavailable states. Comparison consumes exactly the 2–4 selected Offer IDs.
+- Evidence: focused Search/Saved Travel backend `15/15`; local full backend `84 passed` plus five unchanged infrastructure gates skipped because the prior disposable PostgreSQL/Redis processes are no longer live; the last real integration certificate remains `87/87` and RLS/FORCE `67/67` at migration `20260820_13`. Frontend lint/type/build and npm audit are green. Full E2E is `16/16` after regression fixes.
+- Nine reviewed screenshots are stored under `artifacts/search-ux/`. No Search CTA/text includes Mock/demo success. Unrelated legacy Homepage discovery cards remain explicitly Mock-labelled and were not rewritten under the UI freeze.
+- Production remains **NO-GO**: live travel-provider, payment/SMS, public infrastructure and independent certification gates remain external.
+# Travel Commerce increment — 2026-08-21
+
+- Search UX مرورگرمحور و mock-free حفظ شد؛ Homepage، Hero، Header، ترتیب سکشن‌ها و assetها تغییر نکردند.
+- migration افزایشی `20260821_14` دوازده جدول tenant-aware برای Vacation Rental، Tour Departure/Reservation، Cruise Catalog و Visa Case/Document/Timeline اضافه می‌کند؛ SQLite upgrade/current/check PASS است. اجرای مستقیم PostgreSQL و شمارش RLS/FORCE این head جدید روی این میزبان به‌علت نبود runtime محلی هنوز گیت داخلی باقی‌مانده است و evidence قبلی `67/67` به‌جای آن ادعا نمی‌شود.
+- Villa: property/unit، ظرفیت، هزینه شبانه، رزرو بازه‌ای، idempotency، overlap/double-booking guard و اتصال به Reservation/Checkout پیاده و تست شد.
+- Tour: محصول، حرکت تاریخ‌دار، ظرفیت/مهلت، room surcharge، oversell guard، Reservation/Checkout و عدم صدور واچر پیش از پرداخت/fulfillment پیاده و تست شد.
+- Cruise: contract و catalog state آماده است؛ رزرو زنده بدون Provider قراردادی با `503 LIVE_PROVIDER_UNAVAILABLE` fail-closed می‌ماند.
+- Visa: محصول منبع‌دار، application چندمتقاضی، document lifecycle، human-only review، timeline با تفکیک system/human و هش مرجع گذرنامه پیاده شد؛ هیچ تضمین eligibility/صدور/زمان پردازش وجود ندارد.
+- QA فعلی: backend local `87 passed, 5 infrastructure-skipped`، تست متمرکز Travel Commerce `3/3`، frontend lint/type/build PASS، Alembic isolated PASS، Chromium `17/17` و ۹ artifact جدید Travel Commerce PASS.
+- Production همچنان **NO-GO** است: Provider/Payment/SMS credentials، Public TLS/DNS، Secret Manager، external monitoring، target deployment/certification و validation مستقیم PostgreSQL head 14 موجود نیست.

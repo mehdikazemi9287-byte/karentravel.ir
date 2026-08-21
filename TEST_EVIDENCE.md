@@ -82,3 +82,30 @@ Timestamp: `2026-08-20T07:52:47Z`
 | Docker/Compose runtime validation | BLOCKED on this host: no Docker-compatible runtime; structural YAML validation PASS |
 
 All database work used disposable databases on localhost ports 55434/56379. Production was not contacted or mutated. The backup was restored to a distinct database; rollback and re-upgrade were performed only on isolated staging. External transports remained disabled/fail-closed and no credential-dependent success is claimed.
+## Search UX operational evidence — 2026-08-21T13:49:55Z
+
+| Check | Result |
+|---|---|
+| Visible Search journey | PASS: Persian typo/autocomplete → date/flexibility → passengers/trip type → structured submit → results/edit/filter/sort |
+| Real result actions | PASS: Wishlist and Trip Basket POST to SavedTrip APIs; price/availability recheck POSTs to authoritative Offer endpoint; selected Offer IDs feed Compare |
+| Focused backend | `15/15 passed` across Unified Search v2, ecosystem Search and Saved Travel |
+| Full local backend | `84 passed, 5 infrastructure-skipped`; no new skips. The five require live isolated Redis/PostgreSQL/worker URLs; prior real certificate remains `87/87`, RLS/FORCE `67/67` |
+| Frontend | ESLint PASS; strict `tsc --noEmit` PASS; Next.js 16 production build PASS (32 routes) |
+| Chromium | focused Search UX PASS; full regression `16/16 PASS` after deterministic selector/state corrections |
+| Security | authenticated tenant results/mutations; no frontend-authoritative price/availability; Search Box contains no Mock/demo success; npm audit `0 vulnerabilities` |
+| Screenshots | nine reviewed PNGs: Homepage default, origin autocomplete, destination autocomplete, date picker, passenger picker, results Desktop, filter panel, comparison and results Mobile |
+| Homepage identity | Desktop/Mobile structure, Header, Hero, imagery, palette, typography, section order and Footer unchanged |
+| Migration | unchanged `20260820_13`; no database mutation in this UI phase |
+## Travel Commerce evidence — 2026-08-21T14:24:38Z
+
+| Check | Result |
+|---|---|
+| Vacation Rental/Tour/Visa/Cruise backend | `3/3 PASS`: idempotency، own/cross-tenant، overlap، oversell، human document review، PII non-disclosure و cruise fail-closed |
+| Full local backend | `87 passed, 5 infrastructure-skipped`; skip جدیدی اضافه نشد. پنج gate به PostgreSQL/Redis/worker واقعی نیاز دارند |
+| Migration | empty isolated SQLite → `20260821_14`; Alembic current/check و no drift PASS |
+| PostgreSQL head 14 RLS | BLOCKED on this host: `docker` و `postgres` نصب نیستند؛ evidence پیشین head 13 (`67/67`) جایگزین validation دوازده جدول جدید نشده است |
+| Frontend | ESLint PASS؛ strict TypeScript PASS؛ Next.js 16 build PASS (35 generated pages/routes) |
+| Chromium | `17/17 PASS`؛ Search UX، Homepage Desktop/Mobile و Travel Commerce workflow |
+| Travel Commerce screenshots | ۹ PNG: Villa results/detail، Tour results/detail/booking، Visa detail/application/timeline، Cruise fail-closed state |
+| Homepage source protection | `app/page.tsx`، Hero/Header/assets و section order بدون diff؛ structural Desktop/Mobile regression PASS |
+| Security | cross-tenant negative، RBAC review، hashed passport reference، no unpaid voucher، no fake Cruise/Payment success PASS |

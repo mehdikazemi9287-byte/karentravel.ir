@@ -13,7 +13,7 @@ const services=[
   {name:'پرواز',icon:'✈',vertical:'flight',origin:true},
   {name:'هتل',icon:'⌂',vertical:'hotel',origin:false},
   {name:'تور + هتل',icon:'◉',vertical:'package',origin:true},
-  {name:'تشریفات فرودگاه',icon:'◇',vertical:'tourist_transport',origin:false},
+  {name:'تشریفات فرودگاه',icon:'◇',vertical:'tourist_transportation',origin:false},
 ] as const;
 const entityLabels:Record<string,string>={city:'شهر',airport:'فرودگاه',railway_station:'ایستگاه',hotel:'هتل',accommodation:'اقامتگاه',attraction:'جاذبه',poi:'مکان دیدنی'};
 
@@ -29,7 +29,7 @@ export function HomeSearchExperience(){
   const [origin,setOrigin]=useState('تهران'); const [destination,setDestination]=useState(service.vertical==='hotel'?'یزد':'شیراز');
   const [depart,setDepart]=useState('2026-09-15'); const [returnDate,setReturnDate]=useState('2026-09-18'); const [flexibility,setFlexibility]=useState('exact'); const [tripType,setTripType]=useState<TripType>('round_trip');
   const [adults,setAdults]=useState(2); const [children,setChildren]=useState(0); const [infants,setInfants]=useState(0); const [rooms,setRooms]=useState(1); const [cabin,setCabin]=useState('economy'); const [popover,setPopover]=useState<Popover>(null);
-  function changeService(index:number){setActive(index);setPopover(null);const next=services[index];setDestination(next.vertical==='hotel'?'یزد':next.vertical==='package'?'قشم':next.vertical==='tourist_transport'?'فرودگاه امام خمینی':'شیراز')}
+  function changeService(index:number){setActive(index);setPopover(null);const next=services[index];setDestination(next.vertical==='hotel'?'یزد':next.vertical==='package'?'قشم':next.vertical==='tourist_transportation'?'فرودگاه امام خمینی':'شیراز')}
   function submit(){const params=new URLSearchParams({vertical:service.vertical,origin:service.origin?origin:'',destination,depart,trip_type:tripType,flexibility,adults:String(adults),children:String(children),infants:String(infants),rooms:String(rooms),cabin,sort:'recommended'});if(tripType==='round_trip')params.set('return',returnDate);router.push(`/search/results?${params.toString()}`)}
   const travellerTotal=adults+children+infants;
   return <section className="search-wrap" id="search" aria-label="جست‌وجوی یکپارچه سفر" onKeyDown={event=>{if(event.key==='Escape')setPopover(null)}}>
