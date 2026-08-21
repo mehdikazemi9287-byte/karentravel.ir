@@ -15,7 +15,7 @@ async function uiLogin(page: import('@playwright/test').Page, email: string) {
   await expect(page.getByText(/خوش آمدید/)).toBeVisible();
 }
 
-async function createOperationalFixture(request: APIRequestContext, suffix = 'manage') {
+async function createOperationalFixture(request: APIRequestContext, suffix = 'manage', serviceType = 'hotel') {
   const supplier = await login(request, 'supplier@aftab.test');
   const onboarded = await request.post(`${api}/supplier/onboarding`, { headers: { Authorization: `Bearer ${supplier.access_token}`, 'Idempotency-Key': `e2e-supplier-${suffix}` }, data: { supplier_type: 'hotel', display_name: `تأمین‌کننده E2E ${suffix}` } });
   expect(onboarded.status()).toBe(201);
@@ -23,7 +23,7 @@ async function createOperationalFixture(request: APIRequestContext, suffix = 'ma
   const policy = { verified: true, source: 'e2e-contract', verified_at: new Date().toISOString(), cancellation: { refundable: true, penalty_amount: 100000 } };
   const offerIds: string[] = [];
   for (const [index, amount] of [[0, 2_000_000], [1, 2_400_000]]) {
-    const response = await request.post(`${api}/supplier/offers`, { headers: { Authorization: `Bearer ${supplier.access_token}` }, data: { supplier_id: supplierId, service_type: 'hotel', title: `هتل عملیاتی ${index + 1}`, amount, available_units: 5, valid_minutes: 60, policy, attributes: { rating: 4.5 - index * .2, location_score: 8 - index, amenities: ['wifi'], organization_policy_compliant: true }, fulfillment_mode: 'manual_supplier', provider_key: 'manual_supplier' } });
+    const response = await request.post(`${api}/supplier/offers`, { headers: { Authorization: `Bearer ${supplier.access_token}` }, data: { supplier_id: supplierId, service_type: serviceType, title: serviceType === 'flight' ? `پرواز تهران شیراز ${index + 1}` : `هتل عملیاتی ${index + 1}`, amount, available_units: 5, valid_minutes: 60, policy, attributes: serviceType === 'flight' ? { rating: 4.5 - index * .2, origin: 'تهران', destination: 'شیراز', airline: 'هواپیمایی تست قراردادی', departure_time: '08:30', arrival_time: '10:00', duration: '۱ ساعت و ۳۰ دقیقه', stops: 0, baggage: '۲۰ کیلوگرم', organization_policy_compliant: true } : { rating: 4.5 - index * .2, location_score: 8 - index, city: 'شیراز', room_type: 'دوتخته', breakfast: true, amenities: ['wifi'], organization_policy_compliant: true }, fulfillment_mode: 'manual_supplier', provider_key: 'manual_supplier' } });
     expect(response.status()).toBe(201); offerIds.push((await response.json()).id);
   }
   const employee = await login(request, 'employee@aftab.test');
@@ -50,7 +50,7 @@ test('frozen Homepage keeps approved structure on desktop and mobile', async ({ 
   }
 });
 
-test('login, search and booking flow through the pilot UI', async ({ page }) => {
+test('login and booking flow through the pilot UI', async ({ page }) => {
   const response = await page.goto('/pilot');
   expect(response?.headers()['content-security-policy']).toContain("frame-ancestors 'none'");
   await expect(page.getByRole('heading', { name: 'رزرو هتل با جریان سازمانی' })).toBeVisible();
@@ -60,10 +60,56 @@ test('login, search and booking flow through the pilot UI', async ({ page }) => 
   await page.getByRole('button', { name: 'درخواست ۲ شب' }).first().click();
   await expect(page.getByText(/در انتظار تأیید است/)).toBeVisible();
 
+});
+
+test('professional Homepage search interactions reach usable results', async ({ page, request }) => {
+  await createOperationalFixture(request, 'search-ux', 'flight');
+  await uiLogin(page, 'employee@aftab.test');
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto('/');
-  await page.getByRole('tab', { name: 'هتل', exact: true }).click();
+  await page.screenshot({ path: 'artifacts/search-ux/homepage-search-desktop.png', fullPage: true, animations: 'disabled' });
+
+  const origin = page.getByRole('combobox', { name: 'مبدأ' });
+  await origin.fill('تهر');
+  await expect(page.getByRole('listbox', { name: 'پیشنهادهای مبدأ' })).toBeVisible();
+  await expect(page.getByRole('option', { name: /فرودگاه مهرآباد/ })).toBeVisible();
+  await page.screenshot({ path: 'artifacts/search-ux/homepage-autocomplete.png', animations: 'disabled' });
+  await page.getByRole('option', { name: /^تهران/ }).click();
+  const destination = page.getByRole('combobox', { name: 'مقصد' });
+  await destination.fill('شیرا');
+  await page.getByRole('option', { name: /^شیراز/ }).click();
+
+  await page.getByRole('button', { name: /تاریخ سفر/ }).click();
+  await page.getByLabel('تاریخ رفت').fill('2026-09-21');
+  await page.getByLabel('تاریخ برگشت').fill('2026-09-24');
+  await page.getByRole('button', { name: '±۱ روز' }).click();
+  await page.screenshot({ path: 'artifacts/search-ux/date-picker.png', animations: 'disabled' });
+  await page.getByRole('button', { name: 'تأیید تاریخ' }).click();
+
+  await page.getByRole('button', { name: /مسافران/ }).click();
+  await page.getByRole('button', { name: 'افزایش بزرگسال' }).click();
+  await expect(page.getByText('۳', { exact: true })).toBeVisible();
+  await page.screenshot({ path: 'artifacts/search-ux/passenger-picker.png', animations: 'disabled' });
+  await page.getByRole('button', { name: 'تأیید مسافران' }).click();
+  await page.getByRole('button', { name: 'یک‌طرفه' }).click();
+  await expect(page.getByRole('button', { name: 'یک‌طرفه' })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: 'رفت‌وبرگشت' }).click();
   await page.getByRole('button', { name: 'جست‌وجو', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('گزینه‌های نمایشی');
+  await expect(page).toHaveURL(/\/search\/results\?.*vertical=flight/);
+  await expect(page.getByRole('heading', { name: /پرواز تهران شیراز/ }).first()).toBeVisible();
+  await page.screenshot({ path: 'artifacts/search-ux/search-results-desktop.png', fullPage: true, animations: 'disabled' });
+
+  await page.getByLabel('مرتب‌سازی نتایج').selectOption('lowest_price');
+  await page.getByRole('checkbox', { name: 'فقط قابل استرداد' }).check();
+  await page.getByRole('button', { name: 'اعمال فیلتر' }).click();
+  const compare = page.getByRole('checkbox', { name: /برای مقایسه/ });
+  await compare.nth(0).check(); await compare.nth(1).check();
+  await expect(page.getByRole('link', { name: 'مقایسه گزینه‌ها' })).toBeVisible();
+  await page.getByRole('button', { name: 'ویرایش جست‌وجو' }).click();
+  await expect(page.getByLabel('ویرایش مقصد')).toBeVisible();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: 'artifacts/search-ux/search-results-mobile.png', fullPage: true, animations: 'disabled' });
 });
 
 test('approval and tenant dashboard API flow', async ({ request }) => {
@@ -119,9 +165,10 @@ test('unified search results expose freshness and persist saved search', async (
   await page.getByLabel('عبارت جست‌وجو').fill('هتل عملیاتی');
   await page.getByRole('button', { name: 'جست‌وجو', exact: true }).click();
   await expect(page.getByText(/گزینه یکتا/)).toBeVisible();
-  await expect(page.getByText(/تازه · CONFIRMED/).first()).toBeVisible();
+  await expect(page.getByText('تازه', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('موجودی تأییدشده', { exact: true }).first()).toBeVisible();
   await page.getByRole('button', { name: 'ذخیره جست‌وجو' }).click();
-  await expect(page.getByRole('status')).toContainText('جست‌وجو در حساب شما ذخیره شد');
+  await expect(page.getByText('جست‌وجو در حساب شما ذخیره شد.')).toBeVisible();
 });
 
 test('connected private pages fail closed without a browser session', async ({ page }) => {

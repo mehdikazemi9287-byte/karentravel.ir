@@ -1055,7 +1055,7 @@ def search_autocomplete(q: str, service_type: Optional[str] = None, user: User =
     persisted = db.scalars(select(operational_models.SearchEntity).where(operational_models.SearchEntity.tenant_id == user.tenant_id, operational_models.SearchEntity.status == "active").limit(100)).all()
     candidates = [*list(_AUTOCOMPLETE_ENTITIES), *[{"id": row.id, "title": row.title, "type": row.entity_type, "code": row.code, "city": row.city, "country": row.country, "subtitle": row.subtitle, "popularity": row.popularity_score, "aliases": json.loads(row.aliases_json or "[]"), "coordinates": [float(row.latitude), float(row.longitude)] if row.latitude is not None and row.longitude is not None else None} for row in persisted]]
     for item in candidates:
-        score, match_type = _match_score(normalized, item["title"], item.get("aliases", []) + ([item["code"]] if item.get("code") else []))
+        score, match_type = _match_score(normalized, item["title"], item.get("aliases", []) + ([item["code"]] if item.get("code") else []) + ([item["city"]] if item.get("city") else []))
         if score:
             key = (item["title"], item["type"]); seen.add(key)
             suggestions.append({"id": item["id"], "title": item["title"], "label": item["title"], "subtitle": item.get("subtitle") or " · ".join(filter(None, [item.get("city"), item.get("country")])), "normalized": _normalize_search_text(item["title"]), "entity_type": item["type"], "city": item.get("city"), "country": item.get("country"), "code": item.get("code"), "coordinates": item.get("coordinates"), "popularity_score": item.get("popularity", 0), "match_type": match_type, "ranking_score": score + item.get("popularity", 0), "source": "tenant_entity_catalog" if isinstance(item["id"], str) and len(item["id"]) == 36 else "karenseir_geo_catalog"})
@@ -1066,6 +1066,21 @@ def search_autocomplete(q: str, service_type: Optional[str] = None, user: User =
             seen.add((row.title, row.service_type)); suggestions.append({"id": row.id, "title": row.title, "label": row.title, "subtitle": attrs.get("city"), "normalized": _normalize_search_text(row.title), "entity_type": row.service_type, "city": attrs.get("city"), "country": attrs.get("country", "ایران"), "code": attrs.get("code"), "coordinates": [attrs.get("latitude"), attrs.get("longitude")] if attrs.get("latitude") is not None else None, "popularity_score": int(attrs.get("popularity_score", 0)), "match_type": match_type, "ranking_score": score + int(attrs.get("popularity_score", 0)), "source": "tenant_offer"})
     suggestions.sort(key=lambda item: (-item["ranking_score"], item["title"]))
     return {"query": q, "normalized_query": normalized, "suggestions": suggestions[:10], "cache_policy": "private_tenant_30s"}
+
+
+@app.get("/search/autocomplete/public")
+def public_search_autocomplete(q: str) -> dict:
+    """Expose only the non-tenant geographic catalog for pre-login search."""
+    normalized = _normalize_search_text(q)
+    if len(normalized) < 2:
+        raise HTTPException(status_code=422, detail="حداقل دو نویسه برای پیشنهاد لازم است")
+    suggestions = []
+    for item in _AUTOCOMPLETE_ENTITIES:
+        score, match_type = _match_score(normalized, item["title"], item.get("aliases", []) + ([item["code"]] if item.get("code") else []) + ([item["city"]] if item.get("city") else []))
+        if score:
+            suggestions.append({"id": item["id"], "title": item["title"], "subtitle": " · ".join(filter(None, [item.get("city"), item.get("country")])), "entity_type": item["type"], "city": item.get("city"), "country": item.get("country"), "code": item.get("code"), "coordinates": item.get("coordinates"), "popularity_score": item.get("popularity", 0), "match_type": match_type, "ranking_score": score + item.get("popularity", 0), "source": "karenseir_geo_catalog"})
+    suggestions.sort(key=lambda item: (-item["ranking_score"], item["title"]))
+    return {"query": q, "normalized_query": normalized, "suggestions": suggestions[:10], "cache_policy": "public_5m", "tenant_data_included": False}
 
 
 @app.post("/search/offers")

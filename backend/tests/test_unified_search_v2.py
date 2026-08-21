@@ -38,6 +38,17 @@ def test_normalization_alias_digits_punctuation_and_typo_autocomplete(client):
     assert any(item["title"] == "شیراز" and item["match_type"] == "fuzzy" for item in typo["suggestions"])
 
 
+def test_public_autocomplete_is_typo_tolerant_and_excludes_tenant_offers(client):
+    response = client.get("/search/autocomplete/public", params={"q": "تهرون"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["tenant_data_included"] is False
+    assert body["suggestions"][0]["title"] == "تهران"
+    assert all(item["source"] == "karenseir_geo_catalog" for item in body["suggestions"])
+    tehran = client.get("/search/autocomplete/public", params={"q": "تهر"}).json()["suggestions"]
+    assert {"تهران", "فرودگاه مهرآباد", "فرودگاه امام خمینی"}.issubset({item["title"] for item in tehran})
+
+
 def test_unified_multi_vertical_deduplicates_offers_and_explains_ranking(client):
     first = offer(amount=2_100_000); second = offer(amount=1_900_000)
     offer(title="پرواز تهران شیراز", service_type="flight", amount=3_000_000, entity_id="flight-thr-syz")
