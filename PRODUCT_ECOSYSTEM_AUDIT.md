@@ -1,5 +1,18 @@
 # KarenSeir Product Ecosystem Audit
 
+## Search UX gate — 2026-08-21
+
+| Capability | Evidence | Gate |
+|---|---|---|
+| Homepage Search interaction | autocomplete, origin/destination, dates/flexibility, passengers/rooms/cabin and trip type | PASS |
+| Structured navigation | recoverable URL parameters → authenticated `/search/results` | PASS |
+| Results decision UI | vertical cards, final price, provider, freshness, availability, refundability, filter/sort/edit | PASS |
+| Compare and saved search | 2–4 Offer selection dock and persisted tenant-scoped saved query | PASS |
+| Operational states | skeleton, zero result recovery, provider error/retry, stale, unauthorized and mobile | PASS |
+| Visual evidence | six reviewed screenshots; Chromium full regression `16/16` | PASS |
+| Homepage identity | Hero/Header/sections/images/palette/type/spacing retained; no page redesign | PASS |
+| Real price hints | intentionally absent until contracted dated-fare Provider data exists | BLOCKED-EXTERNAL |
+
 ## Unified Search v2 gate — 2026-08-21
 
 | Capability | Evidence | Gate |

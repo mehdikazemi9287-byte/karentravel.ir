@@ -1,5 +1,13 @@
 # وضعیت اجرایی پایلوت
 
+## Professional Search UX — ۱۴۰۵/۰۵/۳۰
+
+- Search Box تأییدشده بدون تغییر Hero/Header/ترتیب Homepage به interaction واقعی متصل شد: autocomplete امن شهر/فرودگاه/IATA و typo، تاریخ رفت/برگشت و ±۱/±۳، مسافر/اتاق/کلاس، رفت‌وبرگشت/یک‌طرفه/چندمسیره و structured URL قابل بازیابی.
+- `/search/results` اکنون UI مستقل Desktop/Mobile با Edit Search، فیلتر، sort، کارت عمودی Flight/Hotel، final price/provider/freshness/availability/refundability، compare dock، saved search، skeleton/empty/error/unauthorized/retry دارد.
+- endpoint عمومی autocomplete فقط کاتالوگ جغرافیایی غیرtenant را برمی‌گرداند؛ Offer و SearchEntity سازمانی بدون session افشا نمی‌شوند.
+- QA: focused Search `6/6`، full local backend `83 passed, 5 infrastructure-skipped`، E2E `16/16`، lint/typecheck/build، npm audit صفر، compile و diff check PASS. شش screenshot واقعی در `artifacts/search-ux/` ذخیره شد.
+- migration همچنان `20260820_13` است. Production به credentialهای Provider و سایر blockerهای ثبت‌شده همچنان **NO-GO** است.
+
 ## Unified Travel Search v2 — ۱۴۰۵/۰۵/۳۰
 
 - Search موجود بدون بازنویسی به decision engine چندعمودی توسعه یافت: normalization فارسی/عربی/عدد/نشانه، alias امن و typo tolerance، autocomplete type-aware، Offer normalization، deduplication entity→offers، freshness/availability مستقل، final-price components، ranking توضیح‌پذیر، flexible-date intent، zero-result recovery، recent/saved search و budget candidates فقط با inventory تازه.

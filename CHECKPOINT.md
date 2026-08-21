@@ -1,5 +1,16 @@
 # KarenSeir Checkpoint
 
+## SEARCH UX RESUME FROM HERE
+
+- Timestamp: `2026-08-21T12:49:21Z`; branch `main`; source implementation commit `8e7bfe04b630392f5d231d9ac844bb0663a1ab07`.
+- Search UX: **PASS**. Homepage layout/hero/header/sections/identity remain unchanged; only the existing Search Box interaction and its dedicated results route were enhanced.
+- Visible flows PASS: typed public-safe autocomplete with city/airport/IATA/typo recovery; round-trip/one-way/multi-city entry; exact/±1/±3 date selection; adult/child/infant/room/cabin picker; URL-restorable structured submit; edit/filter/sort/compare/save on results; loading/zero/error/unauthorized/stale/mobile states.
+- Security: public autocomplete contains no tenant Offer/entity data; results remain authenticated and tenant-aware. Price, availability and refundability come only from backend Offer data.
+- Evidence: six screenshots under `artifacts/search-ux/`; Chromium `16/16`; focused Search backend `6/6`; full local backend `83 passed, 5 infrastructure-skipped`; prior real PostgreSQL/Redis evidence remains `87/87`, now plus the isolated public-autocomplete test.
+- Frontend: ESLint, strict TypeScript and 32-route production build PASS; npm audit `0 vulnerabilities`; Python compile and `git diff --check` PASS.
+- Migration head unchanged: `20260820_13`.
+- NEXT EXACT ACTION: obtain an authorized sandbox travel-provider credential and run Search provider fan-out/P50/P95 certification; then add a real price calendar only when the Provider exposes dated fares.
+
 ## SEARCH ENGINE RESUME FROM HERE
 
 - Timestamp: `2026-08-21T12:02:00Z`; branch `main`; implementation commit `83a49b8` (final evidence commit follows).

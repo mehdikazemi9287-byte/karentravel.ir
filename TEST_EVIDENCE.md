@@ -1,5 +1,19 @@
 # Test Evidence
 
+## Professional Search UX — 2026-08-21
+
+| Check | Result |
+|---|---|
+| Search interaction E2E | autocomplete, origin/destination, dates, passengers, trip type, submit, results, filter, sort, compare and edit PASS |
+| Chromium full regression | `16/16 passed`; `.last-run.json` status `passed`, zero failed IDs |
+| Backend Search focused | `6/6 passed`, including public autocomplete typo and tenant-data exclusion |
+| Backend local regression | `83 passed, 5 skipped`; skips are the existing PostgreSQL/Redis runtime gates; prior real integration evidence remains valid |
+| Frontend | ESLint PASS; strict TypeScript PASS; production build PASS (32 routes) |
+| Security | unauthenticated autocomplete is public geo-only; authenticated tenant Offer results; no frontend-authoritative price/availability |
+| Screenshots | six PNG files in `artifacts/search-ux/`: Homepage Search Desktop, autocomplete, date picker, passenger picker, results Desktop and results Mobile |
+| Homepage identity | Header, Hero, imagery, section order, typography, palette and footer unchanged; Search Box footprint/style retained |
+| npm audit / Python compile / diff check | `0 vulnerabilities` / PASS / PASS |
+
 ## Unified Search + Checkout increment — 2026-08-21
 
 | Check | Result |
