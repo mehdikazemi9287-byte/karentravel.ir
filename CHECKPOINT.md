@@ -11,8 +11,8 @@
 - Remaining internal: direct PostgreSQL RLS/backup/restore evidence; villa seasonal/weekend/min-stay/cancellation settlement; supplier operational mutation UI; full Trip Operations event projection for linked tour/visa. External: ZarinPal merchant, contracted travel/cruise providers, SMS/OTP, Secret Manager, monitoring, DNS/TLS and target deployment/security certification.
 - NEXT EXACT ACTION: provision isolated PostgreSQL 16, back up before `20260821_15`, run RLS/FORCE/missing-context/own/cross-tenant/concurrency checks, then implement villa pricing/settlement and supplier mutations.
 
-- Timestamp: `2026-08-21T14:24:38Z`; branch `main`; implementation HEAD `a57198c0d08b7b00eaaef9cf94afe54f9420ace8`; the final provenance-only commit is the next commit in `main`.
-- Migration head: `20260821_14`. Empty isolated SQLite upgrade/current/check/no-drift PASS. Direct PostgreSQL validation for the twelve new tenant tables is **not claimed** because this host has neither Docker nor a PostgreSQL runtime.
+- Timestamp: `2026-08-21T15:14:00Z`; branch `main`; HEAD `214b2bd2ea1cd6357c61eba93a611689735f7757`.
+- Migration head: `20260821_15`. Isolated SQLite upgrade/current/check, downgrade to `20260821_14`, and re-upgrade PASS. Direct PostgreSQL validation for the new tenant tables is **not claimed** because this host has neither Docker nor a PostgreSQL runtime.
 - Search state: Browser-visible Search Box/results flow remains PASS and mock-free; autocomplete/date/passengers/trip type/filter/sort/compare/save/recheck work. Homepage identity remains unchanged.
 - Villa state: property/unit catalog، date-range reservation، overlap/double-booking protection، idempotency، tenant ownership، Reservation/Checkout handoff and list/detail UI PASS.
 - Tour state: product/departure inventory، capacity/deadline، room surcharge، oversell prevention، Reservation/Checkout handoff and list/detail/booking UI PASS. Unpaid voucher remains null by design.
