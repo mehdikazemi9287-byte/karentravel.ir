@@ -1,20 +1,28 @@
 {
-  "release_version": "2026.08.20-saved-travel-rc2",
-  "build_timestamp_utc": "2026-08-20T09:34:20Z",
+  "release_version": "2026.08.21-unified-search-v2-rc1",
+  "build_timestamp_utc": "2026-08-21T12:03:44Z",
   "source_checksum_algorithm": "sha256-of-git-ls-tree",
-  "source_checksum": "038e1c4de077955a1f8cb106d2d7fdb3a9c4d963a5b73d92f2b67017f1713d10",
+  "source_checksum": "cd1fe0e2454eaad6e98daa5f50ccc3ee211f789f546f931118b8cf8380c75f9b",
   "pre_change_snapshot_sha256": "9ccd8d191864d1a8e62f630f238d285b5695b55843760128b9cc31513d6c0ba2",
-  "migration_head": "20260820_11",
-  "verified_backup_sha256": "c7caa91a0cffad3d4bfbdabf4625b2824d5e96e4498faeaf5fd62de297f8885a",
+  "migration_head": "20260820_13",
+  "verified_backup_sha256": "9339362ef26582d7142fea14c0f72337fd43d6c12161d8951ca0b741ea7c4211",
   "dependency_locks": {
     "package-lock.json": "880ad6fb0f3422cc07b9a326626161893570c99668b56fa7fb1c0441b63bac5f",
     "backend/requirements.txt": "0ebefe03b88009b97b6995180e133febd05944e6dfc921b40827862f5d5a2eeb"
   },
-  "git_commit": "29e114471262e1f9f407690f459a918f197f3f82",
+  "git_commit": "83a49b842df1a04b8fcedab1e9ffb61cb208f684",
   "web_image_digest": null,
   "api_image_digest": null,
   "provenance_complete": false,
   "release_notes": [
+    "Unified Search v2 with Persian normalization, typed autocomplete and deterministic natural-language structuring",
+    "Fourteen vertical shared result contract with price components, freshness and availability states",
+    "Entity-level deduplication with multiple provider offers and explainable ranking",
+    "Tenant-scoped saved search, recent search, zero-result recovery and live-inventory budget candidates",
+    "Real PostgreSQL migration 13 validation with RLS and FORCE RLS on all 67 tenant tables",
+    "Resumable checkout, review report workflow and credential-independent ZarinPal adapter contract",
+    "Dedicated Search results route; approved Homepage source and visual regression unchanged",
+    "Backend 87/87 with PostgreSQL/Redis and zero skipped tests",
     "Tenant-scoped saved trips, wishlist and Trip Basket with idempotent audited mutations",
     "Verified reviews derive trust only from issued or completed owned reservations",
     "Supplier review responses are separate and cannot rewrite customer review text",
@@ -42,8 +50,9 @@
     "Backend 70/70 and Chromium E2E 12/12 with complete frontend regression"
   ],
   "incomplete_reasons": [
-    "No PostgreSQL or Docker runtime exists on this validation host, so migration 20260820_11 direct RLS verification remains pending",
-    "ZarinPal-specific transport and sandbox request/verify cannot be certified without a sandbox merchant credential",
+    "Live concurrent provider fan-out, provider cache hit telemetry and P50/P95 certification require authorized travel-provider adapters and credentials",
+    "ZarinPal sandbox purchase cannot be certified without a sandbox merchant credential",
+    "Price calendar, map tiles and delivered price/availability alerts require real provider transports",
     "No Docker-compatible runtime exists on this validation host, so immutable image digests were not produced",
     "Authorized target infrastructure, external credentials, public TLS, monitoring and independent certification are not available",
     "Production invoice tax and legal numbering policy has not been approved"

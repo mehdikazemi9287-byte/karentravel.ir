@@ -1,5 +1,21 @@
 # KarenSeir Product Ecosystem Audit
 
+## Unified Search v2 gate — 2026-08-21
+
+| Capability | Evidence | Gate |
+|---|---|---|
+| Normalization/entity/autocomplete | Persian/Arabic digits and glyphs, punctuation, safe aliases/IATA, typo ranking, typed payload | PASS |
+| Multi-vertical/result contract | 14 verticals on shared Offer source; base/tax/fee/discount/final, source timestamps | PASS |
+| Freshness/availability/recheck | LIVE/STALE and CONFIRMED/REQUIRES_RECHECK separate; stale hidden by default; price delta fails closed | PASS |
+| Dedup/ranking/comparison | deterministic entity key, multiple provider offers, auditable breakdown/explanation; existing comparison uses Offer IDs | PASS |
+| Flexible/filter/nearby/map | flexibility intent and filters/map bounds PASS; real price calendar/map tiles/provider alternatives require external feeds | PARTIAL-EXTERNAL |
+| History/saved/budget/NL | tenant/user-scoped recent and saved queries; no alerts sent; deterministic intent only; budget outputs require live inventory | PASS-INTERNAL |
+| Aggregation/cache/observability | provider diagnostics, bounded resilience adapter and Search business counters exist | PARTIAL: real multi-provider concurrent P50/P95 and distributed cache-hit evidence require adapters/credentials |
+| Security | PostgreSQL 67/67 RLS/FORCE, missing/own/cross tenant, IDOR, price tamper, worker role | PASS |
+| Homepage freeze | source diff zero; desktop/mobile Chromium structural screenshots | PASS |
+
+Search completion is `88%`. Missing work is not masked: real provider fan-out, provider-result cache telemetry, price-calendar feed and delivered alerts remain credential/adapter dependent.
+
 Timestamp: 2026-08-20
 
 This audit verifies the current repository at HEAD `2054b84a29a14d18d28786c1220e2c0612496f18`. It does not replace prior security/database evidence.

@@ -1,5 +1,11 @@
 # Implementation Roadmap
 
+## Unified Search next gate — 2026-08-21
+
+Credential-independent Search v2 is complete through normalization, entity/autocomplete, shared multi-vertical contracts, freshness/availability/price states, deduplication, explainable ranking, filters/flexible intent, saved history, natural-language structuring, budget candidates and zero-result recovery. Migration head is `20260820_13`; PostgreSQL `67/67` RLS/FORCE and backend `87/87` are green.
+
+Next exact gate: provide one authorized sandbox travel-provider credential, then certify bounded concurrent fan-out, timeout/partial-failure isolation, provider/vertical TTL cache keys, hit rate and Search/provider P50/P95 without changing Homepage. Price calendar and alerts remain inactive until real feeds/transports exist.
+
 ## Next exact release gate
 
 اقدام دقیق بعدی: فراهم‌کردن PostgreSQL ایزوله روی میزبان validation، backup گرفتن از همان staging، اجرای migration `20260820_11` و اثبات fail-closed/cross-tenant/FORCE RLS برای هر ۷ جدول تازه؛ سپس اجرای backend بدون skip. بعد از آن، ZarinPal adapter request/verify با credential sandbox معتبر و unified checkout تکمیل می‌شود. تا پیش از این gate هیچ موفقیت پرداخت یا RLS واقعی جدید ادعا نمی‌شود.

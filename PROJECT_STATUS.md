@@ -1,5 +1,14 @@
 # وضعیت اجرایی پایلوت
 
+## Unified Travel Search v2 — ۱۴۰۵/۰۵/۳۰
+
+- Search موجود بدون بازنویسی به decision engine چندعمودی توسعه یافت: normalization فارسی/عربی/عدد/نشانه، alias امن و typo tolerance، autocomplete type-aware، Offer normalization، deduplication entity→offers، freshness/availability مستقل، final-price components، ranking توضیح‌پذیر، flexible-date intent، zero-result recovery، recent/saved search و budget candidates فقط با inventory تازه.
+- route مستقل `/search/results` به API tenant-aware وصل شد؛ loading/error/unauthorized/empty/success دارد. Homepage، CSS و assetهای آن هیچ diff ندارند و regression 1440×1000 و 390×844 PASS است.
+- migrationهای افزایشی 12 و 13 دامنه checkout/review-report/payment reference و search entity/saved search را اضافه کردند. نصب تازه PostgreSQL یک regression migration 12 را آشکار کرد و schema-aware/idempotent اصلاح شد؛ head 13 و no drift واقعی PASS است.
+- PostgreSQL/Redis نهایی: backend `87/87` با صفر skip، RLS/FORCE `67/67`، API NOBYPASSRLS و worker least privilege PASS. starvation retry در Outbox تحت backlog نیز اصلاح و تست شد.
+- ZarinPal request/verify/callback داخلی و resumable checkout پیاده و contract-tested است؛ sandbox purchase بدون merchant credential صریحاً BLOCKED است و success جعلی وجود ندارد.
+- Search completion `88%` و ecosystem completion `92%`. Production به blockerهای بیرونی همچنان **NO-GO** است.
+
 ## Ecosystem saved travel increment — ۱۴۰۵/۰۵/۲۹
 
 - migration افزایشی `20260820_11` دامنه‌های tenant-aware سفر ذخیره‌شده/علاقه‌مندی/سبد سفر، Review و پاسخ مستقل تأمین‌کننده، کاتالوگ مقصد و itinerary قابل‌ویرایش را اضافه می‌کند. هفت جدول تازه policy استاندارد RLS و FORCE RLS دارند؛ destructive change وجود ندارد.

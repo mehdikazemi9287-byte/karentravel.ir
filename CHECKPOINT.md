@@ -1,5 +1,27 @@
 # KarenSeir Checkpoint
 
+## SEARCH ENGINE RESUME FROM HERE
+
+- Timestamp: `2026-08-21T12:02:00Z`; branch `main`; implementation commit `83a49b8` (final evidence commit follows).
+- Search version: `unified-search-v2`; migration head: `20260820_13`.
+- Completion: Search `88%`; expanded ecosystem `92%`; Production remains **NO-GO**.
+- Completed: Persian/Arabic digit/character/punctuation normalization; safe Tehran/Shiraz/IATA aliases and typo matching; typed autocomplete ranking; fourteen-vertical shared Offer contract; normalized price/freshness/availability output; deterministic entity deduplication; explainable ranking; flexible-date intent; filters/map bounds; zero-result recovery; tenant-scoped recent/saved searches; deterministic natural-language structuring; live-inventory-only budget candidates; price tamper recheck; dedicated `/search/results`; session resume; Search metrics; review/checkout/ZarinPal credential-independent foundations; public SEO routes.
+- PostgreSQL: empty disposable PostgreSQL 16 upgraded through head 13 after backup checksum `9339362ef26582d7142fea14c0f72337fd43d6c12161d8951ca0b741ea7c4211`; Alembic current/check PASS; `67/67` tenant tables RLS+FORCE RLS. API NOBYPASSRLS, missing context, own/cross-tenant and worker least privilege PASS.
+- Tests PASS: backend `87/87`, focused Search/Checkout/ZarinPal `14/14`, Chromium E2E `15/15`, lint, strict TypeScript, 32-route build, Python compile, npm audit 0, and Homepage Desktop/Mobile visual regression.
+- External blockers: contracted Flight/Hotel/Tour/rail/destination providers, ZarinPal sandbox merchant, SMS/OTP, map provider, public DNS/TLS, Secret Manager, monitoring collector/alerting, target deployment and independent certification.
+- Remaining internal: bounded concurrent live-provider fan-out/load benchmark with real adapters; distributed provider-result cache hit telemetry; real price-calendar feed; price/availability alert scheduler after notification transport; broader city/station/POI catalog ingestion. No fabricated offers or alerts exist.
+- NEXT EXACT ACTION: obtain an authorized sandbox travel-provider credential and execute provider timeout/partial-failure/P50/P95 contract certification against `/search/v2`.
+
+### RESUME FROM HERE
+
+- Last work: Unified Search v2, real PostgreSQL migration/RLS validation, Review/Checkout/ZarinPal internal adapter and independent results route.
+- Last Git HEAD: `83a49b8` before final evidence commit.
+- Last migration: `20260820_13`.
+- PASS: backend 87/87, PostgreSQL/RLS 67/67, frontend lint/type/build, Search focused 14/14, Chromium E2E 15/15, Homepage regression, npm audit.
+- BLOCKED: external live provider latency/caching benchmarks and ZarinPal sandbox purchase require credentials; Production dependencies remain absent.
+- Completion: Search 88%, ecosystem 92%.
+- First next action: provide an authorized sandbox travel-provider credential; then run the provider contract certification suite against `/search/v2`.
+
 ## Saved-travel ecosystem checkpoint
 
 - Timestamp: `2026-08-20T09:34:20Z`

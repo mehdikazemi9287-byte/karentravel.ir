@@ -1,5 +1,21 @@
 # Test Evidence
 
+## Unified Search + Checkout increment — 2026-08-21
+
+| Check | Result |
+|---|---|
+| Real PostgreSQL 16 + Redis full backend | `87/87 passed`, `0 skipped` on clean disposable DB |
+| Search/Checkout/Review/ZarinPal focused | `14/14 passed`; ZarinPal uses contract fake transport only, not sandbox certification |
+| Migration | upgrade empty DB → `20260820_13`; Alembic current/check and no drift PASS |
+| Pre-migration backup | custom dump SHA-256 `9339362ef26582d7142fea14c0f72337fd43d6c12161d8951ca0b741ea7c4211` |
+| PostgreSQL tenant protection | `67/67` RLS + FORCE; missing context, own tenant, cross-tenant read/write PASS |
+| Roles | API NOBYPASSRLS and worker SELECT/UPDATE-only outbox contract PASS |
+| Frontend | ESLint PASS; strict TypeScript PASS; production build PASS (32 routes) |
+| Chromium E2E | `15/15 passed` after fixing the reload-session regression; includes Search/session, saved travel, and Homepage Desktop/Mobile visual regression |
+| Homepage freeze | `app/page.tsx`, `app/globals.css`, `public/images` source diff zero; Desktop/Mobile screenshot gate PASS |
+| Python compile / npm audit / diff check | PASS / `0 vulnerabilities` / PASS |
+| External providers | no real provider, map, SMS or ZarinPal sandbox success claimed |
+
 ## Saved Travel ecosystem increment — 2026-08-20T09:34:20Z
 
 | Check | Result |
