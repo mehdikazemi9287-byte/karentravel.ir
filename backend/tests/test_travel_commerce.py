@@ -33,7 +33,7 @@ def test_vacation_inventory_is_idempotent_tenant_owned_and_overlap_safe(client):
 
 
 def test_tour_departure_prevents_oversell_and_never_issues_unpaid_voucher(client):
-    supplier_user = login(client, 'supplier@aftab.test'); customer = login(client, 'employee@aftab.test'); foreign = login(client, 'employee@faraz.test')
+    supplier_user = login(client, 'supplier@aftab.test'); customer = login(client, 'employee@aftab.test'); backoffice = login(client, 'backoffice@aftab.test'); foreign = login(client, 'employee@faraz.test')
     supplier_id = supplier(client, supplier_user, 'tour')
     tour = client.post('/supplier/tours', headers=supplier_user, json={'supplier_id': supplier_id, 'title': 'تور فرهنگی شیراز', 'slug': f'shiraz-{uuid.uuid4().hex}', 'origin': 'تهران', 'destination': 'شیراز', 'tour_type': 'cultural', 'details': {'visa_status': 'not_required', 'itinerary': [{'day': 1, 'title': 'حافظیه'}]}})
     departure = client.post(f"/supplier/tours/{tour.json()['id']}/departures", headers=supplier_user, json={'starts_at': '2030-06-10T06:00:00Z', 'ends_at': '2030-06-13T18:00:00Z', 'booking_deadline': '2030-06-08T18:00:00Z', 'capacity': 2, 'base_price': 15000000, 'pricing': {'single_surcharge': 3000000}})
@@ -43,6 +43,11 @@ def test_tour_departure_prevents_oversell_and_never_issues_unpaid_voucher(client
     assert booked.status_code == 201 and booked.json()['voucher'] is None and replay.json()['id'] == booked.json()['id']
     checkout = client.post(f"/reservations/{booked.json()['reservation_id']}/checkout-sessions", headers=customer, json={'command_id': f'checkout-{uuid.uuid4().hex}'})
     assert checkout.status_code == 201 and checkout.json()['reservation']['service_type'] == 'tour'
+    visa_product = client.post('/backoffice/visa-products', headers=backoffice, json={'destination_country': 'ترکیه', 'visa_type': 'tourist', 'title': 'بررسی ویزای ترکیه', 'source_url': 'https://example.gov/visa', 'source_verified_at': datetime.now(timezone.utc).isoformat(), 'details': {'visa_status': 'requires_human_review'}})
+    visa = client.post(f"/visa-products/{visa_product.json()['id']}/applications", headers=customer, json={'purpose': 'tourism', 'travel_at': '2030-06-10T06:00:00Z', 'tour_reservation_id': booked.json()['id'], 'command_id': f'visa-tour-{uuid.uuid4().hex}'})
+    assert visa.status_code == 201 and visa.json()['tour_reservation_id'] == booked.json()['id']
+    visa_detail = client.get(f"/visa-applications/{visa.json()['id']}", headers=customer)
+    assert visa_detail.status_code == 200 and visa_detail.json()['tour_reservation_id'] == booked.json()['id'] and any(event['event_type'] == 'tour_linked' for event in visa_detail.json()['timeline'])
     assert client.post(f"/tour-departures/{departure.json()['id']}/reservations", headers=customer, json={'travellers': 1, 'room_type': 'double', 'command_id': f'oversell-{uuid.uuid4().hex}'}).status_code == 409
     assert client.get(f"/tour-products/{tour.json()['id']}", headers=foreign).status_code == 404
 

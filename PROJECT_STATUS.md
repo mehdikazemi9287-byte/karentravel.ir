@@ -1,5 +1,11 @@
 # وضعیت اجرایی پایلوت
 
+## Travel Commerce closure update — ۱۴۰۵/۰۵/۳۰
+
+- Search component visibly upgraded without changing Homepage identity: eight verticals (پرواز، هتل، ویلا، تور، قطار، خودرو، کروز، ویزا), context-aware fields, status guidance and responsive tabs. Browser screenshots are saved under `artifacts/search-ux/`.
+- Migration `20260821_15` adds a tenant-safe FK from Visa Application to Tour Reservation. Tour detail/reservation expose visa status and linked visa cases emit a `tour_linked` timeline event; no visa issuance guarantee is made.
+- Validation: backend `87 passed, 5 skipped`; travel commerce `3/3`; Chromium `17/17`; Alembic SQLite upgrade/check/downgrade/re-upgrade PASS; lint/typecheck/build PASS. PostgreSQL runtime validation remains explicitly blocked by host environment.
+
 ## Professional Search UX — ۱۴۰۵/۰۵/۳۰
 
 - Search Box تأییدشده بدون تغییر Hero/Header/ترتیب Homepage به interaction واقعی متصل شد: autocomplete امن شهر/فرودگاه/IATA و typo، تاریخ رفت/برگشت و ±۱/±۳، مسافر/اتاق/کلاس، رفت‌وبرگشت/یک‌طرفه/چندمسیره و structured URL قابل بازیابی.

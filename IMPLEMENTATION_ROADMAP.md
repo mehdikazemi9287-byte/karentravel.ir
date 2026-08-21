@@ -53,3 +53,8 @@ Booking orchestration، customer account، panel mutationها، invoice، suppor
 - [ ] Run migration 14 against disposable PostgreSQL, verify all new tables RLS+FORCE/missing-context/own/cross-tenant/API NOBYPASSRLS, backup/restore and rollback/re-upgrade.
 - [ ] Add seasonal per-night rental calendar, cancellation settlement, supplier rental/tour management forms and deeper Tour↔Visa↔Trip Timeline linkage.
 - [ ] Certify ZarinPal sandbox, Cruise and travel Provider fulfillment only after authorized credentials/contracts.
+# Closure increment — 2026-08-21
+
+- Completed: visible Search vertical redesign within frozen Homepage identity; Tour↔Visa tenant-safe linkage and linked timeline event; migration `20260821_15`; Browser evidence and regression suite.
+- Next internal gate: disposable PostgreSQL RLS/FORCE validation for head 15, then seasonal villa pricing/cancellation settlement and supplier operational mutation UI.
+- External gate: ZarinPal sandbox merchant and contracted provider credentials remain fail-closed blockers.

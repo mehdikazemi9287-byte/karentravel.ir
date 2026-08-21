@@ -2,6 +2,15 @@
 
 ## KARENSEIR TRAVEL COMMERCE RESUME FROM HERE
 
+### 2026-08-21 closure update
+
+- Search UI visibly upgraded inside the existing Hero Search component: eight vertical tabs, context-aware labels/descriptions, responsive tab layout, and fresh Browser evidence for default/autocomplete/date/passenger/villa/tour/results desktop/mobile. Homepage identity remains unchanged.
+- Incremental migration `20260821_15` links tenant-owned `VisaApplication.tour_reservation_id` to `TourReservation`; isolated SQLite upgrade/check/downgrade/re-upgrade to head PASS. Direct PostgreSQL Head 14/15 validation remains blocked because no PostgreSQL runtime is available on this host.
+- Tour detail/reservation now expose explicit visa status and visa applications can be linked to the caller-owned tour reservation; a `tour_linked` timeline event is recorded. Cross-tenant/foreign ownership is denied.
+- Tests: backend `87 passed, 5 skipped`; travel-commerce `3/3`; full Chromium `17/17`; Search interaction focused PASS; lint/typecheck/build and migration check PASS.
+- Remaining internal: direct PostgreSQL RLS/backup/restore evidence; villa seasonal/weekend/min-stay/cancellation settlement; supplier operational mutation UI; full Trip Operations event projection for linked tour/visa. External: ZarinPal merchant, contracted travel/cruise providers, SMS/OTP, Secret Manager, monitoring, DNS/TLS and target deployment/security certification.
+- NEXT EXACT ACTION: provision isolated PostgreSQL 16, back up before `20260821_15`, run RLS/FORCE/missing-context/own/cross-tenant/concurrency checks, then implement villa pricing/settlement and supplier mutations.
+
 - Timestamp: `2026-08-21T14:24:38Z`; branch `main`; implementation HEAD `a57198c0d08b7b00eaaef9cf94afe54f9420ace8`; the final provenance-only commit is the next commit in `main`.
 - Migration head: `20260821_14`. Empty isolated SQLite upgrade/current/check/no-drift PASS. Direct PostgreSQL validation for the twelve new tenant tables is **not claimed** because this host has neither Docker nor a PostgreSQL runtime.
 - Search state: Browser-visible Search Box/results flow remains PASS and mock-free; autocomplete/date/passengers/trip type/filter/sort/compare/save/recheck work. Homepage identity remains unchanged.

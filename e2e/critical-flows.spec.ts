@@ -70,6 +70,13 @@ test('professional Homepage search interactions reach usable results', async ({ 
   await page.goto('/');
   await expect(page.getByRole('region', { name: 'جست‌وجوی یکپارچه سفر' })).not.toContainText(/Mock|نتایج Mock|نمایش آزمایشی/);
   await page.screenshot({ path: 'artifacts/search-ux/homepage-search-desktop.png', fullPage: true, animations: 'disabled' });
+  await page.getByRole('tab', { name: 'ویلا' }).click();
+  await expect(page.getByRole('tabpanel', { name: 'فرم جست‌وجوی ویلا' })).toBeVisible();
+  await page.screenshot({ path: 'artifacts/search-ux/villa-search-state.png', animations: 'disabled' });
+  await page.getByRole('tab', { name: 'تور' }).click();
+  await expect(page.getByRole('tabpanel', { name: 'فرم جست‌وجوی تور' })).toBeVisible();
+  await page.screenshot({ path: 'artifacts/search-ux/tour-search-state.png', animations: 'disabled' });
+  await page.getByRole('tab', { name: 'پرواز' }).click();
 
   const origin = page.getByRole('combobox', { name: 'مبدأ' });
   await origin.fill('تهرون');

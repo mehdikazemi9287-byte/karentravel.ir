@@ -117,3 +117,8 @@ The prior backend completion is no longer used as a proxy for user-visible compl
 - Visa: **PASS case foundation** — source-timestamped product، applicant/documents، human review separation و timeline. Embassy/VAC submission و decision external-authority blockers هستند.
 - Benchmark logic used: date/guest eligibility and blocked calendars (Airbnb)، disclosed tour departure/services/visa state (Iranian public tour patterns)، sailing/cabin/fee separation (Royal Caribbean/NCL)، and document/biometric/human authority workflow (France-Visas/German Consular Portal/Canada). No visual design was copied.
 - Homepage identity remains frozen; all new presentation lives on dedicated routes.
+# Closure audit update — 2026-08-21
+
+- Search UX is now visibly differentiated and browser-usable: eight verticals, context-aware labels, responsive tab layout and evidence captures. Homepage identity regression remains zero.
+- Tour/Visa integration is no longer UI-only: Visa Application may reference a tenant-owned Tour Reservation and emits a linked timeline event; foreign ownership is rejected.
+- PostgreSQL-specific Head 15 RLS evidence remains BLOCKED_EXTERNAL_ENVIRONMENT, while SQLite migration drift/rollback evidence is PASS.

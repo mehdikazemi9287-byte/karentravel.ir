@@ -464,6 +464,7 @@ class VisaApplication(OperationalMixin, Base):
     product_id: Mapped[str] = mapped_column(ForeignKey("visa_products.id"), index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     trip_id: Mapped[Optional[str]] = mapped_column(ForeignKey("trips.id"), nullable=True, index=True)
+    tour_reservation_id: Mapped[Optional[str]] = mapped_column(ForeignKey("tour_reservations.id"), nullable=True, index=True)
     purpose: Mapped[str] = mapped_column(String(80))
     travel_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     status: Mapped[str] = mapped_column(String(32), default="started", index=True)

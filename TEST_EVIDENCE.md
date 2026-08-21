@@ -109,3 +109,9 @@ All database work used disposable databases on localhost ports 55434/56379. Prod
 | Travel Commerce screenshots | ۹ PNG: Villa results/detail، Tour results/detail/booking، Visa detail/application/timeline، Cruise fail-closed state |
 | Homepage source protection | `app/page.tsx`، Hero/Header/assets و section order بدون diff؛ structural Desktop/Mobile regression PASS |
 | Security | cross-tenant negative، RBAC review، hashed passport reference، no unpaid voucher، no fake Cruise/Payment success PASS |
+# Latest travel-commerce closure evidence — 2026-08-21
+
+- Backend: `87 passed, 5 skipped` (the five are pre-existing infrastructure gates; no new skip).
+- Travel commerce regression: `3/3 PASS`, including Tour→Visa ownership link and `tour_linked` timeline event, villa overlap/idempotency and truthful cruise blocking.
+- Browser: full Chromium `17/17 PASS`; focused Search interaction PASS. Fresh artifacts include `villa-search-state.png` and `tour-search-state.png`, plus refreshed desktop/mobile and popover captures.
+- Migration: isolated SQLite `20260821_15` upgrade/current/check, downgrade to `20260821_14`, and re-upgrade PASS. PostgreSQL Head 14/15 direct validation is not claimed without a runtime.
