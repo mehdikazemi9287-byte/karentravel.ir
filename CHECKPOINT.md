@@ -2,7 +2,7 @@
 
 ## KARENSEIR TRAVEL COMMERCE RESUME FROM HERE
 
-- Timestamp: `2026-08-21T14:24:38Z`; branch `main`; baseline HEAD `ecbfae349a5a9cd4384ede22b42b09cb71aa9ef1`; final commit is recorded after save.
+- Timestamp: `2026-08-21T14:24:38Z`; branch `main`; implementation HEAD `a57198c0d08b7b00eaaef9cf94afe54f9420ace8`; the final provenance-only commit is the next commit in `main`.
 - Migration head: `20260821_14`. Empty isolated SQLite upgrade/current/check/no-drift PASS. Direct PostgreSQL validation for the twelve new tenant tables is **not claimed** because this host has neither Docker nor a PostgreSQL runtime.
 - Search state: Browser-visible Search Box/results flow remains PASS and mock-free; autocomplete/date/passengers/trip type/filter/sort/compare/save/recheck work. Homepage identity remains unchanged.
 - Villa state: property/unit catalog، date-range reservation، overlap/double-booking protection، idempotency، tenant ownership، Reservation/Checkout handoff and list/detail UI PASS.
