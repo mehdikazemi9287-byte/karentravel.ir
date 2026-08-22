@@ -1,5 +1,28 @@
 # Test Evidence
 
+
+## Production gates + release candidate — 2026-08-23
+
+| Check | Result |
+|---|---|
+| Migration on real production-clone (pg_dump restore, prod untouched) | upgrade empty→`20260822_17` PASS on fresh disposable AND on a clone restored from an actual `pg_dump` of live production; data preserved exactly; rollback→re-upgrade clean; zero drift both times |
+| Production backup | checksum `98decea27ac242de9e5a83b0176fc71429fa8f0569ca125271ee03172904c400`, saved at `/home/ubuntu/release-candidate-evidence/` |
+| RLS/FORCE (12 new tenant tables) | `85/85` via `backend/scripts/validate_postgres_rls.py`, run on both the fresh disposable DB and the production-clone |
+| RLS/FORCE (generic, all tables incl. original production tables) | `4/4` (`test_production_controls.py -k postgresql`) |
+| Identity-lookup security (new) | `1/1` new test `test_identity_lookup_function_is_narrow_and_does_not_weaken_rls`: valid lookup resolves correct tenant, unknown email fails closed, general RLS unweakened after the call |
+| Focused travel-commerce (incl. new villa pricing test) | `4/4 PASS` on real PostgreSQL |
+| Local backend (SQLite) | `88 passed, 6 skipped`; skips are pre-existing + one new Postgres-only gate for the identity test, same pattern as before |
+| Frontend | ESLint PASS; strict TypeScript PASS; Next.js build PASS (36 routes) |
+| Full E2E — fresh dev-server DB | `17/17 PASS` |
+| Full E2E — RC clone (built API+frontend images, real Postgres) | `15/17`; the 2 failures traced precisely to the RC clone's own repeated-run reuse (E2E fixture's hardcoded `suffix='manage'` default colliding with a stale price-check from an earlier run in this session) — not a code defect; both areas pass cleanly on a fresh DB |
+| Same-origin `/api` routing | `curl` verified end-to-end through an isolated nginx instance: `/` → frontend, `/api/health` and `/api/search/v2` → API; client bundle contains no `localhost:8000`, contains `/api` |
+| CORS exact-origin enforcement | `curl` OPTIONS preflight: configured origin gets `Access-Control-Allow-Origin` echoed back; unconfigured origin gets no header (browser blocks it) — confirmed not wildcard |
+| `git diff --check` | PASS |
+| Homepage identity | zero diff on `app/page.tsx`, no CSS selector reused/overridden — new CSS is additive-only, new classes not used elsewhere |
+
+Real-Postgres identity/RLS positive+negative matrix, migration-on-production-clone, and same-origin routing proof are new evidence categories this session, closing all three internally-controllable production gates. Production database and live containers were not modified. External blocker recorded: no domain/TLS on this host, required before `ENVIRONMENT=production` can start with real CORS.
+
+
 ## Professional Search UX — 2026-08-21
 
 | Check | Result |

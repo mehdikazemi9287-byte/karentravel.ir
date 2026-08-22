@@ -1,20 +1,29 @@
 {
-  "release_version": "2026.08.21-travel-commerce-rc1",
-  "build_timestamp_utc": "2026-08-21T14:24:38Z",
+  "release_version": "2026.08.23-production-gates-rc1",
+  "build_timestamp_utc": "2026-08-23T04:20:00Z",
   "source_checksum_algorithm": "sha256-of-git-ls-tree",
-  "source_checksum": "2124d6f3ba456b869ab8dc178d761b2076a21fef665ef2e0f61e01e9f2d649da",
+  "source_checksum": "9403a0b66eb3c89f64d181c4d4de042c643bfcece19099cdc124908d75a2d275",
   "pre_change_snapshot_sha256": "9ccd8d191864d1a8e62f630f238d285b5695b55843760128b9cc31513d6c0ba2",
-  "migration_head": "20260821_15",
+  "migration_head": "20260822_17",
   "verified_backup_sha256": "9339362ef26582d7142fea14c0f72337fd43d6c12161d8951ca0b741ea7c4211",
+  "production_backup_sha256": "98decea27ac242de9e5a83b0176fc71429fa8f0569ca125271ee03172904c400",
   "dependency_locks": {
     "package-lock.json": "880ad6fb0f3422cc07b9a326626161893570c99668b56fa7fb1c0441b63bac5f",
     "backend/requirements.txt": "0ebefe03b88009b97b6995180e133febd05944e6dfc921b40827862f5d5a2eeb"
   },
-  "git_commit": "214b2bd2ea1cd6357c61eba93a611689735f7757",
+  "git_commit": "3589b24e419749a640719a363544890983d97d71",
   "web_image_digest": null,
   "api_image_digest": null,
   "provenance_complete": true,
   "release_notes": [
+    "Same-origin /api nginx routing designed and verified end-to-end, closing the public API routing gate without CORS complexity",
+    "Exact-origin CORS allowlist verified (no wildcard); positive and negative preflight tested",
+    "Narrowly-scoped SECURITY DEFINER identity-lookup function replaces broad-RLS-bypass need for cross-tenant login lookup; NOLOGIN owner role, minimal column grant, EXECUTE limited to the API role, positive/negative/leak tests added",
+    "Migration 20260821_15 downgrade bug fixed (wrong FK constraint name) after real PostgreSQL rollback validation surfaced it",
+    "Full migration chain (head 20260822_17) verified against an actual restored clone of the live production database; data preserved, RLS/FORCE and rollback/re-upgrade clean; production database itself untouched",
+    "Villa seasonal/weekend/min-stay pricing and cancellation-quote wiring completed for vacation rentals",
+    "Search results page now surfaces recent search, saved search, and ranking explanation (existing tested backend contracts, newly consumed by the frontend)",
+    "Fixed frontend Dockerfile: NEXT_PUBLIC_API_URL is now a build-time ARG; every prior image (including the currently-live public one) had localhost:8000 baked into its client bundle",
     "Vacation Rental property/unit inventory with date-overlap protection and Checkout handoff",
     "Tour products and dated departures with capacity locking, transparent room pricing and oversell protection",
     "Cruise catalog and booking contract that fails closed without a contracted live provider",
@@ -69,6 +78,8 @@
     "Backend 70/70 and Chromium E2E 12/12 with complete frontend regression"
   ],
   "incomplete_reasons": [
+    "No domain name or TLS certificate exists on the authoritative host; ENVIRONMENT=production correctly refuses to start without an HTTPS CORS origin, blocking a true production-mode deploy of current source until a domain+cert is obtained",
+    "Production deployment is written and evidence-backed but not executed, pending explicit approval and the TLS/domain dependency above",
     "Migration 20260821_14 still requires direct disposable PostgreSQL RLS/FORCE, backup/restore and rollback certification because this host has no PostgreSQL or Docker runtime",
     "Seasonal rental price calendar, cancellation settlement, supplier management forms and deep Tour-Visa-Trip linkage remain internal refinement",
     "Cruise live booking and Tour/provider fulfillment require contracted provider credentials; unpaid vouchers are intentionally not issued",

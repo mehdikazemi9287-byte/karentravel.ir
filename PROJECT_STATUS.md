@@ -1,5 +1,18 @@
 # وضعیت اجرایی پایلوت
 
+
+## Production gates closure — 2026-08-23
+
+- سه Gate داخلی پیش از استقرار Production بسته شد: (۱) مسیر `/api` هم‌مبدأ پشت nginx به‌جای `localhost`، (۲) اجرای دقیق CORS با allowlist (بدون wildcard)، (۳) جستجوی هویت بین-tenant اکنون از طریق تابع `SECURITY DEFINER` با کمترین دسترسی انجام می‌شود، نه با یک نقش با bypass گسترده RLS.
+- مسدودکننده خارجی جدید و مشخص: این سرور هیچ دامنه/گواهی TLS ندارد؛ حالت `ENVIRONMENT=production` کد فعلی به‌درستی بدون CORS با HTTPS واقعی اجرا نمی‌شود. تصویر API فعلی روی سرور (ساخته‌شده در ۱۵ مرداد) این بررسی را ندارد و به همین دلیل الان کار می‌کند؛ هر استقرار واقعی از سورس فعلی نیاز به دامنه+گواهی دارد.
+- کل زنجیره Migration (سر `20260822_17`) روی یک کلون واقعی از دیتابیس Production (پشتیبان‌گیری فقط-خواندنی، بدون تغییر در Production) تأیید شد: داده‌ها بدون تغییر، RLS/FORCE و rollback/re-upgrade سالم.
+- قیمت‌گذاری فصلی/آخر هفته/حداقل اقامت ویلا کامل شد و از مسیر عمومی استرداد/کنسلی موجود استفاده می‌کند.
+- صفحه نتایج جستجو اکنون جستجوهای اخیر/ذخیره‌شده و دلیل رتبه‌بندی را نمایش می‌دهد (backend از قبل آماده بود، فقط frontend مصرف نمی‌کرد).
+- باگ واقعی کشف‌شده: `Dockerfile` فرانت‌اند هرگز `NEXT_PUBLIC_API_URL` را در زمان build نمی‌گرفت؛ همه ایمیج‌های قبلی از جمله ایمیج فعلی روی سایت عمومی، `localhost:8000` را داخل بسته کلاینت دارند و از مرورگر واقعی به هیچ API نمی‌رسند.
+- Production تغییر نکرد؛ استقرار متوقف مانده تا تأیید صریح و رفع مسدودکننده HTTPS.
+- جزئیات کامل: `CHECKPOINT.md` بخش «PRODUCTION GATES + RC RESUME FROM HERE».
+
+
 ## Travel Commerce closure update — ۱۴۰۵/۰۵/۳۰
 
 - Search component visibly upgraded without changing Homepage identity: eight verticals (پرواز، هتل، ویلا، تور، قطار، خودرو، کروز، ویزا), context-aware fields, status guidance and responsive tabs. Browser screenshots are saved under `artifacts/search-ux/`.
