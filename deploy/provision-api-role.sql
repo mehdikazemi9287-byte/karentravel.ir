@@ -18,3 +18,10 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO karenseir_api;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO karenseir_api;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO karenseir_api;
 REVOKE CREATE ON SCHEMA public FROM karenseir_api;
+
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'find_login_identity') THEN
+        GRANT EXECUTE ON FUNCTION public.find_login_identity(text) TO karenseir_api;
+    END IF;
+END $$;

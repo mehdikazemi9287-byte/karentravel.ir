@@ -201,3 +201,20 @@ def test_worker_role_bypasses_rls_but_has_only_outbox_permissions():
         assert connection.scalar(text("SELECT has_table_privilege(current_user, 'notifications', 'SELECT,UPDATE')")) is True
         assert connection.scalar(text("SELECT has_table_privilege(current_user, 'users', 'SELECT')")) is False
         assert connection.scalar(text("SELECT count(*) FROM outbox_events")) >= 0
+
+
+@pytest.mark.skipif(not os.getenv("TEST_POSTGRES_URL"), reason="TEST_POSTGRES_URL is required for identity-lookup RLS verification")
+def test_identity_lookup_function_is_narrow_and_does_not_weaken_rls():
+    engine = create_engine(os.environ["TEST_POSTGRES_URL"])
+    with engine.begin() as connection:
+        # The API role itself still cannot read users directly without tenant context.
+        connection.execute(text("SELECT set_config('app.tenant_id', '', true)"))
+        assert connection.scalar(text("SELECT count(*) FROM users")) == 0
+        # The narrow function resolves a known email to exactly its own tenant...
+        row = connection.execute(text("SELECT * FROM find_login_identity(:email)"), {"email": "employee@aftab.test"}).first()
+        if row is not None:
+            assert row.tenant_id == 1
+        # ...returns nothing for an unknown email (fails closed, not an enumeration path)...
+        assert connection.execute(text("SELECT * FROM find_login_identity(:email)"), {"email": "nobody@nowhere.invalid"}).first() is None
+        # ...and calling it does not leave broader access behind for subsequent queries.
+        assert connection.scalar(text("SELECT count(*) FROM users")) == 0

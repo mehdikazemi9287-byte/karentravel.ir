@@ -377,6 +377,7 @@ class VacationUnit(OperationalMixin, Base):
     nightly_price: Mapped[int] = mapped_column(Integer)
     currency: Mapped[str] = mapped_column(String(3), default="IRR")
     status: Mapped[str] = mapped_column(String(24), default="active", index=True)
+    pricing_json: Mapped[str] = mapped_column(Text, default="{}")
 
 
 class VacationReservation(OperationalMixin, Base):

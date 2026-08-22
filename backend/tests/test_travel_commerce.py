@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 
 def login(client, email):
@@ -69,3 +69,35 @@ def test_visa_workflow_is_human_reviewed_and_cruise_fails_closed(client):
     assert detail.status_code == 200 and detail.json()['documents'][0]['status'] == 'accepted' and detail.json()['timeline'][-1]['source_type'] == 'human_agent'
     assert client.get(f"/visa-applications/{app.json()['id']}", headers=foreign).status_code == 404
     assert client.get('/cruises', headers=customer).json()['live_booking'] is False
+
+
+def test_vacation_seasonal_weekend_min_stay_pricing_and_cancellation_quote(client):
+    supplier_user = login(client, 'supplier@aftab.test'); customer = login(client, 'employee@aftab.test')
+    supplier_id = supplier(client, supplier_user, 'vacation_rental')
+    policy = {'source': 'internal_policy_v1', 'verified': True, 'verified_at': datetime.now(timezone.utc).isoformat(), 'cancellation': {'refundable': True, 'penalty_amount': 2000000}}
+    slug = f'villa-{uuid.uuid4().hex}'
+    prop = client.post('/supplier/vacation-properties', headers=supplier_user, json={'supplier_id': supplier_id, 'title': 'ویلای فصلی تست', 'slug': slug, 'city': 'کیش', 'property_type': 'villa', 'capacity': 6, 'bedrooms': 2, 'details': {'cancellation_policy': policy}})
+    assert prop.status_code == 201
+    weekend_night = datetime(2031, 2, 3, 12, 0, tzinfo=timezone.utc)
+    pricing = {'min_stay': 2, 'weekend_days': [(weekend_night + timedelta(days=1)).weekday()], 'weekend_price': 5000000, 'seasonal_rates': [{'start': '07-01', 'end': '07-31', 'nightly_price': 9000000}]}
+    unit = client.post(f"/supplier/vacation-properties/{prop.json()['id']}/units", headers=supplier_user, json={'title': 'واحد فصلی', 'capacity': 6, 'available_units': 1, 'nightly_price': 4000000, 'pricing': pricing})
+    assert unit.status_code == 201 and unit.json()['id']
+    unit_id = unit.json()['id']
+
+    too_short = client.post(f"/vacation-units/{unit_id}/reservations", headers=customer, json={'check_in': weekend_night.isoformat(), 'check_out': (weekend_night + timedelta(days=1)).isoformat(), 'guests': 2, 'command_id': f'villa-short-{uuid.uuid4().hex}'})
+    assert too_short.status_code == 422
+
+    weekend_stay = client.post(f"/vacation-units/{unit_id}/reservations", headers=customer, json={'check_in': weekend_night.isoformat(), 'check_out': (weekend_night + timedelta(days=2)).isoformat(), 'guests': 2, 'command_id': f'villa-weekend-{uuid.uuid4().hex}'})
+    assert weekend_stay.status_code == 201 and weekend_stay.json()['total_amount'] == 4000000 + 5000000
+    breakdown = weekend_stay.json()['price_breakdown']
+    assert breakdown[0]['rate_source'] == 'base' and breakdown[1]['rate_source'] == 'weekend'
+
+    seasonal_in = datetime(2030, 7, 10, 12, 0, tzinfo=timezone.utc)
+    seasonal_stay = client.post(f"/vacation-units/{unit_id}/reservations", headers=customer, json={'check_in': seasonal_in.isoformat(), 'check_out': (seasonal_in + timedelta(days=2)).isoformat(), 'guests': 2, 'command_id': f'villa-season-{uuid.uuid4().hex}'})
+    assert seasonal_stay.status_code == 201 and seasonal_stay.json()['total_amount'] == 9000000 * 2
+    assert all(night['rate_source'] == 'seasonal' for night in seasonal_stay.json()['price_breakdown'])
+
+    quote = client.get(f"/reservations/{seasonal_stay.json()['reservation_id']}/cancellation-quote", headers=customer)
+    assert quote.status_code == 200
+    body = quote.json()
+    assert body['policy_verified'] is True and body['total_amount'] == 18000000 and body['penalty_amount'] == 2000000 and body['refundable_amount'] == 16000000
