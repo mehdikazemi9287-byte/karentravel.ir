@@ -157,3 +157,13 @@
 - Rollback chain preserved: karenseir-ui-preview-navy-redesign-superseded (immediately prior), karenseir-ui-preview:rollback-pre-20260822 (Aug 19 baseline).
 - Production database and live karenseir-api-1: unchanged.
 - Commits: 6b96716 (CSS revert), plus screenshot update.
+
+## SEARCH CONTINUITY + VOICE/NL — 2026-08-23
+
+- /search/results restyled to the Homepage cream/coral/plum identity (was the old separate --ink/--ocean design system); breadcrumb added; edit-search dropdown and verticalLabels expanded to all 8 verticals. URL-based state round-trip was already solid, unchanged.
+- Added a deterministic Persian natural-language + voice Search entry ("با زبان خودت بگو") inside the existing approved HomeSearchExperience -- not a redesign, not a parallel Search engine. lib/domain/nl-intent.ts extracts origin/destination/passengers/nights/budget/approximate-dates/vertical via pattern matching (same approach as the backend's existing _structured_search_intent), shows a confirm/edit/retry chip state, then hands off to the existing /search/results route with normal URL params.
+- A real bug was found and fixed during verification: the origin regex matched the bare "از" substring, which also occurs inside the word "پرواز" itself, causing false origin extraction on flight-vertical sentences. Fixed with proper word-boundary anchoring. Verified against all 7 required example sentences after the fix, live on the public URL.
+- Voice: MediaRecorder/getUserMedia, 12s bounded recording, POSTs to new backend endpoint /search/voice/transcribe, which follows the existing fail-closed provider-adapter pattern (configured_mode("stt"), no credential configured returns 503 STT_PROVIDER_UNAVAILABLE, never fabricated). Browser SpeechRecognition used only as an explicit fallback on backend failure. Text entry always available; mic-permission denial fails gracefully.
+- Public deploy: karenseir-api-1 and karenseir-ui-preview both updated (images tagged ca9e6c1); verified live on http://95.38.184.209/ via Playwright against the real public URL -- NL confirm chips render correctly, confirm navigates to /search/results with full parsed state, Edit Search preserves state, back navigation returns to Homepage, zero localhost/127.0.0.1 requests, desktop+mobile both correct.
+- Production DB: unchanged this phase (already migrated to 20260822_17 in the prior phase). Rollback chain preserved (karenseir-api-1-pre-voice, karenseir-ui-preview-nl-origin-bug, and the full earlier chain back to the Aug-19/Aug-15 baselines).
+- Backend: 89 passed, 6 skipped (unchanged pattern). Frontend typecheck/lint clean.
