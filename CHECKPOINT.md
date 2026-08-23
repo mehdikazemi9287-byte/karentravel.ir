@@ -148,3 +148,12 @@
 - Production database: UNCHANGED. Live karenseir-api-1: UNCHANGED. Only the frontend-serving container was swapped.
 - Source commits: 0f88daf (Search redesign + preview fixes), 56b92f9 (screenshots).
 - NEXT EXACT ACTION: your call -- approve the pending production DB migration (gate already evidenced) to unlock full Search results on the public preview, or leave as visual-only preview.
+
+## SEARCH VISUAL RESTORATION — 2026-08-23
+
+- Reverted the navy/turquoise redesign (0f88daf) on explicit instruction: the approved Search visual identity (plain white tabs, coral active underline, coral CTA -- matching the Homepage warm cream/coral/plum palette) is restored exactly, verified by git diff --stat (2 deletions, 0 insertions) against app/globals.css.
+- All functional work from 0f88daf and since is fully intact and untouched: CSP upgrade-insecure-requests fix, crypto.randomUUID() secure-context fallback, recent/saved search surfacing, ranking explanation, and all Gate 1/2/3 backend work.
+- Deployed to the public container (karenseir-ui-preview:20260823-restored) and verified via fresh Playwright screenshots against http://95.38.184.209/ itself -- desktop and mobile both confirmed matching the original approved appearance.
+- Rollback chain preserved: karenseir-ui-preview-navy-redesign-superseded (immediately prior), karenseir-ui-preview:rollback-pre-20260822 (Aug 19 baseline).
+- Production database and live karenseir-api-1: unchanged.
+- Commits: 6b96716 (CSS revert), plus screenshot update.
