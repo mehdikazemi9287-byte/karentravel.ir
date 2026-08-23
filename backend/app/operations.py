@@ -916,11 +916,11 @@ def ensure_trip_for_reservation(db: Session, reservation: Reservation, *, title:
 def record_trip_event(db: Session, *, tenant_id: int, trip_id: str, event_key: str, event_type: str, source: str, title: str, message: str, reservation_id: Optional[str] = None, severity: str = "info", requires_action: bool = False, deep_link: Optional[str] = None) -> None:
     """Append one Trip Timeline entry, idempotently (same event_key is a
     no-op). `source` must be one of system/ai/human_agent/provider so the
-    timeline can honestly distinguish who/what made the change."""
-    exists = db.scalar(select(TripEventRecord.id).where(TripEventRecord.tenant_id == tenant_id, TripEventRecord.event_key == event_key))
-    if exists:
-        return
-    db.add(TripEventRecord(tenant_id=tenant_id, trip_id=trip_id, reservation_id=reservation_id, event_key=event_key, event_type=event_type, source=source, title=title, message=message, severity=severity, requires_action=requires_action, effective_at=utcnow(), deep_link=deep_link))
+    timeline can honestly distinguish who/what made the change. Delegates to
+    the existing ingest_trip_event(), which also raises a real Notification
+    (+ delivery attempts, respecting NotificationPreference opt-outs) for
+    every customer-visible event instead of duplicating that pipeline here."""
+    ingest_trip_event(db, TripEventRecord(tenant_id=tenant_id, trip_id=trip_id, reservation_id=reservation_id, event_key=event_key, event_type=event_type, source=source, title=title, message=message, severity=severity, requires_action=requires_action, effective_at=utcnow(), deep_link=deep_link))
 
 
 def transition_reservation(db: Session, reservation: Reservation, target: str, actor_id: int, command_id: str) -> Reservation:

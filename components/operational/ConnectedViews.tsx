@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { FormEvent, ReactNode, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { useAuth } from '../../lib/api/auth-context';
 import { ApiError, newId } from '../../lib/api/karenseir-client';
+
+function MockNotice({children='نسخه نمایشی — اطلاعات این بخش نمونه است.'}:{children?:ReactNode}){return <div className="journey-mock" role="note">● {children}</div>}
 
 type LoadState<T> = { kind: 'loading' } | { kind: 'ready'; data: T } | { kind: 'error'; status: number; message: string };
 type Reservation = { id: string; booking_reference?: string | null; service_type: string; status: string; price_snapshot?: { total_amount?: number; currency?: string }; policy_at_booking?: Record<string, unknown>; created_at?: string; manage_link?: string };
@@ -40,6 +42,33 @@ export function ConnectedTrips() {
 }
 
 type TimelineEvent = { id:string; type:string; severity:string; source:string; title:string; message:string; requires_action:boolean; deep_link?:string|null };
+const staticSupportPaths=[
+  {icon:'✦',title:'دستیار هوشمند',description:'راهنمایی سریع و هوشمند بر اساس سفر شما',cta:'گفت‌وگو با دستیار',family:'ai',mock:'/assistant?booking=book1'},
+  {icon:'◎',title:'صحبت با کارشناس',description:'برای موارد پیچیده یا نیاز به بررسی',cta:'ارسال درخواست',family:'human',mock:'/support?channel=expert&booking=book1'},
+  {icon:'▤',title:'پیگیری رزرو',description:'وضعیت رزرو، بلیت و واچر را یک‌جا ببین',cta:'مشاهده سفر من',family:'track',mock:'/trips/mock-shiraz-1405'},
+  {icon:'↺',title:'تغییر، کنسلی و استرداد',description:'هزینه و نتیجه را پیش از ثبت درخواست ببین',cta:'مدیریت رزرو',family:'manage',mock:'/manage-booking/book1'},
+  {icon:'!',title:'مشکل در سفر',description:'برای اختلال سفر، واچر یا یک مسئله فوری',cta:'دریافت راهنمایی',family:'urgent',mock:'/trips/mock-shiraz-1405?support=urgent'},
+] as const;
+
+export function SupportLanding() {
+  const {api,session}=useAuth();
+  const [state,setState]=useState<LoadState<{trips:Trip[];reservations:Reservation[]}>>({kind:'loading'});
+  useEffect(()=>{if(!session)return;let active=true;Promise.all([api.get<Trip[]>('/me/trips'),api.get<Reservation[]>('/me/reservations')]).then(([trips,reservations])=>active&&setState({kind:'ready',data:{trips,reservations}})).catch(error=>{const item=errorOf(error);if(active)setState({kind:'error',...item});});return()=>{active=false};},[api,session]);
+  const real=state.kind==='ready'?{trip:state.data.trips[0],reservation:state.data.reservations[0]}:null;
+  const hrefFor=(family:string)=>{
+    if(!real)return undefined;
+    if(family==='ai')return real.reservation?`/assistant?booking=${real.reservation.id}`:undefined;
+    if(family==='human')return real.reservation?`/support?channel=expert&booking=${real.reservation.id}`:undefined;
+    if(family==='track')return real.trip?real.trip.timeline_link:undefined;
+    if(family==='manage')return real.reservation?`/manage-booking/${real.reservation.id}`:undefined;
+    if(family==='urgent')return real.trip?`${real.trip.timeline_link}?support=urgent`:undefined;
+    return undefined;
+  };
+  const disruptionHref=real?.reservation?`/manage-booking/${real.reservation.id}`:'/manage-booking/book1';
+  const showMockNotice=!real||(!real.trip&&!real.reservation);
+  return <><div className="journey-title"><div><span>مرکز همراهی کارن‌سیر</span><h1>چطور می‌توانیم کمک کنیم؟</h1><p>متناسب با نوع مسئله، راهنمایی هوشمند یا بررسی کارشناس را انتخاب کن.</p></div>{showMockNotice&&<MockNotice/>}</div><section className="support-disruption" role="status"><div><span>نیازمند توجه</span><h2>تغییری در سفرت پیش آمده؟</h2><p>جزئیات رزرو را ببین و پیش از هر اقدامی، گزینه‌هایت را بررسی کن.</p></div><Link href={disruptionHref}>بررسی رزرو</Link></section><section className="support-paths" aria-label="راه‌های دریافت کمک">{staticSupportPaths.map(path=><article className={`support-path support-path-${path.family}`} key={path.title}><i aria-hidden="true">{path.icon}</i><div><h2>{path.title}</h2><p>{path.description}</p></div><Link href={hrefFor(path.family)||path.mock}>{path.cta} ←</Link></article>)}</section></>;
+}
+
 export function ConnectedTripTimeline({tripId}:{tripId:string}) {
   const {api,session}=useAuth();
   const [state,setState]=useState<LoadState<{trip:{id:string;destination:string;status:string};events:TimelineEvent[]}>>({kind:'loading'});

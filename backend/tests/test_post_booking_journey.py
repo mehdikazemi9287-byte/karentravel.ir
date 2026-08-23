@@ -44,6 +44,16 @@ def test_real_villa_booking_creates_a_trip_and_a_real_timeline_that_cancellation
     assert foreign_trips.status_code == 200
     assert all(row['destination'] != 'رامسر' or row.get('id') != trip['id'] for row in foreign_trips.json())
 
+    # 8. Notifications + Deep Links: the real booking.created timeline event must raise a real,
+    # tenant/user-scoped Notification whose deep_link routes into the real booking.
+    notices = client.get('/me/notifications', headers=customer)
+    assert notices.status_code == 200
+    booking_notice = next((n for n in notices.json() if n['deep_link'] == f"/manage-booking/{reservation_id}"), None)
+    assert booking_notice is not None, 'booking.created trip event did not raise a real notification'
+    assert booking_notice['topic'] == 'important_trip_changes'
+    foreign_notices = client.get('/me/notifications', headers=foreign)
+    assert all(n['deep_link'] != f"/manage-booking/{reservation_id}" for n in foreign_notices.json())
+
     # 2/3/4. Trip Detail / Timeline / "what changed": a real system-sourced booking_created event.
     timeline = client.get(f"/trips/{trip['id']}/timeline", headers=customer)
     assert timeline.status_code == 200
