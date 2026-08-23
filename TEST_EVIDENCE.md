@@ -2,6 +2,19 @@
 
 
 
+## Booking → payment → financial journey (demo → real) — 2026-08-23
+
+| Check | Result |
+|---|---|
+| Migration `20260823_19` upgrade/downgrade/upgrade on real Postgres RC clone | PASS |
+| Production migration applied: row counts unchanged (reservations=2, financial_ledger_entries/wallets/credit_accounts=0, users=4), `wallet_id`/`credit_account_id` both nullable, new FK+index present, RLS/FORCE unaffected, `karenseir_api` still NOBYPASSRLS | PASS |
+| `alembic current == alembic heads`, `alembic check` = no drift on production | PASS |
+| Backend regression (SQLite, `ENVIRONMENT=development`) | 92 passed, 6 skipped, 0 failed |
+| New `test_booking_financial_journey.py`: real org-credit + wallet reserve→capture on fulfillment, auto-invoice issuance, real Trip Timeline payment.captured event, fail-closed over-limit, tenant isolation; separate release-on-cancellation test | PASS |
+| Live public verification (`http://95.38.184.209/`, real seeded accounts): real supplier/offer/authoritative-recheck/booking, real traveller, real wallet allocate + real org credit account via real endpoint, tenant isolation (other tenant sees 0 credit accounts), real funding reserve with live balances, fail-closed over-limit (409), real payment intent, real gateway-initiate fail-closed (503, honest, no fabricated redirect), real cancel-request → real `reservation.cancel_requested` Trip Timeline event | PASS, desktop + mobile |
+| Checkout funding UI (real wallet/credit number inputs with live balances) | PASS, desktop + mobile, verified via `input[type="number"]` DOM presence, not just screenshot text |
+| Deployment drift check: API and frontend container source parity vs repo | PASS after one real drift caught and fixed mid-verification (frontend rebuild forgotten after a UI edit) |
+
 ## Post-booking journey (demo → real) — 2026-08-23
 
 | Check | Result |

@@ -4,18 +4,19 @@
   "source_checksum_algorithm": "sha256-of-git-ls-tree",
   "source_checksum": "9403a0b66eb3c89f64d181c4d4de042c643bfcece19099cdc124908d75a2d275",
   "pre_change_snapshot_sha256": "9ccd8d191864d1a8e62f630f238d285b5695b55843760128b9cc31513d6c0ba2",
-  "migration_head": "20260823_18",
+  "migration_head": "20260823_19",
   "verified_backup_sha256": "9339362ef26582d7142fea14c0f72337fd43d6c12161d8951ca0b741ea7c4211",
-  "production_backup_sha256": "98decea27ac242de9e5a83b0176fc71429fa8f0569ca125271ee03172904c400",
+  "production_backup_sha256": "0be416ffd4c6aaadffd304be66c40f6450a7c74a1f47a032273fe532e111c01f",
   "dependency_locks": {
     "package-lock.json": "880ad6fb0f3422cc07b9a326626161893570c99668b56fa7fb1c0441b63bac5f",
     "backend/requirements.txt": "0ebefe03b88009b97b6995180e133febd05944e6dfc921b40827862f5d5a2eeb"
   },
-  "git_commit": "1114634e0ff7c0edec824a91c752053a7b883b3a",
+  "git_commit": "b8c29877a04519a7c7329137954fb074e43ae3cd",
   "web_image_digest": null,
   "api_image_digest": null,
   "provenance_complete": true,
   "release_notes": [
+    "Booking->payment->financial journey audited and closed: real Organization Credit (was dead code) wired via a new ledger primitive mirroring Wallet's without merging the concepts; a real financial-integrity bug fixed (wallet/credit reserves were never captured or released); payment capture/failure/refund now produce real Trip Timeline events; invoice now auto-issues on fulfillment; CheckoutView UI exposes real wallet/credit funding inputs. Verified live on production with a real supplier/offer/booking/funding/payment-intent path; real gateway execution correctly stays an external blocker (no ZarinPal credential, no fabricated success)",
     "Post-booking journey converted from demo to real: real Trip/TripEventRecord creation wired into all 3 booking endpoints and the shared transition_reservation(), real notifications reusing a pre-existing but never-called ingest_trip_event(), real Support landing CTAs. Verified live on the public site with a real booking, real cancellation, real notification, cross-tenant isolation, desktop+mobile. Two real infra bugs found and fixed in the process: host nginx was routing the public site to a leftover preview container instead of the docker-compose-managed one, and the API container was running stale pre-refactor code after an on-disk-only edit",
     "Same-origin /api nginx routing designed and verified end-to-end, closing the public API routing gate without CORS complexity",
     "Exact-origin CORS allowlist verified (no wildcard); positive and negative preflight tested",
