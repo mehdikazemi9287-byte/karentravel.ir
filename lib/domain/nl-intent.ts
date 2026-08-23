@@ -53,13 +53,21 @@ export function parseTravelIntent(input: string, today: Date = new Date()): NLIn
 
   for (const [re, vertical] of VERTICAL_KEYWORDS) { if (re.test(text)) { intent.vertical = vertical; break; } }
 
-  const fromTo = text.match(/(?:از )?([آ-ی]+) (?:به|تا) ([آ-ی]+)/);
-  if (fromTo && CITY_ALIASES.includes(fromTo[1]) && CITY_ALIASES.includes(fromTo[2])) { intent.origin = fromTo[1]; intent.destination = fromTo[2]; }
-  else {
-    const toOnly = text.match(/(?:به|تا) ([آ-ی]+)/);
-    if (toOnly && CITY_ALIASES.includes(toOnly[1])) intent.destination = toOnly[1];
-    else { for (const city of CITY_ALIASES) if (text.includes(city)) { intent.destination = city; break; } }
+  // "X به Y" (both known cities, adjacent) covers the common short form.
+  const adjacent = text.match(/([آ-ی]+) به ([آ-ی]+)/);
+  if (adjacent && CITY_ALIASES.includes(adjacent[1]) && CITY_ALIASES.includes(adjacent[2])) {
+    intent.origin = adjacent[1]; intent.destination = adjacent[2];
+  } else {
+    // Otherwise search "از X" (word-boundary anchored -- NOT a bare substring
+    // match, or "از" inside "پرواز" would be misread as "from") and "به/تا Y"
+    // independently, since real sentences often have words between them
+    // ("از تهران یه سفر چهار روزه به شیراز").
+    const fromMatch = text.match(/(?:^| )از ([آ-ی]+)/);
+    if (fromMatch && CITY_ALIASES.includes(fromMatch[1])) intent.origin = fromMatch[1];
+    const toMatch = text.match(/(?:^| )(?:به|تا) ([آ-ی]+)/);
+    if (toMatch && CITY_ALIASES.includes(toMatch[1]) && toMatch[1] !== intent.origin) intent.destination = toMatch[1];
   }
+  if (!intent.destination) { for (const city of CITY_ALIASES) if (city !== intent.origin && text.includes(city)) { intent.destination = city; break; } }
 
   const paxNum = text.match(/(\d+) ?نفر/);
   const paxWord = text.match(/(یک|دو|سه|چهار|پنج|شش|هفت|هشت|نه|ده) ?نفر/);
