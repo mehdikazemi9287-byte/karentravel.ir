@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 const isDev = process.env.NODE_ENV === 'development';
+// Temporary, explicit opt-out for a no-TLS HTTP-only preview deploy: without this,
+// the production CSP's upgrade-insecure-requests directive makes browsers silently
+// rewrite every asset/API request to https://, which has no listener on an HTTP-only
+// host and breaks the page entirely. Must never be set for a real HTTPS deployment.
+const allowHttpPreview = process.env.ALLOW_HTTP_PREVIEW === '1';
 let apiOrigin = "'self'";
 try { apiOrigin = new URL(process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000').origin; } catch {}
 const csp = [
@@ -14,7 +19,7 @@ const csp = [
   "form-action 'self'",
   "frame-ancestors 'none'",
   "worker-src 'self' blob:",
-  ...(isDev ? [] : ['upgrade-insecure-requests']),
+  ...(isDev || allowHttpPreview ? [] : ['upgrade-insecure-requests']),
 ].join('; ');
 
 const nextConfig = {

@@ -387,8 +387,11 @@ def validate_production_config() -> None:
             raise RuntimeError("JWT_SECRET must be a non-default value of at least 32 characters")
         if not DATABASE_URL.startswith("postgresql"):
             raise RuntimeError("Production DATABASE_URL must use PostgreSQL")
-        if not origins or "*" in origins or any(origin.startswith("http://") for origin in origins):
-            raise RuntimeError("Production CORS_ORIGINS must contain explicit HTTPS origins")
+        allow_http_preview = os.getenv("ALLOW_HTTP_ORIGIN_PREVIEW") == "1"
+        if not origins or "*" in origins or (not allow_http_preview and any(origin.startswith("http://") for origin in origins)):
+            raise RuntimeError("Production CORS_ORIGINS must contain explicit HTTPS origins (or set ALLOW_HTTP_ORIGIN_PREVIEW=1 for a temporary no-TLS preview only)")
+        if allow_http_preview:
+            logging.getLogger("karenseir").warning("ALLOW_HTTP_ORIGIN_PREVIEW is set: CORS is running over plain HTTP. This must never be used for real production traffic with real users.")
         provider_keys = ("flight", "hotel", "tour_hotel", "payment", "otp", "sms", "push")
         validate_provider_modes(ENVIRONMENT, DEMO_MODE, provider_keys)
         for key in provider_keys:

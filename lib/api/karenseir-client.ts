@@ -1,3 +1,14 @@
+// crypto.randomUUID() only exists in secure contexts (HTTPS or localhost); on a
+// plain-HTTP origin it is undefined and throws. These IDs are correlation/device/
+// idempotency identifiers, not secrets, so a non-cryptographic fallback is safe.
+export function newId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+  });
+}
+
 export type AuthSession = {
   access_token: string;
   refresh_token: string;
@@ -16,7 +27,7 @@ export class KarenSeirApi {
 
   constructor(baseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000') {
     this.baseUrl = baseUrl.replace(/\/$/, '');
-    this.deviceId = typeof window === 'undefined' ? 'server-render' : (sessionStorage.getItem('karenseir-device-id') ?? crypto.randomUUID());
+    this.deviceId = typeof window === 'undefined' ? 'server-render' : (sessionStorage.getItem('karenseir-device-id') ?? newId());
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('karenseir-device-id', this.deviceId);
       try { const stored=sessionStorage.getItem('karenseir-auth-session');if(stored)this.session=JSON.parse(stored) as AuthSession; } catch { sessionStorage.removeItem('karenseir-auth-session'); }
@@ -70,7 +81,7 @@ export class KarenSeirApi {
   private async request<T>(path: string, init: RequestInit = {}, authenticated = true, retry = true): Promise<T> {
     const headers = new Headers(init.headers);
     headers.set('Content-Type', 'application/json');
-    headers.set('X-Correlation-ID', crypto.randomUUID());
+    headers.set('X-Correlation-ID', newId());
     if (authenticated) {
       if (!this.session) throw new ApiError(401, 'برای ادامه وارد شوید.');
       headers.set('Authorization', `Bearer ${this.session.access_token}`);
