@@ -1,6 +1,19 @@
 # Test Evidence
 
 
+
+## Post-booking journey (demo → real) — 2026-08-23
+
+| Check | Result |
+|---|---|
+| Migration `20260823_18` upgrade/downgrade/upgrade on real Postgres RC clone | PASS |
+| Production migration applied: row counts unchanged (reservations 0, trips 0, trip_events 0, users 3, tenants 2), FK 200→201, indexes 387→388, RLS/FORCE unaffected | PASS |
+| `alembic current == alembic heads`, `alembic check` = no drift on production | PASS |
+| Backend regression (SQLite, `ENVIRONMENT=development`) | 90 passed, 6 skipped, 0 failed |
+| New `test_post_booking_journey.py`: real villa booking → real Trip, real tenant-isolated `booking.created` timeline event, real `reservation.cancel_requested` on cancellation, real notification with correct `deep_link` | PASS |
+| Live public verification (`http://95.38.184.209/`, real seeded test account, real booking created via real onboarded supplier): My Trips, Trip Detail/Timeline, Manage Booking, Support CTAs, Notifications — all real data, no mock markers | PASS, desktop + mobile |
+| Cross-tenant isolation: `/me/trips` empty for other tenant, direct trip/timeline/history access 404s | PASS |
+| `npx tsc --noEmit` | clean |
 ## Production gates + release candidate — 2026-08-23
 
 | Check | Result |
