@@ -123,3 +123,17 @@
 - Production readiness: **NO-GO**; no sandbox/provider/payment success is claimed.
 - Exact next action: add an incremental tenant-RLS migration for Trip Basket/Wishlist and Verified Review, with PostgreSQL cross-tenant/idempotency tests, without touching Homepage.
 - Source checkpoint commit: `d5013e70116435b6d96cda1c0013c6f283d5cf22`; tree checksum is recorded in `RELEASE_MANIFEST.json`. Final provenance-doc HEAD is reported after commit.
+
+## PRODUCTION DB MIGRATION GATE — 2026-08-23
+
+- Backup path: /home/ubuntu/preview-deploy-evidence/production_backup_gate.dump
+- Backup checksum: 4c1d9f7e4af554096a8a031ad618eba36b53681a8288a9a2366db1dd63066df5
+- Backup readable: PASS (pg_restore --list, 63 TOC entries, 74 lines)
+- Current migration state: pre-Alembic baseline, no alembic_version table
+- Target migration head: 20260822_17
+- Row counts: tenants=2 users=3 hotels=3 bookings=1 ledger_entries=1 audit_events=2
+- Live API image: sha256:42390b86320a (container karenseir-api-1)
+- Live frontend image: karenseir-ui-preview:20260818 / sha256:7bf7a9e1ce5b (container karenseir-ui-preview)
+- Exact migration command: docker run --rm --network karenseir_default -v /home/ubuntu/karenseir-current/backend:/app -w /app -e DATABASE_URL=postgresql+psycopg://karenseir:REDACTED@db:5432/karenseir karenseir-api sh -lc "python -m alembic upgrade head"
+- Rollback application images ready: YES (karenseir-ui-preview:rollback-pre-20260822 = sha256:7bf7a9e1ce5b; karenseir-api-1 image sha256:42390b86320a untouched and unremoved)
+- Ready for approval: YES
