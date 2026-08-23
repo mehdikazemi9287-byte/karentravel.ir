@@ -137,3 +137,14 @@
 - Exact migration command: docker run --rm --network karenseir_default -v /home/ubuntu/karenseir-current/backend:/app -w /app -e DATABASE_URL=postgresql+psycopg://karenseir:REDACTED@db:5432/karenseir karenseir-api sh -lc "python -m alembic upgrade head"
 - Rollback application images ready: YES (karenseir-ui-preview:rollback-pre-20260822 = sha256:7bf7a9e1ce5b; karenseir-api-1 image sha256:42390b86320a untouched and unremoved)
 - Ready for approval: YES
+
+## PUBLIC SEARCH PREVIEW — 2026-08-23
+
+- Public URL http://95.38.184.209/ now serves the redesigned premium navy/turquoise Search box (verified via real Playwright screenshots against the actual public IP, not localhost/RC). Frontend container: karenseir-ui-preview:20260823-search4 (host image tag), NEXT_PUBLIC_API_URL=http://95.38.184.209:8000, ALLOW_HTTP_PREVIEW=1 baked in at build time.
+- Two real bugs found and fixed, both specific to HTTP-only (no-TLS) deployment: (1) production CSP always set upgrade-insecure-requests, silently breaking every asset request when no HTTPS exists; (2) crypto.randomUUID() is undefined outside secure contexts, crashing the app on first API call. Both fixed with narrow, explicit, documented opt-outs/fallbacks -- neither weakens a real HTTPS deployment.
+- Verified interactively on the public site: all 8 vertical tabs switch with correct context-specific fields, free-text destination entry works, search submit navigates to /search/results and correctly shows the designed fail-closed unauthorized gate (not a crash).
+- Autocomplete and full results still blocked: NEXT_PUBLIC_API_URL points at the OLD live API (Aug 15 build, unmigrated DB, CORS_ORIGINS=http://localhost:3000), which lacks /search/v2 etc. and rejects this origin. This is the same, previously-flagged, approval-pending API+DB deploy gap -- not new.
+- Rollback: karenseir-ui-preview-pre-uuid-fix (immediately prior working container) and the original karenseir-ui-preview:rollback-pre-20260822 (Aug 19 baseline) both retained, untouched.
+- Production database: UNCHANGED. Live karenseir-api-1: UNCHANGED. Only the frontend-serving container was swapped.
+- Source commits: 0f88daf (Search redesign + preview fixes), 56b92f9 (screenshots).
+- NEXT EXACT ACTION: your call -- approve the pending production DB migration (gate already evidenced) to unlock full Search results on the public preview, or leave as visual-only preview.
