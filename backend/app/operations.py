@@ -649,7 +649,8 @@ class SettlementRecord(OperationalMixin, Base):
 
 class FinancialLedgerEntry(OperationalMixin, Base):
     __tablename__ = "financial_ledger_entries"
-    wallet_id: Mapped[str] = mapped_column(ForeignKey("wallets.id"), index=True)
+    wallet_id: Mapped[Optional[str]] = mapped_column(ForeignKey("wallets.id"), nullable=True, index=True)
+    credit_account_id: Mapped[Optional[str]] = mapped_column(ForeignKey("credit_accounts.id"), nullable=True, index=True)
     reservation_id: Mapped[Optional[str]] = mapped_column(ForeignKey("reservations.id"), nullable=True)
     command_id: Mapped[str] = mapped_column(String(80))
     entry_type: Mapped[str] = mapped_column(String(32), index=True)
@@ -940,10 +941,16 @@ def transition_reservation(db: Session, reservation: Reservation, target: str, a
     if reservation.trip_id:
         label = TRIP_STATUS_TITLES.get(target, target)
         record_trip_event(db, tenant_id=reservation.tenant_id, trip_id=reservation.trip_id, reservation_id=reservation.id, event_key=f"reservation-transition:{command_id}", event_type=f"reservation.{target}", source="system", title=label, message=f"وضعیت رزرو {reservation.booking_reference or reservation.id} از «{TRIP_STATUS_TITLES.get(previous, previous)}» به «{label}» تغییر کرد.", severity="warning" if target in {"cancel_requested", "cancelled", "failed", "expired"} else "info", requires_action=target in {"cancel_requested", "change_requested", "refund_requested"}, deep_link=f"/manage-booking/{reservation.id}")
+    if target in {"confirmed", "issued"}:
+        settle_reservation_funding(db, reservation, "capture")
+    elif target in {"cancelled", "failed", "expired"}:
+        settle_reservation_funding(db, reservation, "release")
     return reservation
 
 
-def post_ledger(db: Session, *, tenant_id: int, wallet_id: str, command_id: str, entry_type: str, amount: int, reservation_id: Optional[str] = None, reversal_of_id: Optional[str] = None) -> FinancialLedgerEntry:
+def post_ledger(db: Session, *, tenant_id: int, wallet_id: Optional[str] = None, credit_account_id: Optional[str] = None, command_id: str, entry_type: str, amount: int, reservation_id: Optional[str] = None, reversal_of_id: Optional[str] = None) -> FinancialLedgerEntry:
+    if bool(wallet_id) == bool(credit_account_id):
+        raise ValueError("ledger entry must reference exactly one of wallet_id or credit_account_id")
     existing = next((item for item in db.new if isinstance(item, FinancialLedgerEntry) and item.tenant_id == tenant_id and item.command_id == command_id), None)
     if existing is None:
         existing = db.scalar(select(FinancialLedgerEntry).where(FinancialLedgerEntry.tenant_id == tenant_id, FinancialLedgerEntry.command_id == command_id))
@@ -951,7 +958,7 @@ def post_ledger(db: Session, *, tenant_id: int, wallet_id: str, command_id: str,
         return existing
     if amount <= 0:
         raise ValueError("ledger amount must be positive")
-    entry = FinancialLedgerEntry(tenant_id=tenant_id, wallet_id=wallet_id, reservation_id=reservation_id, command_id=command_id, entry_type=entry_type, amount=amount, reversal_of_id=reversal_of_id)
+    entry = FinancialLedgerEntry(tenant_id=tenant_id, wallet_id=wallet_id, credit_account_id=credit_account_id, reservation_id=reservation_id, command_id=command_id, entry_type=entry_type, amount=amount, reversal_of_id=reversal_of_id)
     db.add(entry)
     return entry
 
@@ -993,6 +1000,69 @@ def apply_credit_command(db: Session, *, tenant_id: int, wallet_id: str, command
     if entry_type == "reverse_capture" and balances["consumed"] < amount:
         raise ValueError("insufficient consumed credit")
     return post_ledger(db, tenant_id=tenant_id, wallet_id=wallet_id, command_id=command_id, entry_type=entry_type, amount=amount, reservation_id=reservation_id, reversal_of_id=reversal_of_id)
+
+
+def credit_balances(db: Session, *, tenant_id: int, credit_account_id: str) -> dict[str, int]:
+    """Organization credit is a LINE OF CREDIT (a limit), not a funded balance like
+    Wallet: available = limit_amount - reserved - consumed. Kept as its own function
+    (not merged into wallet_balances) so Organization Credit stays a distinct concept."""
+    account = db.get(CreditAccount, credit_account_id)
+    limit_amount = account.limit_amount if account is not None else 0
+    entries = db.scalars(select(FinancialLedgerEntry).where(FinancialLedgerEntry.tenant_id == tenant_id, FinancialLedgerEntry.credit_account_id == credit_account_id)).all()
+    reserved = consumed = 0
+    for entry in entries:
+        if entry.entry_type == "reserve":
+            reserved += entry.amount
+        elif entry.entry_type == "capture":
+            reserved -= entry.amount
+            consumed += entry.amount
+        elif entry.entry_type == "release":
+            reserved -= entry.amount
+        elif entry.entry_type == "reverse_capture":
+            consumed -= entry.amount
+    return {"limit_amount": limit_amount, "available": limit_amount - reserved - consumed, "reserved": reserved, "consumed": consumed}
+
+
+def apply_organization_credit_command(db: Session, *, tenant_id: int, credit_account_id: str, command_id: str, entry_type: str, amount: int, reservation_id: Optional[str] = None, reversal_of_id: Optional[str] = None) -> FinancialLedgerEntry:
+    if entry_type == "allocate":
+        raise ValueError("organization credit availability comes from its limit_amount, not an allocate entry")
+    account = db.scalar(select(CreditAccount).where(CreditAccount.id == credit_account_id, CreditAccount.tenant_id == tenant_id).with_for_update())
+    if account is None:
+        raise ValueError("credit account not found in tenant")
+    db.flush()
+    existing = db.scalar(select(FinancialLedgerEntry).where(FinancialLedgerEntry.tenant_id == tenant_id, FinancialLedgerEntry.command_id == command_id))
+    if existing:
+        return existing
+    balances = credit_balances(db, tenant_id=tenant_id, credit_account_id=credit_account_id)
+    if entry_type == "reserve" and balances["available"] < amount:
+        raise ValueError("insufficient organization credit limit")
+    if entry_type in {"capture", "release"} and balances["reserved"] < amount:
+        raise ValueError("insufficient reserved organization credit")
+    if entry_type == "reverse_capture" and balances["consumed"] < amount:
+        raise ValueError("insufficient consumed organization credit")
+    return post_ledger(db, tenant_id=tenant_id, credit_account_id=credit_account_id, command_id=command_id, entry_type=entry_type, amount=amount, reservation_id=reservation_id, reversal_of_id=reversal_of_id)
+
+
+def settle_reservation_funding(db: Session, reservation: "Reservation", action: str) -> None:
+    """Close the loop on any wallet/organization-credit amount reserved for this
+    reservation at checkout funding time. action='capture' turns a real fulfillment
+    into a real consumed deduction; action='release' returns a cancelled/failed
+    reservation's held amount back to available. Idempotent per (reservation, ledger
+    source) via a deterministic command_id, so re-running a transition is a no-op."""
+    reserves = db.scalars(select(FinancialLedgerEntry).where(FinancialLedgerEntry.tenant_id == reservation.tenant_id, FinancialLedgerEntry.reservation_id == reservation.id, FinancialLedgerEntry.entry_type == "reserve")).all()
+    for reserve in reserves:
+        if reserve.wallet_id:
+            command_id = f"reservation-{action}:{reservation.id}:wallet:{reserve.wallet_id}"[:80]
+            try:
+                apply_credit_command(db, tenant_id=reservation.tenant_id, wallet_id=reserve.wallet_id, command_id=command_id, entry_type=action, amount=reserve.amount, reservation_id=reservation.id)
+            except ValueError:
+                continue
+        elif reserve.credit_account_id:
+            command_id = f"reservation-{action}:{reservation.id}:credit:{reserve.credit_account_id}"[:80]
+            try:
+                apply_organization_credit_command(db, tenant_id=reservation.tenant_id, credit_account_id=reserve.credit_account_id, command_id=command_id, entry_type=action, amount=reserve.amount, reservation_id=reservation.id)
+            except ValueError:
+                continue
 
 
 def create_refresh_session(db: Session, *, tenant_id: int, user_id: int, expires_at: datetime, family_id: Optional[str] = None, device_hash: Optional[str] = None, ip_hash: Optional[str] = None) -> tuple[str, RefreshTokenSession]:

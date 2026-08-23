@@ -241,6 +241,7 @@ class VoucherReissueIn(BaseModel): command_id: str = Field(min_length=8, max_len
 class ProfileIn(BaseModel): name: str = Field(min_length=2, max_length=160); locale: str = Field(default="fa-IR", pattern="^(fa-IR|en-US)$")
 class TravellerIn(BaseModel): full_name: str = Field(min_length=3, max_length=160); profile_reference: Optional[str] = Field(default=None, max_length=160)
 class WalletCreateIn(BaseModel): currency: str = Field(default="IRR", pattern="^IRR$")
+class CreditAccountCreateIn(BaseModel): organization_id: str = Field(min_length=36, max_length=36); limit_amount: int = Field(gt=0); currency: str = Field(default="IRR", pattern="^IRR$"); command_id: str = Field(min_length=8, max_length=120)
 class SupplierOfferUpdateIn(BaseModel): amount: Optional[int] = Field(default=None, gt=0); available_units: Optional[int] = Field(default=None, ge=0, le=100000); status: Optional[str] = Field(default=None, pattern="^(active|paused)$")
 class AgencyUpdateIn(BaseModel): display_name: Optional[str] = Field(default=None, min_length=2, max_length=180); markup_bps: Optional[int] = Field(default=None, ge=0, le=10000); commission_bps: Optional[int] = Field(default=None, ge=0, le=10000); status: Optional[str] = Field(default=None, pattern="^(active|suspended)$")
 class SupplierStatusIn(BaseModel): status: str = Field(pattern="^(active|suspended)$"); reason: str = Field(min_length=3, max_length=500)
@@ -310,6 +311,16 @@ def booking_out(b: Booking, hotel: Hotel) -> dict:
 
 def _reservation_output(row: operational_models.Reservation) -> dict:
     return {"id": row.id, "booking_reference": row.booking_reference, "service_type": row.service_type, "status": row.status, "price_snapshot": json.loads(row.price_snapshot_json), "policy_at_booking": json.loads(row.policy_at_booking_json), "version": row.version}
+
+
+def _record_payment_trip_event(db: Session, *, tenant_id: int, intent: "operational_models.PaymentIntent", event_key: str, event_type: str, title: str, message: str, severity: str = "info") -> None:
+    """Payment status changes are real operational events too; the Trip Timeline
+    was previously silent about them even though bookings/cancellations already
+    appear there. Guarded on reservation.trip_id exactly like transition_reservation."""
+    reservation = db.get(operational_models.Reservation, intent.reservation_id)
+    if reservation is None or not reservation.trip_id:
+        return
+    operational_models.record_trip_event(db, tenant_id=tenant_id, trip_id=reservation.trip_id, reservation_id=reservation.id, event_key=event_key, event_type=event_type, source="system", title=title, message=message, severity=severity, deep_link=f"/manage-booking/{reservation.id}")
 
 
 def _verified_cancellation_quote(row: operational_models.Reservation) -> Optional[dict]:
@@ -768,6 +779,42 @@ def my_installment_plans(user: User = Depends(current_user), db: Session = Depen
     return [{"id": row.id, "title": row.title, "terms": json.loads(row.terms_json), "status": row.status} for row in rows]
 
 
+@app.get("/me/organization-credit")
+def my_organization_credit(user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
+    """Real Organization Credit accounts the current employee can fund a checkout from
+    (their own organization's, IRR only) with real ledger-derived balances. Distinct
+    from Wallet: available = limit_amount minus what's currently reserved/consumed."""
+    organization_ids = [a.organization_id for a in db.scalars(select(operational_models.EmployeeAssignment).where(operational_models.EmployeeAssignment.tenant_id == user.tenant_id, operational_models.EmployeeAssignment.user_id == user.id)).all()]
+    if not organization_ids: return []
+    rows = db.scalars(select(operational_models.CreditAccount).where(operational_models.CreditAccount.tenant_id == user.tenant_id, operational_models.CreditAccount.organization_id.in_(organization_ids))).all()
+    return [{"id": row.id, "organization_id": row.organization_id, "currency": row.currency, **operational_models.credit_balances(db, tenant_id=user.tenant_id, credit_account_id=row.id)} for row in rows]
+
+
+@app.post("/organizations/{organization_id}/credit-accounts", status_code=status.HTTP_201_CREATED)
+def create_credit_account(organization_id: str, data: CreditAccountCreateIn, user: User = Depends(require_permission("credit:manage")), db: Session = Depends(get_db)) -> dict:
+    if data.organization_id != organization_id: raise HTTPException(status_code=422, detail="سازمان مسیر و بدنه درخواست یکسان نیست")
+    organization = db.scalar(select(operational_models.Organization).where(operational_models.Organization.id == organization_id, operational_models.Organization.tenant_id == user.tenant_id))
+    if organization is None: raise HTTPException(status_code=404, detail="سازمان در این tenant وجود ندارد")
+    prior = db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id == user.tenant_id, operational_models.IdempotencyKey.scope == "credit_account.create", operational_models.IdempotencyKey.key == data.command_id))
+    if prior: return json.loads(prior.response_json or "{}")
+    row = db.scalar(select(operational_models.CreditAccount).where(operational_models.CreditAccount.tenant_id == user.tenant_id, operational_models.CreditAccount.organization_id == organization_id, operational_models.CreditAccount.currency == data.currency))
+    if row is None:
+        row = operational_models.CreditAccount(tenant_id=user.tenant_id, organization_id=organization_id, currency=data.currency, limit_amount=data.limit_amount)
+        db.add(row); db.flush()
+    response = {"id": row.id, "organization_id": row.organization_id, "currency": row.currency, **operational_models.credit_balances(db, tenant_id=user.tenant_id, credit_account_id=row.id)}
+    db.add(operational_models.IdempotencyKey(tenant_id=user.tenant_id, scope="credit_account.create", key=data.command_id, request_hash=_secure_hash(f"{organization_id}:{data.currency}"), response_json=json.dumps(response))); db.commit(); return response
+
+
+@app.post("/organization-credit/{credit_account_id}/commands")
+def organization_credit_command(credit_account_id: str, data: CreditCommandIn, user: User = Depends(require_permission("credit:manage")), db: Session = Depends(get_db)) -> dict:
+    try:
+        entry = operational_models.apply_organization_credit_command(db, tenant_id=user.tenant_id, credit_account_id=credit_account_id, command_id=data.command_id, entry_type=data.entry_type, amount=data.amount)
+        db.commit()
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {"entry_id": entry.id, "command_id": entry.command_id, **operational_models.credit_balances(db, tenant_id=user.tenant_id, credit_account_id=credit_account_id)}
+
+
 def _owned_support_scope(db: Session, user: User, reservation_id: Optional[str], trip_id: Optional[str]) -> None:
     if bool(reservation_id) == bool(trip_id): raise HTTPException(status_code=422, detail="دقیقاً یک سفر یا رزرو باید انتخاب شود")
     if reservation_id and db.scalar(select(operational_models.Reservation.id).where(operational_models.Reservation.id == reservation_id, operational_models.Reservation.tenant_id == user.tenant_id, operational_models.Reservation.user_id == user.id)) is None: raise HTTPException(status_code=404, detail="رزرو در این حساب وجود ندارد")
@@ -970,7 +1017,10 @@ def zarinpal_callback(state_token: str = Query(alias="state", min_length=20), au
     if claimed_amount != intent.amount: raise HTTPException(status_code=409, detail="مبلغ state با Payment Intent تطابق ندارد")
     if intent.provider_authority != authority: raise HTTPException(status_code=409, detail="Authority با Payment Intent تطابق ندارد")
     if callback_status != "OK":
-        if intent.status == "initiated": intent.status = "failed"; db.add(operational_models.OutboxEvent(tenant_id=tenant_id, aggregate_type="payment", aggregate_id=intent.id, event_type="payment.zarinpal.cancelled", payload_json="{}", correlation_id=str(uuid.uuid4()), idempotency_key=f"zarinpal-cancel:{authority}")); db.commit()
+        if intent.status == "initiated":
+            intent.status = "failed"; db.add(operational_models.OutboxEvent(tenant_id=tenant_id, aggregate_type="payment", aggregate_id=intent.id, event_type="payment.zarinpal.cancelled", payload_json="{}", correlation_id=str(uuid.uuid4()), idempotency_key=f"zarinpal-cancel:{authority}"))
+            _record_payment_trip_event(db, tenant_id=tenant_id, intent=intent, event_key=f"payment-failed:{authority}", event_type="payment.failed", title="پرداخت ناموفق بود", message=f"پرداخت رزرو در درگاه لغو یا ناموفق شد.", severity="warning")
+            db.commit()
         return {"status": "cancelled", "payment_status": intent.status}
     if intent.status == "captured" and intent.provider_capture_reference: return {"status": "duplicate", "payment_status": "captured", "ref_id": intent.provider_capture_reference}
     if intent.status != "initiated": raise HTTPException(status_code=409, detail="Payment Intent قابل verify نیست")
@@ -982,7 +1032,9 @@ def zarinpal_callback(state_token: str = Query(alias="state", min_length=20), au
     event_id = f"zarinpal:{authority}:{ref_id}"; prior = db.scalar(select(operational_models.PaymentEvent).where(operational_models.PaymentEvent.provider_key == "zarinpal", operational_models.PaymentEvent.provider_event_id == event_id))
     if prior: return {"status": "duplicate", "payment_status": intent.status, "ref_id": ref_id}
     intent.status = "captured"; intent.captured_amount = intent.amount; intent.provider_capture_reference = ref_id; intent.provider_reference = ref_id
-    db.add(operational_models.PaymentEvent(tenant_id=tenant_id, payment_intent_id=intent.id, provider_key="zarinpal", provider_event_id=event_id, event_type="captured", payload_hash=_secure_hash(f"{authority}:{intent.amount}:{ref_id}"))); db.add(operational_models.OutboxEvent(tenant_id=tenant_id, aggregate_type="payment", aggregate_id=intent.id, event_type="payment.zarinpal.captured", payload_json=json.dumps({"authority": authority, "ref_id": ref_id}), correlation_id=str(uuid.uuid4()), idempotency_key=event_id)); db.commit(); record_business_event("payment", "captured"); return {"status": "accepted", "payment_status": "captured", "ref_id": ref_id}
+    db.add(operational_models.PaymentEvent(tenant_id=tenant_id, payment_intent_id=intent.id, provider_key="zarinpal", provider_event_id=event_id, event_type="captured", payload_hash=_secure_hash(f"{authority}:{intent.amount}:{ref_id}"))); db.add(operational_models.OutboxEvent(tenant_id=tenant_id, aggregate_type="payment", aggregate_id=intent.id, event_type="payment.zarinpal.captured", payload_json=json.dumps({"authority": authority, "ref_id": ref_id}), correlation_id=str(uuid.uuid4()), idempotency_key=event_id))
+    _record_payment_trip_event(db, tenant_id=tenant_id, intent=intent, event_key=f"payment-captured:{event_id}", event_type="payment.captured", title="پرداخت با موفقیت انجام شد", message=f"مبلغ {intent.amount:,} {intent.currency} با موفقیت پرداخت شد.")
+    db.commit(); record_business_event("payment", "captured"); return {"status": "accepted", "payment_status": "captured", "ref_id": ref_id}
 
 
 @app.post("/payments/callback/{provider_key}")
@@ -1030,6 +1082,10 @@ async def payment_callback(provider_key: str, request: Request, x_payment_signat
         intent.status = target
         if target == "captured": intent.captured_amount = callback_amount
     db.add(operational_models.PaymentEvent(tenant_id=tenant_id, payment_intent_id=intent.id, provider_key=provider_key, provider_event_id=event_id, event_type=target, payload_hash=payload_hash))
+    _payment_event_titles = {"captured": ("پرداخت با موفقیت انجام شد", f"مبلغ {callback_amount:,} {intent.currency} با موفقیت پرداخت شد.", "info"), "failed": ("پرداخت ناموفق بود", "پرداخت رزرو ناموفق شد.", "warning"), "refund_succeeded": ("استرداد انجام شد", f"مبلغ {callback_amount:,} {intent.currency} به روش پرداخت اصلی بازگردانده شد.", "info")}
+    if target in _payment_event_titles:
+        title, message, severity = _payment_event_titles[target]
+        _record_payment_trip_event(db, tenant_id=tenant_id, intent=intent, event_key=f"payment-{target}:{event_id}", event_type=f"payment.{target}", title=title, message=message, severity=severity)
     db.commit()
     record_business_event("payment", target)
     return {"status": "accepted", "payment_status": intent.status}
@@ -1604,8 +1660,9 @@ def fulfill_reservation(reservation_id: str, data: FulfillmentIn, user: User = D
     voucher = operational_models.Voucher(tenant_id=user.tenant_id, reservation_id=reservation.id, status="issued", revision=1, document_reference=data.document_reference)
     db.add(voucher); db.flush()
     db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="voucher", aggregate_id=voucher.id, event_type="voucher.issued", payload_json=json.dumps({"reservation_id": reservation.id, "voucher_id": voucher.id}), correlation_id=str(uuid.uuid4()), idempotency_key=data.command_id))
+    invoice = _issue_invoice_for_reservation(db, reservation=reservation, tenant_id=user.tenant_id, actor_user_id=user.id, command_id=f"auto-invoice:{data.command_id}"[:120])
     db.commit(); record_business_event("booking", "issued")
-    return {"reservation": _reservation_output(reservation), "voucher": {"id": voucher.id, "status": voucher.status, "revision": voucher.revision}}
+    return {"reservation": _reservation_output(reservation), "voucher": {"id": voucher.id, "status": voucher.status, "revision": voucher.revision}, "invoice": _invoice_output(invoice) if invoice else None}
 
 
 @app.get("/reservations/{reservation_id}/history")
@@ -1965,6 +2022,29 @@ def _invoice_tax_policy() -> tuple[int, str]:
     return bps, reference
 
 
+def _issue_invoice_for_reservation(db: Session, *, reservation: "operational_models.Reservation", tenant_id: int, actor_user_id: int, command_id: str) -> Optional["operational_models.Invoice"]:
+    """Shared by the manual invoice:manage endpoint and the automatic issuance on
+    fulfillment. Returns None (does not raise) when the reservation isn't invoice-
+    ready or has no valid final IRR price yet - callers that need a hard failure
+    (the manual endpoint) raise on a None result themselves."""
+    prior = db.scalar(select(operational_models.Invoice).where(operational_models.Invoice.tenant_id == tenant_id, operational_models.Invoice.command_id == command_id))
+    if prior:
+        return prior
+    if reservation.status not in {"confirmed", "issued", "completed"}:
+        return None
+    try:
+        snapshot = json.loads(reservation.price_snapshot_json); subtotal = int(snapshot["total_amount"]); currency = str(snapshot.get("currency", "IRR"))
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+        return None
+    if subtotal <= 0 or currency != "IRR":
+        return None
+    tax_bps, tax_reference = _invoice_tax_policy(); tax_amount = subtotal * tax_bps // 10_000; total_amount = subtotal + tax_amount
+    number = f"KSI-{tenant_id}-{datetime.now(timezone.utc):%Y%m%d}-{secrets.token_hex(4).upper()}"
+    row = operational_models.Invoice(tenant_id=tenant_id, reservation_id=reservation.id, user_id=reservation.user_id, invoice_number=number, command_id=command_id, subtotal_amount=subtotal, tax_amount=tax_amount, total_amount=total_amount, currency=currency, snapshot_json=json.dumps({"reservation": _reservation_output(reservation), "tax_bps": tax_bps, "tax_policy_reference": tax_reference, "issued_by": actor_user_id}, sort_keys=True))
+    db.add(row); db.flush(); db.add(operational_models.OutboxEvent(tenant_id=tenant_id, aggregate_type="invoice", aggregate_id=row.id, event_type="invoice.issued", payload_json=json.dumps({"invoice_id": row.id, "reservation_id": reservation.id}), correlation_id=str(uuid.uuid4()), idempotency_key=command_id))
+    return row
+
+
 @app.post("/reservations/{reservation_id}/invoice", status_code=status.HTTP_201_CREATED)
 def issue_invoice(reservation_id: str, user: User = Depends(require_permission("invoice:manage")), db: Session = Depends(get_db), idempotency_key: str = Header(alias="Idempotency-Key", min_length=8, max_length=120)) -> dict:
     prior = db.scalar(select(operational_models.Invoice).where(operational_models.Invoice.tenant_id == user.tenant_id, operational_models.Invoice.command_id == idempotency_key))
@@ -1977,10 +2057,9 @@ def issue_invoice(reservation_id: str, user: User = Depends(require_permission("
     try: snapshot = json.loads(reservation.price_snapshot_json); subtotal = int(snapshot["total_amount"]); currency = str(snapshot.get("currency", "IRR"))
     except (KeyError, TypeError, ValueError, json.JSONDecodeError): raise HTTPException(status_code=409, detail="قیمت معتبر برای صورتحساب وجود ندارد")
     if subtotal <= 0 or currency != "IRR": raise HTTPException(status_code=409, detail="مبلغ معتبر ریالی برای صورتحساب وجود ندارد")
-    tax_bps, tax_reference = _invoice_tax_policy(); tax_amount = subtotal * tax_bps // 10_000; total_amount = subtotal + tax_amount
-    number = f"KSI-{user.tenant_id}-{datetime.now(timezone.utc):%Y%m%d}-{secrets.token_hex(4).upper()}"
-    row = operational_models.Invoice(tenant_id=user.tenant_id, reservation_id=reservation.id, user_id=reservation.user_id, invoice_number=number, command_id=idempotency_key, subtotal_amount=subtotal, tax_amount=tax_amount, total_amount=total_amount, currency=currency, snapshot_json=json.dumps({"reservation": _reservation_output(reservation), "tax_bps": tax_bps, "tax_policy_reference": tax_reference, "issued_by": user.id}, sort_keys=True))
-    db.add(row); db.flush(); db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="invoice", aggregate_id=row.id, event_type="invoice.issued", payload_json=json.dumps({"invoice_id": row.id, "reservation_id": reservation.id}), correlation_id=str(uuid.uuid4()), idempotency_key=idempotency_key)); db.commit(); return _invoice_output(row)
+    row = _issue_invoice_for_reservation(db, reservation=reservation, tenant_id=user.tenant_id, actor_user_id=user.id, command_id=idempotency_key)
+    if row is None: raise HTTPException(status_code=409, detail="صدور صورتحساب برای این رزرو ممکن نیست")
+    db.commit(); return _invoice_output(row)
 
 
 def _case_output(row: operational_models.SupportCase, messages: list[operational_models.SupportThreadMessage]) -> dict:
@@ -2418,14 +2497,19 @@ def advance_checkout(checkout_id: str, step: str, data: CheckoutStepIn, user: Us
         state["policy_acknowledged"] = True; state["policy_source"] = policy["source"]; row.stage = "policy"
     elif step == "funding":
         total = int(json.loads(reservation.price_snapshot_json).get("total_amount", 0))
-        if data.credit_amount: raise HTTPException(status_code=409, detail="حساب اعتبار سازمانی مشخص و معتبر برای این checkout انتخاب نشده است")
-        if data.wallet_amount > total: raise HTTPException(status_code=409, detail="مبلغ کیف پول از مبلغ رزرو بیشتر است")
+        if data.wallet_amount + data.credit_amount > total: raise HTTPException(status_code=409, detail="مجموع کیف پول و اعتبار سازمانی از مبلغ رزرو بیشتر است")
         if data.wallet_amount:
             wallet = db.scalar(select(operational_models.Wallet).where(operational_models.Wallet.tenant_id == user.tenant_id, operational_models.Wallet.owner_type == "user", operational_models.Wallet.owner_reference == str(user.id), operational_models.Wallet.currency == "IRR").with_for_update())
             if wallet is None: raise HTTPException(status_code=409, detail="کیف پول ریالی معتبر وجود ندارد")
             try: operational_models.apply_credit_command(db, tenant_id=user.tenant_id, wallet_id=wallet.id, command_id=f"checkout:{row.id}:wallet:{data.command_id}"[:80], entry_type="reserve", amount=data.wallet_amount, reservation_id=reservation.id)
             except ValueError as exc: raise HTTPException(status_code=409, detail="موجودی قابل استفاده کیف پول کافی نیست") from exc
-        state["funding"] = {"wallet_amount": data.wallet_amount, "credit_amount": 0, "payable_amount": total - data.wallet_amount}; row.stage = "funding"
+        if data.credit_amount:
+            organization_ids = [a.organization_id for a in db.scalars(select(operational_models.EmployeeAssignment).where(operational_models.EmployeeAssignment.tenant_id == user.tenant_id, operational_models.EmployeeAssignment.user_id == user.id)).all()]
+            credit_account = db.scalar(select(operational_models.CreditAccount).where(operational_models.CreditAccount.tenant_id == user.tenant_id, operational_models.CreditAccount.organization_id.in_(organization_ids), operational_models.CreditAccount.currency == "IRR").with_for_update()) if organization_ids else None
+            if credit_account is None: raise HTTPException(status_code=409, detail="حساب اعتبار سازمانی مشخص و معتبر برای این حساب وجود ندارد")
+            try: operational_models.apply_organization_credit_command(db, tenant_id=user.tenant_id, credit_account_id=credit_account.id, command_id=f"checkout:{row.id}:credit:{data.command_id}"[:80], entry_type="reserve", amount=data.credit_amount, reservation_id=reservation.id)
+            except ValueError as exc: raise HTTPException(status_code=409, detail="سقف اعتبار سازمانی کافی نیست") from exc
+        state["funding"] = {"wallet_amount": data.wallet_amount, "credit_amount": data.credit_amount, "payable_amount": total - data.wallet_amount - data.credit_amount}; row.stage = "funding"
     elif step == "invoice":
         price = json.loads(reservation.price_snapshot_json); state["invoice_preview"] = {"subtotal_amount": int(price["total_amount"]), "currency": price.get("currency", "IRR"), "final_invoice_after_confirmation": True}; row.stage = "invoice"
     elif step == "payment":
