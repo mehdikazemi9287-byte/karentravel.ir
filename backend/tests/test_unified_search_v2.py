@@ -109,3 +109,13 @@ def test_natural_language_foundation_budget_and_zero_result_recovery(client):
     assert zero["entities"] == [] and zero["zero_result_recovery"] and all(not item["fabricated_price"] for item in zero["zero_result_recovery"])
     budget = client.post("/search/budget-trips", headers=auth(token), json={"origin": "تهران", "destination": "شیراز", "travellers": 2, "budget": 10_000_000, "interests": ["تاریخی"]})
     assert budget.status_code == 200 and budget.json()["categories"]["ai_recommended"] is None
+
+
+def test_voice_transcribe_is_fail_closed_and_bounded(client):
+    token = login(client, 'employee@aftab.test')['access_token']
+    unauth = client.post('/search/voice/transcribe', files={'audio': ('voice.webm', b'RIFF....fake-audio....', 'audio/webm')})
+    assert unauth.status_code == 401
+    small = client.post('/search/voice/transcribe', headers=auth(token), files={'audio': ('voice.webm', b'small-fake-audio-bytes', 'audio/webm')})
+    assert small.status_code == 503 and small.json()['detail']['code'] == 'STT_PROVIDER_UNAVAILABLE'
+    oversized = client.post('/search/voice/transcribe', headers=auth(token), files={'audio': ('voice.webm', b'x' * (2 * 1024 * 1024 + 10), 'audio/webm')})
+    assert oversized.status_code == 413

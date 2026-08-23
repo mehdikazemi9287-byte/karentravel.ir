@@ -3,11 +3,15 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../lib/api/auth-context';
+import { parseTravelIntent, type NLIntent } from '../../lib/domain/nl-intent';
 
 type Suggestion={id:string;title:string;subtitle:string;entity_type:string;city?:string;country?:string;code?:string;source:string};
 type AutocompleteResponse={suggestions:Suggestion[]};
 type TripType='round_trip'|'one_way'|'multi_city';
 type Popover='origin'|'destination'|'dates'|'passengers'|null;
+type SpeechRecognitionResultLike={0:{transcript:string}};
+type SpeechRecognitionEventLike={results:SpeechRecognitionResultLike[]};
+type SpeechRecognitionLike={lang:string;interimResults:boolean;start():void;onresult:((event:SpeechRecognitionEventLike)=>void)|null;onerror:(()=>void)|null};
 
 const services=[
   {name:'پرواز',icon:'✈',vertical:'flight',origin:true,description:'پروازهای داخلی و خارجی'},
@@ -33,6 +37,52 @@ export function HomeSearchExperience(){
   const [origin,setOrigin]=useState('تهران'); const [destination,setDestination]=useState(service.vertical==='hotel'?'یزد':'شیراز');
   const [depart,setDepart]=useState('2026-09-15'); const [returnDate,setReturnDate]=useState('2026-09-18'); const [flexibility,setFlexibility]=useState('exact'); const [tripType,setTripType]=useState<TripType>('round_trip');
   const [adults,setAdults]=useState(2); const [children,setChildren]=useState(0); const [infants,setInfants]=useState(0); const [rooms,setRooms]=useState(1); const [cabin,setCabin]=useState('economy'); const [popover,setPopover]=useState<Popover>(null);
+  const {api,session}=useAuth();
+  const [nlOpen,setNlOpen]=useState(false); const [nlText,setNlText]=useState(''); const [nlIntent,setNlIntent]=useState<NLIntent|null>(null); const [nlRecording,setNlRecording]=useState(false); const [nlBusy,setNlBusy]=useState(false); const [nlError,setNlError]=useState('');
+  const nlRecorder=useRef<MediaRecorder|null>(null); const nlChunks=useRef<Blob[]>([]); const nlStopTimer=useRef<number|undefined>(undefined);
+  function nlSpeak(text:string){setNlText(text);setNlIntent(parseTravelIntent(text))}
+  async function nlUseTranscript(transcript:string){nlSpeak(transcript)}
+  function nlStopRecording(){nlRecorder.current?.state==='recording'&&nlRecorder.current.stop();if(nlStopTimer.current)window.clearTimeout(nlStopTimer.current)}
+  async function nlStartRecording(){
+    setNlError('');
+    if(!session){setNlError('برای دستیار صوتی ابتدا وارد شوید؛ فعلاً تایپ کن.');return}
+    if(typeof navigator==='undefined'||!navigator.mediaDevices?.getUserMedia){setNlError('مرورگر شما از ضبط صدا پشتیبانی نمی‌کند؛ لطفاً تایپ کن.');return}
+    try{
+      const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      const recorder=new MediaRecorder(stream); nlRecorder.current=recorder; nlChunks.current=[];
+      recorder.ondataavailable=event=>{if(event.data.size>0)nlChunks.current.push(event.data)};
+      recorder.onstop=async()=>{
+        stream.getTracks().forEach(track=>track.stop()); setNlRecording(false);
+        const blob=new Blob(nlChunks.current,{type:'audio/webm'}); nlChunks.current=[];
+        setNlBusy(true);
+        try{
+          const result=await api.postAudio<{transcript:string}>('/search/voice/transcribe',blob,'voice.webm');
+          await nlUseTranscript(result.transcript);
+        }catch{
+          const win=window as unknown as {SpeechRecognition?:new()=>SpeechRecognitionLike;webkitSpeechRecognition?:new()=>SpeechRecognitionLike};
+          const SpeechRecognitionCtor=win.SpeechRecognition??win.webkitSpeechRecognition;
+          if(SpeechRecognitionCtor){
+            setNlError('سرویس گفتار کارن‌سیر در دسترس نیست؛ در حال استفاده از تشخیص گفتار مرورگر…');
+            try{
+              const recognition=new SpeechRecognitionCtor(); recognition.lang='fa-IR'; recognition.interimResults=false;
+              recognition.onresult=(event)=>{void nlUseTranscript(event.results[0][0].transcript)};
+              recognition.onerror=()=>setNlError('تشخیص گفتار ناموفق بود؛ لطفاً تایپ کن.');
+              recognition.start();
+            }catch{setNlError('دستیار صوتی هنوز در دسترس نیست؛ لطفاً جمله سفر را تایپ کن.')}
+          } else setNlError('دستیار صوتی هنوز در دسترس نیست؛ لطفاً جمله سفر را تایپ کن.');
+        } finally{setNlBusy(false)}
+      };
+      recorder.start(); setNlRecording(true);
+      nlStopTimer.current=window.setTimeout(nlStopRecording,12000);
+    }catch{setNlError('اجازه دسترسی به میکروفون داده نشد؛ لطفاً تایپ کن.')}
+  }
+  function nlConfirm(){
+    if(!nlIntent)return;
+    const nlVertical=nlIntent.vertical??'hotel'; const nlIndex=services.findIndex(item=>item.vertical===nlVertical); if(nlIndex>=0)setActive(nlIndex);
+    const params=new URLSearchParams({vertical:nlVertical,origin:nlIntent.origin??'',destination:nlIntent.destination??'',depart:nlIntent.depart??depart,trip_type:'round_trip',flexibility:nlIntent.flexibility??'exact',adults:String(nlIntent.adults??adults),children:String(nlIntent.children??0),infants:'0',rooms:'1',cabin:'economy',sort:'recommended'});
+    if(nlIntent.budgetMax)params.set('filters_max_price',String(nlIntent.budgetMax));
+    router.push(`/search/results?${params.toString()}`);
+  }
   function changeService(index:number){setActive(index);setPopover(null);const next=services[index];setDestination(next.vertical==='hotel'||next.vertical==='vacation_rental'?'یزد':next.vertical==='cruise'?'دبی':next.vertical==='visa'?'فرانسه':next.vertical==='car_rental'?'شیراز':next.vertical==='tour'?'استانبول':'شیراز')}
   function submit(){const params=new URLSearchParams({vertical:service.vertical,origin:service.origin?origin:'',destination,depart,trip_type:tripType,flexibility,adults:String(adults),children:String(children),infants:String(infants),rooms:String(rooms),cabin,sort:'recommended'});if(tripType==='round_trip')params.set('return',returnDate);router.push(`/search/results?${params.toString()}`)}
   const travellerTotal=adults+children+infants;
@@ -50,6 +100,33 @@ export function HomeSearchExperience(){
       <div className="search-field"><button type="button" className="field-button" aria-expanded={popover==='passengers'} onClick={()=>setPopover(popover==='passengers'?null:'passengers')}><span>{service.vertical==='hotel'||service.vertical==='vacation_rental'?'اتاق و مهمان':'مسافران'}</span><b>{travellerTotal.toLocaleString('fa-IR')} مسافر{service.vertical==='hotel'||service.vertical==='vacation_rental'?`، ${rooms.toLocaleString('fa-IR')} اتاق`:''}</b><small>{service.vertical==='flight'?(cabin==='economy'?'اکونومی':'بیزینس'):'جزئیات مهمانان'}</small></button>{popover==='passengers'&&<div className="search-popover passenger-popover" aria-label="انتخاب مسافران">{([['بزرگسال','۱۲ سال به بالا',adults,setAdults,1],['کودک','۲ تا ۱۱ سال',children,setChildren,0],['نوزاد','کمتر از ۲ سال',infants,setInfants,0]] as const).map(([label,help,value,setter,min])=><div className="counter" key={label}><span><b>{label}</b><small>{help}</small></span><div><button type="button" aria-label={`کاهش ${label}`} disabled={value<=min} onClick={()=>setter(value-1)}>−</button><b>{value.toLocaleString('fa-IR')}</b><button type="button" aria-label={`افزایش ${label}`} onClick={()=>setter(value+1)}>+</button></div></div>)}{(service.vertical==='hotel'||service.vertical==='vacation_rental')&&<div className="counter"><span><b>اتاق</b><small>تعداد اتاق موردنیاز</small></span><div><button type="button" aria-label="کاهش اتاق" disabled={rooms<=1} onClick={()=>setRooms(rooms-1)}>−</button><b>{rooms.toLocaleString('fa-IR')}</b><button type="button" aria-label="افزایش اتاق" onClick={()=>setRooms(rooms+1)}>+</button></div></div>}{service.vertical==='flight'&&<label className="cabin-select"><span>کلاس پروازی</span><select aria-label="کلاس پروازی" value={cabin} onChange={event=>setCabin(event.target.value)}><option value="economy">اکونومی</option><option value="business">بیزینس</option></select></label>}<button type="button" className="popover-done" onClick={()=>setPopover(null)}>تأیید مسافران</button></div>}</div>
       <button type="button" className="button search-button" onClick={submit}>جست‌وجو</button>
     </div>
-    <div className="search-tools"><span>قیمت و موجودی فقط از Provider معتبر</span><span>استعلام مجدد پیش از خرید</span></div>
+    <div className="search-tools"><span>قیمت و موجودی فقط از Provider معتبر</span><span>استعلام مجدد پیش از خرید</span><button type="button" className="nl-toggle" onClick={()=>setNlOpen(value=>!value)} aria-expanded={nlOpen}><i aria-hidden="true">💬</i> با زبان خودت بگو</button></div>
+    {nlOpen&&<div className="nl-panel" aria-label="جست‌وجوی زبان طبیعی">
+      <div className="nl-input-row">
+        <textarea aria-label="سفرت را با جمله فارسی توصیف کن" placeholder="مثلاً: آخر شهریور برای دو نفر از تهران یه سفر چهار روزه به شیراز می‌خوام" value={nlText} onChange={event=>{setNlText(event.target.value);setNlIntent(null)}} rows={2}/>
+        <button type="button" className={`nl-mic ${nlRecording?'recording':''}`} onClick={nlRecording?nlStopRecording:nlStartRecording} aria-pressed={nlRecording} aria-label={nlRecording?'پایان ضبط صدا':'شروع ضبط صدا با میکروفون'} disabled={nlBusy}><i aria-hidden="true">🎙</i></button>
+      </div>
+      {nlBusy&&<small className="nl-status">در حال پردازش صدا…</small>}
+      {nlError&&<small className="nl-status nl-error" role="alert">{nlError}</small>}
+      {!nlIntent&&<button type="button" className="button secondary nl-parse" onClick={()=>nlSpeak(nlText)} disabled={!nlText.trim()}>تحلیل جمله</button>}
+      {nlIntent&&<div className="nl-confirm" role="status">
+        <p>من این‌طور متوجه شدم:</p>
+        <div className="nl-chips">
+          {nlIntent.origin&&<span>مبدأ: {nlIntent.origin}</span>}
+          {nlIntent.destination?<span>مقصد: {nlIntent.destination}</span>:<span className="nl-missing">مقصد نامشخص</span>}
+          {(nlIntent.adults??0)>0&&<span>{nlIntent.adults} نفر{nlIntent.children?` و ${nlIntent.children} کودک`:''}</span>}
+          {nlIntent.nights&&<span>{nlIntent.nights} شب</span>}
+          {nlIntent.dateHint&&<span>{nlIntent.dateHint}</span>}
+          {nlIntent.budgetMax&&<span>بودجه تا {(nlIntent.budgetMax/1_000_000).toLocaleString('fa-IR')} میلیون</span>}
+          {nlIntent.vertical&&<span>{services.find(item=>item.vertical===nlIntent.vertical)?.name??nlIntent.vertical}</span>}
+        </div>
+        {nlIntent.missing.includes('destination')&&<small className="nl-status">مقصد را متوجه نشدم؛ لطفاً نام شهر را اضافه کن.</small>}
+        <div className="nl-actions">
+          <button type="button" className="button primary" onClick={nlConfirm} disabled={!nlIntent.destination}>جست‌وجو</button>
+          <button type="button" className="button secondary" onClick={()=>setNlIntent(null)}>ویرایش</button>
+          <button type="button" className="button secondary" onClick={()=>{setNlText('');setNlIntent(null)}}>دوباره بگو</button>
+        </div>
+      </div>}
+    </div>}
   </section>
 }

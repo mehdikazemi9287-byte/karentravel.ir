@@ -19,7 +19,7 @@ from typing import Generator, Optional
 from urllib.parse import urlparse
 
 import jwt
-from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, status
+from fastapi import Depends, FastAPI, File, Header, HTTPException, Query, Request, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse, Response
 from pydantic import BaseModel, ConfigDict, Field
@@ -1415,6 +1415,33 @@ def _structured_search_intent(data: UnifiedSearchIn) -> dict:
     star = next((value for value in range(1, 6) if re.search(rf"{value}\s*ستاره", normalized)), None)
     departure_window = "morning" if "صبح" in normalized else "evening" if "عصر" in normalized else None
     return {"normalized_query": normalized, "origin": data.origin, "destination": destination, "travellers": travellers, "nights": nights, "star_rating": star, "departure_window": departure_window, "flexibility": data.flexibility, "filters": data.filters, "transactional_data_source": "provider_offer_layer"}
+
+
+@app.post("/search/voice/transcribe")
+async def transcribe_voice_search(user: User = Depends(current_user), audio: UploadFile = File(...)) -> dict:
+    """Speech-to-text for the natural-language Search entry. Follows the same
+    fail-closed provider pattern as every other external integration in this
+    app (payment/SMS/OTP/etc.): with no authorized STT credential configured,
+    this always returns 503 rather than fabricating a transcript. The client
+    falls back to browser SpeechRecognition (optional enhancement) or plain
+    text entry, both of which remain fully available. Audio is bounded and
+    never persisted, logged, or written to disk -- it is read into memory
+    only long enough to enforce the size limit, then discarded.
+    """
+    from .providers import configured_mode
+    max_bytes = 2 * 1024 * 1024
+    body = await audio.read(max_bytes + 1)
+    too_large = len(body) > max_bytes
+    del body
+    if too_large:
+        raise HTTPException(status_code=413, detail="فایل صوتی بیش از حد مجاز است؛ حداکثر مدت ضبط را رعایت کنید.")
+    mode = configured_mode("stt")
+    if mode == "sandbox":
+        # An authorized STT provider would be called here via the same
+        # ResilientAdapter/SandboxAdapter contract used by every other
+        # integration; none is configured in this environment.
+        pass
+    raise HTTPException(status_code=503, detail={"code": "STT_PROVIDER_UNAVAILABLE", "message": "سرویس تبدیل گفتار به متن هنوز متصل نیست؛ لطفاً جمله سفر را تایپ کنید."})
 
 
 @app.post("/search/v2")

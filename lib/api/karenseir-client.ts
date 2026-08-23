@@ -68,6 +68,11 @@ export class KarenSeirApi {
   async put<T>(path: string, body: unknown) {
     return this.request<T>(path, { method: 'PUT', body: JSON.stringify(body) });
   }
+  async postAudio<T>(path: string, blob: Blob, filename: string) {
+    const form = new FormData();
+    form.append('audio', blob, filename);
+    return this.request<T>(path, { method: 'POST', body: form }, true, true, true);
+  }
   async delete<T>(path: string, body: unknown) {
     return this.request<T>(path, { method: 'DELETE', body: JSON.stringify(body) });
   }
@@ -78,9 +83,9 @@ export class KarenSeirApi {
     this.setSession({ ...this.session, ...next });
   }
 
-  private async request<T>(path: string, init: RequestInit = {}, authenticated = true, retry = true): Promise<T> {
+  private async request<T>(path: string, init: RequestInit = {}, authenticated = true, retry = true, isMultipart = false): Promise<T> {
     const headers = new Headers(init.headers);
-    headers.set('Content-Type', 'application/json');
+    if (!isMultipart) headers.set('Content-Type', 'application/json');
     headers.set('X-Correlation-ID', newId());
     if (authenticated) {
       if (!this.session) throw new ApiError(401, 'برای ادامه وارد شوید.');
@@ -89,7 +94,7 @@ export class KarenSeirApi {
     const response = await fetch(`${this.baseUrl}${path}`, { ...init, headers });
     if (response.status === 401 && authenticated && retry && this.session?.refresh_token) {
       await this.refresh();
-      return this.request<T>(path, init, true, false);
+      return this.request<T>(path, init, true, false, isMultipart);
     }
     if (!response.ok) {
       let message = 'ارتباط با سرویس انجام نشد.';
