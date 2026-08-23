@@ -516,6 +516,7 @@ class Reservation(OperationalMixin, Base):
     booking_reference: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, unique=True)
     price_check_id: Mapped[Optional[str]] = mapped_column(ForeignKey("price_checks.id"), nullable=True, index=True)
     confirmed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    trip_id: Mapped[Optional[str]] = mapped_column(ForeignKey("trips.id"), nullable=True, index=True)
 
 
 class CheckoutSession(OperationalMixin, Base):
@@ -888,6 +889,40 @@ BOOKING_TRANSITIONS = {
 }
 
 
+TRIP_STATUS_TITLES = {
+    "pending": "در انتظار تأیید", "reserved": "رزرو شد", "awaiting_payment": "در انتظار پرداخت",
+    "confirmed": "تأیید شد", "issued": "صادر شد", "completed": "تکمیل شد",
+    "cancel_requested": "درخواست کنسلی ثبت شد", "change_requested": "درخواست تغییر ثبت شد",
+    "refund_requested": "درخواست استرداد ثبت شد", "cancelled": "کنسل شد",
+    "changed": "تغییر یافت", "refunded": "استرداد شد", "failed": "ناموفق شد", "expired": "منقضی شد",
+}
+
+
+def ensure_trip_for_reservation(db: Session, reservation: Reservation, *, title: str, destination: str, origin: Optional[str] = None, starts_at: Optional[datetime] = None, ends_at: Optional[datetime] = None) -> "Trip":
+    """Find-or-create the Trip a reservation belongs to. One reservation
+    always maps to exactly one trip; this is what turns a booking into
+    something that shows up in My Trips / Trip Timeline instead of just
+    existing as an isolated Reservation row."""
+    if reservation.trip_id:
+        existing = db.get(Trip, reservation.trip_id)
+        if existing is not None:
+            return existing
+    trip = Trip(tenant_id=reservation.tenant_id, user_id=reservation.user_id, title=title, origin=origin, destination=destination, starts_at=starts_at, ends_at=ends_at, status="planned")
+    db.add(trip); db.flush()
+    reservation.trip_id = trip.id
+    return trip
+
+
+def record_trip_event(db: Session, *, tenant_id: int, trip_id: str, event_key: str, event_type: str, source: str, title: str, message: str, reservation_id: Optional[str] = None, severity: str = "info", requires_action: bool = False, deep_link: Optional[str] = None) -> None:
+    """Append one Trip Timeline entry, idempotently (same event_key is a
+    no-op). `source` must be one of system/ai/human_agent/provider so the
+    timeline can honestly distinguish who/what made the change."""
+    exists = db.scalar(select(TripEventRecord.id).where(TripEventRecord.tenant_id == tenant_id, TripEventRecord.event_key == event_key))
+    if exists:
+        return
+    db.add(TripEventRecord(tenant_id=tenant_id, trip_id=trip_id, reservation_id=reservation_id, event_key=event_key, event_type=event_type, source=source, title=title, message=message, severity=severity, requires_action=requires_action, effective_at=utcnow(), deep_link=deep_link))
+
+
 def transition_reservation(db: Session, reservation: Reservation, target: str, actor_id: int, command_id: str) -> Reservation:
     prior = next((item for item in db.new if isinstance(item, IdempotencyKey) and item.tenant_id == reservation.tenant_id and item.scope == "reservation.transition" and item.key == command_id), None)
     if prior is None:
@@ -902,6 +937,9 @@ def transition_reservation(db: Session, reservation: Reservation, target: str, a
     db.add(IdempotencyKey(tenant_id=reservation.tenant_id, scope="reservation.transition", key=command_id, request_hash=f"{reservation.id}:{target}", response_json=json.dumps({"status": target})))
     db.add(OutboxEvent(tenant_id=reservation.tenant_id, aggregate_type="reservation", aggregate_id=reservation.id, event_type=f"reservation.{target}", payload_json=json.dumps({"actor_id": actor_id, "status": target})))
     db.add(BookingStatusHistory(tenant_id=reservation.tenant_id, reservation_id=reservation.id, from_status=previous, to_status=target, actor_id=actor_id, command_id=command_id))
+    if reservation.trip_id:
+        label = TRIP_STATUS_TITLES.get(target, target)
+        record_trip_event(db, tenant_id=reservation.tenant_id, trip_id=reservation.trip_id, reservation_id=reservation.id, event_key=f"reservation-transition:{command_id}", event_type=f"reservation.{target}", source="system", title=label, message=f"وضعیت رزرو {reservation.booking_reference or reservation.id} از «{TRIP_STATUS_TITLES.get(previous, previous)}» به «{label}» تغییر کرد.", severity="warning" if target in {"cancel_requested", "cancelled", "failed", "expired"} else "info", requires_action=target in {"cancel_requested", "change_requested", "refund_requested"}, deep_link=f"/manage-booking/{reservation.id}")
     return reservation
 
 

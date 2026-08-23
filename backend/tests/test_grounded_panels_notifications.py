@@ -127,7 +127,11 @@ def test_authenticated_frontend_read_models_are_tenant_and_role_scoped(client):
         organization = Organization(tenant_id=aftab_user.tenant_id, name="سازمان آفتاب", status="active")
         db.add_all([own_trip, hidden_trip, own_notice, hidden_notice, organization]); db.commit()
     trips = client.get("/me/trips", headers=auth(employee["access_token"]))
-    assert trips.status_code == 200 and [row["title"] for row in trips.json()] == ["سفر معتبر آفتاب"]
+    trip_titles = [row["title"] for row in trips.json()]
+    # Bookings elsewhere in this test session now auto-create real Trip rows for this same seeded
+    # user (post-booking journey wiring), so assert own trip is visible and the cross-tenant trip
+    # is never leaked, rather than an exact list (which previously only held this manual fixture).
+    assert trips.status_code == 200 and "سفر معتبر آفتاب" in trip_titles and "سفر محرمانه فراز" not in trip_titles
     notices = client.get("/me/notifications", headers=auth(employee["access_token"]))
     assert notices.status_code == 200 and all(row["title"] != "اعلان فراز" for row in notices.json())
     overview = client.get("/organization/overview", headers=auth(organization_admin["access_token"]))
