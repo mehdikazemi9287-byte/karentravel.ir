@@ -153,11 +153,11 @@
       "evidence": "docker logs karenseir-worker-1; notification_delivery_attempts push: not_sent(5)->retry(5); outbox_events: 56 pending -> 56 retry, attempts=1 each"
     },
     "sms_notifications": {
-      "status": "BROKEN",
-      "reason": "outbox_worker is now running, but its process_batch() hardcodes ADAPTERS['push'] and only updates NotificationDeliveryAttempt rows where channel=='push' - it does not process the sms channel at all, regardless of worker uptime or credentials. Confirmed live: sms notification_delivery_attempts remained not_sent(5), completely untouched, after the worker drained the entire outbox backlog. This is a real code gap, distinct from and independent of the missing SMS credential.",
-      "blocker": "internal: outbox_worker.py has no sms channel handling (code gap, not a config/credential issue); SMS provider credential is also still missing",
+      "status": "READY_BLOCKED_EXTERNAL",
+      "reason": "outbox_worker now processes the sms channel independently, alongside push, using the same fail-closed DisabledMockAdapter contract, sharing the OutboxEvent's attempts/backoff/dead-letter schedule. Live-verified on a real, pre-existing (not fabricated) outbox event: sms delivery attempt transitioned retry(attempts=4) -> dead_letter(attempts=5), error_code=external_provider_not_configured, in lockstep with push's identical transition, never delivered. The internal code gap (worker never touched channel=='sms') is closed; only the external SMS provider credential remains missing.",
+      "blocker": "SMS provider credential",
       "last_verified_at": "2026-08-24",
-      "evidence": "backend/app/outbox_worker.py process_batch(); notification_delivery_attempts sms: not_sent(5), unchanged after worker activation"
+      "evidence": "commit cda6027; backend/tests/test_outbox_worker.py (6/6 pass); live DB: outbox_events/notification_delivery_attempts on event 8e1efe1e-6172-4bac-b306-158b5d390c96"
     },
     "ai_travel_assistant": {
       "status": "NOT_STARTED",
