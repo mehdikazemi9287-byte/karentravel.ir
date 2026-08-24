@@ -1,28 +1,25 @@
 {
-  "generated_at_utc": "2026-08-24T18:41:15Z",
+  "generated_at_utc": "2026-08-24T19:09:07Z",
   "generator": "deploy/generate_release_manifest.py",
   "source_checksum_algorithm": "sha256-of-git-ls-tree",
-  "source_checksum": "14298d8b2c9fdfbf767e51c35b9301c7a6960cdadb78b4269b5700ce88ea28cf",
-  "git_commit": "1875dad8c946b0011a357f8bb5a96fc9e2334035",
+  "source_checksum": "d5ce94cf65ae6322a20da5537d2bf53e1711665c0dbd7f7111dd36871ddffb53",
+  "git_commit": "8b0dfda8c046148e80534b6de89d1d9fc439e291",
   "migration_head": "20260823_19",
   "environment": "production",
   "frontend": {
     "container": "karenseir-frontend-1",
-    "image_id": "sha256:3b6dbcfa71bc0945f2f7ef0d244dda242cb3204493e769e2f74a116198243311",
-    "build_git_commit": null,
-    "build_timestamp_utc": null,
-    "matches_source_commit": false
+    "image_id": "sha256:9c158f16ae147af21a5c097c460a13ab5671bdd640af2e3bd044d93b707b72dc",
+    "build_git_commit": "8b0dfda8c046148e80534b6de89d1d9fc439e291",
+    "build_timestamp_utc": "2026-08-24T18:57:43Z",
+    "matches_source_commit": true
   },
   "api": {
     "container": "karenseir-api-1",
-    "image_id": "sha256:3c16e73e7673184edb5ecd5fd2ea4327544b6751c27719e86ad8a864e5e65a0f",
-    "build_git_commit": null,
-    "build_timestamp_utc": null,
-    "matches_source_commit": false
+    "image_id": "sha256:4cbd3a9978c461065ac744ea8a9b4373d8e2cabc59e332ce852c3b932e10ba50",
+    "build_git_commit": "8b0dfda8c046148e80534b6de89d1d9fc439e291",
+    "build_timestamp_utc": "2026-08-24T18:57:43Z",
+    "matches_source_commit": true
   },
-  "provenance_complete": false,
-  "provenance_incomplete_reasons": [
-    "frontend build_info.json missing or commit mismatch (image predates this fingerprint mechanism, or was not rebuilt after a source change)",
-    "api build_info.json missing or commit mismatch (image predates this fingerprint mechanism, or was not rebuilt after a source change)"
-  ]
+  "provenance_complete": true,
+  "provenance_incomplete_reasons": []
 }
