@@ -47,13 +47,35 @@ def process_batch(limit: int = 50, *, adapter=None) -> int:
             notification_id = payload.get("notification_id")
             if notification_id:
                 notification = db.scalar(select(NotificationRecord).where(NotificationRecord.id == notification_id, NotificationRecord.tenant_id == event.tenant_id))
-                attempt = db.scalar(select(NotificationDeliveryAttempt).where(NotificationDeliveryAttempt.notification_id == notification_id, NotificationDeliveryAttempt.tenant_id == event.tenant_id, NotificationDeliveryAttempt.channel == "push"))
+                push_attempt = db.scalar(select(NotificationDeliveryAttempt).where(NotificationDeliveryAttempt.notification_id == notification_id, NotificationDeliveryAttempt.tenant_id == event.tenant_id, NotificationDeliveryAttempt.channel == "push"))
+                sms_attempt = db.scalar(select(NotificationDeliveryAttempt).where(NotificationDeliveryAttempt.notification_id == notification_id, NotificationDeliveryAttempt.tenant_id == event.tenant_id, NotificationDeliveryAttempt.channel == "sms"))
                 if notification:
                     notification.status = event.status
-                if attempt:
-                    attempt.attempt = event.attempts
-                    attempt.status = event.status
-                    attempt.error_code = None if result["ok"] else result["reason"]
+                if push_attempt:
+                    push_attempt.attempt = event.attempts
+                    push_attempt.status = event.status
+                    push_attempt.error_code = None if result["ok"] else result["reason"]
+                if sms_attempt:
+                    # SMS goes through the exact same fail-closed adapter contract as
+                    # push (DisabledMockAdapter: never fabricates delivery), called
+                    # independently so an sms-specific outage/credential is never
+                    # conflated with push's own result. It shares the OutboxEvent's
+                    # attempts/backoff/dead-letter schedule rather than having its own
+                    # (no per-channel attempts column exists - adding one would be a
+                    # schema change, deliberately avoided). Documented tradeoff: if
+                    # push ever starts succeeding while sms still can't, sms stops
+                    # being retried once the event reaches "delivered". Not reachable
+                    # today - push has no configured provider either, so both channels
+                    # retry in lockstep for as long as both remain unconfigured.
+                    sms_result = ADAPTERS["sms"].execute("publish_outbox", {"event_id": event.id}, ProviderContext(event.tenant_id, event.correlation_id or event.id, event.idempotency_key or event.id))
+                    sms_attempt.attempt = event.attempts
+                    if sms_result["ok"]:
+                        sms_attempt.status = "delivered"
+                    elif event.attempts >= 5:
+                        sms_attempt.status = "dead_letter"
+                    else:
+                        sms_attempt.status = "retry"
+                    sms_attempt.error_code = None if sms_result["ok"] else sms_result["reason"]
             processed += 1
         db.commit()
         set_gauge("karenseir_outbox_queue_depth", db.scalar(select(func.count()).select_from(OutboxEvent).where(OutboxEvent.status.in_(["pending", "retry"]))) or 0)
