@@ -146,18 +146,18 @@
       "evidence": "backend/app/operations.py ingest_trip_event(); pg_class spot check"
     },
     "push_notifications": {
-      "status": "BROKEN",
-      "reason": "NotificationDeliveryAttempt rows are created with status not_sent and an OutboxEvent is enqueued, but no process in production ever drains it - docker exec karenseir-api-1 ps shows only uvicorn, outbox_worker.py is never invoked anywhere",
-      "blocker": "outbox_worker.py needs to be deployed as its own process/container",
+      "status": "READY_BLOCKED_EXTERNAL",
+      "reason": "outbox_worker now deployed (karenseir-worker-1) and actively processing: 56-event real backlog drained in one pass, each event processed exactly once (SELECT FOR UPDATE SKIP LOCKED verified - no duplicates), landed in retry (not fabricated delivered) because no push provider is configured. Internal defect (worker not running) is resolved; only the external credential remains missing.",
+      "blocker": "push provider credential (NOTIFICATION_PROVIDER_MODE/PUSH_PROVIDER_MODE still disabled by design)",
       "last_verified_at": "2026-08-24",
-      "evidence": "backend/app/outbox_worker.py; process list on karenseir-api-1; zero other references to outbox_worker in source"
+      "evidence": "docker logs karenseir-worker-1; notification_delivery_attempts push: not_sent(5)->retry(5); outbox_events: 56 pending -> 56 retry, attempts=1 each"
     },
     "sms_notifications": {
       "status": "BROKEN",
-      "reason": "Same undeployed-outbox-worker defect as push_notifications, compounded by no SMS provider credential",
-      "blocker": "outbox_worker.py not deployed AND SMS provider credential missing",
+      "reason": "outbox_worker is now running, but its process_batch() hardcodes ADAPTERS['push'] and only updates NotificationDeliveryAttempt rows where channel=='push' - it does not process the sms channel at all, regardless of worker uptime or credentials. Confirmed live: sms notification_delivery_attempts remained not_sent(5), completely untouched, after the worker drained the entire outbox backlog. This is a real code gap, distinct from and independent of the missing SMS credential.",
+      "blocker": "internal: outbox_worker.py has no sms channel handling (code gap, not a config/credential issue); SMS provider credential is also still missing",
       "last_verified_at": "2026-08-24",
-      "evidence": "same as push_notifications"
+      "evidence": "backend/app/outbox_worker.py process_batch(); notification_delivery_attempts sms: not_sent(5), unchanged after worker activation"
     },
     "ai_travel_assistant": {
       "status": "NOT_STARTED",
