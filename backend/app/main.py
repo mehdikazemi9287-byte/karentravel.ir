@@ -33,6 +33,7 @@ from .observability import configure_logging, prometheus_metrics, record_busines
 from .rate_limit import InMemoryRateLimiter, RedisRateLimiter, fingerprint
 from .security import role_has_permission
 from .providers import configured_adapter, validate_provider_modes
+from .version import read_build_info
 
 JWT_SECRET = read_secret("JWT_SECRET", "development-only-change-before-production")
 JWT_ISSUER = os.getenv("JWT_ISSUER", "karenseir-api")
@@ -473,6 +474,11 @@ async def unhandled_exception(request: Request, exc: Exception):
 
 @app.get("/health")
 def health() -> dict: return {"status":"ok","service":"karenseir-api","environment":ENVIRONMENT}
+@app.get("/system/version")
+def system_version(db: Session = Depends(get_db)) -> dict:
+    build_info = read_build_info()
+    migration_head = db.execute(text("SELECT version_num FROM alembic_version")).scalar()
+    return {"service":"karenseir-api","environment":ENVIRONMENT,"git_commit":build_info["git_commit"],"build_timestamp_utc":build_info["build_timestamp_utc"],"migration_head":migration_head}
 @app.get("/metrics", response_class=PlainTextResponse)
 def metrics() -> str: return prometheus_metrics()
 @app.get("/ready")

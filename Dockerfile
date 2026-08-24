@@ -7,10 +7,13 @@ FROM node:20-alpine AS build
 WORKDIR /app
 ARG NEXT_PUBLIC_API_URL=http://localhost:8000
 ARG ALLOW_HTTP_PREVIEW=""
+ARG GIT_COMMIT=unknown
+ARG BUILD_TIMESTAMP=unknown
 ENV NEXT_TELEMETRY_DISABLED=1 NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL} ALLOW_HTTP_PREVIEW=${ALLOW_HTTP_PREVIEW}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
+RUN printf '{"git_commit": "%s", "build_timestamp_utc": "%s"}\n' "$GIT_COMMIT" "$BUILD_TIMESTAMP" > ./public/build_info.json
 
 FROM node:20-alpine AS runtime
 WORKDIR /app
