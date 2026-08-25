@@ -1544,6 +1544,45 @@ def unified_search(data: UnifiedSearchIn, user: User = Depends(current_user), db
     return {"structured_query": intent, "entities": page_items, "pagination": {"page": data.page, "page_size": data.page_size, "total": len(entities)}, "freshness_policy": "provider_and_vertical_specific", "availability_recheck_required_before_checkout": True, "price_recheck_required_before_checkout": True, "zero_result_recovery": recovery, "provider_diagnostics": [{"provider": key, "status": "available", "offer_count": sum(1 for item in offers if item["provider"] == key)} for key in sorted({item["provider"] for item in offers})], "elapsed_ms": round((time.perf_counter() - started) * 1000, 3)}
 
 
+_PUBLIC_SEARCH_TENANT_SLUG = "karenseir-public"
+_PUBLIC_SEARCH_IDENTITY_ROLE = "public_search_identity"
+_PUBLIC_SAFE_OFFER_KEYS = {"id", "offer_id", "entity_id", "service_type", "title", "provider", "provider_status", "freshness", "freshness_state", "observed_at", "availability_state", "inventory_status", "available", "cancellation_policy", "policy_verified", "review_score", "location", "attributes", "ranking_explanation"}
+
+
+def _public_search_identity(db: Session) -> User:
+    """Anonymous discovery runs as a real, seeded system identity scoped to the
+    dedicated public-catalog tenant — never a corporate tenant. If that tenant/
+    identity has not been seeded yet, discovery is unavailable (fail closed),
+    never silently falls back to a private tenant."""
+    tenant = db.scalar(select(Tenant).where(Tenant.slug == _PUBLIC_SEARCH_TENANT_SLUG))
+    if tenant is None:
+        raise HTTPException(status_code=503, detail="کاتالوگ عمومی هنوز راه‌اندازی نشده است")
+    set_tenant_context(db, tenant.id)
+    identity = db.scalar(select(User).where(User.tenant_id == tenant.id, User.role == _PUBLIC_SEARCH_IDENTITY_ROLE))
+    if identity is None:
+        raise HTTPException(status_code=503, detail="کاتالوگ عمومی هنوز راه‌اندازی نشده است")
+    return identity
+
+
+def _project_public_offer(offer: dict) -> dict:
+    return {key: value for key, value in offer.items() if key in _PUBLIC_SAFE_OFFER_KEYS}
+
+
+@app.post("/search/v2/public")
+def unified_search_public(data: UnifiedSearchIn, db: Session = Depends(get_db)) -> dict:
+    """Anonymous discovery. Reuses the exact Search v2 engine (unified_search) —
+    no parallel search implementation — scoped only to the public-catalog tenant,
+    then strips negotiated-price/eligibility fields before returning. A corporate
+    tenant (e.g. aftab-bank, faraz-industries) is never read by this path."""
+    identity = _public_search_identity(db)
+    result = unified_search(data, identity, db)
+    for entity in result["entities"]:
+        entity["offers"] = [_project_public_offer(offer) for offer in entity["offers"]]
+        entity["best_offer"] = _project_public_offer(entity["best_offer"])
+    result["tenant_data_included"] = False
+    return result
+
+
 @app.post("/search/saved", status_code=status.HTTP_201_CREATED)
 def save_search(data: SavedSearchIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
     encoded = json.dumps(data.query, sort_keys=True, separators=(",", ":")); query_hash = _secure_hash(encoded)
