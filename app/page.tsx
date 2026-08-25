@@ -1,10 +1,11 @@
 'use client';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { ConnectedCompare, ConnectedOrganization, ConnectedRolePanel } from '../components/operational/ConnectedViews';
 import { HomeSearchExperience } from '../components/search/HomeSearchExperience';
+import { UnifiedSearchView } from '../components/operational/UnifiedSearchView';
 
 const hotels = [
   { name: 'هتل پارسیان آزادی', city: 'تهران', score: '۴.۷', price: '۷٬۸۵۰٬۰۰۰', image: '/images/figma/trip-north.jpeg', tag: 'بهترین کیفیت' },
@@ -40,7 +41,18 @@ const destinations=[
   {name:'ماسوله',caption:'خانه‌های رو به مه',image:'/images/figma/trip-north.jpeg',className:'masuleh'},
 ];
 function HomeHeader(){return <header className="ref-header"><div className="ref-container"><Brand/><nav aria-label="ناوبری صفحه اصلی"><a href="#home-services">خدمات</a><Link href="/trips">سفرهای من</Link><Link href="/nearby?trip=mock-shiraz-1405">اطراف من</Link><Link href="/organization">سازمانی</Link></nav><div><Link href="/assistant" className="ref-help">پشتیبانی</Link><Link href="/employee" className="ref-login">ورود / ثبت‌نام</Link></div></div></header>}
-function ReferenceHero(){return <><section className="ref-hero"><Image src="/images/home/hero-yazd.png" fill priority sizes="100vw" alt="مسافری در میان بادگیرها و معماری خشتی یزد"/><div className="ref-hero-shade"/><div className="ref-hero-copy"><span>ایران را دوباره کشف کن</span><h1>سفر را<br/><em>زندگی کن</em></h1><p>هر مقصد، قصه‌ای تازه است؛ قصه‌ای که با کارن‌سیر از همین‌جا آغاز می‌شود.</p></div><div className="ref-hero-stamp"><b>یزد</b><span>شهر بادگیرها</span></div></section><div className="ref-search-shell"><HomeSearchExperience/><div className="search-human-help"><span><b>نیاز به راهنمایی داری؟</b><small>کارشناس انسانی، جدا از دستیار هوشمند</small></span><Link href="/support?channel=expert">صحبت با کارشناس</Link></div></div></>}
+function SearchResultsSlot(){
+  // Renders the same UnifiedSearchView used at /search/results, inline,
+  // directly beneath the Homepage search form - only once a real search has
+  // been submitted (presence of `destination` in the URL is the same signal
+  // HomeSearchExperience always sets). No second engine, no duplicated
+  // logic: this is the exact same component, just embedded in place instead
+  // of navigating to a separate route.
+  const searchParams=useSearchParams();
+  if(searchParams.get('destination')===null)return null;
+  return <UnifiedSearchView embedded/>;
+}
+function ReferenceHero(){return <><section className="ref-hero"><Image src="/images/home/hero-yazd.png" fill priority sizes="100vw" alt="مسافری در میان بادگیرها و معماری خشتی یزد"/><div className="ref-hero-shade"/><div className="ref-hero-copy"><span>ایران را دوباره کشف کن</span><h1>سفر را<br/><em>زندگی کن</em></h1><p>هر مقصد، قصه‌ای تازه است؛ قصه‌ای که با کارن‌سیر از همین‌جا آغاز می‌شود.</p></div><div className="ref-hero-stamp"><b>یزد</b><span>شهر بادگیرها</span></div></section><div className="ref-search-shell"><HomeSearchExperience/><Suspense fallback={null}><SearchResultsSlot/></Suspense><div className="search-human-help"><span><b>نیاز به راهنمایی داری؟</b><small>کارشناس انسانی، جدا از دستیار هوشمند</small></span><Link href="/support?channel=expert">صحبت با کارشناس</Link></div></div></>}
 const homeServiceGroups=[['✓','قبل از سفر','بیمه، ویزا، CIP و آماده‌سازی'],['↔','جابه‌جایی','خودرو، ترانسفر و حمل‌ونقل'],['⌂','اقامت','هتل، اقامتگاه و بوم‌گردی'],['♨','رستوران و غذا','رستوران، کافه و غذای مقصد'],['◇','تفریح و تجربه','گشت، راهنما، ورزش و رویداد'],['✣','خرید سفر','صنایع‌دستی، سوغات و ملزومات']];
 function HomeServicesHub(){return <section className="home-services-hub" id="home-services"><div className="ref-container"><header><div><span>خدماتی برای تمام مسیر سفر</span><h2>خدمات کارن‌سیر</h2><p>ابزارها و محصولات قابل اقدام؛ جدا از مقصدهای الهام‌بخش.</p></div><Link href="/services">مشاهده همه خدمات ←</Link></header><div>{homeServiceGroups.map((item,i)=><Link href={`/services?group=${i}`} key={item[1]}><i>{item[0]}</i><span><b>{item[1]}</b><small>{item[2]}</small></span><em>مشاهده ←</em></Link>)}</div><footer><span className="home-credit-symbol">ک</span><p><b>اعتبارپذیر</b> یعنی امکان بررسی اعتبار شخصی یا سازمانی؛ مانده و مجوز مصرف فقط از backend معتبر می‌آید.</p></footer></div></section>}
 function DestinationMosaic(){return <section className="ref-section ref-container" id="destinations"><div className="ref-heading"><div><span>مقصد بعدی تو کجاست؟</span><h2>ایران، پر از جاهای دیدنی</h2></div><Link href="/assistant">همه مقصدها ←</Link></div><div className="destination-mosaic">{destinations.map(d=><Link href="/assistant" className={`destination-tile ${d.className}`} key={d.name}><Image src={d.image} fill sizes="(max-width: 700px) 100vw, 50vw" alt={`نمایی از ${d.name}`}/><span><b>{d.name}</b><small>{d.caption}</small></span></Link>)}</div></section>}
