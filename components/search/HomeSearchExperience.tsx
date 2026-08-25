@@ -83,7 +83,7 @@ export function HomeSearchExperience(){
     if(nlIntent.budgetMax)params.set('filters_max_price',String(nlIntent.budgetMax));
     router.push(`/?${params.toString()}`);
   }
-  function changeService(index:number){setActive(index);setPopover(null);const next=services[index];setDestination(next.vertical==='hotel'||next.vertical==='vacation_rental'?'یزد':next.vertical==='cruise'?'دبی':next.vertical==='visa'?'فرانسه':next.vertical==='car_rental'?'شیراز':next.vertical==='tour'?'استانبول':'شیراز')}
+  function changeService(index:number){const previousVertical=service.vertical;setActive(index);setPopover(null);const next=services[index];if(next.vertical==='visa')setOrigin('');else if(previousVertical==='visa')setOrigin('تهران');setDestination(next.vertical==='hotel'||next.vertical==='vacation_rental'?'یزد':next.vertical==='cruise'?'دبی':next.vertical==='visa'?'فرانسه':next.vertical==='car_rental'?'شیراز':next.vertical==='tour'?'استانبول':'شیراز')}
   function submit(){const params=new URLSearchParams({vertical:service.vertical,origin:service.origin?origin:'',destination,depart,trip_type:tripType,flexibility,adults:String(adults),children:String(children),infants:String(infants),rooms:String(rooms),cabin,sort:'recommended'});if(tripType==='round_trip')params.set('return',returnDate);router.push(`/?${params.toString()}`)}
   const travellerTotal=adults+children+infants;
   const originLabel=service.vertical==='visa'?'ملیت / کشور گذرنامه':service.vertical==='cruise'?'بندر حرکت':service.vertical==='car_rental'?'شهر تحویل':'مبدأ';
