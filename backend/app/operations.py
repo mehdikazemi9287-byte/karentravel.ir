@@ -1111,3 +1111,71 @@ Index("ix_offers_tenant_search", Offer.tenant_id, Offer.service_type, Offer.stat
 Index("ix_reservations_tenant_user_created", Reservation.tenant_id, Reservation.user_id, Reservation.created_at)
 Index("ix_payment_reconciliation", PaymentIntent.tenant_id, PaymentIntent.reservation_id, PaymentIntent.status)
 Index("ix_trip_timeline", TripEventRecord.tenant_id, TripEventRecord.trip_id, TripEventRecord.visibility, TripEventRecord.created_at)
+
+# ---------------------------------------------------------------------------
+# GRS (hotel provider) integration - the ONLY genuinely new persistence this
+# integration needs. Every other concept (provider config, property/room
+# mapping, offer, booking intent, provider reference, state history,
+# revalidation snapshot, modify/cancel request detail, idempotency) reuses an
+# existing table (ProviderContract, TravelProduct.external_reference, Offer,
+# Reservation "draft" status + provider_reference, BookingStatusHistory,
+# PriceCheck, BookingItem, IdempotencyKey respectively) - see GRS audit report.
+# ---------------------------------------------------------------------------
+class ProviderLocationMapping(OperationalMixin, Base):
+    """Maps a provider's own location id (e.g. GRS city_id/country_id) onto an
+    existing KarenSeir Destination. Deliberately NOT a new location hierarchy -
+    Destination stays the single source of truth for names/slugs/geo."""
+    __tablename__ = "provider_location_mappings"
+    provider_key: Mapped[str] = mapped_column(String(64), index=True)
+    provider_location_id: Mapped[str] = mapped_column(String(64), index=True)
+    location_kind: Mapped[str] = mapped_column(String(24))
+    destination_id: Mapped[Optional[str]] = mapped_column(ForeignKey("destinations.id"), nullable=True)
+    provider_name: Mapped[str] = mapped_column(String(160))
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    __table_args__ = (UniqueConstraint("tenant_id", "provider_key", "provider_location_id", name="uq_provider_location_mapping"),)
+
+
+class ProviderWebhookEvent(Base):
+    """Inbound webhook inbox. Deliberately NOT tenant-scoped (not an
+    OperationalMixin table): a raw inbound event's tenant is not yet known at
+    receipt time (it is resolved during processing, from the event's own
+    provider_reference against Reservation.provider_reference) - forcing a
+    tenant_id before that resolution would either be a guess or block intake
+    entirely. resolved_tenant_id is set only once resolution succeeds; nothing
+    reads this table through a tenant-scoped path, and the webhook handler is
+    the only code allowed to touch it directly. This mirrors how Tenant/User
+    themselves are the only other non-tenant-scoped tables in this schema."""
+    __tablename__ = "provider_webhook_events"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    provider_key: Mapped[str] = mapped_column(String(64), index=True)
+    event_key: Mapped[str] = mapped_column(String(160), unique=True)
+    event_type: Mapped[str] = mapped_column(String(64))
+    provider_reference: Mapped[Optional[str]] = mapped_column(String(160), nullable=True, index=True)
+    resolved_tenant_id: Mapped[Optional[int]] = mapped_column(ForeignKey("tenants.id"), nullable=True, index=True)
+    received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    processing_status: Mapped[str] = mapped_column(String(24), default="received", index=True)
+    attempt_count: Mapped[int] = mapped_column(Integer, default=0)
+    correlation_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    sanitized_payload_json: Mapped[str] = mapped_column(Text, default="{}")
+    error_category: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    processed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class ProviderReconciliationCase(OperationalMixin, Base):
+    """A queue of ambiguous provider outcomes that must never be silently
+    resolved (timeout, out-of-order webhook, status mismatch, etc.)."""
+    __tablename__ = "provider_reconciliation_cases"
+    provider_key: Mapped[str] = mapped_column(String(64), index=True)
+    reservation_id: Mapped[Optional[str]] = mapped_column(ForeignKey("reservations.id"), nullable=True, index=True)
+    operation: Mapped[str] = mapped_column(String(48))
+    reason: Mapped[str] = mapped_column(Text)
+    expected_state: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    observed_state: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    status: Mapped[str] = mapped_column(String(32), default="manual_review_required", index=True)
+    resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    resolution_note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    audit_reference: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+
+
+Index("ix_provider_webhook_dedup", ProviderWebhookEvent.provider_key, ProviderWebhookEvent.event_key)
+Index("ix_provider_reconciliation_status", ProviderReconciliationCase.tenant_id, ProviderReconciliationCase.status)

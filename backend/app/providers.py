@@ -292,6 +292,10 @@ def validate_provider_modes(environment: str, demo_mode: bool, keys: tuple[str, 
 def configured_adapter(key: str) -> IntegrationAdapter:
     if key == "payment" and os.getenv("ZARINPAL_MODE", "disabled") != "disabled":
         return ZarinPalAdapter(mode=os.getenv("ZARINPAL_MODE", "disabled"), merchant_id=os.getenv("ZARINPAL_MERCHANT_ID", ""), callback_url=os.getenv("ZARINPAL_CALLBACK_URL", ""))
+    if key == "hotel" and os.getenv("GRS_MODE", "disabled") != "disabled":
+        from .grs_contract import GRSConfig
+        from .grs_adapter import GRSAdapter
+        return GRSAdapter(config=GRSConfig.from_env())
     mode = configured_mode(key)
     if mode in {"disabled", "mock"}:
         return DisabledMockAdapter(key, mode=mode)
