@@ -165,6 +165,8 @@ class OfferSearchIn(BaseModel):
     map_bounds: Optional[dict[str, float]] = None
     sort: str = Field(default="recommended", pattern="^(recommended|price_asc|price_desc|review_desc|freshness)$")
     include_stale: bool = False
+    check_in: Optional[str] = Field(default=None, max_length=10)
+    check_out: Optional[str] = Field(default=None, max_length=10)
 class UnifiedSearchIn(BaseModel):
     verticals: list[str] = Field(min_length=1, max_length=4)
     query: Optional[str] = Field(default=None, max_length=500)
@@ -1411,6 +1413,117 @@ def public_search_autocomplete(q: str) -> dict:
     return {"query": q, "normalized_query": normalized, "suggestions": suggestions[:10], "cache_policy": "public_5m", "tenant_data_included": False}
 
 
+def _grs_hotel_offers_for_search(*, tenant_id: int, query: str, min_price: Optional[int], max_price: Optional[int], min_review_score: Optional[float], refundable: Optional[bool], instant_booking: Optional[bool], check_in: Optional[str], check_out: Optional[str], db: Session, adapter=None) -> list[dict]:
+    """GRS-sourced hotel offers normalized into the exact search_offers() result
+    shape - Manual/Existing providers are never touched by this function. Never
+    raises and never blocks the rest of Search: any disablement, missing
+    location mapping, missing dates, failure or timeout is a partial provider
+    failure (empty list + a recorded business event), never a Search-wide error.
+    Returns [] immediately when GRS is disabled (today's only real state in
+    every environment) - this is the zero-cost, zero-behavior-change path.
+
+    Known, deliberate limitation: the current internal Search contract
+    (UnifiedSearchIn/OfferSearchIn) does not yet collect check_in/check_out
+    end-to-end from the frontend (the frontend already has depart/return in the
+    UI, but does not send them as `filters.check_in`/`filters.check_out` yet -
+    a separate, frontend-side change this phase's UI-freeze constraint
+    explicitly forbids making). Without dates, GRS's mandatory check_in/
+    check_out requirement cannot be honestly satisfied, so this returns []
+    rather than guessing a date range.
+    """
+    from .providers import configured_mode
+    if adapter is None and configured_mode("hotel") == "disabled":
+        # Zero-cost real-world path: GRS is disabled everywhere today, so this
+        # returns before touching ADAPTERS/DB/config at all. When a test
+        # explicitly injects an adapter, that adapter's own mode/validate_
+        # configuration() is the source of truth instead (GRSAdapter.execute()
+        # already fails closed on disabled/misconfigured on its own).
+        return []
+    if not check_in or not check_out:
+        return []
+    try:
+        from .providers import ADAPTERS, ProviderContext
+        from .grs_contract import GRSConfig
+        from .grs_location import GRSLocationQueryMode
+        resolved_adapter = adapter if adapter is not None else ADAPTERS["hotel"]
+        # Use the actual adapter's own config (real path: env-derived inside
+        # GRSAdapter itself; test path: whatever was injected) rather than a
+        # fresh GRSConfig.from_env() here, which would ignore an injected
+        # test adapter's config entirely and always see the disabled default.
+        config = getattr(resolved_adapter, "_config", None) or GRSConfig.from_env()
+        if not config.can_accept_bookable_prices():
+            return []
+        normalized_query = _normalize_search_text(query)
+        candidates = db.scalars(select(operational_models.ProviderLocationMapping).where(operational_models.ProviderLocationMapping.tenant_id == tenant_id, operational_models.ProviderLocationMapping.provider_key == "grs")).all()
+        mapping = next((item for item in candidates if _normalize_search_text(item.provider_name) == normalized_query), None)
+        if mapping is None:
+            return []
+        mode = GRSLocationQueryMode.CITY_ID if mapping.location_kind == "city" else GRSLocationQueryMode.COUNTRY_ID
+        payload: dict = {"mode": mode.value, "check_in": check_in, "check_out": check_out, "adults_count": 2}
+        if mode is GRSLocationQueryMode.CITY_ID:
+            payload["city_id"] = int(mapping.provider_location_id)
+        else:
+            payload["country_id"] = int(mapping.provider_location_id)
+        context = ProviderContext(tenant_id=tenant_id, correlation_id=str(uuid.uuid4()), idempotency_key=f"grs-search:{uuid.uuid4()}")
+        result = resolved_adapter.execute("search_suggestions", payload, context)
+        if not result.get("ok"):
+            record_business_event("provider", "grs_search_partial_failure")
+            return []
+        suggestions = result.get("value")
+        if not isinstance(suggestions, list):
+            record_business_event("provider", "grs_search_partial_failure")
+            return []
+        now = datetime.now(timezone.utc)
+        normalized: list[dict] = []
+        for suggestion in suggestions:
+            property_id = suggestion.get("property_id")
+            property_name = str(suggestion.get("property_name", ""))
+            for room in suggestion.get("rooms", []) or []:
+                for rate_plan in room.get("rate_plans", []) or []:
+                    price = next((p for p in (rate_plan.get("prices") or []) if not p.get("closed") and int(p.get("inventory", 0) or 0) > 0), None)
+                    if price is None:
+                        continue
+                    amount = int(price.get("daily_rate", price.get("grs_rate", 0)) or 0)
+                    if amount <= 0:
+                        continue
+                    entity_id = f"grs:{property_id}:{room.get('room_type_id')}:{rate_plan.get('id')}"
+                    cancelable = bool(rate_plan.get("cancelable"))
+                    normalized.append({
+                        "id": entity_id, "offer_id": entity_id, "entity_id": entity_id,
+                        "service_type": "hotel", "title": property_name, "provider": "grs",
+                        "provider_status": "provider_required",
+                        "last_updated_at": now.isoformat(), "observed_at": now.isoformat(),
+                        "availability_checked_at": now.isoformat(), "price_checked_at": now.isoformat(),
+                        "freshness_ttl_seconds": 300, "freshness": "live", "freshness_state": "LIVE",
+                        "amount": amount, "base_price": amount, "taxes": 0, "fees": 0, "discounts": 0,
+                        "total_amount": amount, "final_price": amount, "currency": config.money_unit,
+                        "available": True, "availability_state": "CONFIRMED", "inventory_status": "available",
+                        "available_units": int(price.get("inventory", 0) or 0),
+                        "cancellation_policy": {"refundable": cancelable}, "policy_verified": True,
+                        "quality_score": None, "review_score": None, "location": {},
+                        "attributes": {"room_type_name": room.get("room_type_name", ""), "rate_plan_name": rate_plan.get("name", ""), "grs_property_id": property_id},
+                        "valid_until": (now + timedelta(hours=1)).isoformat(),
+                        "ranking_breakdown": {}, "ranking_score": 0.0, "ranking_explanation": [],
+                    })
+        filtered: list[dict] = []
+        for item in normalized:
+            if min_price is not None and item["amount"] < min_price:
+                continue
+            if max_price is not None and item["amount"] > max_price:
+                continue
+            if refundable is not None and item["cancellation_policy"].get("refundable") is not refundable:
+                continue
+            if min_review_score is not None:
+                continue  # GRS suggestion data carries no review score - never fabricated, so excluded when this filter is active
+            if instant_booking is not None:
+                continue  # GRS suggestion data carries no instant-booking flag - same reasoning
+            filtered.append(item)
+        return filtered
+    except Exception:
+        record_business_event("provider", "grs_search_partial_failure")
+        return []
+
+
 @app.post("/search/offers")
 def search_offers(data: OfferSearchIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
     if data.min_price is not None and data.max_price is not None and data.min_price > data.max_price:
@@ -1456,6 +1569,8 @@ def search_offers(data: OfferSearchIn, user: User = Depends(current_user), db: S
         result["ranking_breakdown"] = breakdown; result["ranking_score"] = round(sum(breakdown.values()), 4)
         result["ranking_explanation"] = [label for enabled, label in ((not stale, "داده تازه"), (review_score >= 8, "امتیاز کاربران بالا"), (bool(cancellation and cancellation.get("refundable")), "امکان استرداد"), (bool(attrs.get("organization_policy_compliant")), "منطبق با سیاست سازمان")) if enabled]
         results.append(result)
+    if data.service_type == "hotel":
+        results.extend(_grs_hotel_offers_for_search(tenant_id=user.tenant_id, query=data.query or "", min_price=data.min_price, max_price=data.max_price, min_review_score=data.min_review_score, refundable=data.refundable, instant_booking=data.instant_booking, check_in=data.check_in, check_out=data.check_out, db=db))
     sorters = {"price_asc": lambda item: (item["total_amount"], -item["ranking_score"]), "price_desc": lambda item: (-item["total_amount"], -item["ranking_score"]), "review_desc": lambda item: (-(item["review_score"] or 0), item["total_amount"]), "freshness": lambda item: (item["freshness"] != "live", item["last_updated_at"]), "recommended": lambda item: (-item["ranking_score"], item["total_amount"])}
     results.sort(key=sorters[data.sort])
     criteria = data.model_dump(); criteria["normalized_query"] = normalized_query; criteria["result_count"] = len(results)
@@ -1526,7 +1641,7 @@ def unified_search(data: UnifiedSearchIn, user: User = Depends(current_user), db
     legacy_sort = {"lowest_price": "price_asc", "cheapest": "price_asc", "highest_rated": "review_desc"}.get(data.sort, "recommended")
     offers: list[dict] = []
     for vertical in data.verticals:
-        offers.extend(search_offers(OfferSearchIn(service_type=vertical, query=query, flexible_dates=data.flexibility != "exact", sort=legacy_sort, include_stale=data.include_stale, **safe_filters), user, db))
+        offers.extend(search_offers(OfferSearchIn(service_type=vertical, query=query, flexible_dates=data.flexibility != "exact", sort=legacy_sort, include_stale=data.include_stale, check_in=data.filters.get("check_in"), check_out=data.filters.get("check_out"), **safe_filters), user, db))
     groups: dict[str, dict] = {}
     for offer in offers:
         group = groups.setdefault(offer["entity_id"], {"entity_id": offer["entity_id"], "title": offer["title"], "service_type": offer["service_type"], "offers": []})
