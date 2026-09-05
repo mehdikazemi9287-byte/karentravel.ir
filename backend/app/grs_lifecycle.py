@@ -40,10 +40,29 @@ from .operations import (
     IdempotencyKey, ProviderReconciliationCase,
 )
 from .providers import ProviderContext
+from .security import role_has_permission
 
 
 class GRSLifecycleError(RuntimeError):
     pass
+
+
+class GRSPermissionError(GRSLifecycleError):
+    pass
+
+
+def _authorize(actor, reservation: Reservation, permission: str) -> None:
+    """Real tenant-ownership + RBAC enforcement for every GRS lifecycle
+    mutation. `actor` is duck-typed (id/tenant_id/role) to avoid importing the
+    User model here (would create a circular import with app.main) - reuses
+    the EXISTING role_has_permission()/ROLE_PERMISSIONS table, no parallel
+    permission system. confirmation_code/reservation_id alone is never enough
+    - the actor must belong to the reservation's own tenant AND hold the
+    permission."""
+    if actor.tenant_id != reservation.tenant_id:
+        raise GRSPermissionError("actor does not belong to this reservation's tenant")
+    if not role_has_permission(actor.role, permission):
+        raise GRSPermissionError(f"role '{actor.role}' lacks permission '{permission}'")
 
 
 def _idempotent_guard(db: Session, *, tenant_id: int, scope: str, key: str, request_hash: str) -> Optional[dict]:
@@ -87,10 +106,11 @@ class GRSReserveOutcome:
 
 
 def reserve_with_grs(
-    db: Session, *, reservation: Reservation, adapter, reserve_payload: Mapping[str, Any], command_id: str,
+    db: Session, *, reservation: Reservation, adapter, reserve_payload: Mapping[str, Any], command_id: str, actor,
 ) -> GRSReserveOutcome:
     """Calls GRS reserve for an existing draft/pending Reservation. Never
     guesses on ambiguous outcomes - opens a reconciliation case instead."""
+    _authorize(actor, reservation, "reservation:create")
     request_hash = json.dumps(dict(reserve_payload), sort_keys=True)
     cached = _idempotent_guard(db, tenant_id=reservation.tenant_id, scope="grs.reserve", key=command_id, request_hash=request_hash)
     if cached is not None:
@@ -102,7 +122,7 @@ def reserve_with_grs(
         raise GRSLifecycleError(f"cannot reserve from status '{reservation.status}'")
 
     if reservation.status == "draft":
-        transition_reservation(db, reservation, "pending", actor_id=0, command_id=f"{command_id}:to-pending")
+        transition_reservation(db, reservation, "pending", actor_id=actor.id, command_id=f"{command_id}:to-pending")
 
     context = ProviderContext(tenant_id=reservation.tenant_id, correlation_id=str(uuid.uuid4()), idempotency_key=command_id)
     result = adapter.execute("reserve", reserve_payload, context)
@@ -114,7 +134,7 @@ def reserve_with_grs(
                                              operation="reserve", reason=f"ambiguous outcome, never guessed: {error.get('code')}")
             _record_idempotency(db, tenant_id=reservation.tenant_id, scope="grs.reserve", key=command_id, request_hash=request_hash, response={"ok": False})
             return GRSReserveOutcome(ok=False, reservation=reservation, provider_confirmation_code=None, reconciliation_case=case, detail=error.get("code", "unknown"))
-        transition_reservation(db, reservation, "failed", actor_id=0, command_id=f"{command_id}:failed")
+        transition_reservation(db, reservation, "failed", actor_id=actor.id, command_id=f"{command_id}:failed")
         _record_idempotency(db, tenant_id=reservation.tenant_id, scope="grs.reserve", key=command_id, request_hash=request_hash, response={"ok": False})
         return GRSReserveOutcome(ok=False, reservation=reservation, provider_confirmation_code=None, reconciliation_case=None, detail=error.get("code", "unknown"))
 
@@ -127,7 +147,7 @@ def reserve_with_grs(
     decision = map_grs_event_to_internal_transition(reservation.status, grs_state, grs_status)
     reservation.provider_reference = confirmation_code
     if decision.target_status is not None:
-        transition_reservation(db, reservation, decision.target_status, actor_id=0, command_id=f"{command_id}:{decision.target_status}")
+        transition_reservation(db, reservation, decision.target_status, actor_id=actor.id, command_id=f"{command_id}:{decision.target_status}")
     elif decision.requires_backoffice_review:
         open_reconciliation_case(db, tenant_id=reservation.tenant_id, reservation_id=reservation.id, operation="reserve",
                                   reason=decision.reason, observed_state=grs_status)
@@ -137,11 +157,12 @@ def reserve_with_grs(
     return GRSReserveOutcome(ok=True, reservation=reservation, provider_confirmation_code=confirmation_code, reconciliation_case=None, detail=decision.reason)
 
 
-def book_with_grs(db: Session, *, reservation: Reservation, adapter, command_id: str, payment_or_credit_confirmed: bool) -> GRSReserveOutcome:
+def book_with_grs(db: Session, *, reservation: Reservation, adapter, command_id: str, payment_or_credit_confirmed: bool, actor) -> GRSReserveOutcome:
     """Calls GRS book. Per the explicit rule, this function REQUIRES the
     caller to prove payment/credit was independently confirmed - a Reserve
     response or a provider 'booked'/'definite' signal is never sufficient on
     its own, and this function will refuse to proceed without that proof."""
+    _authorize(actor, reservation, "reservation:manage")
     if not payment_or_credit_confirmed:
         raise GRSLifecycleError("book_with_grs refused: payment/credit confirmation was not proven by the caller")
     if not reservation.provider_reference:
@@ -175,7 +196,7 @@ def book_with_grs(db: Session, *, reservation: Reservation, adapter, command_id:
     if grs_status in {"booked", "definite"}:
         # Payment/credit already proven by the caller (checked above) - this IS
         # the one legitimate path to a confirmed transition.
-        transition_reservation(db, reservation, "confirmed", actor_id=0, command_id=f"{command_id}:confirmed")
+        transition_reservation(db, reservation, "confirmed", actor_id=actor.id, command_id=f"{command_id}:confirmed")
         detail = "booked confirmed with independently-verified payment/credit"
     else:
         open_reconciliation_case(db, tenant_id=reservation.tenant_id, reservation_id=reservation.id, operation="book",
@@ -187,7 +208,8 @@ def book_with_grs(db: Session, *, reservation: Reservation, adapter, command_id:
     return GRSReserveOutcome(ok=True, reservation=reservation, provider_confirmation_code=reservation.provider_reference, reconciliation_case=None, detail=detail)
 
 
-def request_cancellation_with_grs(db: Session, *, reservation: Reservation, adapter, command_id: str) -> GRSReserveOutcome:
+def request_cancellation_with_grs(db: Session, *, reservation: Reservation, adapter, command_id: str, actor) -> GRSReserveOutcome:
+    _authorize(actor, reservation, "reservation:manage")
     if not reservation.provider_reference:
         raise GRSLifecycleError("cannot cancel: no provider_reference stored")
 
@@ -198,7 +220,7 @@ def request_cancellation_with_grs(db: Session, *, reservation: Reservation, adap
     if "cancel_requested" not in BOOKING_TRANSITIONS.get(reservation.status, set()):
         raise GRSLifecycleError(f"cannot request cancellation from status '{reservation.status}'")
 
-    transition_reservation(db, reservation, "cancel_requested", actor_id=0, command_id=f"{command_id}:cancel-requested")
+    transition_reservation(db, reservation, "cancel_requested", actor_id=actor.id, command_id=f"{command_id}:cancel-requested")
     context = ProviderContext(tenant_id=reservation.tenant_id, correlation_id=str(uuid.uuid4()), idempotency_key=command_id)
     result = adapter.execute("request_cancellation", {"confirmation_code": reservation.provider_reference}, context)
 
@@ -216,7 +238,8 @@ def request_cancellation_with_grs(db: Session, *, reservation: Reservation, adap
     return GRSReserveOutcome(ok=True, reservation=reservation, provider_confirmation_code=reservation.provider_reference, reconciliation_case=None, detail="cancellation requested, awaiting provider acceptance")
 
 
-def accept_cancellation_with_grs(db: Session, *, reservation: Reservation, adapter, command_id: str) -> GRSReserveOutcome:
+def accept_cancellation_with_grs(db: Session, *, reservation: Reservation, adapter, command_id: str, actor) -> GRSReserveOutcome:
+    _authorize(actor, reservation, "reservation:manage")
     request_hash = reservation.provider_reference or ""
     cached = _idempotent_guard(db, tenant_id=reservation.tenant_id, scope="grs.accept_cancel", key=command_id, request_hash=request_hash)
     if cached is not None:
@@ -232,6 +255,6 @@ def accept_cancellation_with_grs(db: Session, *, reservation: Reservation, adapt
         _record_idempotency(db, tenant_id=reservation.tenant_id, scope="grs.accept_cancel", key=command_id, request_hash=request_hash, response={"ok": False})
         return GRSReserveOutcome(ok=False, reservation=reservation, provider_confirmation_code=reservation.provider_reference, reconciliation_case=case, detail="not cancelled")
 
-    transition_reservation(db, reservation, "cancelled", actor_id=0, command_id=f"{command_id}:cancelled")
+    transition_reservation(db, reservation, "cancelled", actor_id=actor.id, command_id=f"{command_id}:cancelled")
     _record_idempotency(db, tenant_id=reservation.tenant_id, scope="grs.accept_cancel", key=command_id, request_hash=request_hash, response={"ok": True})
     return GRSReserveOutcome(ok=True, reservation=reservation, provider_confirmation_code=reservation.provider_reference, reconciliation_case=None, detail="cancellation final")

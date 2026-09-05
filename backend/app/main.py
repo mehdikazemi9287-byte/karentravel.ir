@@ -167,6 +167,7 @@ class OfferSearchIn(BaseModel):
     include_stale: bool = False
     check_in: Optional[str] = Field(default=None, max_length=10)
     check_out: Optional[str] = Field(default=None, max_length=10)
+    travellers: int = Field(default=1, ge=1, le=20)
 class UnifiedSearchIn(BaseModel):
     verticals: list[str] = Field(min_length=1, max_length=4)
     query: Optional[str] = Field(default=None, max_length=500)
@@ -1413,7 +1414,7 @@ def public_search_autocomplete(q: str) -> dict:
     return {"query": q, "normalized_query": normalized, "suggestions": suggestions[:10], "cache_policy": "public_5m", "tenant_data_included": False}
 
 
-def _grs_hotel_offers_for_search(*, tenant_id: int, query: str, min_price: Optional[int], max_price: Optional[int], min_review_score: Optional[float], refundable: Optional[bool], instant_booking: Optional[bool], check_in: Optional[str], check_out: Optional[str], db: Session, adapter=None) -> list[dict]:
+def _grs_hotel_offers_for_search(*, tenant_id: int, query: str, min_price: Optional[int], max_price: Optional[int], min_review_score: Optional[float], refundable: Optional[bool], instant_booking: Optional[bool], check_in: Optional[str], check_out: Optional[str], travellers: int = 1, db: Session, adapter=None) -> list[dict]:
     """GRS-sourced hotel offers normalized into the exact search_offers() result
     shape - Manual/Existing providers are never touched by this function. Never
     raises and never blocks the rest of Search: any disablement, missing
@@ -1459,7 +1460,7 @@ def _grs_hotel_offers_for_search(*, tenant_id: int, query: str, min_price: Optio
         if mapping is None:
             return []
         mode = GRSLocationQueryMode.CITY_ID if mapping.location_kind == "city" else GRSLocationQueryMode.COUNTRY_ID
-        payload: dict = {"mode": mode.value, "check_in": check_in, "check_out": check_out, "adults_count": 2}
+        payload: dict = {"mode": mode.value, "check_in": check_in, "check_out": check_out, "adults_count": max(1, travellers)}
         if mode is GRSLocationQueryMode.CITY_ID:
             payload["city_id"] = int(mapping.provider_location_id)
         else:
@@ -1570,7 +1571,7 @@ def search_offers(data: OfferSearchIn, user: User = Depends(current_user), db: S
         result["ranking_explanation"] = [label for enabled, label in ((not stale, "داده تازه"), (review_score >= 8, "امتیاز کاربران بالا"), (bool(cancellation and cancellation.get("refundable")), "امکان استرداد"), (bool(attrs.get("organization_policy_compliant")), "منطبق با سیاست سازمان")) if enabled]
         results.append(result)
     if data.service_type == "hotel":
-        results.extend(_grs_hotel_offers_for_search(tenant_id=user.tenant_id, query=data.query or "", min_price=data.min_price, max_price=data.max_price, min_review_score=data.min_review_score, refundable=data.refundable, instant_booking=data.instant_booking, check_in=data.check_in, check_out=data.check_out, db=db))
+        results.extend(_grs_hotel_offers_for_search(tenant_id=user.tenant_id, query=data.query or "", min_price=data.min_price, max_price=data.max_price, min_review_score=data.min_review_score, refundable=data.refundable, instant_booking=data.instant_booking, check_in=data.check_in, check_out=data.check_out, travellers=data.travellers, db=db))
     sorters = {"price_asc": lambda item: (item["total_amount"], -item["ranking_score"]), "price_desc": lambda item: (-item["total_amount"], -item["ranking_score"]), "review_desc": lambda item: (-(item["review_score"] or 0), item["total_amount"]), "freshness": lambda item: (item["freshness"] != "live", item["last_updated_at"]), "recommended": lambda item: (-item["ranking_score"], item["total_amount"])}
     results.sort(key=sorters[data.sort])
     criteria = data.model_dump(); criteria["normalized_query"] = normalized_query; criteria["result_count"] = len(results)
@@ -1641,7 +1642,7 @@ def unified_search(data: UnifiedSearchIn, user: User = Depends(current_user), db
     legacy_sort = {"lowest_price": "price_asc", "cheapest": "price_asc", "highest_rated": "review_desc"}.get(data.sort, "recommended")
     offers: list[dict] = []
     for vertical in data.verticals:
-        offers.extend(search_offers(OfferSearchIn(service_type=vertical, query=query, flexible_dates=data.flexibility != "exact", sort=legacy_sort, include_stale=data.include_stale, check_in=data.filters.get("check_in"), check_out=data.filters.get("check_out"), **safe_filters), user, db))
+        offers.extend(search_offers(OfferSearchIn(service_type=vertical, query=query, flexible_dates=data.flexibility != "exact", sort=legacy_sort, include_stale=data.include_stale, check_in=data.filters.get("check_in"), check_out=data.filters.get("check_out"), travellers=data.travellers, **safe_filters), user, db))
     groups: dict[str, dict] = {}
     for offer in offers:
         group = groups.setdefault(offer["entity_id"], {"entity_id": offer["entity_id"], "title": offer["title"], "service_type": offer["service_type"], "offers": []})
