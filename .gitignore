@@ -1,4 +1,9 @@
 .env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.log
 .venv/
 .next/
 node_modules/
