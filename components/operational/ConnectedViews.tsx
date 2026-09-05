@@ -15,7 +15,7 @@ type Offer = { id: string; title: string; amount: number; currency: string; serv
 
 export function ErrorState({ status, message }: { status: number; message: string }) {
   const title = status === 401 ? 'برای مشاهده این بخش وارد شوید.' : status === 403 ? 'نقش شما به این بخش دسترسی ندارد.' : status === 503 ? 'سرویس موردنیاز فعلاً در دسترس نیست.' : 'دریافت اطلاعات انجام نشد.';
-  return <section role="alert" className="mx-auto my-8 max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 text-center"><h2 className="text-xl font-black">{title}</h2><p className="mt-2 text-sm text-slate-600">{message}</p>{status===401&&<Link className="button primary mt-4" href="/pilot">ورود امن</Link>}</section>;
+  return <section role="alert" className="mx-auto my-8 max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 text-center"><h2 className="text-xl font-black">{title}</h2><p className="mt-2 text-sm text-slate-600">{message}</p>{status===401&&<Link className="button primary mt-4" href="/login">ورود امن</Link>}</section>;
 }
 
 function LoadingState() { return <div role="status" className="mx-auto my-8 max-w-3xl animate-pulse rounded-2xl bg-white p-8 text-center text-slate-600">در حال دریافت اطلاعات معتبر…</div>; }
