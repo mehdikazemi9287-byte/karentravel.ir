@@ -1,5 +1,5 @@
 'use client';
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useSearchParams } from 'next/navigation';
@@ -74,7 +74,28 @@ const trustItems=[['⌁','مجوزها و اطلاعات ثبتی','فقط پس 
 function TrustSection(){return <section className="trust-section"><div className="ref-container"><div className="ref-heading"><div><span>اعتماد، بخشی از مسیر است</span><h2>با خیال راحت سفر کن</h2><p>ساختار حرفه‌ای برای مشاهده اسناد و حقوق مسافر؛ بدون نشان یا ادعای تأییدنشده.</p></div><Link href="/integrations">مرکز اطلاعات و همکاری ←</Link></div><div className="trust-grid">{trustItems.map(x=><article key={x[1]}><i aria-hidden="true">{x[0]}</i><div><h3>{x[1]}</h3><p>{x[2]}</p></div><span>اطلاعات تأییدشده در دسترس نیست</span></article>)}</div></div></section>}
 function ServiceRibbon(){return <section className="service-ribbon" aria-label="فضای خدمات آینده"><div className="ref-container" aria-hidden="true"/></section>}
 function ReferenceFooter(){return <footer className="ref-footer"><div className="ref-footer-curve"/><div className="ref-container ref-footer-grid"><div><Brand/><p>کارن‌سیر؛ از انتخاب مقصد تا تجربه و رفاه سازمانی، همراه تمام مسیر.</p><span className="ref-mock">تمام داده‌های مالی و موجودی Mock هستند</span></div><div><b>سفر با کارن‌سیر</b><Link href="/hotels">هتل و اقامتگاه</Link><Link href="/compare">مقایسه</Link><Link href="/assistant">همراه هوشمند</Link></div><div><b>راهکارها</b><Link href="/organization">سازمانی و رفاهی</Link><Link href="/white-label">وایت‌لیبل</Link><Link href="/integrations">همکاری با تأمین‌کنندگان</Link></div><div><b>همراه شما</b><span>۰۲۱-۹۱۰۰ ۷۱۰۰</span><span>پشتیبانی سفر</span><span>hello@karenseir.ir</span></div></div><div className="ref-container ref-footer-bottom"><span>© ۱۴۰۵ کارن‌سیر</span><span>قوانین استفاده · حریم خصوصی</span></div></footer>}
-function Home(){return <div className="home-page"><HomeHeader/><main><ReferenceHero/><HomeServicesHub/><DestinationMosaic/><ReferenceTrips/><SmartCompanion/><CompareBand/><LocalExperiences/><ReferenceOrganization/><TrustSection/><ServiceRibbon/></main><HomeMobileNav/><ReferenceFooter/><Link className="mobile-ai-assistant" href="/assistant" aria-label="بازکردن دستیار هوشمند سفر"><span>AI</span> دستیار AI</Link></div>}
+// On mobile the Homepage's hero + search widget together span nearly the
+// entire viewport width and well past its height (measured: search widget
+// alone ~520px tall in a ~780px-tall 430px-wide viewport, leaving no static
+// corner clear of either the hero destination badge or the search form's
+// controls - moving the button between corners just traded one real overlap
+// for another, confirmed by measuring getBoundingClientRect() on both).
+// Showing the button only once the user has scrolled past the search widget
+// avoids the collision entirely, at any viewport height, without shrinking,
+// redesigning, or repositioning the search widget itself.
+function FloatingAssistant(){
+  const [visible,setVisible]=useState(false);
+  useEffect(()=>{
+    function check(){const shell=document.querySelector('.ref-search-shell');const clearY=shell?shell.getBoundingClientRect().bottom+window.scrollY:600;setVisible(window.scrollY+window.innerHeight>clearY+40)}
+    check();
+    window.addEventListener('scroll',check,{passive:true});
+    window.addEventListener('resize',check);
+    return()=>{window.removeEventListener('scroll',check);window.removeEventListener('resize',check)};
+  },[]);
+  if(!visible)return null;
+  return <Link className="mobile-ai-assistant" href="/assistant" aria-label="بازکردن دستیار هوشمند سفر"><span>AI</span> دستیار AI</Link>;
+}
+function Home(){return <div className="home-page"><HomeHeader/><main><ReferenceHero/><HomeServicesHub/><DestinationMosaic/><ReferenceTrips/><SmartCompanion/><CompareBand/><LocalExperiences/><ReferenceOrganization/><TrustSection/><ServiceRibbon/></main><HomeMobileNav/><ReferenceFooter/><FloatingAssistant/></div>}
 function Hotels(){return <Shell><div className="page-hero"><span className="eyebrow">اقامت · داده نمایشی</span><h1>هتل را با معیارهای واقعی‌تر انتخاب کنید.</h1><p>قیمت و موجودی زیر صرفاً برای نمایش Prototype هستند و قابل رزرو واقعی نیستند.</p></div><div className="container results"><aside className="filters"><strong>فیلترها</strong>{['بازه قیمت','امتیاز مهمانان','سیاست سازمان','امکانات','قوانین کنسلی'].map(x=><button key={x}>{x}<span>⌄</span></button>)}</aside><section><div className="result-bar"><span>۳ گزینه Mock برای تهران</span><Link href="/compare" className="button primary">مقایسه ۳ گزینه</Link></div><div className="result-list">{hotels.map(h=><HotelCard hotel={h} compact key={h.name}/>)}</div></section></div></Shell>}
 function Compare(){return <Shell><div className="page-hero"><span className="eyebrow">مقایسه حرفه‌ای · داده معتبر</span><h1>تفاوت‌ها را یک‌جا ببینید.</h1><p>امتیاز و معیارها فقط از Offerهای معتبر سازمان احرازشده محاسبه می‌شوند.</p></div><ConnectedCompare/></Shell>}
 const policyIntents=['قوانین این رزرو چیه؟','می‌خوام کنسل کنم','چقدر پولم برمی‌گرده؟','می‌تونم تاریخ رو عوض کنم؟','هتلم رو کنسل کنم چقدر جریمه میشه؟','پروازم لغو شده','واچر جدیدم کجاست؟','درخواست استردادم چه وضعیتی داره؟'];
