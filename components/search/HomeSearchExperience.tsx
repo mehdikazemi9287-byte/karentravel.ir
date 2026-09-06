@@ -1,7 +1,7 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../../lib/api/auth-context';
 import { parseTravelIntent, type NLIntent } from '../../lib/domain/nl-intent';
 
@@ -66,11 +66,40 @@ function EntityInput({kind,label,value,onChange,onSelect,open,setOpen,vertical}:
   </div>;
 }
 
+const defaultDestinationFor=(vertical:string)=>vertical==='hotel'||vertical==='vacation_rental'?'یزد':vertical==='cruise'?'دبی':vertical==='visa'?'فرانسه':vertical==='car_rental'?'شیراز':vertical==='tour'?'استانبول':'شیراز';
 export function HomeSearchExperience(){
-  const router=useRouter(); const [active,setActive]=useState(0); const service=services[active];
-  const [origin,setOrigin]=useState('تهران'); const [destination,setDestination]=useState(service.vertical==='hotel'?'یزد':'شیراز');
-  const [depart,setDepart]=useState('2026-09-15'); const [returnDate,setReturnDate]=useState('2026-09-18'); const [flexibility,setFlexibility]=useState('exact'); const [tripType,setTripType]=useState<TripType>('round_trip');
-  const [adults,setAdults]=useState(2); const [children,setChildren]=useState(0); const [infants,setInfants]=useState(0); const [rooms,setRooms]=useState(1); const [cabin,setCabin]=useState('economy'); const [popover,setPopover]=useState<Popover>(null);
+  const router=useRouter(); const params=useSearchParams();
+  // Previously this form always mounted with hardcoded defaults (flight/تهران/شیراز)
+  // regardless of the URL - confirmed live: loading /?vertical=cruise&destination=دبی
+  // showed correct "کروز به دبی" results below (UnifiedSearchView reads the URL) while
+  // this form still showed the پرواز tab with تهران/شیراز. Reading the same URL params
+  // this form itself writes on submit() fixes that mismatch on direct load/refresh/back-
+  // forward, without changing the submit contract or the tab-switch defaults below.
+  const initial=useMemo(()=>{
+    const vertical=params.get('vertical');
+    const active=Math.max(0,services.findIndex(item=>item.vertical===vertical));
+    const svc=services[active];
+    return {
+      active,
+      origin:params.get('origin')??(svc.vertical==='visa'?'':svc.origin?'تهران':''),
+      destination:params.get('destination')||defaultDestinationFor(svc.vertical),
+      depart:params.get('depart')||'2026-09-15',
+      returnDate:params.get('return')||'2026-09-18',
+      flexibility:params.get('flexibility')||'exact',
+      tripType:(params.get('trip_type') as TripType|null)||'round_trip',
+      adults:Number(params.get('adults')||2),
+      children:Number(params.get('children')||0),
+      infants:Number(params.get('infants')||0),
+      rooms:Number(params.get('rooms')||1),
+      cabin:params.get('cabin')||'economy',
+    };
+  },[params]);
+  const [active,setActive]=useState(initial.active); const service=services[active];
+  const [origin,setOrigin]=useState(initial.origin); const [destination,setDestination]=useState(initial.destination);
+  const [depart,setDepart]=useState(initial.depart); const [returnDate,setReturnDate]=useState(initial.returnDate); const [flexibility,setFlexibility]=useState(initial.flexibility); const [tripType,setTripType]=useState<TripType>(initial.tripType);
+  const [adults,setAdults]=useState(initial.adults); const [children,setChildren]=useState(initial.children); const [infants,setInfants]=useState(initial.infants); const [rooms,setRooms]=useState(initial.rooms); const [cabin,setCabin]=useState(initial.cabin); const [popover,setPopover]=useState<Popover>(null);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- resyncing the search form from a changed URL (direct link/refresh with existing params, or browser back/forward), the same justified pattern as UnifiedSearchView's URL resync effect
+  useEffect(()=>{setActive(initial.active);setOrigin(initial.origin);setDestination(initial.destination);setDepart(initial.depart);setReturnDate(initial.returnDate);setFlexibility(initial.flexibility);setTripType(initial.tripType);setAdults(initial.adults);setChildren(initial.children);setInfants(initial.infants);setRooms(initial.rooms);setCabin(initial.cabin)},[initial]);
   const {api,session}=useAuth();
   const [nlOpen,setNlOpen]=useState(false); const [nlText,setNlText]=useState(''); const [nlIntent,setNlIntent]=useState<NLIntent|null>(null); const [nlRecording,setNlRecording]=useState(false); const [nlBusy,setNlBusy]=useState(false); const [nlError,setNlError]=useState('');
   const nlRecorder=useRef<MediaRecorder|null>(null); const nlChunks=useRef<Blob[]>([]); const nlStopTimer=useRef<number|undefined>(undefined);
