@@ -147,7 +147,13 @@ export function HomeSearchExperience(){
     router.push(`/?${params.toString()}`);
   }
   function changeService(index:number){const previousVertical=service.vertical;setActive(index);setPopover(null);const next=services[index];if(next.vertical==='visa')setOrigin('');else if(previousVertical==='visa')setOrigin('تهران');setDestination(next.vertical==='hotel'||next.vertical==='vacation_rental'?'یزد':next.vertical==='cruise'?'دبی':next.vertical==='visa'?'فرانسه':next.vertical==='car_rental'?'شیراز':next.vertical==='tour'?'استانبول':'شیراز')}
-  function submit(){const params=new URLSearchParams({vertical:service.vertical,origin:service.origin?origin:'',destination,depart,trip_type:tripType,flexibility,adults:String(adults),children:String(children),infants:String(infants),rooms:String(rooms),cabin,sort:'recommended'});if(tripType==='round_trip')params.set('return',returnDate);router.push(`/?${params.toString()}`)}
+  // trip_type ("یک‌طرفه"/"چندمسیره") is a flight-only concept - changeService()
+  // above never resets it when switching tabs, so it used to leak into every
+  // other vertical's URL and, since it wasn't 'round_trip', silently dropped
+  // `return` (the hotel/villa/etc. checkout date) from the URL too. Only
+  // writing trip_type for flight, and gating `return` on the same showReturn
+  // flag the date field itself already uses, fixes both at the source.
+  function submit(){const params=new URLSearchParams({vertical:service.vertical,origin:service.origin?origin:'',destination,depart,flexibility,adults:String(adults),children:String(children),infants:String(infants),rooms:String(rooms),cabin,sort:'recommended'});if(service.vertical==='flight')params.set('trip_type',tripType);if(showReturn)params.set('return',returnDate);router.push(`/?${params.toString()}`)}
   const travellerTotal=adults+children+infants;
   const isStay=service.vertical==='hotel'||service.vertical==='vacation_rental';
   const showReturn=service.vertical!=='flight'||tripType==='round_trip';
