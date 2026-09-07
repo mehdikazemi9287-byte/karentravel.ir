@@ -566,10 +566,19 @@ class ReservationTraveller(Base):
 
 
 class Ticket(OperationalMixin, Base):
+    """Admission ticket. status lifecycle: issued -> used | cancelled | expired.
+    qr_token is the bearer credential presented as a QR code; unlike
+    RefreshTokenSession/OTPChallenge it is stored in plaintext (not hashed)
+    because it must be redisplayed to the customer on demand before redeem,
+    not just verified once — same trust model as a printed paper ticket."""
     __tablename__ = "tickets"
     reservation_id: Mapped[str] = mapped_column(ForeignKey("reservations.id"), index=True)
     status: Mapped[str] = mapped_column(String(32), default="pending")
     document_reference: Mapped[Optional[str]] = mapped_column(String(240), nullable=True)
+    qr_token: Mapped[Optional[str]] = mapped_column(String(64), unique=True, nullable=True, index=True)
+    leisure_session_id: Mapped[Optional[str]] = mapped_column(ForeignKey("leisure_sessions.id"), nullable=True, index=True)
+    redeemed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    redeemed_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
 
 
 class Voucher(OperationalMixin, Base):
@@ -1175,6 +1184,84 @@ class ProviderReconciliationCase(OperationalMixin, Base):
     resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     resolution_note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     audit_reference: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+
+
+class Place(OperationalMixin, Base):
+    """Leisure venue (pool/sport facility, restaurant, attraction, event hall,
+    etc). Kept as a first-class model rather than folded into
+    Offer.attributes_json so venue identity, location and media survive
+    independently of any single sellable Offer/session."""
+    __tablename__ = "places"
+    supplier_id: Mapped[str] = mapped_column(ForeignKey("suppliers.id"), index=True)
+    name: Mapped[str] = mapped_column(String(200))
+    slug: Mapped[str] = mapped_column(String(180))
+    place_type: Mapped[str] = mapped_column(String(48), index=True)
+    category: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    city: Mapped[str] = mapped_column(String(120), index=True)
+    address: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
+    latitude: Mapped[Optional[float]] = mapped_column(Numeric(9, 6), nullable=True)
+    longitude: Mapped[Optional[float]] = mapped_column(Numeric(9, 6), nullable=True)
+    opening_hours_json: Mapped[str] = mapped_column(Text, default="{}")
+    amenities_json: Mapped[str] = mapped_column(Text, default="[]")
+    rules_json: Mapped[str] = mapped_column(Text, default="{}")
+    media_json: Mapped[str] = mapped_column(Text, default="[]")
+    status: Mapped[str] = mapped_column(String(24), default="draft", index=True)
+    __table_args__ = (UniqueConstraint("tenant_id", "slug", name="uq_place_slug"),)
+
+
+class ExperienceProduct(OperationalMixin, Base):
+    """A sellable leisure product hosted at a Place (pool day-pass, restaurant
+    table reservation, attraction ticket, event-hall booking, ...). One Place
+    may host several products; one product may have several Session rows."""
+    __tablename__ = "experience_products"
+    place_id: Mapped[str] = mapped_column(ForeignKey("places.id"), index=True)
+    supplier_id: Mapped[str] = mapped_column(ForeignKey("suppliers.id"), index=True)
+    service_type: Mapped[str] = mapped_column(String(48), index=True)
+    subtype: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    title: Mapped[str] = mapped_column(String(200))
+    description: Mapped[str] = mapped_column(Text, default="")
+    duration_minutes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    booking_mode: Mapped[str] = mapped_column(String(32), index=True)
+    fulfillment_mode: Mapped[str] = mapped_column(String(24), default="manual_supplier")
+    cancellation_policy_json: Mapped[str] = mapped_column(Text, default="{}")
+    restrictions_json: Mapped[str] = mapped_column(Text, default="{}")
+    status: Mapped[str] = mapped_column(String(24), default="draft", index=True)
+
+
+class LeisureSession(OperationalMixin, Base):
+    """A bookable date/time-slot of an ExperienceProduct, mirroring the
+    TourDeparture capacity pattern without repurposing TourDeparture itself
+    (tour departures are multi-day trips; leisure sessions are single-venue
+    time windows with independent sales-window fields)."""
+    __tablename__ = "leisure_sessions"
+    experience_product_id: Mapped[str] = mapped_column(ForeignKey("experience_products.id"), index=True)
+    starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    ends_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    sales_start_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    sales_end_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    capacity_total: Mapped[int] = mapped_column(Integer)
+    capacity_available: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(24), default="active", index=True)
+    restrictions_json: Mapped[str] = mapped_column(Text, default="{}")
+    offer_id: Mapped[Optional[str]] = mapped_column(ForeignKey("offers.id"), nullable=True, index=True)
+
+
+class LeisureTicketType(OperationalMixin, Base):
+    """First-class, validated ticket/pricing row for an ExperienceProduct
+    (adult/child/infant/vip/generic) — never encoded only inside an
+    unvalidated attributes_json blob."""
+    __tablename__ = "leisure_ticket_types"
+    experience_product_id: Mapped[str] = mapped_column(ForeignKey("experience_products.id"), index=True)
+    code: Mapped[str] = mapped_column(String(24), index=True)
+    label: Mapped[str] = mapped_column(String(120))
+    price: Mapped[int] = mapped_column(Integer)
+    currency: Mapped[str] = mapped_column(String(3), default="IRR")
+    quota: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    min_age: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    max_age: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    restrictions_json: Mapped[str] = mapped_column(Text, default="{}")
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    __table_args__ = (UniqueConstraint("tenant_id", "experience_product_id", "code", name="uq_leisure_ticket_type_code"),)
 
 
 Index("ix_provider_webhook_dedup", ProviderWebhookEvent.provider_key, ProviderWebhookEvent.event_key)

@@ -180,6 +180,59 @@ class UnifiedSearchIn(BaseModel):
     include_stale: bool = False
     page: int = Field(default=1, ge=1, le=1000)
     page_size: int = Field(default=20, ge=1, le=100)
+LEISURE_SERVICE_TYPES_PATTERN = "^(restaurant|event_hall|pool_sport|attraction)$"
+LEISURE_BOOKING_MODES_PATTERN = "^(DISCOVERY_ONLY|SESSION_BASED|TIMED_ENTRY|TABLE_RESERVATION|MEAL_VOUCHER|FIXED_PACKAGE|EVENT_TICKET|VENUE_INQUIRY)$"
+LEISURE_TICKET_CODE_PATTERN = "^(adult|child|infant|vip|generic)$"
+
+class PlaceIn(BaseModel):
+    supplier_id: str = Field(min_length=36, max_length=36)
+    name: str = Field(min_length=2, max_length=200)
+    slug: str = Field(pattern=r"^[a-z0-9-]{3,180}$")
+    place_type: str = Field(pattern=LEISURE_SERVICE_TYPES_PATTERN)
+    category: Optional[str] = Field(default=None, max_length=64)
+    city: str = Field(min_length=2, max_length=120)
+    address: Optional[str] = Field(default=None, max_length=300)
+    latitude: Optional[float] = Field(default=None, ge=-90, le=90)
+    longitude: Optional[float] = Field(default=None, ge=-180, le=180)
+    opening_hours: dict = Field(default_factory=dict)
+    amenities: list[str] = Field(default_factory=list, max_length=30)
+    rules: dict = Field(default_factory=dict)
+    media: list[str] = Field(default_factory=list, max_length=20)
+class ExperienceProductIn(BaseModel):
+    service_type: str = Field(pattern=LEISURE_SERVICE_TYPES_PATTERN)
+    subtype: Optional[str] = Field(default=None, max_length=64)
+    title: str = Field(min_length=3, max_length=200)
+    description: str = Field(default="", max_length=4000)
+    duration_minutes: Optional[int] = Field(default=None, ge=1, le=10080)
+    booking_mode: str = Field(pattern=LEISURE_BOOKING_MODES_PATTERN)
+    cancellation_policy: dict = Field(default_factory=dict)
+    restrictions: dict = Field(default_factory=dict)
+class LeisureSessionIn(BaseModel):
+    starts_at: datetime
+    ends_at: datetime
+    sales_start_at: Optional[datetime] = None
+    sales_end_at: Optional[datetime] = None
+    capacity_total: int = Field(ge=1, le=100000)
+    restrictions: dict = Field(default_factory=dict)
+class LeisureTicketTypeIn(BaseModel):
+    code: str = Field(pattern=LEISURE_TICKET_CODE_PATTERN)
+    label: str = Field(min_length=2, max_length=120)
+    price: int = Field(gt=0)
+    currency: str = Field(default="IRR", min_length=3, max_length=3)
+    quota: Optional[int] = Field(default=None, ge=1)
+    min_age: Optional[int] = Field(default=None, ge=0, le=120)
+    max_age: Optional[int] = Field(default=None, ge=0, le=120)
+    restrictions: dict = Field(default_factory=dict)
+    active: bool = True
+class LeisureTicketSelectionIn(BaseModel):
+    ticket_type_id: str = Field(min_length=36, max_length=36)
+    quantity: int = Field(ge=1, le=50)
+class LeisureSessionPriceCheckIn(BaseModel):
+    selections: list[LeisureTicketSelectionIn] = Field(min_length=1, max_length=10)
+    command_id: str = Field(min_length=8, max_length=120)
+    organization_id: Optional[str] = Field(default=None, min_length=36, max_length=36)
+class AdmissionTicketRedeemIn(BaseModel):
+    qr_token: str = Field(min_length=16, max_length=64)
 class SavedSearchIn(BaseModel):
     title: str = Field(min_length=2, max_length=160)
     query: dict
@@ -1779,6 +1832,12 @@ def orchestrate_booking(data: OrchestrationBookingIn, user: User = Depends(curre
     db.add(operational_models.BookingStatusHistory(tenant_id=user.tenant_id, reservation_id=reservation.id, from_status=None, to_status="reserved", actor_id=user.id, command_id=data.command_id))
     offer.available_units -= check.units; check.consumed_at = now
     attrs = snapshot.get("attributes") or {}
+    leisure_session_id = attrs.get("leisure_session_id")
+    if leisure_session_id:
+        leisure_session = db.scalar(select(operational_models.LeisureSession).where(operational_models.LeisureSession.id == leisure_session_id, operational_models.LeisureSession.tenant_id == user.tenant_id).with_for_update())
+        if leisure_session is None or leisure_session.capacity_available < check.units:
+            raise HTTPException(status_code=409, detail="ظرفیت این جلسه کافی نیست")
+        leisure_session.capacity_available -= check.units
     trip = operational_models.ensure_trip_for_reservation(db, reservation, title=snapshot["title"], destination=attrs.get("city") or attrs.get("destination") or snapshot["title"])
     operational_models.record_trip_event(db, tenant_id=user.tenant_id, trip_id=trip.id, reservation_id=reservation.id, event_key=f"booking-created:{data.command_id}", event_type="booking.created", source="system", title="رزرو ثبت شد", message=f"رزرو {reservation.booking_reference} برای {snapshot['title']} ثبت شد.", deep_link=f"/manage-booking/{reservation.id}")
     response = {**_reservation_output(reservation), "price_check_id": check.id}
@@ -1795,7 +1854,8 @@ def fulfill_reservation(reservation_id: str, data: FulfillmentIn, user: User = D
         raise HTTPException(status_code=404, detail="رزرو در این tenant وجود ندارد")
     existing_voucher = db.scalar(select(operational_models.Voucher).where(operational_models.Voucher.tenant_id == user.tenant_id, operational_models.Voucher.reservation_id == reservation.id))
     if reservation.status == "issued" and existing_voucher:
-        return {"reservation": _reservation_output(reservation), "voucher": {"id": existing_voucher.id, "status": existing_voucher.status, "revision": existing_voucher.revision}}
+        existing_ticket = db.scalar(select(operational_models.Ticket).where(operational_models.Ticket.tenant_id == user.tenant_id, operational_models.Ticket.reservation_id == reservation.id, operational_models.Ticket.qr_token.isnot(None)))
+        return {"reservation": _reservation_output(reservation), "voucher": {"id": existing_voucher.id, "status": existing_voucher.status, "revision": existing_voucher.revision}, "admission_ticket": ({"id": existing_ticket.id, "status": existing_ticket.status, "qr_token": existing_ticket.qr_token} if existing_ticket else None)}
     payment = db.scalar(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.tenant_id == user.tenant_id, operational_models.PaymentIntent.reservation_id == reservation.id, operational_models.PaymentIntent.status == "captured"))
     if payment is None or payment.captured_amount <= 0:
         raise HTTPException(status_code=409, detail="پرداخت captureشده برای رزرو موجود نیست")
@@ -1820,10 +1880,235 @@ def fulfill_reservation(reservation_id: str, data: FulfillmentIn, user: User = D
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     voucher = operational_models.Voucher(tenant_id=user.tenant_id, reservation_id=reservation.id, status="issued", revision=1, document_reference=data.document_reference)
     db.add(voucher); db.flush()
+    leisure_session_id = (item_snapshot.get("attributes") or {}).get("leisure_session_id")
+    admission_ticket = None
+    if leisure_session_id:
+        admission_ticket = operational_models.Ticket(tenant_id=user.tenant_id, reservation_id=reservation.id, status="issued", leisure_session_id=leisure_session_id, qr_token=secrets.token_urlsafe(32))
+        db.add(admission_ticket); db.flush()
+        db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="ticket", aggregate_id=admission_ticket.id, event_type="admission_ticket.issued", payload_json=json.dumps({"reservation_id": reservation.id, "ticket_id": admission_ticket.id}), correlation_id=str(uuid.uuid4()), idempotency_key=f"{data.command_id}:ticket"))
     db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="voucher", aggregate_id=voucher.id, event_type="voucher.issued", payload_json=json.dumps({"reservation_id": reservation.id, "voucher_id": voucher.id}), correlation_id=str(uuid.uuid4()), idempotency_key=data.command_id))
     invoice = _issue_invoice_for_reservation(db, reservation=reservation, tenant_id=user.tenant_id, actor_user_id=user.id, command_id=f"auto-invoice:{data.command_id}"[:120])
     db.commit(); record_business_event("booking", "issued")
-    return {"reservation": _reservation_output(reservation), "voucher": {"id": voucher.id, "status": voucher.status, "revision": voucher.revision}, "invoice": _invoice_output(invoice) if invoice else None}
+    return {"reservation": _reservation_output(reservation), "voucher": {"id": voucher.id, "status": voucher.status, "revision": voucher.revision}, "invoice": _invoice_output(invoice) if invoice else None, "admission_ticket": ({"id": admission_ticket.id, "status": admission_ticket.status, "qr_token": admission_ticket.qr_token} if admission_ticket else None)}
+
+
+def _leisure_place_output(place) -> dict:
+    return {"id": place.id, "supplier_id": place.supplier_id, "name": place.name, "slug": place.slug, "place_type": place.place_type, "category": place.category, "city": place.city, "address": place.address, "latitude": float(place.latitude) if place.latitude is not None else None, "longitude": float(place.longitude) if place.longitude is not None else None, "opening_hours": json.loads(place.opening_hours_json), "amenities": json.loads(place.amenities_json), "rules": json.loads(place.rules_json), "media": json.loads(place.media_json), "status": place.status}
+
+
+def _leisure_product_output(product) -> dict:
+    return {"id": product.id, "place_id": product.place_id, "supplier_id": product.supplier_id, "service_type": product.service_type, "subtype": product.subtype, "title": product.title, "description": product.description, "duration_minutes": product.duration_minutes, "booking_mode": product.booking_mode, "cancellation_policy": json.loads(product.cancellation_policy_json), "restrictions": json.loads(product.restrictions_json), "status": product.status}
+
+
+def _leisure_session_output(session) -> dict:
+    return {"id": session.id, "experience_product_id": session.experience_product_id, "starts_at": session.starts_at.isoformat(), "ends_at": session.ends_at.isoformat(), "sales_start_at": session.sales_start_at.isoformat() if session.sales_start_at else None, "sales_end_at": session.sales_end_at.isoformat() if session.sales_end_at else None, "capacity_total": session.capacity_total, "capacity_available": session.capacity_available, "status": session.status, "restrictions": json.loads(session.restrictions_json)}
+
+
+def _leisure_ticket_type_output(row) -> dict:
+    return {"id": row.id, "code": row.code, "label": row.label, "price": row.price, "currency": row.currency, "quota": row.quota, "min_age": row.min_age, "max_age": row.max_age, "restrictions": json.loads(row.restrictions_json), "active": row.active}
+
+
+def _sync_leisure_session_offer(db: Session, *, tenant_id: int, product: "operational_models.ExperienceProduct", place: "operational_models.Place", session: "operational_models.LeisureSession") -> None:
+    """Keep a session's backing generic Offer row (searchable via the
+    existing, unmodified unified_search/search_offers engine) in sync with
+    its real ticket types and remaining capacity. One Offer per session;
+    sessions of the same product share entity_id so search groups them."""
+    ticket_types = db.scalars(select(operational_models.LeisureTicketType).where(operational_models.LeisureTicketType.tenant_id == tenant_id, operational_models.LeisureTicketType.experience_product_id == product.id, operational_models.LeisureTicketType.active.is_(True))).all()
+    now = datetime.now(timezone.utc)
+    sellable = session.status == "active" and session.capacity_available > 0 and _aware(session.ends_at) > now and (session.sales_start_at is None or _aware(session.sales_start_at) <= now) and (session.sales_end_at is None or _aware(session.sales_end_at) > now)
+    from_price = min((t.price for t in ticket_types), default=0)
+    attrs = {"entity_id": f"leisure-product:{product.id}", "leisure_place_id": place.id, "leisure_product_id": product.id, "leisure_session_id": session.id, "place_type": place.place_type, "booking_mode": product.booking_mode, "subtype": product.subtype, "city": place.city, "address": place.address, "latitude": float(place.latitude) if place.latitude is not None else None, "longitude": float(place.longitude) if place.longitude is not None else None, "session_starts_at": session.starts_at.isoformat(), "session_ends_at": session.ends_at.isoformat(), "ticket_types": [_leisure_ticket_type_output(t) for t in ticket_types], "amenities": json.loads(place.amenities_json), "observed_at": now.isoformat()}
+    policy = json.loads(product.cancellation_policy_json or "{}")
+    status = "active" if (sellable and ticket_types) else "draft"
+    if session.offer_id:
+        offer = db.scalar(select(operational_models.Offer).where(operational_models.Offer.id == session.offer_id, operational_models.Offer.tenant_id == tenant_id).with_for_update())
+    else:
+        offer = None
+    if offer is None:
+        offer = operational_models.Offer(tenant_id=tenant_id, supplier_id=product.supplier_id, service_type=product.service_type, title=f"{product.title} · {place.city}", amount=from_price, currency=(ticket_types[0].currency if ticket_types else "IRR"), available_units=max(0, session.capacity_available), status=status, provider_key="manual_supplier", fulfillment_mode="manual_supplier", attributes_json=json.dumps(attrs, sort_keys=True), policy_json=json.dumps(policy, sort_keys=True), valid_until=session.ends_at)
+        db.add(offer); db.flush(); session.offer_id = offer.id
+    else:
+        offer.amount = from_price; offer.available_units = max(0, session.capacity_available); offer.status = status; offer.attributes_json = json.dumps(attrs, sort_keys=True); offer.policy_json = json.dumps(policy, sort_keys=True); offer.valid_until = session.ends_at; offer.title = f"{product.title} · {place.city}"
+
+
+def _apply_leisure_pricing_rule(db: Session, *, tenant_id: int, service_type: str, organization_id: Optional[str], base_amount: int) -> tuple[int, Optional[dict]]:
+    """Wire the existing (previously unwired) PricingRule model into leisure
+    pricing. No discount is invented here: this only applies a rule an admin
+    has explicitly configured for this tenant/service_type/organization."""
+    if organization_id is None:
+        return base_amount, None
+    rule = db.scalar(select(operational_models.PricingRule).where(operational_models.PricingRule.tenant_id == tenant_id, operational_models.PricingRule.status == "active", operational_models.PricingRule.service_type == service_type))
+    if rule is None:
+        rule = db.scalar(select(operational_models.PricingRule).where(operational_models.PricingRule.tenant_id == tenant_id, operational_models.PricingRule.status == "active", operational_models.PricingRule.service_type.is_(None)))
+    if rule is None:
+        return base_amount, None
+    config = json.loads(rule.configuration_json or "{}")
+    if config.get("scope") == "organization" and config.get("organization_id") not in (None, organization_id):
+        return base_amount, None
+    discount_type, discount_value = config.get("discount_type"), config.get("discount_value")
+    if discount_type == "percent" and isinstance(discount_value, (int, float)) and 0 < discount_value <= 100:
+        return max(0, base_amount - int(base_amount * discount_value / 100)), {"rule_id": rule.id, "discount_type": "percent", "discount_value": discount_value}
+    if discount_type == "fixed" and isinstance(discount_value, (int, float)) and discount_value > 0:
+        return max(0, base_amount - int(discount_value)), {"rule_id": rule.id, "discount_type": "fixed", "discount_value": discount_value}
+    return base_amount, None
+
+
+@app.post("/supplier/places", status_code=201)
+def create_place(data: PlaceIn, user: User = Depends(require_permission("inventory:manage")), db: Session = Depends(get_db)) -> dict:
+    supplier = db.scalar(select(operational_models.Supplier).where(operational_models.Supplier.id == data.supplier_id, operational_models.Supplier.tenant_id == user.tenant_id, operational_models.Supplier.status == "active"))
+    if supplier is None: raise HTTPException(409, "تأمین‌کننده فعال وجود ندارد")
+    row = operational_models.Place(tenant_id=user.tenant_id, supplier_id=supplier.id, name=data.name, slug=data.slug, place_type=data.place_type, category=data.category, city=data.city, address=data.address, latitude=data.latitude, longitude=data.longitude, opening_hours_json=json.dumps(data.opening_hours, sort_keys=True), amenities_json=json.dumps(data.amenities, sort_keys=True), rules_json=json.dumps(data.rules, sort_keys=True), media_json=json.dumps(data.media, sort_keys=True), status="published")
+    db.add(row); db.commit()
+    return _leisure_place_output(row)
+
+
+@app.get("/places/{place_id}")
+def place_detail(place_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    row = db.scalar(select(operational_models.Place).where(operational_models.Place.id == place_id, operational_models.Place.tenant_id == user.tenant_id, operational_models.Place.status == "published"))
+    if row is None: raise HTTPException(404, "مکان وجود ندارد")
+    return _leisure_place_output(row)
+
+
+@app.post("/supplier/places/{place_id}/experience-products", status_code=201)
+def create_experience_product(place_id: str, data: ExperienceProductIn, user: User = Depends(require_permission("inventory:manage")), db: Session = Depends(get_db)) -> dict:
+    place = db.scalar(select(operational_models.Place).where(operational_models.Place.id == place_id, operational_models.Place.tenant_id == user.tenant_id))
+    if place is None: raise HTTPException(404, "مکان در این tenant وجود ندارد")
+    row = operational_models.ExperienceProduct(tenant_id=user.tenant_id, place_id=place.id, supplier_id=place.supplier_id, service_type=data.service_type, subtype=data.subtype, title=data.title, description=data.description, duration_minutes=data.duration_minutes, booking_mode=data.booking_mode, cancellation_policy_json=json.dumps(data.cancellation_policy, sort_keys=True), restrictions_json=json.dumps(data.restrictions, sort_keys=True), status="published")
+    db.add(row); db.commit()
+    return _leisure_product_output(row)
+
+
+@app.post("/supplier/experience-products/{product_id}/ticket-types", status_code=201)
+def create_leisure_ticket_type(product_id: str, data: LeisureTicketTypeIn, user: User = Depends(require_permission("inventory:manage")), db: Session = Depends(get_db)) -> dict:
+    product = db.scalar(select(operational_models.ExperienceProduct).where(operational_models.ExperienceProduct.id == product_id, operational_models.ExperienceProduct.tenant_id == user.tenant_id))
+    if product is None: raise HTTPException(404, "محصول در این tenant وجود ندارد")
+    if data.min_age is not None and data.max_age is not None and data.min_age > data.max_age: raise HTTPException(422, "بازه سنی معتبر نیست")
+    row = operational_models.LeisureTicketType(tenant_id=user.tenant_id, experience_product_id=product.id, code=data.code, label=data.label, price=data.price, currency=data.currency, quota=data.quota, min_age=data.min_age, max_age=data.max_age, restrictions_json=json.dumps(data.restrictions, sort_keys=True), active=data.active)
+    db.add(row); db.flush()
+    place = db.scalar(select(operational_models.Place).where(operational_models.Place.id == product.place_id, operational_models.Place.tenant_id == user.tenant_id))
+    sessions = db.scalars(select(operational_models.LeisureSession).where(operational_models.LeisureSession.tenant_id == user.tenant_id, operational_models.LeisureSession.experience_product_id == product.id)).all()
+    for session in sessions: _sync_leisure_session_offer(db, tenant_id=user.tenant_id, product=product, place=place, session=session)
+    db.commit()
+    return _leisure_ticket_type_output(row)
+
+
+@app.post("/supplier/experience-products/{product_id}/sessions", status_code=201)
+def create_leisure_session(product_id: str, data: LeisureSessionIn, user: User = Depends(require_permission("inventory:manage")), db: Session = Depends(get_db)) -> dict:
+    product = db.scalar(select(operational_models.ExperienceProduct).where(operational_models.ExperienceProduct.id == product_id, operational_models.ExperienceProduct.tenant_id == user.tenant_id))
+    if product is None: raise HTTPException(404, "محصول در این tenant وجود ندارد")
+    if _aware(data.ends_at) <= _aware(data.starts_at): raise HTTPException(422, "بازه زمانی جلسه معتبر نیست")
+    place = db.scalar(select(operational_models.Place).where(operational_models.Place.id == product.place_id, operational_models.Place.tenant_id == user.tenant_id))
+    row = operational_models.LeisureSession(tenant_id=user.tenant_id, experience_product_id=product.id, starts_at=data.starts_at, ends_at=data.ends_at, sales_start_at=data.sales_start_at, sales_end_at=data.sales_end_at, capacity_total=data.capacity_total, capacity_available=data.capacity_total, restrictions_json=json.dumps(data.restrictions, sort_keys=True))
+    db.add(row); db.flush()
+    _sync_leisure_session_offer(db, tenant_id=user.tenant_id, product=product, place=place, session=row)
+    db.commit()
+    return _leisure_session_output(row)
+
+
+@app.get("/experience-products/{product_id}")
+def experience_product_detail(product_id: str, date: Optional[str] = None, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    product = db.scalar(select(operational_models.ExperienceProduct).where(operational_models.ExperienceProduct.id == product_id, operational_models.ExperienceProduct.tenant_id == user.tenant_id, operational_models.ExperienceProduct.status == "published"))
+    if product is None: raise HTTPException(404, "محصول وجود ندارد")
+    place = db.scalar(select(operational_models.Place).where(operational_models.Place.id == product.place_id, operational_models.Place.tenant_id == user.tenant_id))
+    now = datetime.now(timezone.utc)
+    query = select(operational_models.LeisureSession).where(operational_models.LeisureSession.tenant_id == user.tenant_id, operational_models.LeisureSession.experience_product_id == product.id, operational_models.LeisureSession.status == "active", operational_models.LeisureSession.ends_at > now)
+    if date:
+        try:
+            day = datetime.fromisoformat(date).date()
+        except ValueError:
+            raise HTTPException(422, "تاریخ معتبر نیست")
+        query = query.where(func.date(operational_models.LeisureSession.starts_at) == day)
+    sessions = db.scalars(query.order_by(operational_models.LeisureSession.starts_at)).all()
+    ticket_types = db.scalars(select(operational_models.LeisureTicketType).where(operational_models.LeisureTicketType.tenant_id == user.tenant_id, operational_models.LeisureTicketType.experience_product_id == product.id, operational_models.LeisureTicketType.active.is_(True))).all()
+    return {"place": _leisure_place_output(place) if place else None, "product": _leisure_product_output(product), "sessions": [_leisure_session_output(s) for s in sessions], "ticket_types": [_leisure_ticket_type_output(t) for t in ticket_types]}
+
+
+@app.post("/leisure-sessions/{session_id}/price-check", status_code=201)
+def leisure_session_price_check(session_id: str, data: LeisureSessionPriceCheckIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    existing = db.scalar(select(operational_models.PriceCheck).where(operational_models.PriceCheck.tenant_id == user.tenant_id, operational_models.PriceCheck.command_id == data.command_id))
+    if existing:
+        snapshot = json.loads(existing.snapshot_json)
+        if snapshot.get("leisure_session_id") != session_id:
+            raise HTTPException(409, "کلید تکرار برای درخواست دیگری استفاده شده است")
+        return {"id": existing.id, "offer_id": existing.offer_id, "amount": existing.amount, "currency": existing.currency, "expires_at": existing.expires_at.isoformat(), "ticket_breakdown": snapshot.get("ticket_breakdown", [])}
+    session = db.scalar(select(operational_models.LeisureSession).where(operational_models.LeisureSession.id == session_id, operational_models.LeisureSession.tenant_id == user.tenant_id, operational_models.LeisureSession.status == "active").with_for_update())
+    now = datetime.now(timezone.utc)
+    if session is None or _aware(session.ends_at) <= now: raise HTTPException(409, "جلسه معتبر نیست")
+    if session.sales_start_at is not None and _aware(session.sales_start_at) > now: raise HTTPException(409, "فروش این جلسه هنوز آغاز نشده است")
+    if session.sales_end_at is not None and _aware(session.sales_end_at) <= now: raise HTTPException(409, "فروش این جلسه به پایان رسیده است")
+    product = db.scalar(select(operational_models.ExperienceProduct).where(operational_models.ExperienceProduct.id == session.experience_product_id, operational_models.ExperienceProduct.tenant_id == user.tenant_id))
+    if product is None or product.status != "published": raise HTTPException(409, "محصول معتبر نیست")
+    place = db.scalar(select(operational_models.Place).where(operational_models.Place.id == product.place_id, operational_models.Place.tenant_id == user.tenant_id))
+    if session.offer_id is None: raise HTTPException(409, "این جلسه هنوز قابل فروش نیست")
+    offer = db.scalar(select(operational_models.Offer).where(operational_models.Offer.id == session.offer_id, operational_models.Offer.tenant_id == user.tenant_id, operational_models.Offer.status == "active"))
+    if offer is None: raise HTTPException(409, "این جلسه هنوز قابل فروش نیست")
+    ticket_type_rows = {row.id: row for row in db.scalars(select(operational_models.LeisureTicketType).where(operational_models.LeisureTicketType.tenant_id == user.tenant_id, operational_models.LeisureTicketType.experience_product_id == product.id, operational_models.LeisureTicketType.active.is_(True)))}
+    total_units, base_amount, breakdown, seen_codes = 0, 0, [], set()
+    for selection in data.selections:
+        ticket_type = ticket_type_rows.get(selection.ticket_type_id)
+        if ticket_type is None: raise HTTPException(422, "نوع بلیت معتبر نیست")
+        if ticket_type.code in seen_codes: raise HTTPException(422, "هر نوع بلیت فقط یک‌بار در انتخاب مجاز است")
+        seen_codes.add(ticket_type.code)
+        if ticket_type.quota is not None and selection.quantity > ticket_type.quota: raise HTTPException(409, "سهمیه این نوع بلیت کافی نیست")
+        total_units += selection.quantity; base_amount += ticket_type.price * selection.quantity
+        breakdown.append({"ticket_type_id": ticket_type.id, "code": ticket_type.code, "label": ticket_type.label, "unit_price": ticket_type.price, "quantity": selection.quantity, "subtotal": ticket_type.price * selection.quantity})
+    if total_units == 0: raise HTTPException(422, "حداقل یک بلیت باید انتخاب شود")
+    if total_units > session.capacity_available: raise HTTPException(409, "ظرفیت این جلسه کافی نیست")
+    organization_id = data.organization_id
+    if organization_id is not None:
+        membership = db.scalar(select(operational_models.Membership).where(operational_models.Membership.tenant_id == user.tenant_id, operational_models.Membership.user_id == user.id, operational_models.Membership.organization_id == organization_id))
+        if membership is None: raise HTTPException(403, "کاربر عضو این سازمان نیست")
+    final_amount, applied_rule = _apply_leisure_pricing_rule(db, tenant_id=user.tenant_id, service_type=product.service_type, organization_id=organization_id, base_amount=base_amount)
+    attrs = json.loads(offer.attributes_json)
+    snapshot_attrs = {**attrs, "leisure_session_id": session.id, "leisure_product_id": product.id, "ticket_breakdown": breakdown, "organization_id": organization_id, "applied_pricing_rule": applied_rule}
+    snapshot = {"offer_id": offer.id, "service_type": product.service_type, "supplier_id": product.supplier_id, "title": f"{product.title} · {place.city if place else ''}", "unit_amount": None, "units": total_units, "total_amount": final_amount, "currency": offer.currency, "policy": json.loads(product.cancellation_policy_json or "{}"), "attributes": snapshot_attrs, "provider_key": offer.provider_key, "fulfillment_mode": offer.fulfillment_mode, "checked_at": now.isoformat(), "availability_state": "CONFIRMED", "price_state": "RECHECKED", "leisure_session_id": session.id, "ticket_breakdown": breakdown}
+    encoded = json.dumps(snapshot, sort_keys=True)
+    expires_at = now + timedelta(minutes=10)
+    if session.sales_end_at is not None: expires_at = min(expires_at, _aware(session.sales_end_at))
+    row = operational_models.PriceCheck(tenant_id=user.tenant_id, offer_id=offer.id, user_id=user.id, command_id=data.command_id, amount=final_amount, currency=offer.currency, units=total_units, snapshot_json=encoded, snapshot_hash=_secure_hash(encoded), expires_at=expires_at)
+    db.add(row); db.commit()
+    return {"id": row.id, "offer_id": row.offer_id, "amount": row.amount, "currency": row.currency, "expires_at": row.expires_at.isoformat(), "ticket_breakdown": breakdown, "applied_pricing_rule": applied_rule}
+
+
+@app.get("/reservations/{reservation_id}/admission-tickets")
+def list_admission_tickets(reservation_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == reservation_id, operational_models.Reservation.tenant_id == user.tenant_id, operational_models.Reservation.user_id == user.id))
+    if reservation is None: raise HTTPException(404, "رزرو در این حساب وجود ندارد")
+    rows = db.scalars(select(operational_models.Ticket).where(operational_models.Ticket.tenant_id == user.tenant_id, operational_models.Ticket.reservation_id == reservation.id, operational_models.Ticket.qr_token.isnot(None))).all()
+    return {"items": [{"id": r.id, "status": r.status, "qr_token": r.qr_token, "redeemed_at": r.redeemed_at.isoformat() if r.redeemed_at else None} for r in rows]}
+
+
+@app.get("/admission-tickets/validate")
+def validate_admission_ticket(qr_token: str = Query(min_length=16, max_length=64), user: User = Depends(require_permission("reservation:fulfill")), db: Session = Depends(get_db)) -> dict:
+    ticket = db.scalar(select(operational_models.Ticket).where(operational_models.Ticket.tenant_id == user.tenant_id, operational_models.Ticket.qr_token == qr_token))
+    if ticket is None: raise HTTPException(404, "بلیت معتبر نیست")
+    reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == ticket.reservation_id, operational_models.Reservation.tenant_id == user.tenant_id))
+    session = db.scalar(select(operational_models.LeisureSession).where(operational_models.LeisureSession.id == ticket.leisure_session_id, operational_models.LeisureSession.tenant_id == user.tenant_id)) if ticket.leisure_session_id else None
+    now = datetime.now(timezone.utc)
+    expired = session is not None and _aware(session.ends_at) <= now
+    return {"id": ticket.id, "status": ticket.status, "reservation_status": reservation.status if reservation else None, "session": _leisure_session_output(session) if session else None, "redeemable": ticket.status == "issued" and reservation is not None and reservation.status == "issued" and not expired, "redeemed_at": ticket.redeemed_at.isoformat() if ticket.redeemed_at else None}
+
+
+@app.post("/admission-tickets/redeem")
+def redeem_admission_ticket(data: AdmissionTicketRedeemIn, user: User = Depends(require_permission("reservation:fulfill")), db: Session = Depends(get_db)) -> dict:
+    ticket = db.scalar(select(operational_models.Ticket).where(operational_models.Ticket.tenant_id == user.tenant_id, operational_models.Ticket.qr_token == data.qr_token).with_for_update())
+    if ticket is None: raise HTTPException(404, "بلیت معتبر نیست")
+    if ticket.status == "used":
+        raise HTTPException(409, detail={"code": "ALREADY_REDEEMED", "redeemed_at": ticket.redeemed_at.isoformat() if ticket.redeemed_at else None, "redeemed_by": ticket.redeemed_by})
+    if ticket.status in ("cancelled", "expired"):
+        raise HTTPException(409, detail={"code": f"TICKET_{ticket.status.upper()}"})
+    reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == ticket.reservation_id, operational_models.Reservation.tenant_id == user.tenant_id))
+    if reservation is None or reservation.status != "issued":
+        raise HTTPException(409, "وضعیت رزرو اجازه ورود نمی‌دهد")
+    now = datetime.now(timezone.utc)
+    if ticket.leisure_session_id:
+        session = db.scalar(select(operational_models.LeisureSession).where(operational_models.LeisureSession.id == ticket.leisure_session_id, operational_models.LeisureSession.tenant_id == user.tenant_id))
+        if session is not None and _aware(session.ends_at) <= now:
+            ticket.status = "expired"; db.commit()
+            raise HTTPException(409, detail={"code": "TICKET_EXPIRED"})
+    ticket.status = "used"; ticket.redeemed_at = now; ticket.redeemed_by = user.id
+    db.commit()
+    return {"id": ticket.id, "status": ticket.status, "redeemed_at": ticket.redeemed_at.isoformat(), "redeemed_by": ticket.redeemed_by}
 
 
 @app.get("/reservations/{reservation_id}/history")
