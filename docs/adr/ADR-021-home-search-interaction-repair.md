@@ -10,4 +10,4 @@ Acceptance: real browser interaction at all four widths, autocomplete selection,
 
 Rollback checkpoint: /home/ubuntu/karen-audit-20260908-search/source-before.tar.gz and before.json.
 
-Candidate verification exposed mobile flex-basis:0 collapsing expanded autocomplete to54px; allow natural heights. The existing missing /favicon.ico generated a browser Console404; explicitly return204 without introducing a new logo.
+Candidate verification exposed mobile flex-basis:0 collapsing expanded autocomplete to54px; allow natural heights. The existing missing /favicon.ico generated a browser Console404; serve a transparent SVG without introducing a new logo.
