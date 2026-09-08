@@ -54,15 +54,28 @@ const entityLabels:Record<string,string>={city:'شهر',airport:'فرودگاه'
 
 function EntityInput({kind,label,value,onChange,onSelect,open,setOpen,vertical}:{kind:'origin'|'destination';label:string;value:string;onChange:(value:string)=>void;onSelect:(item:Suggestion)=>void;open:boolean;setOpen:()=>void;vertical:string}){
   const {api}=useAuth();
-  const [items,setItems]=useState<Suggestion[]>([]); const [loading,setLoading]=useState(false); const request=useRef(0);
-  useEffect(()=>{if(!open||value.trim().length<2)return;const current=++request.current;const timer=window.setTimeout(async()=>{setLoading(true);try{const response=await api.publicGet<AutocompleteResponse>(`/search/autocomplete/public?q=${encodeURIComponent(value)}`);if(current===request.current)setItems(response.suggestions)}catch{if(current===request.current)setItems([])}finally{if(current===request.current)setLoading(false)}},180);return()=>window.clearTimeout(timer)},[api,open,value,vertical]);
+  const [lookup,setLookup]=useState<{query:string;items:Suggestion[];failed:boolean}>({query:'',items:[],failed:false});
+  const [highlight,setHighlight]=useState(-1);
+  const query=value.trim();
+  const items=lookup.query===query?lookup.items:[];
+  const loading=open&&query.length>=2&&lookup.query!==query;
+  const failed=lookup.query===query&&lookup.failed;
+  useEffect(()=>{
+    if(!open||query.length<2)return;
+    let cancelled=false;
+    const timer=window.setTimeout(async()=>{
+      try{const response=await api.publicGet<AutocompleteResponse>(`/search/autocomplete/public?q=${encodeURIComponent(query)}`);if(!cancelled)setLookup({query,items:response.suggestions,failed:false})}
+      catch{if(!cancelled)setLookup({query,items:[],failed:true})}
+    },180);
+    return()=>{window.clearTimeout(timer);cancelled=true};
+  },[api,open,query,vertical]);
   return <div className="fs-field fs-field--entity">
     <span className="fs-field-ic"><Icon name={kind==='origin'?(vertical==='flight'?'takeoff':'origin'):(vertical==='flight'?'landing':'destination')}/></span>
     <label className="fs-field-body">
       <span className="fs-field-label">{label}</span>
-      <input className="fs-field-input" aria-label={label} role="combobox" aria-expanded={open} aria-controls={`${kind}-suggestions`} autoComplete="off" value={value} onFocus={setOpen} onClick={setOpen} onChange={event=>{onChange(event.target.value);setOpen()}}/>
+      <input className="fs-field-input" aria-label={label} role="combobox" aria-expanded={open} aria-controls={`${kind}-suggestions`} autoComplete="off" aria-activedescendant={highlight>=0?`${kind}-option-${highlight}`:undefined} value={value} onKeyDown={event=>{if(event.key==='ArrowDown'||event.key==='ArrowUp'){event.preventDefault();setOpen();setHighlight(current=>items.length?(current+(event.key==='ArrowDown'?1:items.length-1)+items.length)%items.length:-1)}else if(event.key==='Enter'&&open&&highlight>=0&&items[highlight]){event.preventDefault();onSelect(items[highlight])}}} onFocus={setOpen} onClick={setOpen} onChange={event=>{setHighlight(-1);onChange(event.target.value);setOpen()}}/>
     </label>
-    {open&&<div className="fs-pop fs-pop--auto" id={`${kind}-suggestions`} role="listbox" aria-label={`پیشنهادهای ${label}`}>{loading?<div className="fs-sug-msg">در حال یافتن مقصد…</div>:items.length?<>{items.map(item=><button type="button" role="option" aria-selected="false" key={item.id} onClick={()=>onSelect(item)}><i aria-hidden="true"><Icon name={item.entity_type==='airport'?'flight':item.entity_type==='city'?'destination':'dot'}/></i><span><b>{item.title}</b><small>{[entityLabels[item.entity_type]??item.entity_type,item.code,item.city||item.country].filter(Boolean).join(' · ')}</small></span></button>)}</>:<div className="fs-sug-msg">حداقل دو حرف بنویس؛ شهر، فرودگاه یا کد IATA را جست‌وجو می‌کنیم.</div>}</div>}
+    {open&&<div className="fs-pop fs-pop--auto" id={`${kind}-suggestions`} role="listbox" aria-label={`پیشنهادهای ${label}`}>{loading?<div className="fs-sug-msg">در حال یافتن مقصد…</div>:items.length?<>{items.map((item,index)=><button type="button" role="option" id={`${kind}-option-${index}`} aria-selected={highlight===index} key={item.id} onClick={()=>onSelect(item)}><i aria-hidden="true"><Icon name={item.entity_type==='airport'?'flight':item.entity_type==='city'?'destination':'dot'}/></i><span><b>{item.title}</b><small>{[entityLabels[item.entity_type]??item.entity_type,item.code,item.city||item.country].filter(Boolean).join(' · ')}</small></span></button>)}</>:<div className="fs-sug-msg">{failed?'دریافت پیشنهادها انجام نشد؛ دوباره تلاش کنید.':value.trim().length<2?'حداقل دو حرف بنویس؛ شهر، فرودگاه یا کد IATA را جست‌وجو می‌کنیم.':'پیشنهادی برای این عبارت پیدا نشد.'}</div>}</div>}
   </div>;
 }
 
@@ -83,8 +96,8 @@ export function HomeSearchExperience(){
       active,
       origin:params.get('origin')??(svc.vertical==='visa'?'':svc.origin?'تهران':''),
       destination:params.get('destination')||defaultDestinationFor(svc.vertical),
-      depart:params.get('depart')||'2026-09-15',
-      returnDate:params.get('return')||'2026-09-18',
+      depart:params.get('depart')||'',
+      returnDate:params.get('return')||'',
       flexibility:params.get('flexibility')||'exact',
       tripType:(params.get('trip_type') as TripType|null)||'round_trip',
       adults:Number(params.get('adults')||2),
@@ -100,6 +113,20 @@ export function HomeSearchExperience(){
   const [adults,setAdults]=useState(initial.adults); const [children,setChildren]=useState(initial.children); const [infants,setInfants]=useState(initial.infants); const [rooms,setRooms]=useState(initial.rooms); const [cabin,setCabin]=useState(initial.cabin); const [popover,setPopover]=useState<Popover>(null);
   // eslint-disable-next-line react-hooks/set-state-in-effect -- resyncing the search form from a changed URL (direct link/refresh with existing params, or browser back/forward), the same justified pattern as UnifiedSearchView's URL resync effect
   useEffect(()=>{setActive(initial.active);setOrigin(initial.origin);setDestination(initial.destination);setDepart(initial.depart);setReturnDate(initial.returnDate);setFlexibility(initial.flexibility);setTripType(initial.tripType);setAdults(initial.adults);setChildren(initial.children);setInfants(initial.infants);setRooms(initial.rooms);setCabin(initial.cabin)},[initial]);
+  const searchRef=useRef<HTMLElement>(null);
+  const [searchError,setSearchError]=useState('');
+  useEffect(()=>{
+    if(!popover)return;
+    const root=searchRef.current;
+    const dismiss=(event:PointerEvent)=>{if(!root?.contains(event.target as Node))setPopover(null)};
+    document.addEventListener('pointerdown',dismiss);
+    const panel=root?.querySelector<HTMLElement>('.fs-pop');
+    const reveal=()=>panel?.scrollIntoView({block:'nearest',inline:'nearest'});
+    const frame=window.requestAnimationFrame(reveal);
+    const observer=new ResizeObserver(reveal);
+    if(panel)observer.observe(panel);
+    return()=>{document.removeEventListener('pointerdown',dismiss);window.cancelAnimationFrame(frame);observer.disconnect()};
+  },[popover]);
   const {api,session}=useAuth();
   const [nlOpen,setNlOpen]=useState(false); const [nlText,setNlText]=useState(''); const [nlIntent,setNlIntent]=useState<NLIntent|null>(null); const [nlRecording,setNlRecording]=useState(false); const [nlBusy,setNlBusy]=useState(false); const [nlError,setNlError]=useState('');
   const nlRecorder=useRef<MediaRecorder|null>(null); const nlChunks=useRef<Blob[]>([]); const nlStopTimer=useRef<number|undefined>(undefined);
@@ -153,7 +180,14 @@ export function HomeSearchExperience(){
   // `return` (the hotel/villa/etc. checkout date) from the URL too. Only
   // writing trip_type for flight, and gating `return` on the same showReturn
   // flag the date field itself already uses, fixes both at the source.
-  function submit(){const params=new URLSearchParams({vertical:service.vertical,origin:service.origin?origin:'',destination,depart,flexibility,adults:String(adults),children:String(children),infants:String(infants),rooms:String(rooms),cabin,sort:'recommended'});if(service.vertical==='flight')params.set('trip_type',tripType);if(showReturn)params.set('return',returnDate);router.push(`/?${params.toString()}`)}
+  function submit(){
+    const today=new Date().toISOString().slice(0,10);
+    if(!destination.trim()||(service.origin&&!origin.trim())){setSearchError('مبدأ و مقصد لازم را وارد کنید.');return}
+    if(service.origin&&origin.trim()===destination.trim()){setSearchError('مبدأ و مقصد باید متفاوت باشند.');return}
+    if(!depart||depart<today|| (showReturn&&(!returnDate||returnDate<depart||(isStay&&returnDate===depart)))){setSearchError('تاریخ رفت و برگشت معتبر انتخاب کنید؛ تاریخ خروج باید پس از ورود باشد.');setPopover('dates');return}
+    if(travellerTotal<1||travellerTotal>20||adults<1||children<0||infants<0||rooms<1){setSearchError('تعداد مسافران باید بین ۱ تا ۲۰ نفر باشد.');return}
+    setSearchError('');setPopover(null);
+    const params=new URLSearchParams({vertical:service.vertical,origin:service.origin?origin:'',destination,depart,flexibility,adults:String(adults),children:String(children),infants:String(infants),rooms:String(rooms),cabin,sort:'recommended'});if(service.vertical==='flight')params.set('trip_type',tripType);if(showReturn)params.set('return',returnDate);router.push(`/search/results?${params.toString()}`)}
   const travellerTotal=adults+children+infants;
   const isStay=service.vertical==='hotel'||service.vertical==='vacation_rental';
   const showReturn=service.vertical!=='flight'||tripType==='round_trip';
@@ -162,10 +196,10 @@ export function HomeSearchExperience(){
   const dateLabel=service.vertical==='visa'?'تاریخ سفر':service.vertical==='cruise'?'تاریخ حرکت':isStay?'ورود و خروج':'تاریخ سفر';
   const departLabel=isStay?'تاریخ ورود':service.vertical==='car_rental'?'تاریخ تحویل':'تاریخ رفت';
   const returnLabel=isStay?'تاریخ خروج':service.vertical==='car_rental'?'تاریخ بازگشت':'تاریخ برگشت';
-  return <section className="fs" id="search" aria-label="جست‌وجوی یکپارچه سفر" onKeyDown={event=>{if(event.key==='Escape')setPopover(null)}}>
-    {popover&&<div className="fs-scrim" aria-hidden="true" onClick={()=>setPopover(null)}/>}
+  return <section ref={searchRef} className="fs" id="search" aria-label="جست‌وجوی یکپارچه سفر" onKeyDown={event=>{if(event.key==='Escape')setPopover(null)}}>
+
     <div className="fs-tabs" role="tablist" aria-label="نوع خدمت">{services.map((tab,index)=><button type="button" role="tab" aria-selected={active===index} aria-controls="service-search-panel" onClick={()=>changeService(index)} className={active===index?'is-active':''} key={tab.name}><Icon name={tab.icon}/>{tab.name}</button>)}</div>
-    <div className="fs-box" id="service-search-panel" role="tabpanel" aria-label={`فرم جست‌وجوی ${service.name}`}>
+    <form onSubmit={event=>{event.preventDefault();submit()}} className="fs-box" id="service-search-panel" role="tabpanel" aria-label={`فرم جست‌وجوی ${service.name}`}>
       {service.vertical==='flight'&&<div className="fs-seg" role="group" aria-label="نوع سفر">{([['round_trip','رفت‌وبرگشت'],['one_way','یک‌طرفه'],['multi_city','چندمسیره']] as const).map(([value,label])=><button type="button" aria-pressed={tripType===value} className={tripType===value?'is-active':''} onClick={()=>{if(value==='multi_city'){setTripType(value);router.push('/?vertical=flight&trip_type=multi_city&edit=1')}else setTripType(value)}} key={value}>{label}</button>)}</div>}
       <div className="fs-row">
         <div className={service.origin?'fs-places fs-places--swap':'fs-places'}>
@@ -175,12 +209,12 @@ export function HomeSearchExperience(){
         <div className="fs-field fs-field--dates">
           <span className="fs-field-ic"><Icon name="calendar"/></span>
           <button type="button" className="fs-field-body fs-field-body--split" aria-label={dateLabel} aria-expanded={popover==='dates'} onClick={()=>setPopover(popover==='dates'?null:'dates')}>
-            <span className="fs-datecol"><span className="fs-field-label">{departLabel}</span><span className="fs-field-value">{depart.replaceAll('-','/')}</span></span>
-            <span className={showReturn?'fs-datecol':'fs-datecol is-disabled'}><span className="fs-field-label">{returnLabel}</span><span className="fs-field-value">{showReturn?returnDate.replaceAll('-','/'):'—'}</span></span>
+            <span className="fs-datecol"><span className="fs-field-label">{departLabel}</span><span className="fs-field-value">{depart?depart.replaceAll('-','/'):'انتخاب تاریخ'}</span></span>
+            <span className={showReturn?'fs-datecol':'fs-datecol is-disabled'}><span className="fs-field-label">{returnLabel}</span><span className="fs-field-value">{showReturn?(returnDate?returnDate.replaceAll('-','/'):'انتخاب تاریخ'):'—'}</span></span>
           </button>
           {popover==='dates'&&<div className="fs-pop fs-pop--date" aria-label="انتخاب تاریخ">
             <header><b>{dateLabel}</b><small>قیمت فقط پس از اتصال داده معتبر نمایش داده می‌شود.</small></header>
-            <div className="fs-pop-dates"><label><span>رفت</span><input aria-label="تاریخ رفت" type="date" value={depart} onChange={event=>setDepart(event.target.value)}/></label>{showReturn&&<label><span>برگشت</span><input aria-label="تاریخ برگشت" type="date" min={depart} value={returnDate} onChange={event=>setReturnDate(event.target.value)}/></label>}</div>
+            <div className="fs-pop-dates"><label><span>رفت</span><input aria-label="تاریخ رفت" type="date" min={new Date().toISOString().slice(0,10)} value={depart} onChange={event=>{setDepart(event.target.value);if(returnDate<event.target.value)setReturnDate('')}}/></label>{showReturn&&<label><span>برگشت</span><input aria-label="تاریخ برگشت" type="date" min={depart} value={returnDate} onChange={event=>setReturnDate(event.target.value)}/></label>}</div>
             <fieldset className="fs-flex"><legend>تاریخ منعطف</legend>{[['exact','دقیق'],['plus_minus_1','±۱ روز'],['plus_minus_3','±۳ روز']].map(([value,label])=><button type="button" aria-pressed={flexibility===value} className={flexibility===value?'is-active':''} onClick={()=>setFlexibility(value)} key={value}>{label}</button>)}</fieldset>
             <button type="button" className="fs-pop-done" onClick={()=>setPopover(null)}>تأیید تاریخ</button>
           </div>}
@@ -192,15 +226,16 @@ export function HomeSearchExperience(){
             <span className="fs-field-value">{travellerTotal.toLocaleString('fa-IR')} مسافر{isStay?`، ${rooms.toLocaleString('fa-IR')} اتاق`:''}{service.vertical==='flight'?` · ${cabin==='economy'?'اکونومی':'بیزینس'}`:''}</span>
           </button>
           {popover==='passengers'&&<div className="fs-pop fs-pop--pax" aria-label="انتخاب مسافران">
-            {([['بزرگسال','۱۲ سال به بالا',adults,setAdults,1],['کودک','۲ تا ۱۱ سال',children,setChildren,0],['نوزاد','کمتر از ۲ سال',infants,setInfants,0]] as const).map(([label,help,value,setter,min])=><div className="fs-counter" key={label}><span><b>{label}</b><small>{help}</small></span><div><button type="button" aria-label={`کاهش ${label}`} disabled={value<=min} onClick={()=>setter(value-1)}>−</button><b>{value.toLocaleString('fa-IR')}</b><button type="button" aria-label={`افزایش ${label}`} onClick={()=>setter(value+1)}>+</button></div></div>)}
+            {([['بزرگسال','۱۲ سال به بالا',adults,setAdults,1],['کودک','۲ تا ۱۱ سال',children,setChildren,0],['نوزاد','کمتر از ۲ سال',infants,setInfants,0]] as const).map(([label,help,value,setter,min])=><div className="fs-counter" key={label}><span><b>{label}</b><small>{help}</small></span><div><button type="button" aria-label={`کاهش ${label}`} disabled={value<=min} onClick={()=>setter(value-1)}>−</button><b>{value.toLocaleString('fa-IR')}</b><button type="button" aria-label={`افزایش ${label}`} disabled={travellerTotal>=20} onClick={()=>setter(value+1)}>+</button></div></div>)}
             {isStay&&<div className="fs-counter"><span><b>اتاق</b><small>تعداد اتاق موردنیاز</small></span><div><button type="button" aria-label="کاهش اتاق" disabled={rooms<=1} onClick={()=>setRooms(rooms-1)}>−</button><b>{rooms.toLocaleString('fa-IR')}</b><button type="button" aria-label="افزایش اتاق" onClick={()=>setRooms(rooms+1)}>+</button></div></div>}
             {service.vertical==='flight'&&<label className="fs-cabin"><span>کلاس پروازی</span><select aria-label="کلاس پروازی" value={cabin} onChange={event=>setCabin(event.target.value)}><option value="economy">اکونومی</option><option value="business">بیزینس</option></select></label>}
             <button type="button" className="fs-pop-done" onClick={()=>setPopover(null)}>تأیید مسافران</button>
           </div>}
         </div>
-        <button type="button" className="fs-go" onClick={submit}><Icon name="search"/>جست‌وجو</button>
+        <button type="submit" className="fs-go"><Icon name="search"/>جست‌وجو</button>
       </div>
-    </div>
+    </form>
+    {searchError&&<p className="fs-validation" role="alert">{searchError}</p>}
     <div className="fs-tools"><span>قیمت و موجودی فقط از Provider معتبر</span><span>استعلام مجدد پیش از خرید</span><button type="button" className="nl-toggle" onClick={()=>setNlOpen(value=>!value)} aria-expanded={nlOpen}><Icon name="chat"/> با زبان خودت بگو</button></div>
     {nlOpen&&<div className="nl-panel" aria-label="جست‌وجوی زبان طبیعی">
       <div className="nl-input-row">

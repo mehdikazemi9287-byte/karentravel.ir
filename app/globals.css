@@ -223,10 +223,10 @@ html,body{font-family:'Vazirmatn',Tahoma,Arial,sans-serif;font-optical-sizing:au
 .fs-cabin select{border:1px solid var(--fs-line-2);border-radius:8px;padding:6px 9px;font:inherit;font-size:13px;background:#fff;color:var(--fs-ink)}
 .fs-pop--pax .fs-pop-done{margin-top:12px}
 
-/* click-outside-to-close scrim for the date/passenger popovers - invisible
-   above the mobile breakpoint (no visual change there), dimmed on mobile
-   (matches its prior mobile-only look exactly) */
-.fs-scrim{display:block;position:fixed;inset:0;z-index:45;background:transparent}
+.fs-pop{scroll-margin-block:12px 90px}
+.fs-pop-dates{grid-template-columns:repeat(2,minmax(0,1fr))}
+.fs-pop-dates input{width:100%;min-width:0}
+.fs-validation{color:#a02a20;font-size:13px;margin:8px 0}
 
 /* tools row + NL panel alignment */
 .fs-tools{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:10px;padding:0 3px;font-size:11px;color:var(--fs-muted)}
@@ -246,7 +246,7 @@ html,body{font-family:'Vazirmatn',Tahoma,Arial,sans-serif;font-optical-sizing:au
 /* ---------- mobile ---------- */
 @media(max-width:767px){
   .fs{gap:8px}
-  .fs-scrim{background:rgba(42,21,48,.4)}
+
   .fs-tabs{border-radius:14px 14px 0 0}
   .fs-box{border-radius:0 0 14px 14px;padding:9px}
   .fs-seg{width:100%}
@@ -263,7 +263,7 @@ html,body{font-family:'Vazirmatn',Tahoma,Arial,sans-serif;font-optical-sizing:au
   .fs-swap svg{width:17px;height:17px}
   .fs-go{width:100%;align-self:auto;min-height:48px}
   .fs-counter>div button{width:36px;height:36px}
-  .fs-pop,.fs-pop--date,.fs-pop--pax{position:fixed;inset-inline:10px;inset-inline-end:10px;bottom:10px;top:auto;min-width:0;max-width:none;width:auto;max-height:76vh;overflow:auto;border-radius:16px;padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+
 }
 @media(max-width:520px){
   .fs-head em{display:none}
@@ -276,3 +276,11 @@ html,body{font-family:'Vazirmatn',Tahoma,Arial,sans-serif;font-optical-sizing:au
   .fs-pop-dates{grid-template-columns:1fr}
 }
 @media(prefers-reduced-motion:reduce){.fs *{transition:none!important;animation:none!important}}
+
+/* Keep small-screen pickers in the form flow, clear of the fixed navigation. */
+@media(max-width:1024px){
+  .fs-row{align-items:flex-start}
+  .fs-field:has(> .fs-pop){flex-wrap:wrap}
+  .fs-pop,.fs-pop--date,.fs-pop--pax{position:static;flex:1 0 100%;inset:auto;min-width:0;max-width:100%;width:100%;margin-top:8px;box-shadow:none}
+  .fs-go{min-height:58px;align-self:flex-start}
+}
