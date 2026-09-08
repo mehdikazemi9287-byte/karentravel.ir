@@ -18,7 +18,7 @@ def main():
     with SessionLocal() as db:
         tenant = db.scalar(select(Tenant).where(Tenant.slug == PUBLIC_TENANT_SLUG))
         set_tenant_context(db, tenant.id)
-        suppliers = db.scalars(select(Supplier).where(Supplier.tenant_id == tenant.id, Supplier.display_name.like(f"{MARKER}%"))).all()
+        suppliers = db.scalars(select(Supplier).where(Supplier.tenant_id == tenant.id, Supplier.display_name.in_([f"{MARKER} مجموعه آبی leisure-search-qa-20260909", f"{MARKER} رستوران leisure-search-qa-20260909", f"{MARKER} مرکز گردشگری leisure-search-qa-20260909", f"{MARKER} تالار رویداد leisure-search-qa-20260909"]))).all()
         supplier_ids = [row.id for row in suppliers]
         if not supplier_ids:
             print("nothing to clean up")
