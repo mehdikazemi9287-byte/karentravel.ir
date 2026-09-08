@@ -5,6 +5,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../../lib/api/auth-context';
 import { parseTravelIntent, type NLIntent } from '../../lib/domain/nl-intent';
 
+import { formatJalali, gregorianToJalali, jalaliMonths, jalaliMonthLength, jalaliToIso, persianDigits, todayIso, todayJalali, type JalaliDate } from '../../lib/domain/jalali';
+import { JalaliCalendar } from './JalaliCalendar';
 type Suggestion={id:string;title:string;subtitle:string;entity_type:string;city?:string;country?:string;code?:string;source:string};
 type AutocompleteResponse={suggestions:Suggestion[]};
 type TripType='round_trip'|'one_way'|'multi_city';
@@ -49,6 +51,10 @@ const services=[
   {name:'خودرو',icon:'car',vertical:'car_rental',origin:true,description:'اجاره خودرو در مقصد'},
   {name:'کروز',icon:'anchor',vertical:'cruise',origin:false,description:'سفر دریایی و کشتی'},
   {name:'ویزا',icon:'passport',vertical:'visa',origin:true,description:'بررسی و درخواست ویزا'},
+  {name:'استخر و ورزش',icon:'dot',vertical:'pool_sport',origin:false,description:'سانس استخر و مراکز ورزشی'},
+  {name:'رستوران و کافه',icon:'dot',vertical:'restaurant',origin:false,description:'رزرو میز و تجربه غذا'},
+  {name:'اماکن گردشگری و تفریحی',icon:'compass',vertical:'attraction',origin:false,description:'بلیت جاذبه و تفریح'},
+  {name:'رویداد و تالار',icon:'calendar',vertical:'event_hall',origin:false,description:'بلیت رویداد و رزرو تالار'},
 ] as const;
 const entityLabels:Record<string,string>={city:'شهر',airport:'فرودگاه',railway_station:'ایستگاه',hotel:'هتل',accommodation:'اقامتگاه',attraction:'جاذبه',poi:'مکان دیدنی'};
 
@@ -79,7 +85,7 @@ function EntityInput({kind,label,value,onChange,onSelect,open,setOpen,vertical}:
   </div>;
 }
 
-const defaultDestinationFor=(vertical:string)=>vertical==='hotel'||vertical==='vacation_rental'?'یزد':vertical==='cruise'?'دبی':vertical==='visa'?'فرانسه':vertical==='car_rental'?'شیراز':vertical==='tour'?'استانبول':'شیراز';
+const defaultDestinationFor=(vertical:string)=>vertical==='hotel'||vertical==='vacation_rental'?'یزد':vertical==='cruise'?'دبی':vertical==='visa'?'فرانسه':vertical==='car_rental'?'شیراز':vertical==='tour'?'استانبول':vertical==='attraction'?'شیراز':vertical==='pool_sport'||vertical==='restaurant'||vertical==='event_hall'?'تهران':'شیراز';
 export function HomeSearchExperience(){
   const router=useRouter(); const params=useSearchParams();
   // Previously this form always mounted with hardcoded defaults (flight/تهران/شیراز)
@@ -173,7 +179,7 @@ export function HomeSearchExperience(){
     if(nlIntent.budgetMax)params.set('filters_max_price',String(nlIntent.budgetMax));
     router.push(`/?${params.toString()}`);
   }
-  function changeService(index:number){const previousVertical=service.vertical;setActive(index);setPopover(null);const next=services[index];if(next.vertical==='visa')setOrigin('');else if(previousVertical==='visa')setOrigin('تهران');setDestination(next.vertical==='hotel'||next.vertical==='vacation_rental'?'یزد':next.vertical==='cruise'?'دبی':next.vertical==='visa'?'فرانسه':next.vertical==='car_rental'?'شیراز':next.vertical==='tour'?'استانبول':'شیراز')}
+  function changeService(index:number){const previousVertical=service.vertical;setActive(index);setPopover(null);const next=services[index];if(next.vertical==='visa')setOrigin('');else if(previousVertical==='visa')setOrigin('تهران');setDestination(next.vertical==='hotel'||next.vertical==='vacation_rental'?'یزد':next.vertical==='cruise'?'دبی':next.vertical==='visa'?'فرانسه':next.vertical==='car_rental'?'شیراز':next.vertical==='tour'?'استانبول':next.vertical==='attraction'?'شیراز':next.vertical==='pool_sport'||next.vertical==='restaurant'||next.vertical==='event_hall'?'تهران':'شیراز')}
   // trip_type ("یک‌طرفه"/"چندمسیره") is a flight-only concept - changeService()
   // above never resets it when switching tabs, so it used to leak into every
   // other vertical's URL and, since it wasn't 'round_trip', silently dropped
@@ -190,7 +196,7 @@ export function HomeSearchExperience(){
     const params=new URLSearchParams({vertical:service.vertical,origin:service.origin?origin:'',destination,depart,flexibility,adults:String(adults),children:String(children),infants:String(infants),rooms:String(rooms),cabin,sort:'recommended'});if(service.vertical==='flight')params.set('trip_type',tripType);if(showReturn)params.set('return',returnDate);router.push(`/search/results?${params.toString()}`)}
   const travellerTotal=adults+children+infants;
   const isStay=service.vertical==='hotel'||service.vertical==='vacation_rental';
-  const showReturn=service.vertical!=='flight'||tripType==='round_trip';
+  const showReturn=service.vertical==='hotel'||service.vertical==='vacation_rental'||service.vertical==='car_rental'||(service.vertical==='flight'&&tripType==='round_trip');
   const originLabel=service.vertical==='visa'?'ملیت / کشور گذرنامه':service.vertical==='cruise'?'بندر حرکت':service.vertical==='car_rental'?'شهر تحویل':'مبدأ';
   const destinationLabel=isStay?'مقصد، هتل یا منطقه':service.vertical==='visa'?'کشور مقصد':service.vertical==='car_rental'?'محل بازگشت':service.vertical==='cruise'?'مسیر / مقصد':'مقصد';
   const dateLabel=service.vertical==='visa'?'تاریخ سفر':service.vertical==='cruise'?'تاریخ حرکت':isStay?'ورود و خروج':'تاریخ سفر';
@@ -209,12 +215,12 @@ export function HomeSearchExperience(){
         <div className="fs-field fs-field--dates">
           <span className="fs-field-ic"><Icon name="calendar"/></span>
           <button type="button" className="fs-field-body fs-field-body--split" aria-label={dateLabel} aria-expanded={popover==='dates'} onClick={()=>setPopover(popover==='dates'?null:'dates')}>
-            <span className="fs-datecol"><span className="fs-field-label">{departLabel}</span><span className="fs-field-value">{depart?depart.replaceAll('-','/'):'انتخاب تاریخ'}</span></span>
-            <span className={showReturn?'fs-datecol':'fs-datecol is-disabled'}><span className="fs-field-label">{returnLabel}</span><span className="fs-field-value">{showReturn?(returnDate?returnDate.replaceAll('-','/'):'انتخاب تاریخ'):'—'}</span></span>
+            <span className="fs-datecol"><span className="fs-field-label">{departLabel}</span><span className="fs-field-value">{depart?formatJalali(depart):'انتخاب تاریخ'}</span></span>
+            <span className={showReturn?'fs-datecol':'fs-datecol is-disabled'}><span className="fs-field-label">{returnLabel}</span><span className="fs-field-value">{showReturn?(returnDate?formatJalali(returnDate):'انتخاب تاریخ'):'—'}</span></span>
           </button>
           {popover==='dates'&&<div className="fs-pop fs-pop--date" aria-label="انتخاب تاریخ">
             <header><b>{dateLabel}</b><small>قیمت فقط پس از اتصال داده معتبر نمایش داده می‌شود.</small></header>
-            <div className="fs-pop-dates"><label><span>رفت</span><input aria-label="تاریخ رفت" type="date" min={new Date().toISOString().slice(0,10)} value={depart} onChange={event=>{setDepart(event.target.value);if(returnDate<event.target.value)setReturnDate('')}}/></label>{showReturn&&<label><span>برگشت</span><input aria-label="تاریخ برگشت" type="date" min={depart} value={returnDate} onChange={event=>setReturnDate(event.target.value)}/></label>}</div>
+            <JalaliCalendar depart={depart} returnDate={returnDate} showReturn={showReturn} minIso={todayIso()} onDepart={iso=>{setDepart(iso);if(returnDate<iso)setReturnDate('')}} onReturn={setReturnDate}/>
             <fieldset className="fs-flex"><legend>تاریخ منعطف</legend>{[['exact','دقیق'],['plus_minus_1','±۱ روز'],['plus_minus_3','±۳ روز']].map(([value,label])=><button type="button" aria-pressed={flexibility===value} className={flexibility===value?'is-active':''} onClick={()=>setFlexibility(value)} key={value}>{label}</button>)}</fieldset>
             <button type="button" className="fs-pop-done" onClick={()=>setPopover(null)}>تأیید تاریخ</button>
           </div>}
