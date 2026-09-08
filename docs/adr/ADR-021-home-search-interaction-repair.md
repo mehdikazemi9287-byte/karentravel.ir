@@ -9,3 +9,5 @@ Decision: remove blocking scrim and use pointer-outside dismissal; show small-sc
 Acceptance: real browser interaction at all four widths, autocomplete selection, editable dates and passengers, one valid public Search request, correct URL and rendered response, no console/network errors, before/after screenshots. An honest zero-result response is distinguished from confirmed live inventory. Build and candidate checks precede swapping production; retain the prior container for rollback.
 
 Rollback checkpoint: /home/ubuntu/karen-audit-20260908-search/source-before.tar.gz and before.json.
+
+Candidate verification exposed mobile flex-basis:0 collapsing expanded autocomplete to54px; allow natural heights. The existing missing /favicon.ico generated a browser Console404; explicitly return204 without introducing a new logo.

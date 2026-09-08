@@ -284,3 +284,6 @@ html,body{font-family:'Vazirmatn',Tahoma,Arial,sans-serif;font-optical-sizing:au
   .fs-pop,.fs-pop--date,.fs-pop--pax{position:static;flex:1 0 100%;inset:auto;min-width:0;max-width:100%;width:100%;margin-top:8px;box-shadow:none}
   .fs-go{min-height:58px;align-self:flex-start}
 }
+
+@media(max-width:1024px){.fs-places{align-items:flex-start}.fs-places:has(.fs-pop) .fs-swap{visibility:hidden}}
+@media(max-width:767px){.fs-row>.fs-places,.fs-row>.fs-field,.fs-places>.fs-field{flex:0 0 auto}}

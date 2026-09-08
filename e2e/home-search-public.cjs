@@ -10,11 +10,11 @@ async function visibleAndClickable(locator){
 (async()=>{
  fs.mkdirSync(out,{recursive:true});
  const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||'/usr/bin/google-chrome',headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
- const results=[];
+ const results=[];let activePage;let activeWidth;
  try{
   for(const width of [1440,768,430,390]){
    const context=await browser.newContext({viewport:{width,height:900},locale:'fa-IR'});
-   const page=await context.newPage();page.setDefaultTimeout(10000);
+   const page=await context.newPage();activePage=page;activeWidth=width;page.setDefaultTimeout(10000);
    const errors=[],failed=[],searches=[];
    page.on('pageerror',e=>errors.push(e.message));
    page.on('console',m=>{if(m.type()==='error')errors.push(m.text())});
@@ -45,7 +45,7 @@ async function visibleAndClickable(locator){
    await expect(page.locator('.fs-scrim')).toHaveCount(0);
    if(width===1440){
     await page.locator('.fs-go').click();
-    await expect(page.getByRole('alert')).toContainText('تاریخ');
+    await expect(page.locator('.fs-validation')).toContainText('تاریخ');
     assert.equal(searches.length,0,'invalid dates must not request the API');
    }else await page.getByRole('button',{name:'تاریخ سفر',exact:true}).click();
    const depart=day(7),back=day(10);
@@ -85,12 +85,13 @@ async function visibleAndClickable(locator){
    assert.equal(params.get('depart'),depart);assert.equal(params.get('return'),back);assert.equal(params.get('children'),'1');
    await page.screenshot({path:path.join(out,stage+'-results-'+width+'.png')});
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false,'results must not overflow horizontally');
-   assert.deepEqual(errors,[],'console errors');assert.deepEqual(failed,[],'failed network requests');
+   if(errors.length||failed.length)console.log(JSON.stringify({width,errors,failed}));
    results.push({width,tabs:8,origin:'تهران',destination:'شیراز',dateGeometry,paxGeometry,request:payload,route:new URL(page.url()).pathname,http:response.status(),count:data.pagination.total,providers:data.provider_diagnostics,consoleErrors:errors,networkErrors:failed});
    await context.close();
   }
   fs.writeFileSync(path.join(out,stage+'-browser.json'),JSON.stringify(results,null,2));
+  assert.ok(results.every(x=>!x.consoleErrors.length&&!x.networkErrors.length),'browser errors remain; see evidence JSON');
   console.log(JSON.stringify({stage,verifiedWidths:results.map(x=>x.width),results:results.map(x=>({width:x.width,http:x.http,count:x.count,requests:1,route:x.route,consoleErrors:x.consoleErrors,networkErrors:x.networkErrors}))}));
- }catch(e){fs.writeFileSync(path.join(out,stage+'-failure.txt'),e.stack);throw e}
+ }catch(e){if(activePage&&!activePage.isClosed())await activePage.screenshot({path:path.join(out,stage+'-failure-'+activeWidth+'.png')}).catch(()=>{});fs.writeFileSync(path.join(out,stage+'-failure.txt'),e.stack);throw e}
  finally{await browser.close()}
 })().catch(e=>{console.error(e.message);process.exitCode=1});
