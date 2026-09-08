@@ -31,6 +31,7 @@ async function visibleAndClickable(locator){
     await expect(page.getByRole('tab',{name,exact:true})).toHaveAttribute('aria-selected','true');
     await expect(page.getByRole('tabpanel')).toHaveAttribute('aria-label','فرم جست‌وجوی '+name);
    }
+   if(width<768){const places=await page.locator('.fs-places').boundingBox(),dates=await page.locator('.fs-field--dates').boundingBox();assert.ok(Math.abs(places.width-dates.width)<2,'mobile fields retain full form width')}
    const origin=page.getByRole('combobox',{name:'مبدأ',exact:true});
    const destination=page.getByRole('combobox',{name:'مقصد',exact:true});
    await origin.click();await origin.fill('تهران');

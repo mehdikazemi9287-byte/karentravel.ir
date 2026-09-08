@@ -287,3 +287,5 @@ html,body{font-family:'Vazirmatn',Tahoma,Arial,sans-serif;font-optical-sizing:au
 
 @media(max-width:1024px){.fs-places{align-items:flex-start}.fs-places:has(.fs-pop) .fs-swap{visibility:hidden}}
 @media(max-width:767px){.fs-row>.fs-places,.fs-row>.fs-field,.fs-places>.fs-field{flex:0 0 auto}}
+
+@media(max-width:767px){.fs-row{align-items:stretch}}
