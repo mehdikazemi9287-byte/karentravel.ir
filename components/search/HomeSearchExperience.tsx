@@ -121,7 +121,7 @@ export function HomeSearchExperience(){
     const dismiss=(event:PointerEvent)=>{if(!root?.contains(event.target as Node))setPopover(null)};
     document.addEventListener('pointerdown',dismiss);
     const panel=root?.querySelector<HTMLElement>('.fs-pop');
-    const reveal=()=>panel?.scrollIntoView({block:'nearest',inline:'nearest'});
+    const reveal=()=>{if(!panel)return;const top=panel.getBoundingClientRect().top+window.scrollY-80;window.scrollTo({top:Math.max(0,top),behavior:'instant'})};
     const frame=window.requestAnimationFrame(reveal);
     const observer=new ResizeObserver(reveal);
     if(panel)observer.observe(panel);
