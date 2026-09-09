@@ -2897,8 +2897,18 @@ def create_checkout(reservation_id: str, data: CheckoutCreateIn, user: User = De
     reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == reservation_id, operational_models.Reservation.tenant_id == user.tenant_id, operational_models.Reservation.user_id == user.id).with_for_update())
     if reservation is None: raise HTTPException(status_code=404, detail="رزرو در این حساب وجود ندارد")
     if reservation.status not in {"reserved", "pending_approval", "approved"}: raise HTTPException(status_code=409, detail="رزرو در وضعیت قابل checkout نیست")
+    now = datetime.now(timezone.utc)
+    active = db.scalar(select(operational_models.CheckoutSession).where(
+        operational_models.CheckoutSession.tenant_id == user.tenant_id,
+        operational_models.CheckoutSession.reservation_id == reservation.id,
+        operational_models.CheckoutSession.user_id == user.id,
+        operational_models.CheckoutSession.expires_at > now,
+        operational_models.CheckoutSession.stage != "completed",
+    ).order_by(operational_models.CheckoutSession.created_at.desc()))
+    if active is not None:
+        return _checkout_output(active, reservation)
     price_hash = _secure_hash(reservation.price_snapshot_json); policy_hash = _secure_hash(reservation.policy_at_booking_json)
-    row = operational_models.CheckoutSession(tenant_id=user.tenant_id, reservation_id=reservation.id, user_id=user.id, command_id=data.command_id, price_snapshot_hash=price_hash, policy_snapshot_hash=policy_hash, state_json=json.dumps({"reviewed": True, "funding": {"wallet_amount": 0, "credit_amount": 0}}, sort_keys=True), expires_at=datetime.now(timezone.utc) + timedelta(minutes=30)); db.add(row); db.flush(); db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="checkout", aggregate_id=row.id, event_type="checkout.started", payload_json=json.dumps({"reservation_id": reservation.id}), correlation_id=str(uuid.uuid4()), idempotency_key=data.command_id)); db.commit(); return _checkout_output(row, reservation)
+    row = operational_models.CheckoutSession(tenant_id=user.tenant_id, reservation_id=reservation.id, user_id=user.id, command_id=data.command_id, price_snapshot_hash=price_hash, policy_snapshot_hash=policy_hash, state_json=json.dumps({"reviewed": True, "funding": {"wallet_amount": 0, "credit_amount": 0}}, sort_keys=True), expires_at=now + timedelta(minutes=30)); db.add(row); db.flush(); db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="checkout", aggregate_id=row.id, event_type="checkout.started", payload_json=json.dumps({"reservation_id": reservation.id}), correlation_id=str(uuid.uuid4()), idempotency_key=data.command_id)); db.commit(); return _checkout_output(row, reservation)
 
 
 @app.get("/checkout-sessions/{checkout_id}")

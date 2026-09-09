@@ -34,6 +34,8 @@ def test_checkout_is_resumable_server_authoritative_and_tenant_owned(client):
     created = client.post(f"/reservations/{reservation['id']}/checkout-sessions", headers=auth(employee), json={"command_id": f"checkout-{suffix}"})
     replay = client.post(f"/reservations/{reservation['id']}/checkout-sessions", headers=auth(employee), json={"command_id": f"checkout-{suffix}"})
     assert created.status_code == 201 and replay.json()["id"] == created.json()["id"]
+    different_command = client.post(f"/reservations/{reservation['id']}/checkout-sessions", headers=auth(employee), json={"command_id": f"checkout-second-{suffix}"})
+    assert different_command.status_code == 201 and different_command.json()["id"] == created.json()["id"]
     checkout_id = created.json()["id"]
     assert client.get(f"/checkout-sessions/{checkout_id}", headers=auth(faraz)).status_code == 404
     assert client.put(f"/checkout-sessions/{checkout_id}/steps/traveller", headers=auth(faraz), json={"command_id": f"cross-{suffix}", "traveller_ids": [traveller["id"]]}).status_code == 404
