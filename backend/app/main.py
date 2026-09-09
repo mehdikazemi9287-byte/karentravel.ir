@@ -273,7 +273,7 @@ class PriceCheckIn(BaseModel):
     units: int = Field(ge=1, le=20)
     command_id: str = Field(min_length=8, max_length=120)
     expected_final_price: Optional[int] = Field(default=None, gt=0)
-class OrchestrationBookingIn(BaseModel): price_check_id: str = Field(min_length=36, max_length=36); command_id: str = Field(min_length=8, max_length=120)
+class OrchestrationBookingIn(BaseModel): price_check_id: str = Field(min_length=36, max_length=36); command_id: str = Field(min_length=8, max_length=120); licensed_entity_id: Optional[str] = None; sales_channel_id: Optional[str] = None
 class FulfillmentIn(BaseModel): command_id: str = Field(min_length=8, max_length=120); provider_reference: str = Field(min_length=3, max_length=160); document_reference: str = Field(min_length=3, max_length=240)
 class OrganizationDimensionIn(BaseModel): name: str = Field(min_length=2, max_length=160); code: str = Field(min_length=2, max_length=64); budget_amount: Optional[int] = Field(default=None, ge=0)
 class ApprovalTemplateStepIn(BaseModel): required_role: str = Field(pattern="^(backoffice_expert|manager|welfare_manager|finance_operator|organization_admin)$"); sla_minutes: int = Field(ge=5, le=43200)
@@ -367,7 +367,26 @@ def booking_out(b: Booking, hotel: Hotel) -> dict:
 
 
 def _reservation_output(row: operational_models.Reservation) -> dict:
-    return {"id": row.id, "booking_reference": row.booking_reference, "service_type": row.service_type, "status": row.status, "price_snapshot": json.loads(row.price_snapshot_json), "policy_at_booking": json.loads(row.policy_at_booking_json), "version": row.version}
+    return {"id": row.id, "tenant_id": row.tenant_id, "licensed_entity_id": row.licensed_entity_id, "sales_channel_id": row.sales_channel_id, "booking_reference": row.booking_reference, "service_type": row.service_type, "status": row.status, "price_snapshot": json.loads(row.price_snapshot_json), "policy_at_booking": json.loads(row.policy_at_booking_json), "version": row.version}
+
+
+def _resolve_transaction_provenance(db: Session, user: User, licensed_entity_id: Optional[str] = None, sales_channel_id: Optional[str] = None) -> tuple[str, str]:
+    entity = db.scalar(select(operational_models.LicensedEntity).where(operational_models.LicensedEntity.id == licensed_entity_id, operational_models.LicensedEntity.tenant_id == user.tenant_id, operational_models.LicensedEntity.status == "active")) if licensed_entity_id else None
+    channel = db.scalar(select(operational_models.SalesChannel).where(operational_models.SalesChannel.id == sales_channel_id, operational_models.SalesChannel.tenant_id == user.tenant_id, operational_models.SalesChannel.status == "active")) if sales_channel_id else None
+    if licensed_entity_id and entity is None: raise HTTPException(status_code=409, detail="Licensed Entity در tenant جاری معتبر نیست")
+    if sales_channel_id and channel is None: raise HTTPException(status_code=409, detail="Sales Channel در tenant جاری معتبر نیست")
+    if channel is not None:
+        if entity is not None and channel.licensed_entity_id != entity.id: raise HTTPException(status_code=409, detail="Sales Channel با Licensed Entity منطبق نیست")
+        entity = db.scalar(select(operational_models.LicensedEntity).where(operational_models.LicensedEntity.id == channel.licensed_entity_id, operational_models.LicensedEntity.tenant_id == user.tenant_id, operational_models.LicensedEntity.status == "active"))
+    if entity is None:
+        entity = db.scalar(select(operational_models.LicensedEntity).where(operational_models.LicensedEntity.tenant_id == user.tenant_id, operational_models.LicensedEntity.legal_name == "Tazhban Gasht Pars", operational_models.LicensedEntity.status == "active"))
+        if entity is None:
+            entity = operational_models.LicensedEntity(tenant_id=user.tenant_id, legal_name="Tazhban Gasht Pars", status="active"); db.add(entity); db.flush()
+    if channel is None:
+        channel = db.scalar(select(operational_models.SalesChannel).where(operational_models.SalesChannel.tenant_id == user.tenant_id, operational_models.SalesChannel.licensed_entity_id == entity.id, operational_models.SalesChannel.channel_type == "DIRECT_B2C", operational_models.SalesChannel.status == "active"))
+    if channel is None:
+        channel = operational_models.SalesChannel(tenant_id=user.tenant_id, name="Karen Travel Direct", channel_type="DIRECT_B2C", licensed_entity_id=entity.id, status="active", brand_config_json=json.dumps({"brand":"Karen Travel","sales_channel":"DIRECT_B2C"}, sort_keys=True)); db.add(channel); db.flush()
+    return entity.id, channel.id
 
 
 def _record_payment_trip_event(db: Session, *, tenant_id: int, intent: "operational_models.PaymentIntent", event_key: str, event_type: str, title: str, message: str, severity: str = "info") -> None:
@@ -1826,7 +1845,8 @@ def orchestrate_booking(data: OrchestrationBookingIn, user: User = Depends(curre
     if not hmac.compare_digest(check.snapshot_hash, _secure_hash(check.snapshot_json)):
         raise HTTPException(status_code=409, detail="Price Check integrity نامعتبر است")
     reference = "KS-" + secrets.token_hex(8).upper()
-    reservation = operational_models.Reservation(tenant_id=user.tenant_id, user_id=user.id, service_type=snapshot["service_type"], status="reserved", booking_reference=reference, price_check_id=check.id, price_snapshot_json=json.dumps({"total_amount": check.amount, "currency": check.currency, "units": check.units, "checked_at": snapshot["checked_at"]}, sort_keys=True), policy_at_booking_json=json.dumps(snapshot["policy"], sort_keys=True), current_policy_json=json.dumps(snapshot["policy"], sort_keys=True))
+    licensed_entity_id, sales_channel_id = _resolve_transaction_provenance(db, user, data.licensed_entity_id, data.sales_channel_id)
+    reservation = operational_models.Reservation(tenant_id=user.tenant_id, user_id=user.id, licensed_entity_id=licensed_entity_id, sales_channel_id=sales_channel_id, service_type=snapshot["service_type"], status="reserved", booking_reference=reference, price_check_id=check.id, price_snapshot_json=json.dumps({"total_amount": check.amount, "currency": check.currency, "units": check.units, "checked_at": snapshot["checked_at"]}, sort_keys=True), policy_at_booking_json=json.dumps(snapshot["policy"], sort_keys=True), current_policy_json=json.dumps(snapshot["policy"], sort_keys=True))
     db.add(reservation); db.flush()
     db.add(operational_models.BookingItem(tenant_id=user.tenant_id, reservation_id=reservation.id, item_type=snapshot["service_type"], snapshot_json=json.dumps({"title": snapshot["title"], "attributes": snapshot["attributes"], "supplier_id": snapshot["supplier_id"], "offer_id": offer.id, "provider_key": snapshot["provider_key"], "fulfillment_mode": snapshot["fulfillment_mode"]}, sort_keys=True)))
     db.add(operational_models.BookingStatusHistory(tenant_id=user.tenant_id, reservation_id=reservation.id, from_status=None, to_status="reserved", actor_id=user.id, command_id=data.command_id))

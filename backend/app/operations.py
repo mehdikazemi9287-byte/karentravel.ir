@@ -29,6 +29,24 @@ class OperationalMixin:
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
 
+class LicensedEntity(OperationalMixin, Base):
+    __tablename__ = "licensed_entities"
+    legal_name: Mapped[str] = mapped_column(String(200))
+    registration_number: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    tax_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    status: Mapped[str] = mapped_column(String(32), default="active", index=True)
+
+
+class SalesChannel(OperationalMixin, Base):
+    __tablename__ = "sales_channels"
+    name: Mapped[str] = mapped_column(String(160))
+    channel_type: Mapped[str] = mapped_column(String(32), default="DIRECT_B2C")
+    licensed_entity_id: Mapped[str] = mapped_column(ForeignKey("licensed_entities.id"), index=True)
+    status: Mapped[str] = mapped_column(String(32), default="active", index=True)
+    brand_config_json: Mapped[str] = mapped_column(Text, default="{}")
+    __table_args__ = (UniqueConstraint("tenant_id", "name", name="uq_sales_channel_name"),)
+
+
 class Organization(OperationalMixin, Base):
     __tablename__ = "organizations"
     name: Mapped[str] = mapped_column(String(160))
@@ -515,6 +533,8 @@ class Reservation(OperationalMixin, Base):
     version: Mapped[int] = mapped_column(Integer, default=1)
     booking_reference: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, unique=True)
     price_check_id: Mapped[Optional[str]] = mapped_column(ForeignKey("price_checks.id"), nullable=True, index=True)
+    licensed_entity_id: Mapped[Optional[str]] = mapped_column(ForeignKey("licensed_entities.id"), nullable=True, index=True)
+    sales_channel_id: Mapped[Optional[str]] = mapped_column(ForeignKey("sales_channels.id"), nullable=True, index=True)
     confirmed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     trip_id: Mapped[Optional[str]] = mapped_column(ForeignKey("trips.id"), nullable=True, index=True)
 

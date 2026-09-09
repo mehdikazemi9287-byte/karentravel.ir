@@ -50,7 +50,13 @@ def test_offer_price_check_booking_payment_fulfillment_and_voucher(client, servi
     booking_payload = {"price_check_id": checked.json()["id"], "command_id": f"booking-command-{service_type}"}
     booked = client.post("/orchestration/bookings", headers=auth(employee["access_token"]), json=booking_payload)
     assert booked.status_code == 201 and booked.json()["status"] == "reserved"
+    assert booked.json()["licensed_entity_id"] and booked.json()["sales_channel_id"] and booked.json()["tenant_id"]
     assert client.post("/orchestration/bookings", headers=auth(employee["access_token"]), json=booking_payload).json()["id"] == booked.json()["id"]
+    with SessionLocal() as db:
+        persisted = db.get(Reservation, booked.json()["id"])
+        assert persisted.tenant_id == booked.json()["tenant_id"]
+        assert persisted.licensed_entity_id == booked.json()["licensed_entity_id"]
+        assert persisted.sales_channel_id == booked.json()["sales_channel_id"]
     reservation_id = booked.json()["id"]
     payment = client.post(f"/reservations/{reservation_id}/payment-intents", headers={**auth(employee["access_token"]), "Idempotency-Key": f"payment-{service_type}"})
     assert payment.status_code == 201
