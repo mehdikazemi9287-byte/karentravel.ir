@@ -24,4 +24,7 @@ BEGIN
     IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'find_login_identity') THEN
         GRANT EXECUTE ON FUNCTION public.find_login_identity(text) TO karenseir_api;
     END IF;
+    IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'find_public_media_asset') THEN
+        GRANT EXECUTE ON FUNCTION public.find_public_media_asset(text) TO karenseir_api;
+    END IF;
 END $$;

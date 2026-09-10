@@ -166,3 +166,52 @@ def test_audit_event_written(client):
             om.OutboxEvent.aggregate_type == "supplier_asset",
             om.OutboxEvent.aggregate_id == up["id"]).all()
         assert any("upload" in e.payload_json for e in events)
+
+
+def _upload_public(client, headers, supplier_id):
+    return client.post(
+        f"/supplier/{supplier_id}/assets", headers=headers,
+        data={"entity_type": "product_image", "kind": "image", "visibility": "public"},
+        files={"file": ("promo.png", PNG_1X1, "image/png")})
+
+
+def test_public_media_anonymous_get(client):
+    sup = login(client, "supplier@aftab.test")
+    sid = onboard(client, sup)
+    up = _upload_public(client, sup, sid).json()
+    assert up["visibility"] == "public"
+    assert up["public_url"] == f"/media/public/{up['id']}"
+    # anonymous (no Authorization header)
+    r = client.get(up["public_url"])
+    assert r.status_code == 200
+    assert r.content == PNG_1X1
+    assert r.headers["content-type"].startswith("image/png")
+    assert "max-age" in r.headers.get("cache-control", "")
+
+
+def test_private_asset_not_public(client):
+    sup = login(client, "supplier@aftab.test")
+    sid = onboard(client, sup)
+    up = _upload(client, sup, sid).json()  # private by default
+    assert up["public_url"] is None
+    assert client.get(f"/media/public/{up['id']}").status_code == 404          # anonymous
+    assert client.get(f"/media/public/{up['id']}", headers=login(client, "employee@aftab.test")).status_code == 404
+
+
+def test_public_media_deleted_and_replaced(client):
+    sup = login(client, "supplier@aftab.test")
+    sid = onboard(client, sup)
+    up = _upload_public(client, sup, sid).json()
+    # replace -> old key must 404 via any path, new content still public
+    rep = client.put(f"/supplier/assets/{up['id']}/content", headers=sup,
+                     files={"file": ("promo2.png", PNG_1X1, "image/png")})
+    assert rep.status_code == 200
+    assert client.get(f"/media/public/{up['id']}").status_code == 200
+    # delete -> public url 404
+    assert client.request("DELETE", f"/supplier/assets/{up['id']}", headers=sup).status_code == 204
+    assert client.get(f"/media/public/{up['id']}").status_code == 404
+
+
+def test_public_media_bad_id(client):
+    assert client.get("/media/public/not-a-uuid").status_code == 404
+    assert client.get("/media/public/../../etc/passwd").status_code in (404, 405)

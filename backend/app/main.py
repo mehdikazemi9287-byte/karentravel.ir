@@ -3159,6 +3159,7 @@ def _supplier_asset_output(row) -> dict:
         "content_type": row.content_type, "byte_size": row.byte_size,
         "checksum_sha256": row.checksum_sha256,
         "download_url": f"/supplier/assets/{row.id}/content",
+        "public_url": f"/media/public/{row.id}" if row.visibility == "public" and row.status == "active" else None,
         "created_at": row.created_at.isoformat(), "updated_at": row.updated_at.isoformat(),
     }
 
@@ -3322,3 +3323,27 @@ def delete_supplier_asset(
         db.commit()
         media_storage.delete_blob(key)
     return Response(status_code=204)
+
+
+@app.get("/media/public/{asset_id}")
+def public_media_asset(asset_id: str, db: Session = Depends(get_db)) -> Response:
+    """Anonymous read of an explicitly-public supplier asset. No session. The
+    id alone is not sufficient: the row must be visibility='public' AND
+    status='active' or this returns 404 (private/deleted/replaced -> 404)."""
+    if not re.fullmatch(r"[0-9a-fA-F-]{36}", asset_id or ""):
+        raise HTTPException(status_code=404, detail="یافت نشد")
+    if engine.dialect.name == "postgresql":
+        row = db.execute(text("SELECT tenant_id, storage_key, content_type FROM public.find_public_media_asset(:aid)"), {"aid": asset_id}).first()
+    else:
+        row = db.execute(select(operational_models.SupplierAsset.tenant_id, operational_models.SupplierAsset.storage_key, operational_models.SupplierAsset.content_type).where(operational_models.SupplierAsset.id == asset_id, operational_models.SupplierAsset.visibility == "public", operational_models.SupplierAsset.status == "active")).first()
+    if row is None:
+        raise HTTPException(status_code=404, detail="یافت نشد")
+    try:
+        blob = media_storage.read_blob(row.storage_key)
+    except (FileNotFoundError, media_storage.StorageError):
+        raise HTTPException(status_code=404, detail="یافت نشد")
+    return Response(content=blob, media_type=row.content_type, headers={
+        "Cache-Control": "public, max-age=86400, immutable",
+        "X-Content-Type-Options": "nosniff",
+        "Content-Disposition": f'inline; filename="{asset_id}.{row.storage_key.rsplit(".", 1)[-1]}"',
+    })

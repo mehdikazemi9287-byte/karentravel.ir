@@ -116,6 +116,7 @@ function SupplierAssets({ suppliers }: { suppliers: Array<{ id: string; name: st
   const [busy, setBusy] = useState(false);
   const [kind, setKind] = useState<'image' | 'document'>('image');
   const [entityType, setEntityType] = useState('supplier_profile');
+  const [makePublic, setMakePublic] = useState(false);
   useEffect(() => { setSid(suppliers[0]?.id || ''); }, [suppliers]);
   const load = useCallback(async (id: string) => {
     if (!id) { setRows([]); return; }
@@ -147,7 +148,7 @@ function SupplierAssets({ suppliers }: { suppliers: Array<{ id: string; name: st
     setBusy(true); setNote('در حال بارگذاری…');
     try {
       const body = new FormData();
-      body.append('file', f); body.append('entity_type', entityType); body.append('kind', kind); body.append('visibility', 'private');
+      body.append('file', f); body.append('entity_type', entityType); body.append('kind', kind); body.append('visibility', kind === 'image' && makePublic ? 'public' : 'private');
       await api.postForm(`/supplier/${sid}/assets`, body);
       setNote('فایل بارگذاری شد.'); input.value = ''; await load(sid);
     } catch (err) { setNote(err instanceof ApiError ? err.message : 'بارگذاری ناموفق بود.'); }
@@ -173,12 +174,13 @@ function SupplierAssets({ suppliers }: { suppliers: Array<{ id: string; name: st
       <label className="font-bold">نوع<select aria-label="نوع فایل" className="mt-2 block rounded-xl border p-2" value={kind} onChange={e => { const k = e.target.value as 'image' | 'document'; setKind(k); setEntityType(k === 'image' ? 'supplier_profile' : 'license'); }}><option value="image">تصویر</option><option value="document">سند</option></select></label>
       <label className="font-bold">دسته<select aria-label="دسته فایل" className="mt-2 block rounded-xl border p-2" value={entityType} onChange={e => setEntityType(e.target.value)}>{cats.map(v => <option key={v} value={v}>{v}</option>)}</select></label>
       <label className="min-w-48 flex-1 font-bold">فایل<input name="file" type="file" required accept={kind === 'image' ? 'image/png,image/jpeg,image/webp,image/gif' : 'application/pdf,image/png,image/jpeg'} className="mt-2 block w-full text-sm" /></label>
+      {kind === 'image' && <label className="flex items-center gap-2 font-bold"><input type="checkbox" checked={makePublic} onChange={e => setMakePublic(e.target.checked)} />نمایش عمومی</label>}
       <button disabled={busy || !sid} className="button primary">بارگذاری</button>
     </form>
     {note && <p role="status" className="mt-3 rounded-xl bg-cyan-50 p-3 text-sm">{note}</p>}
     {rows.length === 0 ? <p className="mt-3 text-sm text-slate-600">فایلی بارگذاری نشده است.</p> : <ul className="mt-4 space-y-3">{rows.map(r => <li key={r.id} className="flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 p-3">
       {previews[r.id] ? <img src={previews[r.id]} alt={r.original_filename} className="h-14 w-14 rounded object-cover" /> : <span className="grid h-14 w-14 place-items-center rounded bg-slate-200 text-xs">{r.kind === 'document' ? 'PDF' : 'IMG'}</span>}
-      <span className="flex-1"><b className="block">{r.original_filename}</b><small className="text-slate-600">{r.entity_type} · {r.visibility} · {(r.byte_size / 1024).toLocaleString('fa-IR', { maximumFractionDigits: 1 })} KB</small></span>
+      <span className="flex-1"><b className="block">{r.original_filename}</b><small className="text-slate-600">{r.entity_type} · {r.visibility === 'public' ? 'عمومی' : 'خصوصی'} · {(r.byte_size / 1024).toLocaleString('fa-IR', { maximumFractionDigits: 1 })} KB</small>{r.visibility === 'public' && <a className="text-link block text-xs" href={`${api.apiBase}/media/public/${r.id}`} target="_blank" rel="noreferrer">لینک عمومی ↗</a>}</span>
       <label className="button secondary cursor-pointer">جایگزینی<input type="file" hidden accept={r.content_type} onChange={e => { const f = e.target.files?.[0]; if (f) replace(r.id, f); }} /></label>
       <button disabled={busy} className="button ghost" onClick={() => remove(r.id)}>حذف</button>
     </li>)}</ul>}
