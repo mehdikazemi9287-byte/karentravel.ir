@@ -71,13 +71,41 @@ export function SupportLanding() {
 
 export function ConnectedTripTimeline({tripId}:{tripId:string}) {
   const {api,session}=useAuth();
-  const [state,setState]=useState<LoadState<{trip:{id:string;destination:string;status:string};events:TimelineEvent[]}>>({kind:'loading'});
-  useEffect(()=>{if(!session)return;let active=true;api.get<Extract<typeof state,{kind:'ready'}>['data']>(`/trips/${tripId}/timeline`).then(data=>active&&setState({kind:'ready',data})).catch(error=>{const item=errorOf(error);if(active)setState({kind:'error',...item});});return()=>{active=false};},[api,session,tripId]);
+  const [state,setState]=useState<LoadState<{trip:{id:string;destination:string;status:string};events:Array<TimelineEvent&{created_at?:string}>}>>({kind:'loading'});
+  const [support,setSupport]=useState<Array<{id:string;kind:'support';sender_type:string;body:string;created_at:string;subject:string}>>([]);
+  useEffect(()=>{if(!session)return;let active=true;
+    api.get<Extract<typeof state,{kind:'ready'}>['data']>(`/trips/${tripId}/timeline`).then(data=>active&&setState({kind:'ready',data})).catch(error=>{const item=errorOf(error);if(active)setState({kind:'error',...item});});
+    api.get<Array<{id:string;trip_id?:string|null;subject:string;messages:Array<{id:string;sender_type:string;body:string;created_at:string}>}>>('/support/cases').then(cases=>{if(!active)return;const msgs=cases.filter(c=>c.trip_id===tripId).flatMap(c=>c.messages.map(mm=>({id:mm.id,kind:'support' as const,sender_type:mm.sender_type,body:mm.body,created_at:mm.created_at,subject:c.subject})));setSupport(msgs);}).catch(()=>{});
+    return()=>{active=false};},[api,session,tripId]);
   if(!session)return <ErrorState status={401} message="نشست مرورگر موجود نیست."/>;
   if(state.kind==='loading')return <LoadingState/>;
   if(state.kind==='error')return <ErrorState status={state.status} message={state.message}/>;
   const {trip,events}=state.data;
-  return <div className="grid gap-6"><header className="trip-hero"><div><span>سفر عملیاتی</span><h1>{trip.destination}</h1><p>وضعیت: {trip.status}</p></div></header><section className="trip-timeline"><header><span>Trip Operations Center</span><h2>چه چیزی در سفر من تغییر کرده؟</h2></header>{events.length===0?<EmptyState>تغییر جدیدی برای این سفر ثبت نشده است.</EmptyState>:events.map(event=><article key={event.id} className={`timeline-${event.requires_action?'active':'done'}`}><div><span className="tag">{event.source} · {event.severity}</span><h3>{event.title}</h3><p>{event.message}</p>{event.requires_action&&<strong>این رویداد نیاز به اقدام شما دارد.</strong>}{event.deep_link&&<Link className="text-link" href={event.deep_link}>مشاهده اقدام ←</Link>}</div></article>)}</section></div>;
+  const iconFor=(t:string)=>t.startsWith('booking')?'📋':/cancel/.test(t)?'✕':/refund/.test(t)?'↩':/payment/.test(t)?'💳':/flight/.test(t)?'✈':/hotel/.test(t)?'🏨':/change/.test(t)?'⟳':/voucher|document/.test(t)?'🎫':'•';
+  type Row={id:string;created_at:string;node:ReactNode;action:boolean;fresh:boolean};
+  const eventRows:Row[]=events.map(ev=>({id:ev.id,created_at:ev.created_at||'',action:ev.requires_action,fresh:ev.severity==='warning'||ev.severity==='error'||ev.requires_action,node:(
+    <article className={`rounded-xl p-4 ${ev.requires_action?'bg-amber-50 border border-amber-300':ev.severity==='error'?'bg-rose-50':ev.severity==='warning'?'bg-amber-50':'bg-slate-50'}`}>
+      <div className="flex items-center gap-2 text-xs"><span aria-hidden="true">{iconFor(ev.type)}</span><span className="rounded bg-slate-200 px-2 py-0.5">سیستم · {ev.type}</span>{ev.requires_action&&<span className="rounded bg-amber-600 px-2 py-0.5 text-white">نیاز به اقدام</span>}</div>
+      <h3 className="mt-2 font-bold">{ev.title}</h3><p className="text-sm text-slate-600">{ev.message}</p>
+      {ev.deep_link&&<Link className="text-link mt-1 inline-block text-sm" href={ev.deep_link}>مشاهده اقدام ←</Link>}
+    </article>)}));
+  const supportRows:Row[]=support.map(m=>{const human=m.sender_type==='human_agent';const ai=m.sender_type==='ai';const you=m.sender_type==='customer';
+    return {id:m.id,created_at:m.created_at,action:false,fresh:human,node:(
+    <article className={`rounded-xl p-4 border ${human?'bg-sky-50 border-sky-400':ai?'bg-violet-50 border-violet-300':'bg-white border-slate-200'}`}>
+      <div className="flex items-center gap-2 text-xs"><span aria-hidden="true">{human?'🧑‍💼':ai?'🤖':you?'🙋':'💬'}</span>
+        <span className={`rounded px-2 py-0.5 ${human?'bg-sky-600 text-white':ai?'bg-violet-600 text-white':'bg-slate-200'}`}>{human?'کارشناس انسانی':ai?'پاسخ خودکار':you?'شما':'پشتیبانی'}</span>
+        <span className="text-slate-500">{m.subject}</span></div>
+      <p className="mt-2 text-sm">{m.body}</p>
+    </article>)};});
+  const rows=[...eventRows,...supportRows].sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||''));
+  const actionCount=rows.filter(r=>r.action).length;
+  return <div className="grid gap-6"><header className="trip-hero"><div><span>سفر عملیاتی</span><h1>{trip.destination}</h1><p>وضعیت: {trip.status}</p></div></header>
+    <section className="trip-timeline"><header><span>Trip Operations Center</span><h2>چه چیزی در سفر من تغییر کرده؟</h2>
+      <p className="text-sm text-slate-600">{rows.length===0?'تغییری ثبت نشده است.':actionCount>0?`${actionCount.toLocaleString('fa-IR')} مورد نیاز به اقدام شما دارد.`:`${rows.length.toLocaleString('fa-IR')} رویداد در این سفر.`}</p></header>
+      {rows.length===0?<EmptyState>تغییر جدیدی برای این سفر ثبت نشده است.</EmptyState>:<div className="grid gap-3">{rows.map(r=><div key={r.id}>{r.node}</div>)}</div>}
+    </section>
+    <p className="text-xs text-slate-500">پیام کارشناس انسانی با رنگ و برچسب مجزا از رویداد سیستمی و پاسخ خودکار نمایش داده می‌شود.</p>
+  </div>;
 }
 
 export function ConnectedManageBooking({ reservationId }: { reservationId: string }) {

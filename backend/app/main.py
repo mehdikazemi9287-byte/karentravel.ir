@@ -801,6 +801,23 @@ def my_notifications(user: User = Depends(current_user), db: Session = Depends(g
     return [{"id": row.id, "topic": row.topic, "title": row.title, "message": row.message, "deep_link": row.deep_link, "status": row.status, "created_at": row.created_at.isoformat()} for row in rows]
 
 
+@app.get("/me/notification-channels")
+def my_notification_channels(user: User = Depends(current_user)) -> list[dict]:
+    """Truthful per-channel deliverability so the Notification Center never implies
+    an external channel is operational when it is not."""
+    from .operations import _notification_channel_pending_external
+    out = []
+    for channel in ("web", "app", "push", "sms"):
+        pending = _notification_channel_pending_external(channel)
+        out.append({
+            "channel": channel,
+            "deliverable_now": not pending,
+            "note": ("در برنامه/وب فعال" if channel in ("web", "app")
+                     else "ارائه‌دهنده خارجی متصل نیست؛ ترجیح ذخیره می‌شود اما تحویل انجام نمی‌شود"),
+        })
+    return out
+
+
 @app.get("/me/notification-events")
 def my_notification_events(user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
     rows = db.scalars(select(operational_models.NotificationEvent).where(
@@ -1072,7 +1089,7 @@ def trip_timeline(trip_id: str, user: User = Depends(current_user), db: Session 
     if not trip:
         raise HTTPException(status_code=404, detail="سفر در این حساب وجود ندارد")
     events = db.scalars(select(operational_models.TripEventRecord).where(operational_models.TripEventRecord.trip_id == trip.id, operational_models.TripEventRecord.tenant_id == user.tenant_id, operational_models.TripEventRecord.visibility == "customer").order_by(operational_models.TripEventRecord.created_at.desc())).all()
-    return {"trip":{"id":trip.id,"destination":trip.destination,"status":trip.status},"events":[{"id":event.id,"type":event.event_type,"severity":event.severity,"source":event.source,"title":event.title,"message":event.message,"requires_action":event.requires_action,"deep_link":event.deep_link} for event in events]}
+    return {"trip":{"id":trip.id,"destination":trip.destination,"status":trip.status},"events":[{"id":event.id,"type":event.event_type,"severity":event.severity,"source":event.source,"title":event.title,"message":event.message,"requires_action":event.requires_action,"deep_link":event.deep_link,"created_at":event.created_at.isoformat()} for event in events]}
 
 
 @app.get("/trips/{trip_id}/events/{event_id}")

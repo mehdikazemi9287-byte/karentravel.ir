@@ -5,6 +5,10 @@ import Image from 'next/image';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { ConnectedCompare, ConnectedOrganization, ConnectedRolePanel, ErrorState } from '../components/operational/ConnectedViews';
 import { EmployeePortal } from '../components/operational/EmployeePortal';
+import { CombinedFlightHotel } from '../components/operational/CombinedFlightHotel';
+import { AgencyPortal } from '../components/operational/AgencyPortal';
+import { WhiteLabelConfig } from '../components/operational/WhiteLabelConfig';
+import { NotificationCenter } from '../components/operational/NotificationCenter';
 import { useAuth } from '../lib/api/auth-context';
 import { HomeSearchExperience } from '../components/search/HomeSearchExperience';
 import { UnifiedSearchView } from '../components/operational/UnifiedSearchView';
@@ -98,7 +102,7 @@ function FloatingAssistant(){
 }
 function Home(){return <div className="home-page"><HomeHeader/><main><ReferenceHero/><HomeServicesHub/><DestinationMosaic/><ReferenceTrips/><SmartCompanion/><CompareBand/><LocalExperiences/><ReferenceOrganization/><TrustSection/><ServiceRibbon/></main><HomeMobileNav/><ReferenceFooter/><FloatingAssistant/></div>}
 function Hotels(){return <Shell><div className="page-hero"><span className="eyebrow">اقامت · داده نمایشی</span><h1>هتل را با معیارهای واقعی‌تر انتخاب کنید.</h1><p>قیمت و موجودی زیر صرفاً برای نمایش Prototype هستند و قابل رزرو واقعی نیستند.</p></div><div className="container results"><aside className="filters"><strong>فیلترها</strong>{['بازه قیمت','امتیاز مهمانان','سیاست سازمان','امکانات','قوانین کنسلی'].map(x=><button key={x}>{x}<span>⌄</span></button>)}</aside><section><div className="result-bar"><span>۳ گزینه Mock برای تهران</span><Link href="/compare" className="button primary">مقایسه ۳ گزینه</Link></div><div className="result-list">{hotels.map(h=><HotelCard hotel={h} compact key={h.name}/>)}</div></section></div></Shell>}
-function Compare(){return <Shell><div className="page-hero"><span className="eyebrow">مقایسه حرفه‌ای · داده معتبر</span><h1>تفاوت‌ها را یک‌جا ببینید.</h1><p>امتیاز و معیارها فقط از Offerهای معتبر سازمان احرازشده محاسبه می‌شوند.</p></div><ConnectedCompare/></Shell>}
+function Compare(){const sp=typeof window!=="undefined"?new URLSearchParams(window.location.search):new URLSearchParams();if(sp.get("type")==="package")return <Shell><CombinedFlightHotel/></Shell>;return <Shell><div className="page-hero"><span className="eyebrow">مقایسه حرفه‌ای · داده معتبر</span><h1>تفاوت‌ها را یک‌جا ببینید.</h1><p>امتیاز و معیارها فقط از Offerهای معتبر سازمان احرازشده محاسبه می‌شوند.</p><p className="mt-2 text-sm"><a className="text-link" href="/compare?type=package">مقایسه و رزرو بسته پرواز + هتل ←</a></p></div><ConnectedCompare/></Shell>}
 const policyIntents=['قوانین این رزرو چیه؟','می‌خوام کنسل کنم','چقدر پولم برمی‌گرده؟','می‌تونم تاریخ رو عوض کنم؟','هتلم رو کنسل کنم چقدر جریمه میشه؟','پروازم لغو شده','واچر جدیدم کجاست؟','درخواست استردادم چه وضعیتی داره؟'];
 type AssistantMessage={role:'user'|'bot';text?:string;links?:boolean};
 const assistantInitialMessages:AssistantMessage[]=[
@@ -128,7 +132,7 @@ function Assistant(){
 function Organization(){return <Shell><div className="page-hero"><span className="eyebrow">داشبورد سازمانی</span><h1>ساختار و گردش تأیید سازمان</h1><p>نمای نقش‌محور با داده سازمان احرازشده.</p></div><ConnectedOrganization/></Shell>}
 function Employee(){return <Shell><EmployeePortal/></Shell>}
 function Dashboard({title,subtitle,tenant,employee}:{title:string;subtitle:string;tenant?:string;employee?:boolean}){return <div className="dashboard container"><div className="dashboard-title"><div><span className="eyebrow">{tenant?'داشبورد سازمانی':'داشبورد کارمند'}</span><h1>{title}</h1><p>{subtitle}</p></div><button className="button primary">{employee?'درخواست سفر جدید':'تعریف سیاست جدید'}</button></div><section className="metrics"><div><small>{employee?'اعتبار قابل مصرف':'بودجه تخصیص‌یافته'}</small><strong>{employee?'۴۸٬۰۰۰٬۰۰۰':'۳٬۲۰۰٬۰۰۰٬۰۰۰'} <em>ریال</em></strong><span>Mock · منبع server-side در محصول واقعی</span></div><div><small>{employee?'درخواست‌های من':'درخواست‌های در انتظار'}</small><strong>{employee?'۲':'۱۲'}</strong><span>{employee?'۱ نیازمند تأیید':'۶ مورد نزدیک به SLA'}</span></div><div><small>{employee?'سیاست فعال':'مصرف مطابق policy'}</small><strong>{employee?'سفر داخلی':'۹۴٪'}</strong><span>Mock</span></div></section><section className="dashboard-grid"><article className="panel"><div className="panel-head"><h3>{employee?'فعالیت‌های اخیر':'گردش تأیید'}</h3><span className="tag">Mock</span></div>{['اقامت تهران · در انتظار تأیید','تغییر سقف سفرهای داخلی','هتل زندیه · مطابق policy'].map((x,i)=><div className="activity" key={x}><span className={'status s'+i}></span><div><strong>{x}</strong><small>{i===0?'امروز، ۱۰:۲۵':'امروز، ۰۹:۴۰'}</small></div><button>مشاهده</button></div>)}</article><article className="panel"><div className="panel-head"><h3>{employee?'جزئیات اعتبار':'مصرف اعتبار براساس واحد'}</h3><span>Mock</span></div><div className="bar-list">{['فناوری','فروش','عملیات'].map((x,i)=><div key={x}><span>{x}</span><i><b style={{width:`${72-i*18}%`}}/></i><strong>{72-i*18}%</strong></div>)}</div></article></section></div>}
-function WhiteLabel(){return <Shell><div className="white-label"><div className="wl-head"><span className="wl-logo">BA</span><div><strong>سفر و رفاه بانک آفتاب</strong><small>با زیرساخت کارن‌سیر · Prototype</small></div><button>ورود کارکنان</button></div><div className="wl-hero"><span>پرتال اختصاصی کارکنان</span><h1>از اعتبار رفاهی‌تان،<br/>با خیال آسوده استفاده کنید.</h1><p>قوانین و پیشنهادها متناسب با سیاست سازمان شما نمایش داده می‌شود.</p><Link href="/employee">مشاهده اعتبار من ←</Link></div><div className="wl-cards"><div>اعتبار سفر <b>Mock · نامشخص</b></div><div>درخواست‌های باز <b>۲ مورد Mock</b></div><div>پشتیبانی سازمانی <b>مسیر نمونه</b></div></div></div></Shell>}
+function WhiteLabel(){return <Shell><WhiteLabelConfig/></Shell>}
 function Integrations(){return <Shell><ConnectedRolePanel kind="backoffice"/></Shell>}
 export default function Page(){
   const pathname=usePathname();
@@ -139,5 +143,7 @@ export default function Page(){
   if(pathname==='/employee') return <Employee/>;
   if(pathname==='/white-label') return <WhiteLabel/>;
   if(pathname==='/integrations') return <Integrations/>;
+  if(pathname==='/agency') return <Shell><AgencyPortal/></Shell>;
+  if(pathname==='/notifications') return <Shell><NotificationCenter/></Shell>;
   return <Home/>;
 }
