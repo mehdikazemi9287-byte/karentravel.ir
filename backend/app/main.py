@@ -935,6 +935,22 @@ def my_installment_plans(user: User = Depends(current_user), db: Session = Depen
     return [{"id": row.id, "title": row.title, "terms": json.loads(row.terms_json), "status": row.status} for row in rows]
 
 
+@app.get("/me/approval-workflows")
+def my_approval_workflows(user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
+    """Approval workflows for reservations the current employee started -- so the
+    B2E portal can show where each travel request stands."""
+    rows = db.scalars(
+        select(operational_models.ApprovalWorkflow)
+        .join(operational_models.Reservation, operational_models.ApprovalWorkflow.reservation_id == operational_models.Reservation.id)
+        .where(operational_models.Reservation.tenant_id == user.tenant_id,
+               operational_models.Reservation.user_id == user.id)
+        .order_by(operational_models.ApprovalWorkflow.created_at.desc()).limit(50)
+    ).all()
+    return [{"id": w.id, "reservation_id": w.reservation_id, "status": w.status,
+             "current_step_order": w.current_step_order, "rejection_reason": w.rejection_reason,
+             "created_at": w.created_at.isoformat()} for w in rows]
+
+
 @app.get("/me/organization-credit")
 def my_organization_credit(user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
     """Real Organization Credit accounts the current employee can fund a checkout from
