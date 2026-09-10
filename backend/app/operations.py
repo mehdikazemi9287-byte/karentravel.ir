@@ -153,6 +153,38 @@ class Supplier(OperationalMixin, Base):
     supplier_type: Mapped[str] = mapped_column(String(48), index=True)
     display_name: Mapped[str] = mapped_column(String(180))
     status: Mapped[str] = mapped_column(String(32), default="sample")
+    lifecycle_status: Mapped[str] = mapped_column(String(32), default="UNSELECTED", index=True)
+
+
+class SupplierMembership(OperationalMixin, Base):
+    """Explicit supplier-to-user ownership boundary for portal access."""
+    __tablename__ = "supplier_memberships"
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    supplier_id: Mapped[str] = mapped_column(ForeignKey("suppliers.id"), index=True)
+    role: Mapped[str] = mapped_column(String(32), default="owner")
+    __table_args__ = (UniqueConstraint("tenant_id", "user_id", "supplier_id", name="uq_supplier_membership"),)
+
+
+class SupplierAsset(OperationalMixin, Base):
+    """Persistent, tenant-scoped media/document owned by a supplier.
+
+    The blob lives on the configured storage volume under ``storage_key``; this
+    row is the authoritative metadata and access-control record.
+    """
+    __tablename__ = "supplier_assets"
+    supplier_id: Mapped[str] = mapped_column(ForeignKey("suppliers.id"), index=True)
+    entity_type: Mapped[str] = mapped_column(String(40), index=True)
+    entity_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True, index=True)
+    kind: Mapped[str] = mapped_column(String(16), default="image")            # image | document
+    visibility: Mapped[str] = mapped_column(String(16), default="private")    # private | public
+    status: Mapped[str] = mapped_column(String(16), default="active", index=True)  # active | deleted
+    storage_key: Mapped[str] = mapped_column(String(320), unique=True)
+    original_filename: Mapped[str] = mapped_column(String(255))
+    content_type: Mapped[str] = mapped_column(String(120))
+    byte_size: Mapped[int] = mapped_column(Integer)
+    checksum_sha256: Mapped[str] = mapped_column(String(64), index=True)
+    created_by: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    __table_args__ = (Index("ix_supplier_assets_supplier_entity", "tenant_id", "supplier_id", "entity_type"),)
 
 
 class Agency(OperationalMixin, Base):
@@ -228,6 +260,47 @@ class PriceCheck(OperationalMixin, Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     consumed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     __table_args__ = (UniqueConstraint("tenant_id", "command_id", name="uq_price_check_command"),)
+
+
+class PriceBreakdown(OperationalMixin, Base):
+    """Auditable V3.1 decomposition for a persisted booking price.
+
+    Values not supplied by the offer/rate source remain NULL; this prevents
+    internal bookkeeping from inventing supplier cost or commission data.
+    """
+    __tablename__ = "price_breakdowns"
+    booking_id: Mapped[str] = mapped_column(ForeignKey("reservations.id"), index=True)
+    source: Mapped[str] = mapped_column(String(3), default="PUB")
+    source_contract_id: Mapped[Optional[str]] = mapped_column(ForeignKey("provider_contracts.id"), nullable=True, index=True)
+    supplier_net_rate: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    supplier_currency: Mapped[Optional[str]] = mapped_column(String(3), nullable=True)
+    exchange_rate: Mapped[Optional[float]] = mapped_column(Numeric(18, 8), nullable=True)
+    supplier_net_rate_irr: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    platform_markup: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    platform_markup_type: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
+    service_fee: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    supplier_commission: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    agent_commission: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    discount_amount: Mapped[int] = mapped_column(Integer, default=0)
+    discount_source: Mapped[str] = mapped_column(String(24), default="NONE")
+    promo_code: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    vat: Mapped[int] = mapped_column(Integer, default=0)
+    airport_tax: Mapped[int] = mapped_column(Integer, default=0)
+    i6_tax: Mapped[int] = mapped_column(Integer, default=0)
+    red_crescent: Mapped[int] = mapped_column(Integer, default=0)
+    other_taxes: Mapped[int] = mapped_column(Integer, default=0)
+    wl_channel_id: Mapped[Optional[str]] = mapped_column(ForeignKey("sales_channels.id"), nullable=True, index=True)
+    wl_revenue_share: Mapped[int] = mapped_column(Integer, default=0)
+    wl_commission_type: Mapped[str] = mapped_column(String(16), default="NONE")
+    total_selling_price: Mapped[int] = mapped_column(Integer)
+    total_cost: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    gross_margin: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    net_margin: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    calculated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    calculated_by: Mapped[str] = mapped_column(String(24), default="SYSTEM")
+    override_reason: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    approved_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    __table_args__ = (UniqueConstraint("tenant_id", "booking_id", name="uq_price_breakdown_booking"),)
 
 
 class SearchRequest(OperationalMixin, Base):
@@ -676,6 +749,32 @@ class SettlementRecord(OperationalMixin, Base):
     external_reference: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
 
 
+class ReconciliationRecord(OperationalMixin, Base):
+    """Append-only reconciliation state for a payment/refund/settlement.
+
+    External evidence is recorded explicitly; it never mutates the source
+    financial record or promotes payment/refund state by itself.
+    """
+    __tablename__ = "reconciliation_records"
+    source_type: Mapped[str] = mapped_column(String(24), index=True)
+    source_id: Mapped[str] = mapped_column(String(36), index=True)
+    external_reference: Mapped[str] = mapped_column(String(160))
+    external_amount: Mapped[int] = mapped_column(Integer)
+    currency: Mapped[str] = mapped_column(String(3), default="IRR")
+    status: Mapped[str] = mapped_column(String(16), default="UNMATCHED", index=True)
+    discrepancy_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    resolution_note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    matched_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    resolved_by_user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    audit_trail_json: Mapped[str] = mapped_column(Text, default="[]")
+    command_id: Mapped[str] = mapped_column(String(120))
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "source_type", "source_id", name="uq_reconciliation_source"),
+        UniqueConstraint("tenant_id", "command_id", name="uq_reconciliation_command"),
+    )
+
+
 class FinancialLedgerEntry(OperationalMixin, Base):
     __tablename__ = "financial_ledger_entries"
     wallet_id: Mapped[Optional[str]] = mapped_column(ForeignKey("wallets.id"), nullable=True, index=True)
@@ -861,7 +960,15 @@ class SupportCase(OperationalMixin, Base):
     subject: Mapped[str] = mapped_column(String(200))
     status: Mapped[str] = mapped_column(String(24), default="open", index=True)
     priority: Mapped[str] = mapped_column(String(16), default="normal")
+    case_type: Mapped[str] = mapped_column(String(48), default="OTHER")
+    severity: Mapped[str] = mapped_column(String(16), default="MEDIUM")
+    sla_due_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     assigned_to_user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    resolution_type: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    resolution_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    resolved_by_user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    audit_trail_json: Mapped[str] = mapped_column(Text, default="[]")
     command_id: Mapped[str] = mapped_column(String(120))
     __table_args__ = (UniqueConstraint("tenant_id", "command_id", name="uq_support_case_command"),)
 

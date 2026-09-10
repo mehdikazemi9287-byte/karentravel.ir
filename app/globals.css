@@ -140,6 +140,7 @@ html,body{font-family:'Vazirmatn',Tahoma,Arial,sans-serif;font-optical-sizing:au
 .fs-tabs button:hover{color:var(--fs-ink)}
 .fs-tabs button.is-active{color:var(--fs-primary);border-bottom-color:var(--fs-primary)}
 .fs-tabs button.is-active svg{opacity:1}
+.fs-more{position:relative;flex:0 0 auto}.fs-more-menu{position:absolute;z-index:30;top:calc(100% + 4px);right:0;display:grid;min-width:190px;padding:6px;background:var(--fs-surface);border:1px solid var(--fs-border);border-radius:12px;box-shadow:0 12px 30px rgba(18,38,63,.16)}.fs-more-menu button{width:100%;justify-content:flex-start;border-bottom:0!important}.fs-unavailable{display:grid;gap:8px;min-height:130px;align-content:center;text-align:center}.fs-unavailable b{font-size:18px;color:var(--fs-primary)}.fs-unavailable p{margin:0;color:var(--fs-muted);font-size:14px}
 
 /* the framed box */
 .fs-box{background:var(--fs-surface);border:2px solid var(--fs-accent);border-top:0;border-radius:0 0 16px 16px;padding:10px;box-shadow:0 16px 40px rgba(42,21,48,.12)}

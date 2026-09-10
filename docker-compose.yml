@@ -16,6 +16,7 @@ services:
     build: ./backend
     environment:
       DATABASE_URL: postgresql+psycopg://karenseir:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@db:5432/karenseir
+      MEDIA_STORAGE_ROOT: /app/media
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
       ENVIRONMENT: production
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
@@ -37,6 +38,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    volumes:
+      - media_data:/app/media
   worker:
     build: ./backend
     command: ["python", "-m", "app.outbox_worker"]
@@ -79,3 +82,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  media_data:

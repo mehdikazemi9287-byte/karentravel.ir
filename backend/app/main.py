@@ -19,7 +19,7 @@ from typing import Generator, Optional
 from urllib.parse import urlparse
 
 import jwt
-from fastapi import Depends, FastAPI, File, Header, HTTPException, Query, Request, UploadFile, status
+from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Query, Request, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse, Response
 from pydantic import BaseModel, ConfigDict, Field
@@ -302,10 +302,19 @@ class CreditAccountCreateIn(BaseModel): organization_id: str = Field(min_length=
 class SupplierOfferUpdateIn(BaseModel): amount: Optional[int] = Field(default=None, gt=0); available_units: Optional[int] = Field(default=None, ge=0, le=100000); status: Optional[str] = Field(default=None, pattern="^(active|paused)$")
 class AgencyUpdateIn(BaseModel): display_name: Optional[str] = Field(default=None, min_length=2, max_length=180); markup_bps: Optional[int] = Field(default=None, ge=0, le=10000); commission_bps: Optional[int] = Field(default=None, ge=0, le=10000); status: Optional[str] = Field(default=None, pattern="^(active|suspended)$")
 class SupplierStatusIn(BaseModel): status: str = Field(pattern="^(active|suspended)$"); reason: str = Field(min_length=3, max_length=500)
+class SupplierLifecycleStatusIn(BaseModel): status: str = Field(pattern="^(UNSELECTED|UNDER_EVALUATION|CONTRACTED|SANDBOX|PRODUCTION|DEPRECATED)$"); reason: str = Field(min_length=3, max_length=500)
 class SupportMessageIn(BaseModel): reservation_id: Optional[str] = Field(default=None, min_length=36, max_length=36); trip_id: Optional[str] = Field(default=None, min_length=36, max_length=36); body: str = Field(min_length=3, max_length=4000)
-class SupportCaseIn(BaseModel): reservation_id: Optional[str] = Field(default=None, min_length=36, max_length=36); trip_id: Optional[str] = Field(default=None, min_length=36, max_length=36); subject: str = Field(min_length=3, max_length=200); body: str = Field(min_length=3, max_length=4000); priority: str = Field(default="normal", pattern="^(low|normal|high|urgent)$")
+class SupportCaseIn(BaseModel): reservation_id: Optional[str] = Field(default=None, min_length=36, max_length=36); trip_id: Optional[str] = Field(default=None, min_length=36, max_length=36); subject: str = Field(min_length=3, max_length=200); body: str = Field(min_length=3, max_length=4000); priority: str = Field(default="normal", pattern="^(low|normal|high|urgent)$"); case_type: str = Field(default="OTHER", pattern="^[A-Z_]{3,48}$"); severity: str = Field(default="MEDIUM", pattern="^(LOW|MEDIUM|HIGH|CRITICAL)$")
 class SupportReplyIn(BaseModel): body: str = Field(min_length=3, max_length=4000)
 class SupportAssignmentIn(BaseModel): assigned_to_user_id: Optional[int] = Field(default=None, gt=0); status: str = Field(pattern="^(open|in_progress|resolved|closed)$")
+class SupportResolutionIn(BaseModel): resolution_type: str = Field(pattern="^(REBOOKED|REFUNDED|COMPENSATED|NO_ACTION_NEEDED|CUSTOMER_ACCEPTED|ESCALATED)$"); resolution_notes: str = Field(min_length=3, max_length=4000)
+class ReconciliationMatchIn(BaseModel):
+    source_type: str = Field(pattern="^(payment|refund|settlement)$")
+    source_id: str = Field(min_length=36, max_length=36)
+    external_reference: str = Field(min_length=3, max_length=160)
+    external_amount: int = Field(gt=0)
+    currency: str = Field(default="IRR", pattern="^[A-Z]{3}$")
+class ReconciliationResolveIn(BaseModel): resolution_note: str = Field(min_length=3, max_length=2000)
 class InstallmentDecisionIn(BaseModel): decision: str = Field(pattern="^(activate|reject)$"); reason: Optional[str] = Field(default=None, max_length=500)
 class AdminRoleIn(BaseModel): role: str = Field(pattern="^(employee|customer|manager|welfare_manager|organization_admin|agency_partner|supplier|backoffice_expert|finance_operator|tenant_admin)$"); reason: str = Field(min_length=3, max_length=500)
 class SavedTripIn(BaseModel): title: str = Field(min_length=2, max_length=160); command_id: str = Field(min_length=8, max_length=120)
@@ -362,6 +371,13 @@ def require_permission(permission: str):
         if not role_has_permission(user.role, permission): raise HTTPException(status_code=403, detail="مجوز لازم برای این اقدام وجود ندارد")
         return user
     return guard
+
+def _supplier_scope(db: Session, user: User) -> set[str]:
+    """Return only suppliers explicitly assigned to the authenticated user."""
+    return set(db.scalars(select(operational_models.SupplierMembership.supplier_id).where(
+        operational_models.SupplierMembership.tenant_id == user.tenant_id,
+        operational_models.SupplierMembership.user_id == user.id,
+    )).all())
 def booking_out(b: Booking, hotel: Hotel) -> dict:
     return {"id":b.id,"hotel_id":hotel.id,"hotel_name":hotel.name,"nights":b.nights,"total_amount":b.total_amount,"status":b.status,"created_at":b.created_at.isoformat()}
 
@@ -917,6 +933,17 @@ def reservation_detail(reservation_id: str, user: User = Depends(current_user), 
     return {**_reservation_output(row), "current_policy": json.loads(row.current_policy_json), "provider_connected": bool(row.provider_reference), "manage_link": f"/manage-booking/{row.id}"}
 
 
+@app.get("/reservations/{reservation_id}/price-breakdown")
+def reservation_price_breakdown(reservation_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == reservation_id, operational_models.Reservation.tenant_id == user.tenant_id, operational_models.Reservation.user_id == user.id))
+    if reservation is None:
+        raise HTTPException(status_code=404, detail="رزرو در این حساب وجود ندارد")
+    row = db.scalar(select(operational_models.PriceBreakdown).where(operational_models.PriceBreakdown.booking_id == reservation.id, operational_models.PriceBreakdown.tenant_id == user.tenant_id))
+    if row is None:
+        raise HTTPException(status_code=404, detail="جزئیات قیمت برای این رزرو ثبت نشده است")
+    return {key: getattr(row, key) for key in ("id", "booking_id", "source", "source_contract_id", "supplier_net_rate", "supplier_currency", "exchange_rate", "supplier_net_rate_irr", "platform_markup", "platform_markup_type", "service_fee", "supplier_commission", "agent_commission", "discount_amount", "discount_source", "promo_code", "vat", "airport_tax", "i6_tax", "red_crescent", "other_taxes", "wl_channel_id", "wl_revenue_share", "wl_commission_type", "total_selling_price", "total_cost", "gross_margin", "net_margin", "calculated_at", "calculated_by", "override_reason", "approved_by")}
+
+
 @app.post("/reservations/{reservation_id}/commands")
 def reservation_command(reservation_id: str, data: ReservationCommandIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
     reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == reservation_id, operational_models.Reservation.tenant_id == user.tenant_id, operational_models.Reservation.user_id == user.id))
@@ -1201,6 +1228,7 @@ def _commerce_event(db: Session, *, tenant_id: int, kind: str, aggregate_id: str
 
 @app.post("/supplier/vacation-properties", status_code=201)
 def create_vacation_property(data: VacationPropertyIn, user: User = Depends(require_permission("inventory:manage")), db: Session = Depends(get_db)) -> dict:
+    if data.supplier_id not in _supplier_scope(db, user): raise HTTPException(403, "این تأمین‌کننده به کاربر جاری واگذار نشده است")
     supplier = db.scalar(select(operational_models.Supplier).where(operational_models.Supplier.id == data.supplier_id, operational_models.Supplier.tenant_id == user.tenant_id, operational_models.Supplier.status == "active"))
     if supplier is None: raise HTTPException(409, "تأمین‌کننده فعال وجود ندارد")
     row = operational_models.VacationProperty(tenant_id=user.tenant_id, supplier_id=supplier.id, title=data.title, slug=data.slug, city=data.city, property_type=data.property_type, capacity=data.capacity, bedrooms=data.bedrooms, status="published", details_json=json.dumps(data.details, sort_keys=True)); db.add(row); db.flush(); _commerce_event(db, tenant_id=user.tenant_id, kind="vacation_property", aggregate_id=row.id, command_id=f"property:{row.id}", payload={"status": row.status}); db.commit(); return {"id": row.id, "slug": row.slug, "status": row.status}
@@ -1253,6 +1281,7 @@ def book_vacation_unit(unit_id: str, data: VacationBookIn, user: User = Depends(
 
 @app.post("/supplier/tours", status_code=201)
 def create_tour(data: TourProductIn, user: User = Depends(require_permission("inventory:manage")), db: Session = Depends(get_db)) -> dict:
+    if data.supplier_id not in _supplier_scope(db, user): raise HTTPException(403, "این تأمین‌کننده به کاربر جاری واگذار نشده است")
     supplier = db.scalar(select(operational_models.Supplier).where(operational_models.Supplier.id == data.supplier_id, operational_models.Supplier.tenant_id == user.tenant_id, operational_models.Supplier.status == "active"))
     if supplier is None: raise HTTPException(409, "تأمین‌کننده فعال وجود ندارد")
     row = operational_models.TourProduct(tenant_id=user.tenant_id, supplier_id=supplier.id, title=data.title, slug=data.slug, origin=data.origin, destination=data.destination, tour_type=data.tour_type, status="published", details_json=json.dumps(data.details, sort_keys=True)); db.add(row); db.commit(); return {"id": row.id, "slug": row.slug, "status": row.status}
@@ -1372,6 +1401,8 @@ def visa_application_detail(application_id: str, user: User = Depends(current_us
 
 @app.post("/supplier/offers", status_code=status.HTTP_201_CREATED)
 def create_supplier_offer(data: SupplierOfferIn, user: User = Depends(require_permission("inventory:manage")), db: Session = Depends(get_db)) -> dict:
+    if data.supplier_id not in _supplier_scope(db, user):
+        raise HTTPException(status_code=403, detail="این تأمین‌کننده به کاربر جاری واگذار نشده است")
     supplier = db.scalar(select(operational_models.Supplier).where(operational_models.Supplier.id == data.supplier_id, operational_models.Supplier.tenant_id == user.tenant_id).with_for_update())
     if supplier is None or supplier.status != "active":
         raise HTTPException(status_code=409, detail="تأمین‌کننده فعال و احرازشده نیست")
@@ -1395,6 +1426,7 @@ def onboard_supplier(data: SupplierOnboardingIn, idempotency_key: str = Header(a
         return json.loads(prior.response_json)
     row = operational_models.Supplier(tenant_id=user.tenant_id, supplier_type=data.supplier_type, display_name=data.display_name, status="active")
     db.add(row); db.flush()
+    db.add(operational_models.SupplierMembership(tenant_id=user.tenant_id, user_id=user.id, supplier_id=row.id, role="owner"))
     response = {"id": row.id, "supplier_type": row.supplier_type, "display_name": row.display_name, "status": row.status}
     db.add(operational_models.IdempotencyKey(tenant_id=user.tenant_id, scope="supplier.onboarding", key=idempotency_key, request_hash=request_hash, response_json=json.dumps(response)))
     db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="supplier", aggregate_id=row.id, event_type="supplier.onboarded", payload_json=json.dumps({"supplier_id": row.id, "supplier_type": row.supplier_type}), correlation_id=str(uuid.uuid4()), idempotency_key=idempotency_key))
@@ -1848,10 +1880,35 @@ def orchestrate_booking(data: OrchestrationBookingIn, user: User = Depends(curre
     licensed_entity_id, sales_channel_id = _resolve_transaction_provenance(db, user, data.licensed_entity_id, data.sales_channel_id)
     reservation = operational_models.Reservation(tenant_id=user.tenant_id, user_id=user.id, licensed_entity_id=licensed_entity_id, sales_channel_id=sales_channel_id, service_type=snapshot["service_type"], status="reserved", booking_reference=reference, price_check_id=check.id, price_snapshot_json=json.dumps({"total_amount": check.amount, "currency": check.currency, "units": check.units, "checked_at": snapshot["checked_at"]}, sort_keys=True), policy_at_booking_json=json.dumps(snapshot["policy"], sort_keys=True), current_policy_json=json.dumps(snapshot["policy"], sort_keys=True))
     db.add(reservation); db.flush()
+    # V3.1 PriceBreakdown: persist only values explicitly supplied by the
+    # selected rate source; unknown supplier cost/commission stays NULL.
+    attrs = snapshot.get("attributes") or {}
+    source = str(attrs.get("price_source") or "PUB").upper()
+    if source not in {"PUB", "CTR", "CHR", "ALT", "NEG", "CRP", "PRM"}:
+        source = "PUB"
+    source_contract_id = attrs.get("source_contract_id")
+    if source_contract_id is not None and db.scalar(select(operational_models.ProviderContract.id).where(operational_models.ProviderContract.id == source_contract_id, operational_models.ProviderContract.tenant_id == user.tenant_id)) is None:
+        source_contract_id = None
+    def _int_attr(name: str, default: int = 0) -> int:
+        try:
+            return int(attrs.get(name, default) or default)
+        except (TypeError, ValueError):
+            return default
+    supplier_net = attrs.get("supplier_net_rate")
+    try:
+        supplier_net = int(supplier_net) if supplier_net is not None else None
+    except (TypeError, ValueError):
+        supplier_net = None
+    service_fee = attrs.get("service_fee")
+    try:
+        service_fee = int(service_fee) if service_fee is not None else None
+    except (TypeError, ValueError):
+        service_fee = None
+    total_cost = supplier_net * check.units if supplier_net is not None else None
+    db.add(operational_models.PriceBreakdown(tenant_id=user.tenant_id, booking_id=reservation.id, source=source, source_contract_id=source_contract_id, supplier_net_rate=supplier_net, supplier_currency=attrs.get("supplier_currency") or offer.currency if supplier_net is not None else None, supplier_net_rate_irr=total_cost, platform_markup=_int_attr("platform_markup") if "platform_markup" in attrs else None, platform_markup_type=attrs.get("platform_markup_type"), service_fee=service_fee, supplier_commission=_int_attr("supplier_commission") if "supplier_commission" in attrs else None, agent_commission=_int_attr("agent_commission") if "agent_commission" in attrs else None, discount_amount=_int_attr("discount_amount", _int_attr("discounts")), discount_source=str(attrs.get("discount_source") or "NONE"), promo_code=attrs.get("promo_code"), vat=_int_attr("vat"), airport_tax=_int_attr("airport_tax"), i6_tax=_int_attr("i6_tax"), red_crescent=_int_attr("red_crescent"), other_taxes=_int_attr("other_taxes"), wl_channel_id=sales_channel_id, total_selling_price=check.amount, total_cost=total_cost, gross_margin=(check.amount - total_cost) if total_cost is not None else None, net_margin=(check.amount - total_cost - service_fee) if total_cost is not None and service_fee is not None else None))
     db.add(operational_models.BookingItem(tenant_id=user.tenant_id, reservation_id=reservation.id, item_type=snapshot["service_type"], snapshot_json=json.dumps({"title": snapshot["title"], "attributes": snapshot["attributes"], "supplier_id": snapshot["supplier_id"], "offer_id": offer.id, "provider_key": snapshot["provider_key"], "fulfillment_mode": snapshot["fulfillment_mode"]}, sort_keys=True)))
     db.add(operational_models.BookingStatusHistory(tenant_id=user.tenant_id, reservation_id=reservation.id, from_status=None, to_status="reserved", actor_id=user.id, command_id=data.command_id))
     offer.available_units -= check.units; check.consumed_at = now
-    attrs = snapshot.get("attributes") or {}
     leisure_session_id = attrs.get("leisure_session_id")
     if leisure_session_id:
         leisure_session = db.scalar(select(operational_models.LeisureSession).where(operational_models.LeisureSession.id == leisure_session_id, operational_models.LeisureSession.tenant_id == user.tenant_id).with_for_update())
@@ -1975,6 +2032,7 @@ def _apply_leisure_pricing_rule(db: Session, *, tenant_id: int, service_type: st
 
 @app.post("/supplier/places", status_code=201)
 def create_place(data: PlaceIn, user: User = Depends(require_permission("inventory:manage")), db: Session = Depends(get_db)) -> dict:
+    if data.supplier_id not in _supplier_scope(db, user): raise HTTPException(403, "این تأمین‌کننده به کاربر جاری واگذار نشده است")
     supplier = db.scalar(select(operational_models.Supplier).where(operational_models.Supplier.id == data.supplier_id, operational_models.Supplier.tenant_id == user.tenant_id, operational_models.Supplier.status == "active"))
     if supplier is None: raise HTTPException(409, "تأمین‌کننده فعال وجود ندارد")
     row = operational_models.Place(tenant_id=user.tenant_id, supplier_id=supplier.id, name=data.name, slug=data.slug, place_type=data.place_type, category=data.category, city=data.city, address=data.address, latitude=data.latitude, longitude=data.longitude, opening_hours_json=json.dumps(data.opening_hours, sort_keys=True), amenities_json=json.dumps(data.amenities, sort_keys=True), rules_json=json.dumps(data.rules, sort_keys=True), media_json=json.dumps(data.media, sort_keys=True), status="published")
@@ -2362,7 +2420,8 @@ def create_sub_agency(data: AgencyIn, user: User = Depends(require_permission("a
 
 @app.get("/supplier/dashboard")
 def supplier_dashboard(user: User = Depends(require_permission("inventory:manage")), db: Session = Depends(get_db)) -> dict:
-    suppliers = db.scalars(select(operational_models.Supplier).where(operational_models.Supplier.tenant_id == user.tenant_id)).all(); supplier_ids = {item.id for item in suppliers}
+    supplier_ids = _supplier_scope(db, user)
+    suppliers = db.scalars(select(operational_models.Supplier).where(operational_models.Supplier.tenant_id == user.tenant_id, operational_models.Supplier.id.in_(supplier_ids))).all() if supplier_ids else []
     offers = db.scalars(select(operational_models.Offer).where(operational_models.Offer.tenant_id == user.tenant_id, operational_models.Offer.supplier_id.in_(supplier_ids))).all() if supplier_ids else []
     settlements = db.scalars(select(operational_models.SettlementRecord).where(operational_models.SettlementRecord.tenant_id == user.tenant_id, operational_models.SettlementRecord.supplier_id.in_(supplier_ids))).all() if supplier_ids else []
     return {"suppliers": len(suppliers), "offers": len(offers), "available_units": sum(item.available_units for item in offers), "settlements": {"count": len(settlements), "amount": sum(item.amount for item in settlements)}, "supplier_records": [{"id": row.id, "name": row.display_name, "type": row.supplier_type, "status": row.status} for row in suppliers], "offer_records": [{"id": row.id, "supplier_id": row.supplier_id, "title": row.title, "service_type": row.service_type, "amount": row.amount, "currency": row.currency, "available_units": row.available_units, "status": row.status} for row in offers]}
@@ -2372,6 +2431,7 @@ def supplier_dashboard(user: User = Depends(require_permission("inventory:manage
 def update_supplier_offer(offer_id: str, data: SupplierOfferUpdateIn, user: User = Depends(require_permission("inventory:manage")), db: Session = Depends(get_db)) -> dict:
     row = db.scalar(select(operational_models.Offer).where(operational_models.Offer.id == offer_id, operational_models.Offer.tenant_id == user.tenant_id).with_for_update())
     if row is None: raise HTTPException(status_code=404, detail="Offer در این تأمین‌کننده وجود ندارد")
+    if row.supplier_id not in _supplier_scope(db, user): raise HTTPException(status_code=403, detail="این Offer به کاربر جاری واگذار نشده است")
     supplier = db.scalar(select(operational_models.Supplier.id).where(operational_models.Supplier.id == row.supplier_id, operational_models.Supplier.tenant_id == user.tenant_id))
     if supplier is None: raise HTTPException(status_code=404, detail="Offer در این تأمین‌کننده وجود ندارد")
     if data.amount is not None: row.amount = data.amount
@@ -2422,6 +2482,67 @@ def backoffice_supplier_status(supplier_id: str, data: SupplierStatusIn, user: U
     return {"id": row.id, "name": row.display_name, "status": row.status}
 
 
+@app.put("/backoffice/suppliers/{supplier_id}/lifecycle-status")
+def backoffice_supplier_lifecycle_status(supplier_id: str, data: SupplierLifecycleStatusIn, user: User = Depends(require_permission("backoffice:read")), db: Session = Depends(get_db)) -> dict:
+    row = db.scalar(select(operational_models.Supplier).where(operational_models.Supplier.id == supplier_id, operational_models.Supplier.tenant_id == user.tenant_id).with_for_update())
+    if row is None: raise HTTPException(status_code=404, detail="تأمین‌کننده در این tenant وجود ندارد")
+    allowed = {"UNSELECTED": {"UNDER_EVALUATION"}, "UNDER_EVALUATION": {"CONTRACTED", "UNSELECTED"}, "CONTRACTED": {"SANDBOX", "DEPRECATED"}, "SANDBOX": {"PRODUCTION", "CONTRACTED", "DEPRECATED"}, "PRODUCTION": {"DEPRECATED"}, "DEPRECATED": set()}
+    previous = row.lifecycle_status
+    if data.status != previous and data.status not in allowed.get(previous, set()): raise HTTPException(status_code=409, detail="انتقال وضعیت تأمین‌کننده مجاز نیست")
+    row.lifecycle_status = data.status
+    db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="supplier", aggregate_id=row.id, event_type="supplier.lifecycle_status.changed", payload_json=json.dumps({"from": previous, "to": row.lifecycle_status, "reason": data.reason, "actor_id": user.id}, sort_keys=True), correlation_id=str(uuid.uuid4()), idempotency_key=f"supplier-lifecycle:{row.id}:{uuid.uuid4()}")); db.commit()
+    return {"id": row.id, "name": row.display_name, "lifecycle_status": row.lifecycle_status}
+
+
+def _reconciliation_output(row: operational_models.ReconciliationRecord) -> dict:
+    return {"id": row.id, "source_type": row.source_type, "source_id": row.source_id, "external_reference": row.external_reference, "external_amount": row.external_amount, "currency": row.currency, "status": row.status, "discrepancy_reason": row.discrepancy_reason, "resolution_note": row.resolution_note, "matched_at": row.matched_at.isoformat() if row.matched_at else None, "resolved_at": row.resolved_at.isoformat() if row.resolved_at else None, "audit_trail": json.loads(row.audit_trail_json or "[]")}
+
+
+def _reconciliation_source(db: Session, tenant_id: int, source_type: str, source_id: str):
+    model = {"payment": operational_models.PaymentIntent, "refund": operational_models.RefundRecord, "settlement": operational_models.SettlementRecord}[source_type]
+    row = db.scalar(select(model).where(model.id == source_id, model.tenant_id == tenant_id))
+    if row is None:
+        raise HTTPException(status_code=404, detail="منبع مالی در این tenant وجود ندارد")
+    if source_type == "payment":
+        amount, currency = row.captured_amount, row.currency
+    else:
+        amount, currency = row.amount, row.currency
+    if amount <= 0:
+        raise HTTPException(status_code=409, detail="منبع مالی مبلغ قابل تطبیق ندارد")
+    return row, amount, currency
+
+
+@app.post("/finance/reconciliation/match", status_code=status.HTTP_201_CREATED)
+def match_reconciliation(data: ReconciliationMatchIn, user: User = Depends(require_permission("reconciliation:manage")), db: Session = Depends(get_db), idempotency_key: str = Header(alias="Idempotency-Key", min_length=8, max_length=120)) -> dict:
+    prior = db.scalar(select(operational_models.ReconciliationRecord).where(operational_models.ReconciliationRecord.tenant_id == user.tenant_id, operational_models.ReconciliationRecord.command_id == idempotency_key))
+    if prior:
+        if (prior.source_type, prior.source_id, prior.external_reference, prior.external_amount, prior.currency) != (data.source_type, data.source_id, data.external_reference, data.external_amount, data.currency):
+            raise HTTPException(status_code=409, detail="کلید تکرار برای تطبیق دیگری استفاده شده است")
+        return _reconciliation_output(prior)
+    source, expected_amount, expected_currency = _reconciliation_source(db, user.tenant_id, data.source_type, data.source_id)
+    existing = db.scalar(select(operational_models.ReconciliationRecord).where(operational_models.ReconciliationRecord.tenant_id == user.tenant_id, operational_models.ReconciliationRecord.source_type == data.source_type, operational_models.ReconciliationRecord.source_id == data.source_id).with_for_update())
+    if existing:
+        raise HTTPException(status_code=409, detail="این منبع مالی قبلاً تطبیق داده شده است")
+    now = datetime.now(timezone.utc)
+    matched = expected_amount == data.external_amount and expected_currency == data.currency
+    status_value = "MATCHED" if matched else "DISPUTED"
+    reason = None if matched else f"expected {expected_amount} {expected_currency}, observed {data.external_amount} {data.currency}"
+    trail = [{"event": "matched" if matched else "disputed", "actor_id": user.id, "at": now.isoformat(), "external_reference": data.external_reference}]
+    row = operational_models.ReconciliationRecord(tenant_id=user.tenant_id, source_type=data.source_type, source_id=data.source_id, external_reference=data.external_reference, external_amount=data.external_amount, currency=data.currency, status=status_value, discrepancy_reason=reason, matched_at=now if matched else None, audit_trail_json=json.dumps(trail), command_id=idempotency_key)
+    db.add(row); db.flush(); db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="reconciliation", aggregate_id=row.id, event_type=f"reconciliation.{status_value.lower()}", payload_json=json.dumps({"source_type": row.source_type, "source_id": row.source_id, "status": status_value}), correlation_id=str(uuid.uuid4()), idempotency_key=idempotency_key)); db.commit()
+    return _reconciliation_output(row)
+
+
+@app.post("/finance/reconciliation/{reconciliation_id}/resolve")
+def resolve_reconciliation(reconciliation_id: str, data: ReconciliationResolveIn, user: User = Depends(require_permission("reconciliation:manage")), db: Session = Depends(get_db)) -> dict:
+    row = db.scalar(select(operational_models.ReconciliationRecord).where(operational_models.ReconciliationRecord.id == reconciliation_id, operational_models.ReconciliationRecord.tenant_id == user.tenant_id).with_for_update())
+    if row is None: raise HTTPException(status_code=404, detail="رکورد تطبیق در این tenant وجود ندارد")
+    if row.status != "DISPUTED": raise HTTPException(status_code=409, detail="فقط اختلاف قابل تعیین تکلیف است")
+    now = datetime.now(timezone.utc); row.status = "RESOLVED"; row.resolution_note = data.resolution_note.strip(); row.resolved_by_user_id = user.id; row.resolved_at = now
+    trail = json.loads(row.audit_trail_json or "[]"); trail.append({"event": "resolved", "actor_id": user.id, "at": now.isoformat(), "note": row.resolution_note}); row.audit_trail_json = json.dumps(trail)
+    db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="reconciliation", aggregate_id=row.id, event_type="reconciliation.resolved", payload_json=json.dumps({"source_type": row.source_type, "source_id": row.source_id}), correlation_id=str(uuid.uuid4()), idempotency_key=f"reconciliation-resolve:{row.id}:{uuid.uuid4()}")); db.commit(); return _reconciliation_output(row)
+
+
 @app.get("/finance/reconciliation")
 def finance_reconciliation(user: User = Depends(require_permission("ledger:read")), db: Session = Depends(get_db)) -> dict:
     payments = db.scalars(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.tenant_id == user.tenant_id).order_by(operational_models.PaymentIntent.created_at)).all()
@@ -2429,6 +2550,7 @@ def finance_reconciliation(user: User = Depends(require_permission("ledger:read"
     settlements = db.scalars(select(operational_models.SettlementRecord).where(operational_models.SettlementRecord.tenant_id == user.tenant_id)).all()
     installments = db.scalars(select(operational_models.InstallmentAgreement).where(operational_models.InstallmentAgreement.tenant_id == user.tenant_id).order_by(operational_models.InstallmentAgreement.created_at.desc())).all()
     wallets = db.scalars(select(operational_models.Wallet).where(operational_models.Wallet.tenant_id == user.tenant_id)).all()
+    reconciliation_records = db.scalars(select(operational_models.ReconciliationRecord).where(operational_models.ReconciliationRecord.tenant_id == user.tenant_id).order_by(operational_models.ReconciliationRecord.created_at.desc())).all()
     refund_groups: dict[str, list[operational_models.RefundRecord]] = {}
     for refund in refunds:
         refund_groups.setdefault(refund.payment_intent_id, []).append(refund)
@@ -2457,6 +2579,7 @@ def finance_reconciliation(user: User = Depends(require_permission("ledger:read"
         "payments": payment_rows,
         "wallets": wallet_rows,
         "settlements": {"count": len(settlements), "pending_amount": sum(item.amount for item in settlements if item.status == "pending"), "completed_amount": sum(item.amount for item in settlements if item.status == "completed"), "records": [{"id": item.id, "reservation_id": item.reservation_id, "supplier_id": item.supplier_id, "amount": item.amount, "currency": item.currency, "status": item.status} for item in settlements]},
+        "reconciliation_records": [_reconciliation_output(item) for item in reconciliation_records],
         "installments": [_installment_output(item) for item in installments],
         "summary": {"payment_count": len(payments), "refund_count": len(refunds), "discrepancy_count": discrepancy_count, "status": "needs_review" if discrepancy_count else "balanced"},
     }
@@ -2529,7 +2652,7 @@ def issue_invoice(reservation_id: str, user: User = Depends(require_permission("
 
 
 def _case_output(row: operational_models.SupportCase, messages: list[operational_models.SupportThreadMessage]) -> dict:
-    return {"id": row.id, "reservation_id": row.reservation_id, "trip_id": row.trip_id, "subject": row.subject, "status": row.status, "priority": row.priority, "assigned_to_user_id": row.assigned_to_user_id, "messages": [{"id": item.id, "sender_type": item.sender_type, "body": item.body, "created_at": item.created_at.isoformat()} for item in messages]}
+    return {"id": row.id, "reservation_id": row.reservation_id, "trip_id": row.trip_id, "subject": row.subject, "status": row.status, "priority": row.priority, "case_type": row.case_type, "severity": row.severity, "sla_due_at": row.sla_due_at.isoformat() if row.sla_due_at else None, "assigned_to_user_id": row.assigned_to_user_id, "resolution_type": row.resolution_type, "resolution_notes": row.resolution_notes, "resolved_by_user_id": row.resolved_by_user_id, "resolved_at": row.resolved_at.isoformat() if row.resolved_at else None, "audit_trail": json.loads(row.audit_trail_json or "[]"), "messages": [{"id": item.id, "sender_type": item.sender_type, "body": item.body, "created_at": item.created_at.isoformat()} for item in messages]}
 
 
 @app.get("/support/cases")
@@ -2549,7 +2672,9 @@ def create_support_case(data: SupportCaseIn, user: User = Depends(current_user),
     if prior:
         if prior.user_id != user.id or prior.reservation_id != data.reservation_id or prior.trip_id != data.trip_id or prior.subject != data.subject.strip(): raise HTTPException(status_code=409, detail="کلید تکرار برای پرونده دیگری استفاده شده است")
         messages = db.scalars(select(operational_models.SupportThreadMessage).where(operational_models.SupportThreadMessage.tenant_id == user.tenant_id, operational_models.SupportThreadMessage.case_id == prior.id).order_by(operational_models.SupportThreadMessage.created_at)).all(); return _case_output(prior, messages)
-    row = operational_models.SupportCase(tenant_id=user.tenant_id, user_id=user.id, reservation_id=data.reservation_id, trip_id=data.trip_id, subject=data.subject.strip(), priority=data.priority, command_id=idempotency_key)
+    sla_minutes = {"CRITICAL": 240, "HIGH": 1440, "MEDIUM": 4320, "LOW": 10080}[data.severity]
+    now = datetime.now(timezone.utc)
+    row = operational_models.SupportCase(tenant_id=user.tenant_id, user_id=user.id, reservation_id=data.reservation_id, trip_id=data.trip_id, subject=data.subject.strip(), priority=data.priority, case_type=data.case_type, severity=data.severity, sla_due_at=now + timedelta(minutes=sla_minutes), audit_trail_json=json.dumps([{"event": "opened", "actor_id": user.id, "at": now.isoformat()}]), command_id=idempotency_key)
     db.add(row); db.flush(); message = operational_models.SupportThreadMessage(tenant_id=user.tenant_id, case_id=row.id, sender_type="customer", sender_user_id=user.id, body=data.body.strip()); db.add(message)
     db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="support_case", aggregate_id=row.id, event_type="support.case.opened", payload_json=json.dumps({"case_id": row.id, "priority": row.priority}), correlation_id=str(uuid.uuid4()), idempotency_key=idempotency_key)); db.commit(); return _case_output(row, [message])
 
@@ -2571,6 +2696,19 @@ def assign_support_case(case_id: str, data: SupportAssignmentIn, user: User = De
         target = db.scalar(select(User).where(User.id == data.assigned_to_user_id, User.tenant_id == user.tenant_id))
         if target is None or not role_has_permission(target.role, "support:manage"): raise HTTPException(status_code=422, detail="کارشناس پشتیبانی معتبر نیست")
     row.assigned_to_user_id = data.assigned_to_user_id; row.status = data.status; db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="support_case", aggregate_id=row.id, event_type=f"support.case.{row.status}", payload_json=json.dumps({"assigned_to_user_id": row.assigned_to_user_id, "actor_id": user.id}), correlation_id=str(uuid.uuid4()), idempotency_key=f"support-state:{row.id}:{uuid.uuid4()}")); db.commit(); return {"id": row.id, "status": row.status, "assigned_to_user_id": row.assigned_to_user_id}
+
+
+@app.post("/support/cases/{case_id}/resolve")
+def resolve_support_case(case_id: str, data: SupportResolutionIn, user: User = Depends(require_permission("support:manage")), db: Session = Depends(get_db)) -> dict:
+    row = db.scalar(select(operational_models.SupportCase).where(operational_models.SupportCase.id == case_id, operational_models.SupportCase.tenant_id == user.tenant_id).with_for_update())
+    if row is None: raise HTTPException(status_code=404, detail="پرونده پشتیبانی در این tenant وجود ندارد")
+    if row.status == "closed": raise HTTPException(status_code=409, detail="پرونده بسته قابل تعیین تکلیف نیست")
+    now = datetime.now(timezone.utc)
+    row.status = "resolved"; row.resolution_type = data.resolution_type; row.resolution_notes = data.resolution_notes.strip(); row.resolved_by_user_id = user.id; row.resolved_at = now
+    trail = json.loads(row.audit_trail_json or "[]"); trail.append({"event": "resolved", "actor_id": user.id, "at": now.isoformat(), "resolution_type": row.resolution_type}); row.audit_trail_json = json.dumps(trail)
+    db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="support_case", aggregate_id=row.id, event_type="support.case.resolved", payload_json=json.dumps({"case_id": row.id, "resolution_type": row.resolution_type}), correlation_id=str(uuid.uuid4()), idempotency_key=f"support-resolve:{row.id}:{uuid.uuid4()}")); db.commit()
+    messages = db.scalars(select(operational_models.SupportThreadMessage).where(operational_models.SupportThreadMessage.tenant_id == user.tenant_id, operational_models.SupportThreadMessage.case_id == row.id).order_by(operational_models.SupportThreadMessage.created_at)).all()
+    return _case_output(row, messages)
 
 
 def _installment_output(row: operational_models.InstallmentAgreement) -> dict:
@@ -2998,3 +3136,189 @@ def advance_checkout(checkout_id: str, step: str, data: CheckoutStepIn, user: Us
         if intent is None or intent.status != "captured" or intent.captured_amount != intent.amount: raise HTTPException(status_code=409, detail="پرداخت server-verified و کامل وجود ندارد")
         row.stage = "awaiting_fulfillment"; state["payment_confirmed_at"] = datetime.now(timezone.utc).isoformat()
     row.state_json = json.dumps(state, sort_keys=True); db.flush(); response = _checkout_output(row, reservation); db.add(operational_models.IdempotencyKey(tenant_id=user.tenant_id, scope=scope, key=data.command_id, request_hash=request_hash, response_json=json.dumps(response))); db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="checkout", aggregate_id=row.id, event_type=f"checkout.{step}.completed", payload_json=json.dumps({"stage": row.stage}), correlation_id=str(uuid.uuid4()), idempotency_key=data.command_id)); db.commit(); return response
+
+
+# ---------------------------------------------------------------------------
+# Supplier media & document uploads
+# Persistent (mounted volume), tenant-scoped, RBAC + supplier-ownership guarded,
+# content-validated, audited. Private documents are never served as static URLs.
+# ---------------------------------------------------------------------------
+from . import storage as media_storage  # noqa: E402
+
+_ASSET_ENTITY_TYPES = {
+    "supplier_profile", "license", "contract", "supplier_document",
+    "vacation_property", "tour_product", "place", "offer", "product_image",
+}
+
+
+def _supplier_asset_output(row) -> dict:
+    return {
+        "id": row.id, "supplier_id": row.supplier_id, "entity_type": row.entity_type,
+        "entity_id": row.entity_id, "kind": row.kind, "visibility": row.visibility,
+        "status": row.status, "original_filename": row.original_filename,
+        "content_type": row.content_type, "byte_size": row.byte_size,
+        "checksum_sha256": row.checksum_sha256,
+        "download_url": f"/supplier/assets/{row.id}/content",
+        "created_at": row.created_at.isoformat(), "updated_at": row.updated_at.isoformat(),
+    }
+
+
+def _load_owned_supplier(db: Session, user: User, supplier_id: str):
+    if supplier_id not in _supplier_scope(db, user):
+        raise HTTPException(status_code=403, detail="این تأمین‌کننده به کاربر جاری واگذار نشده است")
+    supplier = db.scalar(select(operational_models.Supplier).where(
+        operational_models.Supplier.id == supplier_id,
+        operational_models.Supplier.tenant_id == user.tenant_id))
+    if supplier is None:
+        raise HTTPException(status_code=404, detail="تأمین‌کننده در این tenant وجود ندارد")
+    return supplier
+
+
+def _authorized_asset(db: Session, user: User, asset_id: str, *, require_owner: bool):
+    row = db.scalar(select(operational_models.SupplierAsset).where(
+        operational_models.SupplierAsset.id == asset_id,
+        operational_models.SupplierAsset.tenant_id == user.tenant_id))
+    if row is None:
+        raise HTTPException(status_code=404, detail="فایل یافت نشد")
+    owns = row.supplier_id in _supplier_scope(db, user)
+    if require_owner and not owns:
+        raise HTTPException(status_code=403, detail="دسترسی به این فایل مجاز نیست")
+    if not owns and not role_has_permission(user.role, "backoffice:read"):
+        raise HTTPException(status_code=403, detail="دسترسی به این فایل مجاز نیست")
+    return row
+
+
+@app.post("/supplier/{supplier_id}/assets", status_code=201)
+async def upload_supplier_asset(
+    supplier_id: str,
+    entity_type: str = Form(...),
+    kind: str = Form("image"),
+    visibility: str = Form("private"),
+    entity_id: Optional[str] = Form(default=None),
+    file: UploadFile = File(...),
+    user: User = Depends(require_permission("inventory:manage")),
+    db: Session = Depends(get_db),
+) -> dict:
+    supplier = _load_owned_supplier(db, user, supplier_id)
+    if kind not in {"image", "document"}:
+        raise HTTPException(status_code=422, detail="نوع فایل نامعتبر است")
+    if visibility not in {"private", "public"}:
+        raise HTTPException(status_code=422, detail="سطح دسترسی نامعتبر است")
+    if visibility == "public" and kind != "image":
+        raise HTTPException(status_code=422, detail="فقط تصاویر می‌توانند عمومی باشند")
+    if entity_type not in _ASSET_ENTITY_TYPES:
+        raise HTTPException(status_code=422, detail="نوع موجودیت پشتیبانی نمی‌شود")
+    if entity_id is not None and (len(entity_id) != 36):
+        raise HTTPException(status_code=422, detail="شناسه موجودیت نامعتبر است")
+    data = await file.read(media_storage.MAX_DOCUMENT_BYTES + 1)
+    if len(data) > media_storage.MAX_DOCUMENT_BYTES:
+        raise HTTPException(status_code=413, detail="حجم فایل از حد مجاز بیشتر است")
+    try:
+        ext, content_type = media_storage.validate_upload(
+            kind=kind, filename=file.filename or "", content_type=file.content_type or "", data=data)
+        key = media_storage.build_key(
+            tenant_id=user.tenant_id, supplier_id=supplier.id, entity_type=entity_type,
+            entity_id=entity_id or supplier.id, ext=ext)
+        media_storage.write_blob(key, data)
+    except media_storage.StorageError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    row = operational_models.SupplierAsset(
+        tenant_id=user.tenant_id, supplier_id=supplier.id, entity_type=entity_type, entity_id=entity_id,
+        kind=kind, visibility=visibility, status="active", storage_key=key,
+        original_filename=(file.filename or "")[:255], content_type=content_type,
+        byte_size=len(data), checksum_sha256=media_storage.sha256_hex(data), created_by=user.id)
+    db.add(row); db.flush()
+    _commerce_event(db, tenant_id=user.tenant_id, kind="supplier_asset", aggregate_id=row.id,
+                    command_id=f"asset:{row.id}:create",
+                    payload={"action": "upload", "entity_type": entity_type, "kind": kind,
+                             "visibility": visibility, "byte_size": len(data), "actor_id": user.id})
+    db.commit()
+    return _supplier_asset_output(row)
+
+
+@app.get("/supplier/{supplier_id}/assets")
+def list_supplier_assets(
+    supplier_id: str,
+    entity_type: Optional[str] = Query(default=None),
+    user: User = Depends(require_permission("inventory:manage")),
+    db: Session = Depends(get_db),
+) -> dict:
+    _load_owned_supplier(db, user, supplier_id)
+    query = select(operational_models.SupplierAsset).where(
+        operational_models.SupplierAsset.tenant_id == user.tenant_id,
+        operational_models.SupplierAsset.supplier_id == supplier_id,
+        operational_models.SupplierAsset.status == "active")
+    if entity_type:
+        query = query.where(operational_models.SupplierAsset.entity_type == entity_type)
+    rows = db.scalars(query.order_by(operational_models.SupplierAsset.created_at.desc())).all()
+    return {"assets": [_supplier_asset_output(row) for row in rows]}
+
+
+@app.get("/supplier/assets/{asset_id}/content")
+def download_supplier_asset(asset_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> Response:
+    row = _authorized_asset(db, user, asset_id, require_owner=False)
+    if row.status != "active":
+        raise HTTPException(status_code=404, detail="فایل حذف شده است")
+    try:
+        blob = media_storage.read_blob(row.storage_key)
+    except (FileNotFoundError, media_storage.StorageError):
+        raise HTTPException(status_code=410, detail="محتوای فایل در دسترس نیست")
+    return Response(content=blob, media_type=row.content_type, headers={
+        "Content-Disposition": f'inline; filename="{row.id}.{row.storage_key.rsplit(".", 1)[-1]}"',
+        "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
+
+
+@app.put("/supplier/assets/{asset_id}/content")
+async def replace_supplier_asset(
+    asset_id: str,
+    file: UploadFile = File(...),
+    user: User = Depends(require_permission("inventory:manage")),
+    db: Session = Depends(get_db),
+) -> dict:
+    row = _authorized_asset(db, user, asset_id, require_owner=True)
+    if row.status != "active":
+        raise HTTPException(status_code=409, detail="فقط فایل فعال قابل جایگزینی است")
+    data = await file.read(media_storage.MAX_DOCUMENT_BYTES + 1)
+    if len(data) > media_storage.MAX_DOCUMENT_BYTES:
+        raise HTTPException(status_code=413, detail="حجم فایل از حد مجاز بیشتر است")
+    try:
+        ext, content_type = media_storage.validate_upload(
+            kind=row.kind, filename=file.filename or "", content_type=file.content_type or "", data=data)
+        new_key = media_storage.build_key(
+            tenant_id=user.tenant_id, supplier_id=row.supplier_id, entity_type=row.entity_type,
+            entity_id=row.entity_id or row.supplier_id, ext=ext)
+        media_storage.write_blob(new_key, data)
+    except media_storage.StorageError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    old_key = row.storage_key
+    row.storage_key = new_key
+    row.content_type = content_type
+    row.byte_size = len(data)
+    row.checksum_sha256 = media_storage.sha256_hex(data)
+    row.original_filename = (file.filename or "")[:255]
+    db.flush()
+    _commerce_event(db, tenant_id=user.tenant_id, kind="supplier_asset", aggregate_id=row.id,
+                    command_id=f"asset:{row.id}:replace:{uuid.uuid4().hex}",
+                    payload={"action": "replace", "byte_size": len(data), "actor_id": user.id})
+    db.commit()
+    media_storage.delete_blob(old_key)
+    return _supplier_asset_output(row)
+
+
+@app.delete("/supplier/assets/{asset_id}", status_code=204)
+def delete_supplier_asset(
+    asset_id: str,
+    user: User = Depends(require_permission("inventory:manage")),
+    db: Session = Depends(get_db),
+) -> Response:
+    row = _authorized_asset(db, user, asset_id, require_owner=True)
+    if row.status == "active":
+        key = row.storage_key
+        row.status = "deleted"
+        db.flush()
+        _commerce_event(db, tenant_id=user.tenant_id, kind="supplier_asset", aggregate_id=row.id,
+                        command_id=f"asset:{row.id}:delete:{uuid.uuid4().hex}",
+                        payload={"action": "delete", "actor_id": user.id})
+        db.commit()
+        media_storage.delete_blob(key)
+    return Response(status_code=204)

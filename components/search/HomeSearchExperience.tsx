@@ -42,20 +42,24 @@ function Icon({name}:{name:string}){
   return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{(ICONS[name]??ICONS.dot).split('|').map((seg,index)=><path key={index} d={seg}/>)}</svg>;
 }
 
-const services=[
+const primaryServices=[
   {name:'پرواز',icon:'flight',vertical:'flight',origin:true,description:'پروازهای داخلی و خارجی'},
   {name:'هتل',icon:'hotel',vertical:'hotel',origin:false,description:'اقامت و رزرو هتل'},
-  {name:'ویلا',icon:'home',vertical:'vacation_rental',origin:false,description:'ویلا، سوئیت و اقامتگاه'},
-  {name:'تور',icon:'compass',vertical:'tour',origin:true,description:'تورهای داخلی و خارجی'},
+  {name:'پرواز + هتل',icon:'flight',vertical:'package',origin:true,description:'ترکیب پرواز و اقامت'},
   {name:'قطار',icon:'train',vertical:'train',origin:true,description:'سفر ریلی و ایستگاه‌ها'},
+  {name:'اتوبوس',icon:'train',vertical:'bus',origin:true,description:'سرویس اتوبوس'},
+  {name:'تور',icon:'compass',vertical:'tour',origin:true,description:'تورهای داخلی و خارجی'},
+  {name:'اقامتگاه',icon:'home',vertical:'vacation_rental',origin:false,description:'ویلا، سوئیت و اقامتگاه'},
+  {name:'بیشتر',icon:'dot',vertical:'more',origin:false,description:'خدمات سفر بیشتر'},
+] as const;
+const moreServices=[
   {name:'خودرو',icon:'car',vertical:'car_rental',origin:true,description:'اجاره خودرو در مقصد'},
   {name:'کروز',icon:'anchor',vertical:'cruise',origin:false,description:'سفر دریایی و کشتی'},
   {name:'ویزا',icon:'passport',vertical:'visa',origin:true,description:'بررسی و درخواست ویزا'},
-  {name:'استخر و ورزش',icon:'dot',vertical:'pool_sport',origin:false,description:'سانس استخر و مراکز ورزشی'},
-  {name:'رستوران و کافه',icon:'dot',vertical:'restaurant',origin:false,description:'رزرو میز و تجربه غذا'},
-  {name:'اماکن گردشگری و تفریحی',icon:'compass',vertical:'attraction',origin:false,description:'بلیت جاذبه و تفریح'},
-  {name:'رویداد و تالار',icon:'calendar',vertical:'event_hall',origin:false,description:'بلیت رویداد و رزرو تالار'},
+  {name:'ترانسفر',icon:'car',vertical:'tourist_transportation',origin:true,description:'انتقال در مقصد'},
+  {name:'راهنمای گردشگری',icon:'compass',vertical:'travel_guide',origin:false,description:'راهنمای مقصد'},
 ] as const;
+const services=[...primaryServices.filter(item=>item.vertical!=='more'),...moreServices] as const;
 const entityLabels:Record<string,string>={city:'شهر',airport:'فرودگاه',railway_station:'ایستگاه',hotel:'هتل',accommodation:'اقامتگاه',attraction:'جاذبه',poi:'مکان دیدنی'};
 
 function EntityInput({kind,label,value,onChange,onSelect,open,setOpen,vertical}:{kind:'origin'|'destination';label:string;value:string;onChange:(value:string)=>void;onSelect:(item:Suggestion)=>void;open:boolean;setOpen:()=>void;vertical:string}){
@@ -114,6 +118,7 @@ export function HomeSearchExperience(){
     };
   },[params]);
   const [active,setActive]=useState(initial.active); const service=services[active];
+  const [moreOpen,setMoreOpen]=useState(false);
   const [origin,setOrigin]=useState(initial.origin); const [destination,setDestination]=useState(initial.destination);
   const [depart,setDepart]=useState(initial.depart); const [returnDate,setReturnDate]=useState(initial.returnDate); const [flexibility,setFlexibility]=useState(initial.flexibility); const [tripType,setTripType]=useState<TripType>(initial.tripType);
   const [adults,setAdults]=useState(initial.adults); const [children,setChildren]=useState(initial.children); const [infants,setInfants]=useState(initial.infants); const [rooms,setRooms]=useState(initial.rooms); const [cabin,setCabin]=useState(initial.cabin); const [popover,setPopover]=useState<Popover>(null);
@@ -179,7 +184,7 @@ export function HomeSearchExperience(){
     if(nlIntent.budgetMax)params.set('filters_max_price',String(nlIntent.budgetMax));
     router.push(`/?${params.toString()}`);
   }
-  function changeService(index:number){const previousVertical=service.vertical;setActive(index);setPopover(null);const next=services[index];if(next.vertical==='visa')setOrigin('');else if(previousVertical==='visa')setOrigin('تهران');setDestination(next.vertical==='hotel'||next.vertical==='vacation_rental'?'یزد':next.vertical==='cruise'?'دبی':next.vertical==='visa'?'فرانسه':next.vertical==='car_rental'?'شیراز':next.vertical==='tour'?'استانبول':next.vertical==='attraction'?'شیراز':next.vertical==='pool_sport'||next.vertical==='restaurant'||next.vertical==='event_hall'?'تهران':'شیراز')}
+  function changeService(index:number){const previousVertical=service.vertical;setActive(index);setMoreOpen(false);setPopover(null);const next=services[index];if(next.vertical==='visa')setOrigin('');else if(previousVertical==='visa')setOrigin('تهران');setDestination(next.vertical==='hotel'||next.vertical==='vacation_rental'?'یزد':next.vertical==='cruise'?'دبی':next.vertical==='visa'?'فرانسه':next.vertical==='car_rental'?'شیراز':next.vertical==='tour'?'استانبول':next.vertical==='package'?'استانبول':next.vertical==='tourist_transportation'?'شیراز':'شیراز')}
   // trip_type ("یک‌طرفه"/"چندمسیره") is a flight-only concept - changeService()
   // above never resets it when switching tabs, so it used to leak into every
   // other vertical's URL and, since it wasn't 'round_trip', silently dropped
@@ -204,8 +209,8 @@ export function HomeSearchExperience(){
   const returnLabel=isStay?'تاریخ خروج':service.vertical==='car_rental'?'تاریخ بازگشت':'تاریخ برگشت';
   return <section ref={searchRef} className="fs" id="search" aria-label="جست‌وجوی یکپارچه سفر" onKeyDown={event=>{if(event.key==='Escape')setPopover(null)}}>
 
-    <div className="fs-tabs" role="tablist" aria-label="نوع خدمت">{services.map((tab,index)=><button type="button" role="tab" aria-selected={active===index} aria-controls="service-search-panel" onClick={()=>changeService(index)} className={active===index?'is-active':''} key={tab.name}><Icon name={tab.icon}/>{tab.name}</button>)}</div>
-    <form onSubmit={event=>{event.preventDefault();submit()}} className="fs-box" id="service-search-panel" role="tabpanel" aria-label={`فرم جست‌وجوی ${service.name}`}>
+    <div className="fs-tabs" role="tablist" aria-label="نوع خدمت">{primaryServices.map((tab,index)=>tab.vertical==='more'?<div className="fs-more" key={tab.name}><button type="button" aria-expanded={moreOpen} onClick={()=>setMoreOpen(value=>!value)} className={moreOpen||moreServices.some(item=>item.vertical===service.vertical)?'is-active':''}><Icon name={tab.icon}/>{tab.name}</button>{moreOpen&&<div className="fs-more-menu" role="menu">{moreServices.map(item=>{const index=services.findIndex(x=>x.vertical===item.vertical);return <button type="button" role="menuitem" onClick={()=>changeService(index)} key={item.vertical}><Icon name={item.icon}/>{item.name}</button>})}</div>}</div>:<button type="button" role="tab" aria-selected={active===services.findIndex(item=>item.vertical===tab.vertical)} aria-controls="service-search-panel" onClick={()=>changeService(services.findIndex(item=>item.vertical===tab.vertical))} className={service.vertical===tab.vertical?'is-active':''} key={tab.name}><Icon name={tab.icon}/>{tab.name}</button>)}</div>
+    {service.vertical==='bus'||service.vertical==='tourist_transportation'||service.vertical==='travel_guide'?<div className="fs-box fs-unavailable" role="status"><b>{service.name}</b><p>این خدمت هنوز به جست‌وجوی عملیاتی متصل نشده است.</p></div>:service.vertical==='package'?<div className="fs-box fs-unavailable" role="status"><b>پرواز + هتل</b><p>زیرساخت ترکیبی پرواز و اقامت هنوز متصل نیست؛ نتیجه یا قیمت ترکیبی نمایش داده نمی‌شود.</p></div>:<form onSubmit={event=>{event.preventDefault();submit()}} className="fs-box" id="service-search-panel" role="tabpanel" aria-label={`فرم جست‌وجوی ${service.name}`}>
       {service.vertical==='flight'&&<div className="fs-seg" role="group" aria-label="نوع سفر">{([['round_trip','رفت‌وبرگشت'],['one_way','یک‌طرفه'],['multi_city','چندمسیره']] as const).map(([value,label])=><button type="button" aria-pressed={tripType===value} className={tripType===value?'is-active':''} onClick={()=>{if(value==='multi_city'){setTripType(value);router.push('/?vertical=flight&trip_type=multi_city&edit=1')}else setTripType(value)}} key={value}>{label}</button>)}</div>}
       <div className="fs-row">
         <div className={service.origin?'fs-places fs-places--swap':'fs-places'}>
@@ -240,7 +245,7 @@ export function HomeSearchExperience(){
         </div>
         <button type="submit" className="fs-go"><Icon name="search"/>جست‌وجو</button>
       </div>
-    </form>
+    </form>}
     {searchError&&<p className="fs-validation" role="alert">{searchError}</p>}
     <div className="fs-tools"><span>قیمت و موجودی فقط از Provider معتبر</span><span>استعلام مجدد پیش از خرید</span><button type="button" className="nl-toggle" onClick={()=>setNlOpen(value=>!value)} aria-expanded={nlOpen}><Icon name="chat"/> با زبان خودت بگو</button></div>
     {nlOpen&&<div className="nl-panel" aria-label="جست‌وجوی زبان طبیعی">
