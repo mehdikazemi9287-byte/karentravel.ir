@@ -3434,3 +3434,271 @@ def public_media_asset(asset_id: str, db: Session = Depends(get_db)) -> Response
         "X-Content-Type-Options": "nosniff",
         "Content-Disposition": f'inline; filename="{asset_id}.{row.storage_key.rsplit(".", 1)[-1]}"',
     })
+
+
+# ---------------------------------------------------------------------------
+# Flight + Hotel combined engine (domain/service/API foundation).
+# Independent single-vertical flight/hotel search is untouched.
+# ---------------------------------------------------------------------------
+class CombinedQuoteIn(BaseModel):
+    flight_offer_id: str = Field(min_length=36, max_length=36)
+    hotel_offer_id: str = Field(min_length=36, max_length=36)
+    flight_units: int = Field(default=1, ge=1, le=9)
+    hotel_units: int = Field(default=1, ge=1, le=9)
+    itinerary: dict = Field(default_factory=dict)
+    command_id: str = Field(min_length=8, max_length=100)
+    expected_package_total: Optional[int] = Field(default=None, ge=0)
+
+
+class CombinedBookIn(BaseModel):
+    command_id: str = Field(min_length=8, max_length=120)
+    licensed_entity_id: Optional[str] = None
+    sales_channel_id: Optional[str] = None
+
+
+def _fh_leg_offer(db: Session, tenant_id: int, offer_id: str, want_type: str, units: int, *, lock: bool = False):
+    q = select(operational_models.Offer).where(
+        operational_models.Offer.id == offer_id, operational_models.Offer.tenant_id == tenant_id)
+    if lock:
+        q = q.with_for_update()
+    offer = db.scalar(q)
+    now = datetime.now(timezone.utc)
+    if offer is None or offer.service_type != want_type:
+        raise HTTPException(status_code=422, detail=f"شناسه {want_type} معتبر نیست")
+    if offer.status != "active" or _aware(offer.valid_until) <= now or offer.available_units < units:
+        raise HTTPException(status_code=409, detail={"code": "LEG_UNAVAILABLE", "leg": want_type})
+    return offer
+
+
+def _fh_persist_price_check(db: Session, *, tenant_id: int, user_id: int, offer, units: int, command_id: str) -> operational_models.PriceCheck:
+    snap = operational_models.price_offer_snapshot(offer, units)
+    encoded = json.dumps(snap, sort_keys=True, separators=(",", ":"))
+    row = operational_models.PriceCheck(
+        tenant_id=tenant_id, offer_id=offer.id, user_id=user_id, command_id=command_id,
+        amount=snap["total_amount"], currency=offer.currency, units=units,
+        snapshot_json=encoded, snapshot_hash=_secure_hash(encoded),
+        expires_at=datetime.fromisoformat(snap["expires_at"]))
+    db.add(row); db.flush()
+    return row
+
+
+def _combined_quote_output(q: operational_models.CombinedQuote) -> dict:
+    now = datetime.now(timezone.utc)
+    flight_expired = _aware(q.flight_expires_at) <= now
+    hotel_expired = _aware(q.hotel_expires_at) <= now
+    live_status = q.status
+    if q.status == "quoted" and (flight_expired or hotel_expired):
+        live_status = "expired"
+    return {
+        "id": q.id, "status": live_status, "stored_status": q.status,
+        "currency": q.currency,
+        "legs": {
+            "flight": {"offer_id": q.flight_offer_id, "price_check_id": q.flight_price_check_id,
+                       "amount": q.flight_amount, "expires_at": _aware(q.flight_expires_at).isoformat(),
+                       "expired": flight_expired},
+            "hotel": {"offer_id": q.hotel_offer_id, "price_check_id": q.hotel_price_check_id,
+                      "amount": q.hotel_amount, "expires_at": _aware(q.hotel_expires_at).isoformat(),
+                      "expired": hotel_expired},
+        },
+        "package_total": q.package_total,          # transparent sum of both legs -- no synthetic discount
+        "expires_at": _aware(q.expires_at).isoformat(),
+        "itinerary": json.loads(q.itinerary_json or "{}"),
+        "reservation_id": q.reservation_id,
+        "bookable": live_status == "quoted",
+    }
+
+
+@app.post("/combined/flight-hotel/quote", status_code=status.HTTP_201_CREATED)
+def combined_flight_hotel_quote(data: CombinedQuoteIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    prior = db.scalar(select(operational_models.CombinedQuote).where(
+        operational_models.CombinedQuote.tenant_id == user.tenant_id,
+        operational_models.CombinedQuote.command_id == data.command_id,
+        operational_models.CombinedQuote.user_id == user.id))
+    if prior is not None:
+        return _combined_quote_output(prior)
+
+    flight_offer = _fh_leg_offer(db, user.tenant_id, data.flight_offer_id, "flight", data.flight_units)
+    hotel_offer = _fh_leg_offer(db, user.tenant_id, data.hotel_offer_id, "hotel", data.hotel_units)
+    if flight_offer.currency != hotel_offer.currency:
+        raise HTTPException(status_code=409, detail={"code": "CURRENCY_MISMATCH",
+                                                     "flight": flight_offer.currency, "hotel": hotel_offer.currency})
+    flight_snap = operational_models.price_offer_snapshot(flight_offer, data.flight_units)
+    hotel_snap = operational_models.price_offer_snapshot(hotel_offer, data.hotel_units)
+    package_total = flight_snap["total_amount"] + hotel_snap["total_amount"]
+    if data.expected_package_total is not None and data.expected_package_total != package_total:
+        raise HTTPException(status_code=409, detail={
+            "code": "PACKAGE_PRICE_CHANGED", "old_total": data.expected_package_total, "new_total": package_total,
+            "delta": package_total - data.expected_package_total,
+            "legs": {"flight": flight_snap["total_amount"], "hotel": hotel_snap["total_amount"]}})
+
+    flight_check = _fh_persist_price_check(db, tenant_id=user.tenant_id, user_id=user.id, offer=flight_offer,
+                                           units=data.flight_units, command_id=f"{data.command_id}::fh-flight")
+    hotel_check = _fh_persist_price_check(db, tenant_id=user.tenant_id, user_id=user.id, offer=hotel_offer,
+                                          units=data.hotel_units, command_id=f"{data.command_id}::fh-hotel")
+    fexp = datetime.fromisoformat(flight_snap["expires_at"])
+    hexp = datetime.fromisoformat(hotel_snap["expires_at"])
+    row = operational_models.CombinedQuote(
+        tenant_id=user.tenant_id, user_id=user.id, command_id=data.command_id,
+        flight_price_check_id=flight_check.id, hotel_price_check_id=hotel_check.id,
+        flight_offer_id=flight_offer.id, hotel_offer_id=hotel_offer.id,
+        flight_amount=flight_snap["total_amount"], hotel_amount=hotel_snap["total_amount"],
+        package_total=package_total, currency=flight_offer.currency,
+        flight_expires_at=fexp, hotel_expires_at=hexp, expires_at=min(fexp, hexp),
+        status="quoted", itinerary_json=json.dumps(data.itinerary, sort_keys=True))
+    db.add(row); db.flush()
+    db.add(operational_models.OutboxEvent(
+        tenant_id=user.tenant_id, aggregate_type="combined_quote", aggregate_id=row.id,
+        event_type="combined_quote.created",
+        payload_json=json.dumps({"flight_offer_id": flight_offer.id, "hotel_offer_id": hotel_offer.id, "package_total": package_total}),
+        correlation_id=str(uuid.uuid4()), idempotency_key=f"combined-quote:{data.command_id}"))
+    db.commit()
+    return _combined_quote_output(row)
+
+
+@app.get("/combined/flight-hotel/{quote_id}")
+def get_combined_flight_hotel_quote(quote_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    row = db.scalar(select(operational_models.CombinedQuote).where(
+        operational_models.CombinedQuote.id == quote_id,
+        operational_models.CombinedQuote.tenant_id == user.tenant_id,
+        operational_models.CombinedQuote.user_id == user.id))
+    if row is None:
+        raise HTTPException(status_code=404, detail="کوت ترکیبی یافت نشد")
+    return _combined_quote_output(row)
+
+
+@app.get("/me/combined-quotes")
+def my_combined_quotes(user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
+    rows = db.scalars(select(operational_models.CombinedQuote).where(
+        operational_models.CombinedQuote.tenant_id == user.tenant_id,
+        operational_models.CombinedQuote.user_id == user.id,
+    ).order_by(operational_models.CombinedQuote.created_at.desc()).limit(50)).all()
+    return [_combined_quote_output(r) for r in rows]
+
+
+@app.post("/combined/flight-hotel/{quote_id}/release")
+def release_combined_flight_hotel_quote(quote_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    row = db.scalar(select(operational_models.CombinedQuote).where(
+        operational_models.CombinedQuote.id == quote_id,
+        operational_models.CombinedQuote.tenant_id == user.tenant_id,
+        operational_models.CombinedQuote.user_id == user.id).with_for_update())
+    if row is None:
+        raise HTTPException(status_code=404, detail="کوت ترکیبی یافت نشد")
+    if row.status == "consumed":
+        raise HTTPException(status_code=409, detail="کوت مصرف‌شده قابل آزادسازی نیست")
+    if row.status != "released":
+        row.status = "released"
+        db.commit()
+    return _combined_quote_output(row)
+
+
+@app.post("/combined/flight-hotel/{quote_id}/book", status_code=status.HTTP_201_CREATED)
+def book_combined_flight_hotel(quote_id: str, data: CombinedBookIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    prior = db.scalar(select(operational_models.IdempotencyKey).where(
+        operational_models.IdempotencyKey.tenant_id == user.tenant_id,
+        operational_models.IdempotencyKey.scope == "combined.book",
+        operational_models.IdempotencyKey.key == data.command_id))
+    if prior and prior.response_json:
+        stored = json.loads(prior.response_json)
+        if stored.get("quote_id") != quote_id:
+            raise HTTPException(status_code=409, detail="کلید تکرار برای درخواست دیگری استفاده شده است")
+        return stored
+
+    q = db.scalar(select(operational_models.CombinedQuote).where(
+        operational_models.CombinedQuote.id == quote_id,
+        operational_models.CombinedQuote.tenant_id == user.tenant_id,
+        operational_models.CombinedQuote.user_id == user.id).with_for_update())
+    if q is None:
+        raise HTTPException(status_code=404, detail="کوت ترکیبی یافت نشد")
+    if q.status == "consumed" and q.reservation_id:
+        raise HTTPException(status_code=409, detail="این کوت قبلاً رزرو شده است")
+    if q.status != "quoted":
+        raise HTTPException(status_code=409, detail={"code": "QUOTE_NOT_BOOKABLE", "status": q.status})
+
+    now = datetime.now(timezone.utc)
+    # Each leg keeps its own expiry -- both must still be valid.
+    expired = [leg for leg, exp in (("flight", q.flight_expires_at), ("hotel", q.hotel_expires_at))
+               if _aware(exp) <= now]
+    if expired:
+        q.status = "expired"
+        db.commit()
+        raise HTTPException(status_code=409, detail={"code": "QUOTE_EXPIRED", "expired_legs": expired})
+
+    flight_check = db.scalar(select(operational_models.PriceCheck).where(
+        operational_models.PriceCheck.id == q.flight_price_check_id).with_for_update())
+    hotel_check = db.scalar(select(operational_models.PriceCheck).where(
+        operational_models.PriceCheck.id == q.hotel_price_check_id).with_for_update())
+    for chk in (flight_check, hotel_check):
+        if chk is None or chk.consumed_at is not None or not hmac.compare_digest(chk.snapshot_hash, _secure_hash(chk.snapshot_json)):
+            raise HTTPException(status_code=409, detail="Price Check معتبر نیست")
+
+    # Re-validate BOTH legs against live inventory before committing anything.
+    flight_offer = _fh_leg_offer(db, user.tenant_id, q.flight_offer_id, "flight", flight_check.units, lock=True)
+    hotel_offer = _fh_leg_offer(db, user.tenant_id, q.hotel_offer_id, "hotel", hotel_check.units, lock=True)
+    # Internal supplier inventory lives in this one DB, so the two decrements +
+    # the reservation commit are a genuine all-or-nothing transaction. A failed
+    # hotel leg here rolls the flight leg back automatically. When a real
+    # external flight/hotel provider is wired, this is where per-leg confirm +
+    # compensation/release of an already-confirmed leg attaches -- EXTERNAL-BLOCKED
+    # today (FLIGHT_PROVIDER_MODE / HOTEL_PROVIDER_MODE = disabled).
+
+    reference = "KS-PKG-" + secrets.token_hex(6).upper()
+    licensed_entity_id, sales_channel_id = _resolve_transaction_provenance(db, user, data.licensed_entity_id, data.sales_channel_id)
+    reservation = operational_models.Reservation(
+        tenant_id=user.tenant_id, user_id=user.id, licensed_entity_id=licensed_entity_id,
+        sales_channel_id=sales_channel_id, service_type="package", status="reserved",
+        booking_reference=reference, price_check_id=flight_check.id,
+        price_snapshot_json=json.dumps({"total_amount": q.package_total, "currency": q.currency,
+                                        "legs": {"flight": q.flight_amount, "hotel": q.hotel_amount},
+                                        "checked_at": now.isoformat()}, sort_keys=True),
+        policy_at_booking_json=json.dumps({"flight": json.loads(flight_check.snapshot_json).get("policy", {}),
+                                           "hotel": json.loads(hotel_check.snapshot_json).get("policy", {})}, sort_keys=True),
+        current_policy_json=json.dumps({"flight": json.loads(flight_check.snapshot_json).get("policy", {}),
+                                        "hotel": json.loads(hotel_check.snapshot_json).get("policy", {})}, sort_keys=True))
+    db.add(reservation); db.flush()
+    for leg, offer, chk in (("flight", flight_offer, flight_check), ("hotel", hotel_offer, hotel_check)):
+        snap = json.loads(chk.snapshot_json)
+        db.add(operational_models.BookingItem(
+            tenant_id=user.tenant_id, reservation_id=reservation.id, item_type=leg,
+            snapshot_json=json.dumps({"leg": leg, "title": snap["title"], "attributes": snap["attributes"],
+                                      "supplier_id": snap["supplier_id"], "offer_id": offer.id,
+                                      "amount": chk.amount, "units": chk.units,
+                                      "provider_key": snap["provider_key"], "fulfillment_mode": snap["fulfillment_mode"]},
+                                     sort_keys=True)))
+        offer.available_units -= chk.units
+        chk.consumed_at = now
+    db.add(operational_models.BookingStatusHistory(
+        tenant_id=user.tenant_id, reservation_id=reservation.id, from_status=None, to_status="reserved",
+        actor_id=user.id, command_id=data.command_id))
+    q.status = "consumed"; q.reservation_id = reservation.id
+
+    trip = operational_models.ensure_trip_for_reservation(
+        db, reservation, title=f"پکیج پرواز و هتل {reference}",
+        destination=json.loads(q.itinerary_json or "{}").get("destination") or "بسته سفر")
+    operational_models.record_trip_event(
+        db, tenant_id=user.tenant_id, trip_id=trip.id, reservation_id=reservation.id,
+        event_key=f"booking-created:{data.command_id}", event_type="booking.created", source="system",
+        title="پکیج پرواز و هتل رزرو شد",
+        message=f"رزرو {reference}: پرواز {q.flight_amount:,} + هتل {q.hotel_amount:,} = {q.package_total:,} {q.currency}",
+        deep_link=f"/manage-booking/{reservation.id}")
+    try:
+        operational_models.emit_notification_event(
+            db, tenant_id=user.tenant_id, event_type="booking_created", recipient_user_id=user.id,
+            payload={"booking_reference": reference, "title": "پکیج پرواز و هتل"},
+            dedupe_key=f"combined-book:{reservation.id}", deep_link=f"/manage-booking/{reservation.id}",
+            topic="important_trip_changes")
+    except ValueError:
+        pass
+
+    response = {**_reservation_output(reservation), "quote_id": q.id, "package_total": q.package_total,
+                "legs": {"flight": q.flight_amount, "hotel": q.hotel_amount}}
+    db.add(operational_models.IdempotencyKey(
+        tenant_id=user.tenant_id, scope="combined.book", key=data.command_id,
+        request_hash=_secure_hash(quote_id), response_json=json.dumps(response)))
+    db.add(operational_models.OutboxEvent(
+        tenant_id=user.tenant_id, aggregate_type="reservation", aggregate_id=reservation.id,
+        event_type="reservation.reserved",
+        payload_json=json.dumps({"reservation_id": reservation.id, "combined_quote_id": q.id}),
+        correlation_id=str(uuid.uuid4()), idempotency_key=f"combined:{data.command_id}"))
+    db.commit()
+    record_business_event("booking", "reserved")
+    return response

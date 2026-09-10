@@ -4,7 +4,7 @@ import json
 import hashlib
 import secrets
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, Numeric, String, Text, UniqueConstraint, select
@@ -1568,3 +1568,66 @@ def emit_notification_event(
             payload_json=json.dumps({"notification_id": record.id, "notification_event_id": event.id}),
             correlation_id=str(uuid.uuid4()), idempotency_key=f"notif:{event.id}"))
     return event
+
+
+# ---------------------------------------------------------------------------
+# Flight + Hotel combined-quote foundation.
+#
+# A CombinedQuote binds two REAL, independent single-offer price checks (one
+# flight, one hotel). It never invents a package discount and never claims
+# cross-provider atomicity: each leg keeps its own expiry, package_total is the
+# transparent sum of the two checks, and booking re-validates every leg. For
+# internal supplier inventory the booking commit is one DB transaction (a
+# genuine all-or-nothing over rows we own); the hooks for real external
+# flight/hotel providers -- recheck, confirm, and compensation/release of an
+# already-confirmed leg -- are marked and left EXTERNAL-BLOCKED until those
+# provider contracts exist.
+# ---------------------------------------------------------------------------
+
+COMBINED_QUOTE_TTL_MINUTES = 10
+
+
+class CombinedQuote(OperationalMixin, Base):
+    __tablename__ = "combined_quotes"
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    command_id: Mapped[str] = mapped_column(String(120))
+    flight_price_check_id: Mapped[str] = mapped_column(ForeignKey("price_checks.id"), index=True)
+    hotel_price_check_id: Mapped[str] = mapped_column(ForeignKey("price_checks.id"), index=True)
+    flight_offer_id: Mapped[str] = mapped_column(ForeignKey("offers.id"), index=True)
+    hotel_offer_id: Mapped[str] = mapped_column(ForeignKey("offers.id"), index=True)
+    flight_amount: Mapped[int] = mapped_column(Integer)
+    hotel_amount: Mapped[int] = mapped_column(Integer)
+    package_total: Mapped[int] = mapped_column(Integer)
+    currency: Mapped[str] = mapped_column(String(3), default="IRR")
+    flight_expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    hotel_expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    status: Mapped[str] = mapped_column(String(24), default="quoted", index=True)  # quoted|expired|consumed|released
+    reservation_id: Mapped[Optional[str]] = mapped_column(ForeignKey("reservations.id"), nullable=True)
+    itinerary_json: Mapped[str] = mapped_column(Text, default="{}")
+    __table_args__ = (UniqueConstraint("tenant_id", "command_id", name="uq_combined_quote_command"),)
+
+
+def price_offer_snapshot(offer: "Offer", units: int, *, now: Optional[datetime] = None) -> dict:
+    """Pure pricing for one offer/units -- same formula as the single-offer
+    /offers/{id}/price-check path. Returns the snapshot dict (not persisted)."""
+    now = now or utcnow()
+    attributes = json.loads(offer.attributes_json)
+    unit_price = max(0, offer.amount
+                     + int(attributes.get("taxes", 0) or 0)
+                     + int(attributes.get("fees", 0) or 0)
+                     - int(attributes.get("discounts", 0) or 0))
+    total = unit_price * units
+    expires_at = min(_ensure_aware(offer.valid_until), now + timedelta(minutes=COMBINED_QUOTE_TTL_MINUTES))
+    return {
+        "offer_id": offer.id, "service_type": offer.service_type, "supplier_id": offer.supplier_id,
+        "title": offer.title, "unit_amount": unit_price, "units": units, "total_amount": total,
+        "currency": offer.currency, "policy": json.loads(offer.policy_json), "attributes": attributes,
+        "provider_key": offer.provider_key, "fulfillment_mode": offer.fulfillment_mode,
+        "checked_at": now.isoformat(), "availability_state": "CONFIRMED", "price_state": "RECHECKED",
+        "expires_at": expires_at.isoformat(),
+    }
+
+
+def _ensure_aware(value: datetime) -> datetime:
+    return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
