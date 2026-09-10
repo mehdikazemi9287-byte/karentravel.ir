@@ -51,11 +51,13 @@ def process_batch(limit: int = 50, *, adapter=None) -> int:
                 sms_attempt = db.scalar(select(NotificationDeliveryAttempt).where(NotificationDeliveryAttempt.notification_id == notification_id, NotificationDeliveryAttempt.tenant_id == event.tenant_id, NotificationDeliveryAttempt.channel == "sms"))
                 if notification:
                     notification.status = event.status
-                if push_attempt:
+                # A channel explicitly parked as pending_external (no authorized
+                # transport) is never advanced or retried by the outbox loop.
+                if push_attempt and push_attempt.status != "pending_external":
                     push_attempt.attempt = event.attempts
                     push_attempt.status = event.status
                     push_attempt.error_code = None if result["ok"] else result["reason"]
-                if sms_attempt:
+                if sms_attempt and sms_attempt.status != "pending_external":
                     # SMS goes through the exact same fail-closed adapter contract as
                     # push (DisabledMockAdapter: never fabricates delivery), called
                     # independently so an sms-specific outage/credential is never
