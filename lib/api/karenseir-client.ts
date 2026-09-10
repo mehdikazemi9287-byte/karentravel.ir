@@ -74,6 +74,13 @@ export class KarenSeirApi {
     form.append('audio', blob, filename);
     return this.request<T>(path, { method: 'POST', body: form }, true, true, true);
   }
+  async postForm<T>(path: string, form: FormData) {
+    return this.request<T>(path, { method: 'POST', body: form }, true, true, true);
+  }
+  async putForm<T>(path: string, form: FormData) {
+    return this.request<T>(path, { method: 'PUT', body: form }, true, true, true);
+  }
+  get apiBase() { return this.baseUrl; }
   async delete<T>(path: string, body: unknown) {
     return this.request<T>(path, { method: 'DELETE', body: JSON.stringify(body) });
   }

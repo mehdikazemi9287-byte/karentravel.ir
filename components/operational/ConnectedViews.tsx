@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, ReactNode, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { useAuth } from '../../lib/api/auth-context';
 import { ApiError, newId } from '../../lib/api/karenseir-client';
 
@@ -105,6 +105,86 @@ export function ConnectedOrganization() {
   return <div className="dashboard container"><section className="metrics"><div><small>سازمان‌ها</small><strong>{d.organizations.length.toLocaleString('fa-IR')}</strong><span>داده معتبر tenant</span></div><div><small>گردش‌های تأیید</small><strong>{d.workflows.length.toLocaleString('fa-IR')}</strong><span>{d.workflows.filter(x=>x.status==='pending').length.toLocaleString('fa-IR')} در انتظار</span></div><div><small>مراکز هزینه</small><strong>{d.cost_centers.length.toLocaleString('fa-IR')}</strong><span>Backend authoritative</span></div></section><section className="dashboard-grid"><article className="panel"><div className="panel-head"><h3>گردش تأیید</h3></div>{d.workflows.length===0?<EmptyState>گردش تأییدی وجود ندارد.</EmptyState>:d.workflows.map(w=><div className="activity" key={w.id}><div><strong>{w.status}</strong><small>مرحله {w.current_step.toLocaleString('fa-IR')} · escalation {w.escalation_count.toLocaleString('fa-IR')}</small></div></div>)}</article><article className="panel"><div className="panel-head"><h3>ساختار سازمانی</h3></div>{d.organizations.map(o=><p key={o.id}><b>{o.name}</b> · {o.status}</p>)}<p>{d.departments.length.toLocaleString('fa-IR')} واحد سازمانی</p></article></section></div>;
 }
 
+
+type AssetRow = { id: string; entity_type: string; kind: string; visibility: string; original_filename: string; content_type: string; byte_size: number; download_url: string; created_at: string };
+function SupplierAssets({ suppliers }: { suppliers: Array<{ id: string; name: string }> }) {
+  const { api } = useAuth();
+  const [sid, setSid] = useState(suppliers[0]?.id || '');
+  const [rows, setRows] = useState<AssetRow[]>([]);
+  const [previews, setPreviews] = useState<Record<string, string>>({});
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [kind, setKind] = useState<'image' | 'document'>('image');
+  const [entityType, setEntityType] = useState('supplier_profile');
+  useEffect(() => { setSid(suppliers[0]?.id || ''); }, [suppliers]);
+  const load = useCallback(async (id: string) => {
+    if (!id) { setRows([]); return; }
+    try { const d = await api.get<{ assets: AssetRow[] }>(`/supplier/${id}/assets`); setRows(d.assets); }
+    catch (e) { setNote(e instanceof ApiError ? e.message : 'خطا در دریافت فایل‌ها'); }
+  }, [api]);
+  useEffect(() => { load(sid); }, [sid, load]);
+  useEffect(() => {
+    const revoke: string[] = [];
+    (async () => {
+      const next: Record<string, string> = {};
+      for (const r of rows) {
+        if (!r.content_type.startsWith('image/')) continue;
+        try {
+          const res = await fetch(`${api.apiBase}${r.download_url}`, { headers: { Authorization: `Bearer ${api.getSession()?.access_token}` } });
+          if (res.ok) { const u = URL.createObjectURL(await res.blob()); next[r.id] = u; revoke.push(u); }
+        } catch { /* preview is best-effort */ }
+      }
+      setPreviews(next);
+    })();
+    return () => { revoke.forEach(URL.revokeObjectURL); };
+  }, [rows, api]);
+  async function upload(event: FormEvent) {
+    event.preventDefault();
+    const form = event.currentTarget as HTMLFormElement;
+    const input = form.elements.namedItem('file') as HTMLInputElement;
+    const f = input.files?.[0];
+    if (!f || !sid) return;
+    setBusy(true); setNote('در حال بارگذاری…');
+    try {
+      const body = new FormData();
+      body.append('file', f); body.append('entity_type', entityType); body.append('kind', kind); body.append('visibility', 'private');
+      await api.postForm(`/supplier/${sid}/assets`, body);
+      setNote('فایل بارگذاری شد.'); input.value = ''; await load(sid);
+    } catch (err) { setNote(err instanceof ApiError ? err.message : 'بارگذاری ناموفق بود.'); }
+    finally { setBusy(false); }
+  }
+  async function replace(id: string, file: File) {
+    setBusy(true); setNote('در حال جایگزینی…');
+    try { const body = new FormData(); body.append('file', file); await api.putForm(`/supplier/assets/${id}/content`, body); setNote('فایل جایگزین شد.'); await load(sid); }
+    catch (err) { setNote(err instanceof ApiError ? err.message : 'جایگزینی ناموفق بود.'); }
+    finally { setBusy(false); }
+  }
+  async function remove(id: string) {
+    setBusy(true); setNote('در حال حذف…');
+    try { await api.delete(`/supplier/assets/${id}`, {}); setNote('فایل حذف شد.'); await load(sid); }
+    catch (err) { setNote(err instanceof ApiError ? err.message : 'حذف ناموفق بود.'); }
+    finally { setBusy(false); }
+  }
+  if (suppliers.length === 0) return null;
+  const cats = kind === 'image' ? ['supplier_profile', 'product_image'] : ['license', 'contract', 'supplier_document'];
+  return <section className="panel mb-5"><h2 className="font-black">تصاویر و مدارک</h2>
+    {suppliers.length > 1 && <label className="mt-3 block font-bold">تأمین‌کننده<select aria-label="تأمین‌کننده" className="mt-2 block w-full rounded-xl border p-3" value={sid} onChange={e => setSid(e.target.value)}>{suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>}
+    <form onSubmit={upload} className="mt-3 flex flex-wrap items-end gap-3">
+      <label className="font-bold">نوع<select aria-label="نوع فایل" className="mt-2 block rounded-xl border p-2" value={kind} onChange={e => { const k = e.target.value as 'image' | 'document'; setKind(k); setEntityType(k === 'image' ? 'supplier_profile' : 'license'); }}><option value="image">تصویر</option><option value="document">سند</option></select></label>
+      <label className="font-bold">دسته<select aria-label="دسته فایل" className="mt-2 block rounded-xl border p-2" value={entityType} onChange={e => setEntityType(e.target.value)}>{cats.map(v => <option key={v} value={v}>{v}</option>)}</select></label>
+      <label className="min-w-48 flex-1 font-bold">فایل<input name="file" type="file" required accept={kind === 'image' ? 'image/png,image/jpeg,image/webp,image/gif' : 'application/pdf,image/png,image/jpeg'} className="mt-2 block w-full text-sm" /></label>
+      <button disabled={busy || !sid} className="button primary">بارگذاری</button>
+    </form>
+    {note && <p role="status" className="mt-3 rounded-xl bg-cyan-50 p-3 text-sm">{note}</p>}
+    {rows.length === 0 ? <p className="mt-3 text-sm text-slate-600">فایلی بارگذاری نشده است.</p> : <ul className="mt-4 space-y-3">{rows.map(r => <li key={r.id} className="flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 p-3">
+      {previews[r.id] ? <img src={previews[r.id]} alt={r.original_filename} className="h-14 w-14 rounded object-cover" /> : <span className="grid h-14 w-14 place-items-center rounded bg-slate-200 text-xs">{r.kind === 'document' ? 'PDF' : 'IMG'}</span>}
+      <span className="flex-1"><b className="block">{r.original_filename}</b><small className="text-slate-600">{r.entity_type} · {r.visibility} · {(r.byte_size / 1024).toLocaleString('fa-IR', { maximumFractionDigits: 1 })} KB</small></span>
+      <label className="button secondary cursor-pointer">جایگزینی<input type="file" hidden accept={r.content_type} onChange={e => { const f = e.target.files?.[0]; if (f) replace(r.id, f); }} /></label>
+      <button disabled={busy} className="button ghost" onClick={() => remove(r.id)}>حذف</button>
+    </li>)}</ul>}
+  </section>;
+}
+
 type PanelKind='supplier'|'agency'|'backoffice';
 const PANEL_PATHS={supplier:'/supplier/dashboard',agency:'/agency/dashboard',backoffice:'/backoffice/overview'} as const;
 export function ConnectedRolePanel({kind}:{kind:PanelKind}) {
@@ -114,9 +194,9 @@ export function ConnectedRolePanel({kind}:{kind:PanelKind}) {
   async function mutate(action:()=>Promise<unknown>,success:string){setResult('در حال ثبت امن…');try{await action();setResult(success);await reload()}catch(error){setResult(errorOf(error).message)}}
   async function create(event:FormEvent){event.preventDefault();if(kind==='supplier')await mutate(()=>api.post('/supplier/onboarding',{supplier_type:'multi_service',display_name:name},newId()),'تأمین‌کننده ثبت شد.');if(kind==='agency')await mutate(()=>api.post('/agency/sub-agencies',{display_name:name,markup_bps:0,commission_bps:0}),'زیرآژانس ثبت شد.');setName('')}
   if(!session)return <ErrorState status={401} message="نشست مرورگر موجود نیست."/>;if(state.kind==='loading')return <LoadingState/>;if(state.kind==='error')return <ErrorState status={state.status} message={state.message}/>;
-  const entries=Object.entries(state.data);const offers=(state.data.offer_records as Array<{id:string;title:string;available_units:number;status:string}>|undefined)||[];const agencies=(state.data.agencies as Array<{id:string;name:string;markup_bps:number;commission_bps:number}>|undefined)||[];const suppliers=(state.data.suppliers as Array<{id:string;name:string;status:string}>|undefined)||[];const reservations=(state.data.reservations as Array<{id:string;booking_reference?:string;status:string;can_issue_invoice:boolean}>|undefined)||[];const cases=(state.data.support_cases as Array<{id:string;subject:string;status:string}>|undefined)||[];
+  const entries=Object.entries(state.data);const offers=(state.data.offer_records as Array<{id:string;title:string;available_units:number;status:string}>|undefined)||[];const agencies=(state.data.agencies as Array<{id:string;name:string;markup_bps:number;commission_bps:number}>|undefined)||[];const suppliers=(state.data.suppliers as Array<{id:string;name:string;status:string}>|undefined)||[];const reservations=(state.data.reservations as Array<{id:string;booking_reference?:string;status:string;can_issue_invoice:boolean}>|undefined)||[];const cases=(state.data.support_cases as Array<{id:string;subject:string;status:string}>|undefined)||[];const supplierRecords=(state.data.supplier_records as Array<{id:string;name:string}>|undefined)||[];
   async function sendReply(event:FormEvent){event.preventDefault();if(!selectedCase)return;await mutate(()=>api.post(`/support/cases/${selectedCase}/human-replies`,{body:reply}),'پاسخ کارشناس انسانی ثبت شد.');setReply('')}
-  return <div className="dashboard container"><div className="dashboard-title"><div><span className="eyebrow">پنل متصل و نقش‌محور</span><h1>{kind==='supplier'?'پنل تأمین‌کننده':kind==='agency'?'پنل آژانس':'BackOffice / Admin'}</h1><p>اطلاعات و mutationها فقط از API مجاز همان tenant انجام می‌شوند.</p></div></div>{result&&<p role="status" className="mb-4 rounded-xl bg-cyan-50 p-4">{result}</p>}{kind!=='backoffice'&&<form onSubmit={create} className="panel mb-5 flex flex-wrap gap-3"><label className="min-w-64 flex-1 font-bold">{kind==='supplier'?'نام تأمین‌کننده':'نام زیرآژانس'}<input className="mt-2 block w-full rounded-xl border p-3" value={name} onChange={e=>setName(e.target.value)} required minLength={2}/></label><button className="button primary self-end">ثبت</button></form>}{kind==='supplier'&&offers.length>0&&<section className="panel mb-5"><h2 className="font-black">مدیریت موجودی</h2>{offers.map(o=><div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-slate-50 p-3" key={o.id}><span><b>{o.title}</b><small className="block">{o.available_units.toLocaleString('fa-IR')} واحد · {o.status}</small></span><button className="button secondary" onClick={()=>mutate(()=>api.put(`/supplier/offers/${o.id}`,{available_units:o.available_units,status:o.status==='active'?'paused':'active'}),'Offer به‌روز شد.')}>{o.status==='active'?'توقف فروش':'فعال‌سازی'}</button></div>)}</section>}{kind==='agency'&&agencies.length>0&&<section className="panel mb-5"><h2 className="font-black">تنظیم markup</h2>{agencies.map(a=><div className="mt-3 flex items-center justify-between rounded-xl bg-slate-50 p-3" key={a.id}><span><b>{a.name}</b><small className="block">markup: {a.markup_bps.toLocaleString('fa-IR')}</small></span><button className="button secondary" onClick={()=>mutate(()=>api.put(`/agency/agencies/${a.id}`,{markup_bps:a.markup_bps+25}),'Markup ذخیره شد.')}>افزایش ۲۵ bps</button></div>)}</section>}{kind==='backoffice'&&<><section className="panel mb-5"><div className="flex items-center justify-between"><h2 className="font-black">عملیات صورتحساب</h2><Link className="text-link" href="/admin">مدیریت کاربران ←</Link></div>{reservations.length===0?<EmptyState>رزروی برای صدور صورتحساب وجود ندارد.</EmptyState>:reservations.map(r=><div className="mt-3 flex items-center justify-between rounded-xl bg-slate-50 p-3" key={r.id}><span><b>{r.booking_reference||r.id}</b><small className="block">{r.status}</small></span><button disabled={!r.can_issue_invoice} className="button secondary" onClick={()=>mutate(()=>api.post(`/reservations/${r.id}/invoice`,{},newId()),'صورتحساب معتبر صادر شد.')}>صدور صورتحساب</button></div>)}</section><form className="panel mb-5" onSubmit={sendReply}><h2 className="font-black">پاسخ پشتیبانی انسانی</h2>{cases.length===0?<EmptyState>پرونده پشتیبانی بازی وجود ندارد.</EmptyState>:<><label className="mt-3 block font-bold">پرونده<select aria-label="پرونده پشتیبانی" className="mt-2 block w-full rounded-xl border p-3" value={selectedCase} onChange={e=>setSelectedCase(e.target.value)} required><option value="">انتخاب پرونده</option>{cases.map(item=><option key={item.id} value={item.id}>{item.subject} · {item.status}</option>)}</select></label><label className="mt-3 block font-bold">پیام کارشناس<textarea aria-label="پیام کارشناس انسانی" className="mt-2 block min-h-24 w-full rounded-xl border p-3" value={reply} onChange={e=>setReply(e.target.value)} required minLength={3}/></label><button className="button primary mt-3">ارسال با برچسب کارشناس انسانی</button></>}</form></>}{kind==='backoffice'&&suppliers.length>0&&<section className="panel mb-5"><h2 className="font-black">وضعیت تأمین‌کنندگان</h2>{suppliers.map(s=><div className="mt-3 flex items-center justify-between rounded-xl bg-slate-50 p-3" key={s.id}><span><b>{s.name}</b><small className="block">{s.status}</small></span><button className="button secondary" onClick={()=>mutate(()=>api.put(`/backoffice/suppliers/${s.id}/status`,{status:s.status==='active'?'suspended':'active',reason:'اقدام ثبت‌شده در BackOffice'}),'وضعیت تأمین‌کننده ثبت شد.')}>{s.status==='active'?'تعلیق':'فعال‌سازی'}</button></div>)}</section>}{entries.length===0?<EmptyState>داده‌ای برای نمایش وجود ندارد.</EmptyState>:<section className="grid gap-4 sm:grid-cols-2">{entries.filter(([key])=>!['offer_records','supplier_records','agencies','suppliers','reservation_records','support_cases'].includes(key)).map(([key,value])=><article className="panel" key={key}><h2 className="font-black">{key}</h2><pre className="mt-3 whitespace-pre-wrap text-sm">{JSON.stringify(value,null,2)}</pre></article>)}</section>}</div>;
+  return <div className="dashboard container"><div className="dashboard-title"><div><span className="eyebrow">پنل متصل و نقش‌محور</span><h1>{kind==='supplier'?'پنل تأمین‌کننده':kind==='agency'?'پنل آژانس':'BackOffice / Admin'}</h1><p>اطلاعات و mutationها فقط از API مجاز همان tenant انجام می‌شوند.</p></div></div>{result&&<p role="status" className="mb-4 rounded-xl bg-cyan-50 p-4">{result}</p>}{kind!=='backoffice'&&<form onSubmit={create} className="panel mb-5 flex flex-wrap gap-3"><label className="min-w-64 flex-1 font-bold">{kind==='supplier'?'نام تأمین‌کننده':'نام زیرآژانس'}<input className="mt-2 block w-full rounded-xl border p-3" value={name} onChange={e=>setName(e.target.value)} required minLength={2}/></label><button className="button primary self-end">ثبت</button></form>}{kind==='supplier'&&<SupplierAssets suppliers={supplierRecords}/>}{kind==='supplier'&&offers.length>0&&<section className="panel mb-5"><h2 className="font-black">مدیریت موجودی</h2>{offers.map(o=><div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-slate-50 p-3" key={o.id}><span><b>{o.title}</b><small className="block">{o.available_units.toLocaleString('fa-IR')} واحد · {o.status}</small></span><button className="button secondary" onClick={()=>mutate(()=>api.put(`/supplier/offers/${o.id}`,{available_units:o.available_units,status:o.status==='active'?'paused':'active'}),'Offer به‌روز شد.')}>{o.status==='active'?'توقف فروش':'فعال‌سازی'}</button></div>)}</section>}{kind==='agency'&&agencies.length>0&&<section className="panel mb-5"><h2 className="font-black">تنظیم markup</h2>{agencies.map(a=><div className="mt-3 flex items-center justify-between rounded-xl bg-slate-50 p-3" key={a.id}><span><b>{a.name}</b><small className="block">markup: {a.markup_bps.toLocaleString('fa-IR')}</small></span><button className="button secondary" onClick={()=>mutate(()=>api.put(`/agency/agencies/${a.id}`,{markup_bps:a.markup_bps+25}),'Markup ذخیره شد.')}>افزایش ۲۵ bps</button></div>)}</section>}{kind==='backoffice'&&<><section className="panel mb-5"><div className="flex items-center justify-between"><h2 className="font-black">عملیات صورتحساب</h2><Link className="text-link" href="/admin">مدیریت کاربران ←</Link></div>{reservations.length===0?<EmptyState>رزروی برای صدور صورتحساب وجود ندارد.</EmptyState>:reservations.map(r=><div className="mt-3 flex items-center justify-between rounded-xl bg-slate-50 p-3" key={r.id}><span><b>{r.booking_reference||r.id}</b><small className="block">{r.status}</small></span><button disabled={!r.can_issue_invoice} className="button secondary" onClick={()=>mutate(()=>api.post(`/reservations/${r.id}/invoice`,{},newId()),'صورتحساب معتبر صادر شد.')}>صدور صورتحساب</button></div>)}</section><form className="panel mb-5" onSubmit={sendReply}><h2 className="font-black">پاسخ پشتیبانی انسانی</h2>{cases.length===0?<EmptyState>پرونده پشتیبانی بازی وجود ندارد.</EmptyState>:<><label className="mt-3 block font-bold">پرونده<select aria-label="پرونده پشتیبانی" className="mt-2 block w-full rounded-xl border p-3" value={selectedCase} onChange={e=>setSelectedCase(e.target.value)} required><option value="">انتخاب پرونده</option>{cases.map(item=><option key={item.id} value={item.id}>{item.subject} · {item.status}</option>)}</select></label><label className="mt-3 block font-bold">پیام کارشناس<textarea aria-label="پیام کارشناس انسانی" className="mt-2 block min-h-24 w-full rounded-xl border p-3" value={reply} onChange={e=>setReply(e.target.value)} required minLength={3}/></label><button className="button primary mt-3">ارسال با برچسب کارشناس انسانی</button></>}</form></>}{kind==='backoffice'&&suppliers.length>0&&<section className="panel mb-5"><h2 className="font-black">وضعیت تأمین‌کنندگان</h2>{suppliers.map(s=><div className="mt-3 flex items-center justify-between rounded-xl bg-slate-50 p-3" key={s.id}><span><b>{s.name}</b><small className="block">{s.status}</small></span><button className="button secondary" onClick={()=>mutate(()=>api.put(`/backoffice/suppliers/${s.id}/status`,{status:s.status==='active'?'suspended':'active',reason:'اقدام ثبت‌شده در BackOffice'}),'وضعیت تأمین‌کننده ثبت شد.')}>{s.status==='active'?'تعلیق':'فعال‌سازی'}</button></div>)}</section>}{entries.length===0?<EmptyState>داده‌ای برای نمایش وجود ندارد.</EmptyState>:<section className="grid gap-4 sm:grid-cols-2">{entries.filter(([key])=>!['offer_records','supplier_records','agencies','suppliers','reservation_records','support_cases'].includes(key)).map(([key,value])=><article className="panel" key={key}><h2 className="font-black">{key}</h2><pre className="mt-3 whitespace-pre-wrap text-sm">{JSON.stringify(value,null,2)}</pre></article>)}</section>}</div>;
 }
 
 export function ConnectedFinance(){
