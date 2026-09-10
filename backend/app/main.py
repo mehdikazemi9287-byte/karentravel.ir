@@ -293,6 +293,13 @@ class WhiteLabelIn(BaseModel):
     feature_flags: dict = Field(default_factory=dict)
 class CompareIn(BaseModel): offer_ids: list[str] = Field(min_length=2, max_length=4)
 class NotificationPreferenceIn(BaseModel): topic: str = Field(min_length=2, max_length=48); channel: str = Field(pattern="^(web|app|push|sms)$"); enabled: bool
+class NotificationTemplateIn(BaseModel):
+    event_type: str = Field(min_length=3, max_length=64)
+    channel: str = Field(pattern="^(web|app|push|sms)$")
+    locale: str = Field(default="fa", pattern="^[a-z]{2}(-[A-Z]{2})?$")
+    title_template: str = Field(min_length=1, max_length=300)
+    body_template: str = Field(min_length=1, max_length=4000)
+    deep_link_template: Optional[str] = Field(default=None, max_length=300)
 class AgencyIn(BaseModel): display_name: str = Field(min_length=2, max_length=180); parent_agency_id: Optional[str] = Field(default=None, min_length=36, max_length=36); markup_bps: int = Field(ge=0, le=10000); commission_bps: int = Field(ge=0, le=10000)
 class VoucherReissueIn(BaseModel): command_id: str = Field(min_length=8, max_length=120); document_reference: str = Field(min_length=3, max_length=240); reason: str = Field(min_length=3, max_length=500)
 class ProfileIn(BaseModel): name: str = Field(min_length=2, max_length=160); locale: str = Field(default="fa-IR", pattern="^(fa-IR|en-US)$")
@@ -794,6 +801,58 @@ def my_notifications(user: User = Depends(current_user), db: Session = Depends(g
     return [{"id": row.id, "topic": row.topic, "title": row.title, "message": row.message, "deep_link": row.deep_link, "status": row.status, "created_at": row.created_at.isoformat()} for row in rows]
 
 
+@app.get("/me/notification-events")
+def my_notification_events(user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
+    rows = db.scalars(select(operational_models.NotificationEvent).where(
+        operational_models.NotificationEvent.tenant_id == user.tenant_id,
+        operational_models.NotificationEvent.recipient_user_id == user.id,
+    ).order_by(operational_models.NotificationEvent.created_at.desc()).limit(50)).all()
+    return [{"id": r.id, "event_type": r.event_type, "topic": r.topic, "status": r.status,
+             "deep_link": r.deep_link, "payload": json.loads(r.payload_json or "{}"),
+             "created_at": r.created_at.isoformat()} for r in rows]
+
+
+@app.get("/admin/notification-templates")
+def list_notification_templates(user: User = Depends(require_permission("member:manage")), db: Session = Depends(get_db)) -> list[dict]:
+    operational_models.ensure_notification_templates(db, user.tenant_id)
+    db.commit()
+    rows = db.scalars(select(operational_models.NotificationTemplate).where(
+        operational_models.NotificationTemplate.tenant_id == user.tenant_id,
+    ).order_by(operational_models.NotificationTemplate.event_type, operational_models.NotificationTemplate.channel,
+               operational_models.NotificationTemplate.version.desc())).all()
+    return [{"id": r.id, "event_type": r.event_type, "channel": r.channel, "locale": r.locale,
+             "version": r.version, "active": r.active, "title_template": r.title_template,
+             "body_template": r.body_template, "deep_link_template": r.deep_link_template} for r in rows]
+
+
+@app.put("/admin/notification-templates")
+def upsert_notification_template(data: NotificationTemplateIn, user: User = Depends(require_permission("member:manage")), db: Session = Depends(get_db)) -> dict:
+    if data.event_type not in operational_models.NOTIFICATION_EVENT_TYPES:
+        raise HTTPException(status_code=422, detail="نوع رویداد پشتیبانی نمی‌شود")
+    current = db.scalars(select(operational_models.NotificationTemplate).where(
+        operational_models.NotificationTemplate.tenant_id == user.tenant_id,
+        operational_models.NotificationTemplate.event_type == data.event_type,
+        operational_models.NotificationTemplate.channel == data.channel,
+        operational_models.NotificationTemplate.locale == data.locale,
+    ).order_by(operational_models.NotificationTemplate.version.desc())).all()
+    next_version = (current[0].version + 1) if current else 1
+    for row in current:
+        row.active = False
+    fresh = operational_models.NotificationTemplate(
+        tenant_id=user.tenant_id, event_type=data.event_type, channel=data.channel, locale=data.locale,
+        version=next_version, title_template=data.title_template, body_template=data.body_template,
+        deep_link_template=data.deep_link_template, active=True)
+    db.add(fresh); db.flush()
+    db.add(operational_models.OutboxEvent(
+        tenant_id=user.tenant_id, aggregate_type="notification_template", aggregate_id=fresh.id,
+        event_type="notification_template.published",
+        payload_json=json.dumps({"event_type": data.event_type, "channel": data.channel,
+                                 "locale": data.locale, "version": next_version, "actor_id": user.id}),
+        correlation_id=str(uuid.uuid4()), idempotency_key=f"notif-template:{fresh.id}"))
+    db.commit()
+    return {"id": fresh.id, "event_type": fresh.event_type, "channel": fresh.channel, "locale": fresh.locale, "version": fresh.version, "active": True}
+
+
 @app.get("/me/profile")
 def my_profile(user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
     profile = db.scalar(select(operational_models.UserProfile).where(operational_models.UserProfile.tenant_id == user.tenant_id, operational_models.UserProfile.user_id == user.id))
@@ -1048,6 +1107,18 @@ def approval_decision(approval_id: str, data: ApprovalDecisionIn, user: User = D
                 workflow.status = "approved"
         step.decided_by_user_id = user.id; step.decided_at = now; workflow.approver_user_id = user.id
         db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="approval", aggregate_id=workflow.id, event_type=f"approval.step.{step.status}", payload_json=json.dumps({"workflow_id": workflow.id, "step_order": step.step_order, "status": step.status}), correlation_id=str(uuid.uuid4()), idempotency_key=f"approval:{workflow.id}:{step.step_order}:{step.status}"))
+        if workflow.status in ("approved", "rejected"):
+            _reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == workflow.reservation_id, operational_models.Reservation.tenant_id == user.tenant_id))
+            if _reservation is not None:
+                try:
+                    operational_models.emit_notification_event(
+                        db, tenant_id=user.tenant_id, event_type="corporate_approval_result",
+                        recipient_user_id=_reservation.user_id,
+                        payload={"booking_reference": _reservation.booking_reference or _reservation.id, "result": "تأیید" if workflow.status == "approved" else "رد"},
+                        dedupe_key=f"approval-result:{workflow.id}",
+                        deep_link=f"/manage-booking/{_reservation.id}", topic="important_trip_changes")
+                except ValueError:
+                    pass
         db.commit()
         return {"id": workflow.id, "status": workflow.status, "current_step_order": workflow.current_step_order, "step_status": step.status}
     workflow.status = "approved" if data.decision == "approve" else "rejected"
@@ -3343,7 +3414,7 @@ def public_media_asset(asset_id: str, db: Session = Depends(get_db)) -> Response
     except (FileNotFoundError, media_storage.StorageError):
         raise HTTPException(status_code=404, detail="یافت نشد")
     return Response(content=blob, media_type=row.content_type, headers={
-        "Cache-Control": "public, max-age=86400, immutable",
+        "Cache-Control": "public, max-age=3600",
         "X-Content-Type-Options": "nosniff",
         "Content-Disposition": f'inline; filename="{asset_id}.{row.storage_key.rsplit(".", 1)[-1]}"',
     })

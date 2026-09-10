@@ -933,6 +933,8 @@ class NotificationDeliveryAttempt(OperationalMixin, Base):
     provider_message_id: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
     delivered_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     receipt_event_id: Mapped[Optional[str]] = mapped_column(String(160), nullable=True, unique=True)
+    scheduled_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    failed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class NotificationPreference(OperationalMixin, Base):
@@ -1393,3 +1395,176 @@ class LeisureTicketType(OperationalMixin, Base):
 
 Index("ix_provider_webhook_dedup", ProviderWebhookEvent.provider_key, ProviderWebhookEvent.event_key)
 Index("ix_provider_reconciliation_status", ProviderReconciliationCase.tenant_id, ProviderReconciliationCase.status)
+
+
+# ---------------------------------------------------------------------------
+# Notification foundation: channel-independent event generation, versioned
+# templates, transactional outbox fan-out. Providers stay fail-closed -- an
+# unconfigured push/SMS channel records PENDING_EXTERNAL_PROVIDER, never a
+# fabricated success. The existing trip-event notification path is unchanged;
+# this is the general-purpose entry point new producers (corporate approvals,
+# support, Trip Operations Center) ride on.
+# ---------------------------------------------------------------------------
+
+NOTIFICATION_EVENT_TYPES: frozenset[str] = frozenset({
+    "booking_created", "reservation_confirmed", "payment_success", "payment_failed",
+    "booking_cancelled", "change_requested", "trip_changed", "flight_time_changed",
+    "hotel_changed", "refund_requested", "refund_completed", "support_case_updated",
+    "corporate_approval_required", "corporate_approval_result",
+})
+
+_NOTIFICATION_CHANNELS = ("web", "app", "push", "sms")
+_IN_APP_NOTIFICATION_CHANNELS = ("web", "app")
+
+# Persian/RTL default content. {placeholders} are filled from the event payload;
+# a missing key renders empty rather than raising. Admins can supersede any of
+# these with a new active version via PUT /admin/notification-templates.
+_DEFAULT_NOTIFICATION_TEMPLATES: dict[str, tuple[str, str]] = {
+    "booking_created": ("رزرو ثبت شد", "رزرو {booking_reference} برای {title} ثبت شد."),
+    "reservation_confirmed": ("رزرو تأیید شد", "رزرو {booking_reference} تأیید نهایی شد."),
+    "payment_success": ("پرداخت موفق", "پرداخت مبلغ {amount} {currency} برای رزرو {booking_reference} با موفقیت انجام شد."),
+    "payment_failed": ("پرداخت ناموفق", "پرداخت رزرو {booking_reference} ناموفق بود. لطفاً دوباره تلاش کنید."),
+    "booking_cancelled": ("رزرو لغو شد", "رزرو {booking_reference} لغو شد."),
+    "change_requested": ("درخواست تغییر ثبت شد", "درخواست تغییر برای رزرو {booking_reference} ثبت و در حال بررسی است."),
+    "trip_changed": ("تغییر در سفر شما", "در سفر {trip_title} تغییری ثبت شد: {summary}"),
+    "flight_time_changed": ("تغییر زمان پرواز", "زمان پرواز رزرو {booking_reference} تغییر کرد: {summary}"),
+    "hotel_changed": ("تغییر در اقامت", "جزئیات اقامت رزرو {booking_reference} تغییر کرد: {summary}"),
+    "refund_requested": ("درخواست استرداد ثبت شد", "درخواست استرداد مبلغ {amount} {currency} برای رزرو {booking_reference} ثبت شد."),
+    "refund_completed": ("استرداد انجام شد", "مبلغ {amount} {currency} برای رزرو {booking_reference} بازگردانده شد."),
+    "support_case_updated": ("به‌روزرسانی پرونده پشتیبانی", "پرونده پشتیبانی «{subject}» به وضعیت «{status}» تغییر کرد."),
+    "corporate_approval_required": ("نیاز به تأیید سازمانی", "درخواست تأیید رزرو {booking_reference} در انتظار تصمیم شماست."),
+    "corporate_approval_result": ("نتیجه درخواست تأیید سازمانی", "درخواست تأیید رزرو {booking_reference} با نتیجه «{result}» تعیین تکلیف شد."),
+}
+
+
+class _SafeFormatDict(dict):
+    def __missing__(self, key):  # noqa: D401
+        return ""
+
+
+def render_notification_template(template: str, payload: dict) -> str:
+    if not template:
+        return ""
+    safe = _SafeFormatDict({k: ("" if v is None else v) for k, v in (payload or {}).items()})
+    try:
+        return template.format_map(safe)
+    except (ValueError, IndexError, KeyError):
+        return template
+
+
+class NotificationTemplate(OperationalMixin, Base):
+    __tablename__ = "notification_templates"
+    event_type: Mapped[str] = mapped_column(String(64), index=True)
+    channel: Mapped[str] = mapped_column(String(16))
+    locale: Mapped[str] = mapped_column(String(8), default="fa")
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    title_template: Mapped[str] = mapped_column(String(300))
+    body_template: Mapped[str] = mapped_column(Text)
+    deep_link_template: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
+    active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    __table_args__ = (UniqueConstraint("tenant_id", "event_type", "channel", "locale", "version", name="uq_notification_template_ver"),)
+
+
+class NotificationEvent(OperationalMixin, Base):
+    """Channel-independent semantic notification event; the source of fan-out to
+    NotificationRecord (in-app), NotificationDeliveryAttempt (per channel) and a
+    transactional OutboxEvent for external delivery."""
+    __tablename__ = "notification_events"
+    event_type: Mapped[str] = mapped_column(String(64), index=True)
+    recipient_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    topic: Mapped[str] = mapped_column(String(48), default="account_activity")
+    payload_json: Mapped[str] = mapped_column(Text, default="{}")
+    deep_link: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
+    dedupe_key: Mapped[str] = mapped_column(String(160))
+    status: Mapped[str] = mapped_column(String(24), default="pending", index=True)
+    scheduled_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    __table_args__ = (UniqueConstraint("tenant_id", "dedupe_key", name="uq_notification_event_dedupe"),)
+
+
+def ensure_notification_templates(db: Session, tenant_id: int, locale: str = "fa") -> None:
+    """Idempotently seed the default template set for a tenant/locale."""
+    if db.scalar(select(NotificationTemplate.id).where(
+            NotificationTemplate.tenant_id == tenant_id, NotificationTemplate.locale == locale).limit(1)):
+        return
+    for event_type, (title, body) in _DEFAULT_NOTIFICATION_TEMPLATES.items():
+        for channel in _NOTIFICATION_CHANNELS:
+            db.add(NotificationTemplate(
+                tenant_id=tenant_id, event_type=event_type, channel=channel, locale=locale,
+                version=1, title_template=title, body_template=body, active=True))
+    db.flush()
+
+
+def _notification_channel_pending_external(channel: str) -> bool:
+    """True when a channel has no authorized external transport -> the delivery
+    attempt is recorded PENDING_EXTERNAL_PROVIDER instead of an endless retry
+    or a fabricated success."""
+    if channel in _IN_APP_NOTIFICATION_CHANNELS:
+        return False
+    from .providers import ADAPTERS
+    adapter = ADAPTERS.get("sms" if channel == "sms" else "push")
+    return getattr(adapter, "mode", "disabled") in ("disabled", "mock")
+
+
+def emit_notification_event(
+    db: Session, *, tenant_id: int, event_type: str, recipient_user_id: int, payload: dict,
+    dedupe_key: str, deep_link: Optional[str] = None, topic: str = "account_activity",
+    locale: str = "fa", scheduled_at: Optional[datetime] = None,
+) -> "NotificationEvent":
+    """Create a notification event and fan it out across channels in the caller's
+    transaction. Idempotent per (tenant_id, dedupe_key)."""
+    if event_type not in NOTIFICATION_EVENT_TYPES:
+        raise ValueError(f"unknown notification event_type: {event_type}")
+    existing = db.scalar(select(NotificationEvent).where(
+        NotificationEvent.tenant_id == tenant_id, NotificationEvent.dedupe_key == dedupe_key))
+    if existing:
+        return existing
+    ensure_notification_templates(db, tenant_id, locale)
+    payload = payload or {}
+    event = NotificationEvent(
+        tenant_id=tenant_id, event_type=event_type, recipient_user_id=recipient_user_id, topic=topic,
+        payload_json=json.dumps(payload, sort_keys=True, ensure_ascii=False), deep_link=deep_link,
+        dedupe_key=dedupe_key, status="pending", scheduled_at=scheduled_at)
+    db.add(event); db.flush()
+
+    templates = {t.channel: t for t in db.scalars(select(NotificationTemplate).where(
+        NotificationTemplate.tenant_id == tenant_id, NotificationTemplate.event_type == event_type,
+        NotificationTemplate.locale == locale, NotificationTemplate.active.is_(True))).all()}
+    base = templates.get("web") or templates.get("app") or (next(iter(templates.values()), None))
+    record = NotificationRecord(
+        tenant_id=tenant_id, user_id=recipient_user_id, topic=topic,
+        title=render_notification_template(base.title_template, payload) if base else event_type,
+        message=render_notification_template(base.body_template, payload) if base else "",
+        deep_link=deep_link, status="pending")
+    db.add(record); db.flush()
+
+    has_external = False
+    for channel in _NOTIFICATION_CHANNELS:
+        if db.scalar(select(NotificationPreference.id).where(
+                NotificationPreference.tenant_id == tenant_id,
+                NotificationPreference.user_id == recipient_user_id,
+                NotificationPreference.topic == topic,
+                NotificationPreference.channel == channel,
+                NotificationPreference.enabled.is_(False)).limit(1)):
+            continue
+        if channel in _IN_APP_NOTIFICATION_CHANNELS:
+            db.add(NotificationDeliveryAttempt(
+                tenant_id=tenant_id, notification_id=record.id, channel=channel,
+                status="delivered", delivered_at=utcnow(), scheduled_at=scheduled_at))
+        elif _notification_channel_pending_external(channel):
+            db.add(NotificationDeliveryAttempt(
+                tenant_id=tenant_id, notification_id=record.id, channel=channel,
+                status="pending_external", scheduled_at=scheduled_at))
+        else:
+            db.add(NotificationDeliveryAttempt(
+                tenant_id=tenant_id, notification_id=record.id, channel=channel,
+                status="not_sent", scheduled_at=scheduled_at))
+            has_external = True
+
+    event.status = "dispatched"
+    if has_external:
+        db.add(OutboxEvent(
+            tenant_id=tenant_id, aggregate_type="notification", aggregate_id=event.id,
+            event_type=f"notification.{event_type}",
+            payload_json=json.dumps({"notification_id": record.id, "notification_event_id": event.id}),
+            correlation_id=str(uuid.uuid4()), idempotency_key=f"notif:{event.id}"))
+    return event
