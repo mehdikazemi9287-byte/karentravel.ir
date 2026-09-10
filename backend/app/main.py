@@ -1788,6 +1788,78 @@ def search_offers(data: OfferSearchIn, user: User = Depends(current_user), db: S
     return results
 
 
+# ---------------------------------------------------------------------------
+# Search extraction (strangler): the monolith stays the single owner of the DB
+# and tenant identity. karenseir-search pulls the raw offer pool from here and
+# performs all normalization / ranking / aggregation / caching itself.
+# ---------------------------------------------------------------------------
+_SEARCH_INTERNAL_TOKEN = os.getenv("SEARCH_INTERNAL_TOKEN", "")
+_SEARCH_SERVICE_URL = os.getenv("SEARCH_SERVICE_URL", "http://karenseir-search:8080")
+
+
+class _OfferPoolIn(BaseModel):
+    service_type: str = Field(pattern=ECOSYSTEM_SERVICE_PATTERN)
+    public: bool = True
+    tenant_ref: Optional[str] = Field(default=None, max_length=120)
+
+
+@app.post("/internal/search/offer-pool")
+def internal_search_offer_pool(data: _OfferPoolIn, x_internal_token: str = Header(default=""), db: Session = Depends(get_db)) -> dict:
+    if not _SEARCH_INTERNAL_TOKEN or not hmac.compare_digest(x_internal_token, _SEARCH_INTERNAL_TOKEN):
+        raise HTTPException(status_code=401, detail="internal token invalid")
+    if data.public:
+        identity = _public_search_identity(db)
+        tenant_id = identity.tenant_id
+    else:
+        slug = (data.tenant_ref or "").strip()
+        tenant = db.scalar(select(Tenant).where(Tenant.slug == slug)) if slug else None
+        if tenant is None:
+            raise HTTPException(status_code=404, detail="tenant not found")
+        set_tenant_context(db, tenant.id)
+        tenant_id = tenant.id
+    now = datetime.now(timezone.utc)
+    rows = db.scalars(select(operational_models.Offer).where(
+        operational_models.Offer.tenant_id == tenant_id,
+        operational_models.Offer.service_type == data.service_type,
+        operational_models.Offer.status == "active",
+        operational_models.Offer.available_units > 0,
+        operational_models.Offer.valid_until > now,
+    )).all()
+    offers = [{
+        "id": r.id, "service_type": r.service_type, "title": r.title, "amount": r.amount,
+        "currency": r.currency, "available_units": r.available_units, "provider_key": r.provider_key,
+        "fulfillment_mode": r.fulfillment_mode,
+        "attributes": json.loads(r.attributes_json or "{}"), "policy": json.loads(r.policy_json or "{}"),
+        "valid_until": _aware(r.valid_until).isoformat(),
+        "created_at": _aware(r.created_at).isoformat() if r.created_at else None,
+        "updated_at": _aware(r.updated_at).isoformat() if r.updated_at else None,
+    } for r in rows]
+    return {"service_type": data.service_type, "public": data.public, "offers": offers}
+
+
+@app.post("/search/v3/public")
+async def search_v3_public_gateway(data: UnifiedSearchIn) -> dict:
+    """Gateway to karenseir-search. Result-compatible with /search/v2/public.
+    Falls closed to a truthful error rather than a fabricated empty result."""
+    import httpx
+    payload = {
+        "verticals": list(data.verticals), "query": data.query, "origin": data.origin,
+        "destination": data.destination, "travellers": data.travellers, "flexibility": data.flexibility,
+        "sort": data.sort, "filters": data.filters, "include_stale": data.include_stale,
+        "page": data.page, "page_size": data.page_size, "public": True,
+    }
+    corr = str(uuid.uuid4())
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.post(f"{_SEARCH_SERVICE_URL}/v1/search", json=payload, headers={"X-Correlation-ID": corr})
+    except httpx.HTTPError:
+        raise HTTPException(status_code=503, detail={"code": "SEARCH_SERVICE_UNAVAILABLE", "correlation_id": corr})
+    if resp.status_code >= 400:
+        raise HTTPException(status_code=resp.status_code, detail=resp.json())
+    record_business_event("search", "success")
+    return resp.json()
+
+
 @app.get("/search/recent")
 def recent_searches(user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
     rows = db.scalars(select(operational_models.SearchRequest).where(operational_models.SearchRequest.tenant_id == user.tenant_id, operational_models.SearchRequest.user_id == user.id).order_by(operational_models.SearchRequest.created_at.desc()).limit(10)).all()
