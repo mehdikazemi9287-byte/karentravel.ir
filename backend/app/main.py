@@ -136,7 +136,7 @@ class LogoutIn(BaseModel): refresh_token: str = Field(min_length=32, max_length=
 class CreditCommandIn(BaseModel): command_id: str = Field(min_length=8, max_length=120); entry_type: str = Field(pattern="^(allocate|reserve|capture|release|reverse_capture)$"); amount: int = Field(gt=0)
 class ApprovalDecisionIn(BaseModel): decision: str = Field(pattern="^(approve|reject)$"); rejection_reason: Optional[str] = Field(default=None, max_length=500)
 class RefundIn(BaseModel): amount: int = Field(gt=0); command_id: str = Field(min_length=8, max_length=120)
-ECOSYSTEM_SERVICE_PATTERN = "^(flight|hotel|train|tour|package|accommodation|vacation_rental|cruise|visa|car_rental|restaurant|event_hall|pool_sport|attraction|travel_guide|handicraft|tourist_transportation)$"
+ECOSYSTEM_SERVICE_PATTERN = "^(flight|hotel|train|bus|tour|package|accommodation|vacation_rental|cruise|visa|car_rental|restaurant|event_hall|pool_sport|attraction|travel_guide|handicraft|tourist_transportation)$"
 
 class SupplierOfferIn(BaseModel):
     supplier_id: str = Field(min_length=36, max_length=36)
@@ -150,7 +150,7 @@ class SupplierOfferIn(BaseModel):
     fulfillment_mode: str = Field(pattern="^(manual_supplier|provider)$")
     provider_key: str = Field(default="manual_supplier", min_length=2, max_length=64)
 class SupplierOnboardingIn(BaseModel):
-    supplier_type: str = Field(pattern="^(flight|hotel|train|tour|package|accommodation|vacation_rental|cruise|visa|car_rental|restaurant|event_hall|pool_sport|attraction|travel_guide|handicraft|tourist_transportation|multi_service)$")
+    supplier_type: str = Field(pattern="^(flight|hotel|train|bus|tour|package|accommodation|vacation_rental|cruise|visa|car_rental|restaurant|event_hall|pool_sport|attraction|travel_guide|handicraft|tourist_transportation|multi_service)$")
     display_name: str = Field(min_length=2, max_length=180)
 class OfferSearchIn(BaseModel):
     service_type: str = Field(pattern=ECOSYSTEM_SERVICE_PATTERN)
@@ -3702,3 +3702,64 @@ def book_combined_flight_hotel(quote_id: str, data: CombinedBookIn, user: User =
     db.commit()
     record_business_event("booking", "reserved")
     return response
+
+
+# ---------------------------------------------------------------------------
+# Bus / intercity transport. No provider selected (master spec UNSELECTED):
+# internal supplier bus supply rides the generic Offer/PriceCheck/Reservation
+# path; external live bus search/booking is EXTERNAL-BLOCKED and fail-closed.
+# ---------------------------------------------------------------------------
+class BusSearchIn(BaseModel):
+    origin: str = Field(min_length=2, max_length=120)
+    destination: str = Field(min_length=2, max_length=120)
+    depart_date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    passengers: int = Field(default=1, ge=1, le=20)
+    seat_class: Optional[str] = Field(default=None, max_length=16)
+
+
+@app.get("/bus/provider-status")
+def bus_provider_status(user: User = Depends(current_user)) -> dict:
+    from .bus_domain import DisabledBusProvider
+    provider = DisabledBusProvider(mode=os.getenv("BUS_PROVIDER_MODE", "disabled"))
+    health = provider.health()
+    return {
+        "provider": "bus", "mode": health["mode"], "status": health["status"],
+        "domain_contract": "app.bus_domain.BusProviderPort",
+        "external_blocked": True,
+        "note": "Transport/bus provider is UNSELECTED. Internal supplier bus offers "
+                "work through the generic Offer/PriceCheck/Reservation flow; external "
+                "live bus search/booking is EXTERNAL-BLOCKED.",
+    }
+
+
+@app.post("/bus/search")
+def bus_search(data: BusSearchIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    from .bus_domain import BUS_SERVICE_TYPE, build_search_query, normalize_offer_row, DisabledBusProvider
+    q = build_search_query(data.model_dump())
+    now = datetime.now(timezone.utc)
+    rows = db.scalars(select(operational_models.Offer).where(
+        operational_models.Offer.tenant_id == user.tenant_id,
+        operational_models.Offer.service_type == BUS_SERVICE_TYPE,
+        operational_models.Offer.status == "active",
+        operational_models.Offer.valid_until > now,
+        operational_models.Offer.available_units >= data.passengers,
+    ).order_by(operational_models.Offer.amount).limit(50)).all()
+
+    def _route_ok(n) -> bool:
+        o = (n.origin_terminal or "").lower(); d = (n.destination_terminal or "").lower()
+        return (not o or q.origin.lower() in o or o in q.origin.lower()) and \
+               (not d or q.destination.lower() in d or d in q.destination.lower())
+
+    internal = [n.as_dict() for n in (normalize_offer_row(r) for r in rows) if _route_ok(n)]
+    provider = DisabledBusProvider(mode=os.getenv("BUS_PROVIDER_MODE", "disabled"))
+    external_offers = list(provider.search(q))   # always () while UNSELECTED -- never fabricated
+    return {
+        "query": {"origin": q.origin, "destination": q.destination,
+                  "depart_date": q.depart_date, "passengers": q.passengers, "seat_class": q.seat_class},
+        "internal_supplier_offers": internal,
+        "external_provider": {"status": provider.health()["status"], "mode": provider.mode,
+                              "offers": [o.as_dict() for o in external_offers]},
+        "price_recheck_required_before_checkout": True,
+        "availability_recheck_required_before_checkout": True,
+        "booking_path": "POST /offers/{offer_id}/price-check then POST /orchestration/bookings",
+    }
