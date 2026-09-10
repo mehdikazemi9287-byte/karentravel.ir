@@ -5,7 +5,6 @@ import Image from 'next/image';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { ConnectedCompare, ConnectedOrganization, ConnectedRolePanel, ErrorState } from '../components/operational/ConnectedViews';
 import { EmployeePortal } from '../components/operational/EmployeePortal';
-import { CombinedFlightHotel } from '../components/operational/CombinedFlightHotel';
 import { AgencyPortal } from '../components/operational/AgencyPortal';
 import { WhiteLabelConfig } from '../components/operational/WhiteLabelConfig';
 import { NotificationCenter } from '../components/operational/NotificationCenter';
@@ -102,7 +101,7 @@ function FloatingAssistant(){
 }
 function Home(){return <div className="home-page"><HomeHeader/><main><ReferenceHero/><HomeServicesHub/><DestinationMosaic/><ReferenceTrips/><SmartCompanion/><CompareBand/><LocalExperiences/><ReferenceOrganization/><TrustSection/><ServiceRibbon/></main><HomeMobileNav/><ReferenceFooter/><FloatingAssistant/></div>}
 function Hotels(){return <Shell><div className="page-hero"><span className="eyebrow">اقامت · داده نمایشی</span><h1>هتل را با معیارهای واقعی‌تر انتخاب کنید.</h1><p>قیمت و موجودی زیر صرفاً برای نمایش Prototype هستند و قابل رزرو واقعی نیستند.</p></div><div className="container results"><aside className="filters"><strong>فیلترها</strong>{['بازه قیمت','امتیاز مهمانان','سیاست سازمان','امکانات','قوانین کنسلی'].map(x=><button key={x}>{x}<span>⌄</span></button>)}</aside><section><div className="result-bar"><span>۳ گزینه Mock برای تهران</span><Link href="/compare" className="button primary">مقایسه ۳ گزینه</Link></div><div className="result-list">{hotels.map(h=><HotelCard hotel={h} compact key={h.name}/>)}</div></section></div></Shell>}
-function Compare(){const sp=typeof window!=="undefined"?new URLSearchParams(window.location.search):new URLSearchParams();if(sp.get("type")==="package")return <Shell><CombinedFlightHotel/></Shell>;return <Shell><div className="page-hero"><span className="eyebrow">مقایسه حرفه‌ای · داده معتبر</span><h1>تفاوت‌ها را یک‌جا ببینید.</h1><p>امتیاز و معیارها فقط از Offerهای معتبر سازمان احرازشده محاسبه می‌شوند.</p><p className="mt-2 text-sm"><a className="text-link" href="/compare?type=package">مقایسه و رزرو بسته پرواز + هتل ←</a></p></div><ConnectedCompare/></Shell>}
+function Compare(){return <Shell><div className="page-hero"><span className="eyebrow">مقایسه حرفه‌ای · داده معتبر</span><h1>تفاوت‌ها را یک‌جا ببینید.</h1><p>امتیاز و معیارها فقط از Offerهای معتبر سازمان احرازشده محاسبه می‌شوند.</p><p className="mt-2 text-sm"><a className="text-link" href="/compare/package">مقایسه و رزرو بسته پرواز + هتل ←</a></p></div><ConnectedCompare/></Shell>}
 const policyIntents=['قوانین این رزرو چیه؟','می‌خوام کنسل کنم','چقدر پولم برمی‌گرده؟','می‌تونم تاریخ رو عوض کنم؟','هتلم رو کنسل کنم چقدر جریمه میشه؟','پروازم لغو شده','واچر جدیدم کجاست؟','درخواست استردادم چه وضعیتی داره؟'];
 type AssistantMessage={role:'user'|'bot';text?:string;links?:boolean};
 const assistantInitialMessages:AssistantMessage[]=[
