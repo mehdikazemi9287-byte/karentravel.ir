@@ -71,8 +71,25 @@ def search_travel(args: dict) -> ToolResult:
     return ToolResult(status="ok", data=r.json(), error_code=None)
 
 
+def create_booking_draft_tool(args: dict) -> ToolResult:
+    from . import trip
+    result = trip.create_booking_draft(args["trip_state_id"], args["vertical"], args["selected_item"], args["missing_fields"])
+    return ToolResult(status="ok", data=result, error_code=None)
+
+
+def blocked_financial_action(args: dict) -> ToolResult:
+    """LEVEL_3+. Always blocked in this phase -- no provider booking call,
+    no payment, no PNR, no reservation hold, no wallet debit, no refund.
+    This never simulates success; the audit trail records a real, truthful
+    "blocked" outcome for every attempt."""
+    return ToolResult(status="error", data={"reason": "financial/irreversible actions are not implemented"},
+                       error_code="BLOCKED_LEVEL3_NOT_IMPLEMENTED")
+
+
 REGISTRY: dict[str, Tool] = {
     "search_travel": Tool(name="search_travel", permission_level=LEVEL_READ, handler=search_travel),
+    "create_booking_draft": Tool(name="create_booking_draft", permission_level=LEVEL_DRAFT, handler=create_booking_draft_tool),
+    "execute_financial_action": Tool(name="execute_financial_action", permission_level=LEVEL_FINANCIAL, handler=blocked_financial_action),
 }
 
 
