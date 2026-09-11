@@ -56,6 +56,31 @@ def _bootstrap(conn) -> None:
         "ALTER TABLE search_telemetry ADD COLUMN IF NOT EXISTS avg_provider_latency_ms NUMERIC",
     ):
         conn.execute(stmt)
+    # Phase 4: Query Intelligence telemetry -- a separate table (not columns
+    # bolted onto search_telemetry) since a /query/plan call has no search
+    # result to report. No raw query text is stored -- only derived,
+    # non-identifying signals (intent, confidence, counts).
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS query_plan_telemetry (
+            id BIGSERIAL PRIMARY KEY,
+            correlation_id TEXT NOT NULL,
+            ts TIMESTAMPTZ NOT NULL DEFAULT now(),
+            planner_version TEXT NOT NULL,
+            intent TEXT[],
+            vertical TEXT,
+            confidence TEXT NOT NULL,
+            plan_status TEXT NOT NULL,
+            plan_valid BOOLEAN NOT NULL,
+            multi_intent BOOLEAN NOT NULL,
+            ambiguity_count INT NOT NULL,
+            unsupported_constraint_count INT NOT NULL,
+            planning_latency_ms NUMERIC NOT NULL,
+            executed BOOLEAN NOT NULL,
+            public BOOLEAN NOT NULL,
+            tenant_ref TEXT
+        )
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS ix_query_plan_telemetry_ts ON query_plan_telemetry (ts)")
 
 
 def record(event: dict) -> None:
@@ -78,6 +103,29 @@ def record(event: dict) -> None:
         )
     except Exception:
         # a telemetry outage degrades observability, never search itself
+        global _POOL
+        _POOL = None
+
+
+def record_plan(event: dict) -> None:
+    """Best-effort, like record() -- a telemetry outage never fails or slows
+    query planning. No raw query text; only derived signals."""
+    conn = _conn()
+    if conn is None:
+        return
+    try:
+        conn.execute(
+            """INSERT INTO query_plan_telemetry
+               (correlation_id, planner_version, intent, vertical, confidence, plan_status, plan_valid,
+                multi_intent, ambiguity_count, unsupported_constraint_count, planning_latency_ms,
+                executed, public, tenant_ref)
+               VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+            (event["correlation_id"], event["planner_version"], list(event.get("intent") or []),
+             event.get("vertical"), event["confidence"], event["plan_status"], event["plan_valid"],
+             event["multi_intent"], event["ambiguity_count"], event["unsupported_constraint_count"],
+             event["planning_latency_ms"], event["executed"], event["public"], event.get("tenant_ref")),
+        )
+    except Exception:
         global _POOL
         _POOL = None
 

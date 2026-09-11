@@ -6,6 +6,7 @@ autocomplete foundation. Does NOT own reservation / payment / trip / identity.
 """
 from __future__ import annotations
 
+import time
 import uuid
 
 from fastapi import Body, FastAPI, Header, Query, Request
@@ -14,12 +15,14 @@ from pydantic import BaseModel, Field
 
 from . import autocomplete, config, orchestrator, telemetry, telemetry_store
 from .cache import CACHE
-from .cache_keys import autocomplete_cache_key, search_cache_key
+from .cache_keys import autocomplete_cache_key, query_plan_cache_key, search_cache_key
 from .domain import (
     ALLOWED_SORTS, ALLOWED_VERTICALS, INTERNAL_SEARCH_ERROR, INVALID_SEARCH_REQUEST,
     NO_RESULTS, PROVIDER_UNAVAILABLE, SearchError, SearchRequest,
 )
 from .providers import EXTERNAL_PROVIDERS, _POOL
+from .query_intelligence import CanonicalQueryInput, PLANNER_VERSION, plan_query
+from .query_intelligence.models import STATUS_VALID
 from .ranking import RANKING_VERSION
 from .registry import REGISTRY
 
@@ -40,6 +43,60 @@ class SearchIn(BaseModel):
     page_size: int = Field(default=20, ge=1, le=100)
     public: bool = True
     tenant_ref: str | None = Field(default=None, max_length=120)
+
+
+class QueryPlanIn(BaseModel):
+    """Phase 4: canonical input for /v1/query/plan and /v1/query/search.
+    Structured fields always take precedence over anything inferred from
+    `text` -- see query_intelligence/planner.py."""
+    text: str = Field(default="", max_length=300)
+    vertical: str | None = Field(default=None, max_length=32)
+    origin: str | None = Field(default=None, max_length=120)
+    destination: str | None = Field(default=None, max_length=120)
+    start_date: str | None = Field(default=None, max_length=32)
+    end_date: str | None = Field(default=None, max_length=32)
+    passengers: int | None = Field(default=None, ge=1, le=20)
+    rooms: int | None = Field(default=None, ge=1, le=20)
+    filters: dict = Field(default_factory=dict)
+    locale: str | None = Field(default=None, max_length=16)
+    currency: str | None = Field(default=None, max_length=8)
+    public: bool = True
+    tenant_ref: str | None = Field(default=None, max_length=120)
+    sort: str = Field(default="recommended", max_length=32)
+    page: int = Field(default=1, ge=1, le=1000)
+    page_size: int = Field(default=20, ge=1, le=100)
+
+
+def _entity_out(e) -> dict | None:
+    return None if e is None else {"id": e.id, "title": e.title, "type": e.type, "code": e.code}
+
+
+def _plan_to_dict(plan) -> dict:
+    return {
+        "query_id": plan.query_id, "original_text": plan.original_text, "normalized_text": plan.normalized_text,
+        "intent": list(plan.intent), "vertical": plan.vertical, "multi_intent": plan.multi_intent,
+        "origin": _entity_out(plan.origin), "destination": _entity_out(plan.destination),
+        "date_range": {"start_date": plan.date_range.start_date, "end_date": plan.date_range.end_date, "source": plan.date_range.source},
+        "party": {"travellers": plan.party.travellers, "rooms": plan.party.rooms},
+        "filters": plan.filters, "unsupported_constraints": list(plan.unsupported_constraints),
+        "public": plan.public, "tenant_ref": plan.tenant_ref, "confidence": plan.confidence, "status": plan.status,
+        "ambiguities": [{"code": a.code, "message": a.message} for a in plan.ambiguities],
+        "planner_version": plan.planner_version,
+    }
+
+
+def _record_plan_telemetry(plan, latency_ms: float, *, executed: bool) -> None:
+    key = {"valid": "query_plan_valid", "ambiguous": "query_plan_ambiguous",
+           "unsupported": "query_plan_unsupported", "invalid": "query_plan_invalid"}.get(plan.status, "query_plan_invalid")
+    telemetry.incr(key)
+    telemetry.observe_planning_duration(latency_ms)
+    telemetry_store.record_plan({
+        "correlation_id": plan.correlation_id, "planner_version": plan.planner_version,
+        "intent": list(plan.intent), "vertical": plan.vertical, "confidence": plan.confidence,
+        "plan_status": plan.status, "plan_valid": plan.status == STATUS_VALID, "multi_intent": plan.multi_intent,
+        "ambiguity_count": len(plan.ambiguities), "unsupported_constraint_count": len(plan.unsupported_constraints),
+        "planning_latency_ms": latency_ms, "executed": executed, "public": plan.public, "tenant_ref": plan.tenant_ref,
+    })
 
 
 @app.exception_handler(SearchError)
@@ -203,3 +260,125 @@ def v1_diagnostics():
         "ranking_version": RANKING_VERSION,
         "recent_metrics": telemetry.snapshot(),
     }
+
+
+def _canonical_input(data: QueryPlanIn, corr: str) -> CanonicalQueryInput:
+    return CanonicalQueryInput(
+        text=data.text, vertical=data.vertical, origin=data.origin, destination=data.destination,
+        start_date=data.start_date, end_date=data.end_date, passengers=data.passengers, rooms=data.rooms,
+        filters=data.filters or {}, locale=data.locale, currency=data.currency,
+        public=data.public, tenant_ref=data.tenant_ref, correlation_id=corr,
+    )
+
+
+@app.post("/v1/query/plan")
+def v1_query_plan(data: QueryPlanIn = Body(...), x_correlation_id: str | None = Header(default=None)):
+    """Phase 4: parses text/structured input into a SearchPlan. Never
+    executes a provider call -- planning only. Additive: does not replace or
+    alter /v1/search in any way."""
+    corr = x_correlation_id or str(uuid.uuid4())
+    started = time.perf_counter()
+    plan = plan_query(_canonical_input(data, corr))
+    latency = round((time.perf_counter() - started) * 1000, 3)
+    _record_plan_telemetry(plan, latency, executed=False)
+    return {"plan": _plan_to_dict(plan)}
+
+
+@app.post("/v1/query/search")
+def v1_query_search(data: QueryPlanIn = Body(...), x_correlation_id: str | None = Header(default=None)):
+    """Phase 4: plans, then executes through the EXISTING, unmodified
+    orchestrator only when the plan is valid -- ambiguous/unsupported/invalid
+    plans return a structured (200) clarification response instead of ever
+    calling a provider with a knowingly invalid plan. Raw query text never
+    reaches a provider adapter; only the plan's resolved fields do, via the
+    same SearchRequest contract /v1/search already uses."""
+    corr = x_correlation_id or str(uuid.uuid4())
+    started = time.perf_counter()
+    plan = plan_query(_canonical_input(data, corr))
+    planning_latency = round((time.perf_counter() - started) * 1000, 3)
+
+    if plan.status != STATUS_VALID:
+        _record_plan_telemetry(plan, planning_latency, executed=False)
+        return JSONResponse(status_code=200, content={"plan": _plan_to_dict(plan), "executed": False})
+
+    telemetry.incr("query_nl_search_executed")
+    if plan.multi_intent:
+        telemetry.incr("query_multi_intent")
+
+    plan_filters = dict(plan.filters)
+    if plan.date_range.start_date:
+        plan_filters.setdefault("check_in", plan.date_range.start_date)
+    if plan.date_range.end_date:
+        plan_filters.setdefault("check_out", plan.date_range.end_date)
+
+    cache_payload = {
+        "vertical": plan.vertical, "origin_id": plan.origin.id if plan.origin else None,
+        "destination_id": plan.destination.id if plan.destination else None,
+        "destination_title": plan.destination.title if plan.destination else None,
+        "date_range": {"start": plan.date_range.start_date, "end": plan.date_range.end_date},
+        "party": {"travellers": plan.party.travellers, "rooms": plan.party.rooms},
+        "filters": plan_filters, "sort": data.sort, "page": data.page, "page_size": data.page_size,
+        "public": plan.public, "tenant_ref": plan.tenant_ref,
+    }
+    key = query_plan_cache_key(cache_payload, PLANNER_VERSION)
+    cached = CACHE.get(key)
+    if cached is not None:
+        telemetry.incr("cache_hit")
+        cached = dict(cached)
+        cached.setdefault("search_metadata", {})["cache"] = "hit"
+        cached["plan"] = _plan_to_dict(plan)
+        _record_plan_telemetry(plan, planning_latency, executed=True)
+        return {"result": cached, "executed": True}
+    telemetry.incr("cache_miss")
+
+    req = SearchRequest(
+        verticals=(plan.vertical,), destination=plan.destination.title if plan.destination else None,
+        origin=plan.origin.title if plan.origin else None, travellers=plan.party.travellers or 1,
+        sort=data.sort, filters=plan_filters, page=data.page, page_size=data.page_size,
+        public=plan.public, tenant_ref=plan.tenant_ref, correlation_id=corr,
+    )
+    result, meta, elapsed = orchestrator.fan_out_and_assemble(req)
+    for m in meta:
+        if m["status"] == "PROVIDER_TIMEOUT":
+            telemetry.incr("provider_timeouts")
+        elif m["status"] == "PROVIDER_UNAVAILABLE":
+            telemetry.incr("provider_unavailable")
+
+    if result is None:
+        attempted = [m for m in meta if m["status"] in ("available", "PROVIDER_TIMEOUT", "PROVIDER_UNAVAILABLE")]
+        telemetry.incr("search_errors")
+        telemetry_store.record({
+            "correlation_id": corr, "verticals": [plan.vertical], "public": plan.public,
+            "tenant_ref": None if plan.public else plan.tenant_ref, "result_count": 0,
+            "partial_results": False, "providers_requested": len(attempted), "providers_failed": len(attempted),
+            "elapsed_ms": elapsed, "cache": "n/a", "failure_code": PROVIDER_UNAVAILABLE,
+            "providers_succeeded": 0, "ranking_version": RANKING_VERSION, "avg_provider_latency_ms": None,
+        })
+        _record_plan_telemetry(plan, planning_latency, executed=True)
+        raise SearchError(PROVIDER_UNAVAILABLE, "موتور جست‌وجو موقتاً در دسترس نیست", 503)
+
+    result["search_metadata"]["cache"] = "miss"
+    telemetry.incr("search_requests")
+    telemetry.observe_duration(elapsed)
+    telemetry.observe_result_count(result["pagination"]["total"])
+    if not result["entities"]:
+        telemetry.incr("search_zero_result")
+    if result["search_metadata"]["partial_results"]:
+        telemetry.incr("search_partial")
+    latencies = [v for v in result["search_metadata"]["provider_latency_ms"].values() if v is not None]
+    telemetry_store.record({
+        "correlation_id": corr, "verticals": [plan.vertical], "public": plan.public,
+        "tenant_ref": None if plan.public else plan.tenant_ref,
+        "result_count": result["pagination"]["total"], "partial_results": result["search_metadata"]["partial_results"],
+        "providers_requested": result["search_metadata"]["providers_requested"],
+        "providers_failed": result["search_metadata"]["providers_failed"],
+        "elapsed_ms": elapsed, "cache": "miss", "failure_code": None,
+        "providers_succeeded": result["search_metadata"]["providers_succeeded"],
+        "ranking_version": RANKING_VERSION,
+        "avg_provider_latency_ms": round(sum(latencies) / len(latencies), 2) if latencies else None,
+    })
+    _record_plan_telemetry(plan, planning_latency, executed=True)
+
+    CACHE.set(key, result, config.CACHE_TTL_SECONDS)
+    result["plan"] = _plan_to_dict(plan)
+    return {"result": result, "executed": True}

@@ -11,9 +11,13 @@ COUNTERS = {
     "search_requests": 0, "search_zero_result": 0, "search_partial": 0, "search_errors": 0,
     "provider_timeouts": 0, "provider_unavailable": 0, "cache_hit": 0, "cache_miss": 0,
     "autocomplete_requests": 0,
+    # Phase 4: Query Intelligence observability (STEP 21)
+    "query_plan_valid": 0, "query_plan_ambiguous": 0, "query_plan_unsupported": 0,
+    "query_plan_invalid": 0, "query_nl_search_executed": 0, "query_multi_intent": 0,
 }
 DURATIONS: list[float] = []
 RESULT_COUNTS: list[int] = []
+PLANNING_DURATIONS: list[float] = []
 
 logger = logging.getLogger("karenseir.search")
 if not logger.handlers:
@@ -46,13 +50,22 @@ def observe_result_count(n: int) -> None:
             del RESULT_COUNTS[: len(RESULT_COUNTS) - 500]
 
 
+def observe_planning_duration(ms: float) -> None:
+    with _lock:
+        PLANNING_DURATIONS.append(ms)
+        if len(PLANNING_DURATIONS) > 500:
+            del PLANNING_DURATIONS[: len(PLANNING_DURATIONS) - 500]
+
+
 def snapshot() -> dict:
     with _lock:
         d = sorted(DURATIONS)
         rc = sorted(RESULT_COUNTS)
+        pd = sorted(PLANNING_DURATIONS)
         pct = lambda arr, p: arr[min(len(arr) - 1, int(len(arr) * p))] if arr else 0
         return {
             "counters": dict(COUNTERS),
             "duration_ms": {"count": len(d), "p50": round(pct(d, 0.5), 2), "p95": round(pct(d, 0.95), 2), "max": round(d[-1], 2) if d else 0.0},
             "result_count": {"count": len(rc), "p50": pct(rc, 0.5), "p95": pct(rc, 0.95), "zero_pct": round(100 * sum(1 for x in rc if x == 0) / len(rc), 1) if rc else 0.0},
+            "planning_duration_ms": {"count": len(pd), "p50": round(pct(pd, 0.5), 2), "p95": round(pct(pd, 0.95), 2), "avg": round(sum(pd) / len(pd), 2) if pd else 0.0},
         }
