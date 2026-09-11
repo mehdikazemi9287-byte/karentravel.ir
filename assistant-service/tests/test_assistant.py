@@ -38,6 +38,8 @@ class _FakeConn:
         self.booking_drafts = {}
         self.audit_log = []
         self.tool_calls = []
+        self.action_plans = {}
+        self.approvals = {}
 
     def execute(self, sql, params=()):
         s = " ".join(sql.split())
@@ -99,15 +101,19 @@ class _FakeConn:
             row = self.trip_states.get(tid)
             return _FakeCursor([(row["id"], row["status"])] if row else [])
 
+        if s.startswith("SELECT status FROM trip_states"):
+            (tid,) = params
+            row = self.trip_states.get(tid)
+            return _FakeCursor([(row["status"],)] if row else [])
+
         if s.startswith("INSERT INTO trip_states"):
             tid, cid, status = params
             self.trip_states[tid] = {"id": tid, "conversation_id": cid, "status": status}
             return _FakeCursor()
 
         if s.startswith("UPDATE trip_states SET selected_transport") or s.startswith("UPDATE trip_states SET selected_accommodation"):
-            val, status, tid = params
+            val, tid = params
             if tid in self.trip_states:
-                self.trip_states[tid]["status"] = status
                 self.trip_states[tid]["selection"] = json.loads(val)
             return _FakeCursor()
 
@@ -129,6 +135,55 @@ class _FakeConn:
             self.booking_drafts[did] = {"id": did, "trip_state_id": tid, "vertical": vertical,
                                          "status": status, "idempotency_key": idem}
             return _FakeCursor()
+
+        if s.startswith("SELECT id, goal, status, steps FROM action_plans"):
+            (cid,) = params
+            candidates = [p for p in self.action_plans.values() if p["conversation_id"] == cid]
+            if not candidates:
+                return _FakeCursor([])
+            latest = candidates[-1]
+            return _FakeCursor([(latest["id"], latest["goal"], latest["status"], latest["steps"])])
+
+        if s.startswith("INSERT INTO action_plans"):
+            pid, cid, tid, goal, status, steps = params
+            self.action_plans[pid] = {"id": pid, "conversation_id": cid, "trip_state_id": tid,
+                                       "goal": goal, "status": status, "steps": json.loads(steps)}
+            return _FakeCursor()
+
+        if s.startswith("SELECT steps FROM action_plans"):
+            (pid,) = params
+            row = self.action_plans.get(pid)
+            return _FakeCursor([(row["steps"],)] if row else [])
+
+        if s.startswith("UPDATE action_plans SET steps"):
+            steps, pid = params
+            if pid in self.action_plans:
+                self.action_plans[pid]["steps"] = json.loads(steps)
+            return _FakeCursor()
+
+        if s.startswith("SELECT id, status FROM approvals WHERE conversation_id"):
+            cid, tool, fp = params
+            for a in self.approvals.values():
+                if a["conversation_id"] == cid and a["tool"] == tool and a["operation_fingerprint"] == fp:
+                    return _FakeCursor([(a["id"], a["status"])])
+            return _FakeCursor([])
+
+        if s.startswith("INSERT INTO approvals"):
+            aid, cid, pid, tool, fp = params
+            self.approvals[aid] = {"id": aid, "conversation_id": cid, "plan_id": pid, "tool": tool,
+                                    "operation_fingerprint": fp, "status": "PENDING"}
+            return _FakeCursor()
+
+        if s.startswith("UPDATE approvals SET status"):
+            status, aid = params
+            if aid in self.approvals:
+                self.approvals[aid]["status"] = status
+            return _FakeCursor()
+
+        if s.startswith("SELECT id, status FROM approvals WHERE id"):
+            (aid,) = params
+            row = self.approvals.get(aid)
+            return _FakeCursor([(row["id"], row["status"])] if row else [])
 
         if s == "SELECT 1":
             return _FakeCursor([(1,)])
@@ -433,3 +488,202 @@ def test_classifier_select_vs_ask():
 def test_get_unknown_conversation_404(client):
     r = client.get(f"/v1/conversation/{uuid.uuid4()}")
     assert r.status_code == 404
+
+
+# ================= Phase 3: action plan / approval / execution guard =================
+
+def _search_select_prep(client, monkeypatch, *, party):
+    """Helper: search -> select 1st result -> booking prep (draft ready)."""
+    from app import planner as planner_module
+    plan = {"vertical": "hotel", "status": "valid", "destination": {"title": "کیش"}, "origin": None,
+            "departure_date": None, "return_date": None, "party": party}
+    monkeypatch.setattr(planner_module, "plan_goal", lambda text, **kw: {
+        "goal": planner_module.GOAL_SEARCH, "plan": plan, "error_code": None,
+    })
+    _stub_search_ok(monkeypatch, plan=plan, total=1, entities=[_entity(1, "هتل الف", 200)])
+    r1 = client.post("/v1/conversation/message", json={"text": "هتل کیش برای دو نفر یک اتاق"})
+    cid = r1.json()["conversation_id"]
+    client.post("/v1/conversation/message", json={"conversation_id": cid, "text": "اولی رو انتخاب کن"})
+    r3 = client.post("/v1/conversation/message", json={"conversation_id": cid, "text": "رزروش کن"})
+    return cid, r3
+
+
+def test_advance_action_without_ready_trip_is_unsupported(client):
+    r = client.post("/v1/conversation/message", json={"text": "ادامه بده"})
+    assert r.json()["action"] == "UNSUPPORTED_ACTION"
+
+
+def test_confirm_without_pending_approval_is_unsupported(client, monkeypatch, fake_db):
+    cid, r3 = _search_select_prep(client, monkeypatch, party={"travellers": 2, "rooms": 1})
+    assert r3.json()["message"]["data"]["readiness"]["ready"] is True
+    r4 = client.post("/v1/conversation/message", json={"conversation_id": cid, "text": "تایید می‌کنم"})
+    assert r4.json()["action"] == "UNSUPPORTED_ACTION"   # never inferred -- nothing was proposed yet
+
+
+def test_full_advance_then_confirm_flow_is_blocked_at_commerce_not_at_approval(client, monkeypatch, fake_db):
+    cid, r3 = _search_select_prep(client, monkeypatch, party={"travellers": 2, "rooms": 1})
+    assert r3.json()["trip_state_status"] == "READY_FOR_BOOKING_PREP"
+
+    r4 = client.post("/v1/conversation/message", json={"conversation_id": cid, "text": "ادامه بده"})
+    assert r4.json()["action"] == "ADVANCE_ACTION"
+    assert r4.json()["message"]["data"]["requires_approval"] is True
+    approval_id = r4.json()["message"]["data"]["pending_approval_id"]
+    assert fake_db.approvals[approval_id]["status"] == "PENDING"
+
+    r5 = client.post("/v1/conversation/message", json={"conversation_id": cid, "text": "تایید می‌کنم"})
+    assert r5.json()["action"] == "CONFIRM_PENDING_APPROVAL"
+    assert fake_db.approvals[approval_id]["status"] == "APPROVED"
+    guard = r5.json()["message"]["data"]["execution_guard"]
+    assert guard["allowed"] is True   # approval mechanism itself works end-to-end
+    # the tool call was attempted and truthfully blocked -- never simulated success
+    assert fake_db.tool_calls[-1][1] == "submit_reservation_hold"
+    assert "امکان تکمیل رزرو نهایی" in r5.json()["message"]["text"]
+    assert "رزرو شد" not in r5.json()["message"]["text"] and "پرداخت شد" not in r5.json()["message"]["text"]
+
+
+def test_execution_guard_blocks_without_approval(fake_db):
+    from app import approval as approval_module
+    guard = approval_module.check_execution_guard(
+        tool_name="submit_reservation_hold", args={"trip_state_id": "t1", "selected_item": {"entity_id": "e1"}},
+        conversation_id="c1", selected_result={"entity_id": "e1"}, result_set=None, readiness=None,
+    )
+    assert guard["allowed"] is False and guard["reason"] == "APPROVAL_REQUIRED"
+
+
+def test_execution_guard_blocks_stale_result_set(monkeypatch):
+    from app import approval as approval_module, resolver as resolver_module
+    monkeypatch.setattr(resolver_module, "result_set_is_fresh", lambda rs, **kw: False)
+    guard = approval_module.check_execution_guard(
+        tool_name="submit_reservation_hold", args={"trip_state_id": "t1", "selected_item": {"entity_id": "e1"}},
+        conversation_id="c1", selected_result={"entity_id": "e1"}, result_set={"items": []}, readiness=None,
+    )
+    assert guard["allowed"] is False and guard["reason"] == "RESULT_SET_STALE"
+
+
+def test_execution_guard_blocks_when_not_ready(monkeypatch):
+    from app import approval as approval_module
+    guard = approval_module.check_execution_guard(
+        tool_name="submit_reservation_hold", args={"trip_state_id": "t1", "selected_item": {"entity_id": "e1"}},
+        conversation_id="c1", selected_result={"entity_id": "e1"}, result_set=None, readiness={"ready": False, "missing": ["x"]},
+    )
+    assert guard["allowed"] is False and guard["reason"] == "BOOKING_NOT_READY"
+
+
+def test_approval_request_is_idempotent(fake_db):
+    from app import approval as approval_module
+    a1 = approval_module.request_approval("c1", None, "submit_reservation_hold", "fp1")
+    a2 = approval_module.request_approval("c1", None, "submit_reservation_hold", "fp1")
+    assert a1["id"] == a2["id"]
+    assert len(fake_db.approvals) == 1
+
+
+def test_stale_or_wrong_approval_blocks_execution(fake_db):
+    from app import approval as approval_module
+    a1 = approval_module.request_approval("c1", None, "submit_reservation_hold", "fp-old")
+    # a material parameter change produces a different fingerprint -- the
+    # old (still-pending, never approved) approval must never match it
+    guard = approval_module.check_execution_guard(
+        tool_name="submit_reservation_hold", args={"trip_state_id": "t1", "selected_item": {"entity_id": "e1", "price": 999}},
+        conversation_id="c1", selected_result={"entity_id": "e1", "price": 999}, result_set=None, readiness=None,
+    )
+    assert guard["allowed"] is False and guard["reason"] == "APPROVAL_REQUIRED"
+
+
+# ---- price/availability revalidation ----
+
+def test_price_revalidation_detects_change():
+    from app.resolver import revalidate_price
+    selected = {"entity_id": "e1", "price": 100}
+    fresh = {"entities": [{"entity_id": "e1", "best_offer": {"final_price": 150, "currency": "IRR", "offer_id": "o1"}}]}
+    result = revalidate_price(selected, fresh)
+    assert result["changed"] is True and result["old_price"] == 100 and result["new_price"] == 150
+
+
+def test_price_revalidation_detects_unavailable():
+    from app.resolver import revalidate_price
+    selected = {"entity_id": "e1", "price": 100}
+    fresh = {"entities": []}
+    result = revalidate_price(selected, fresh)
+    assert result["available"] is False
+
+
+def test_booking_prep_blocked_when_live_price_changed(client, monkeypatch, fake_db):
+    from app import planner as planner_module, tools as tools_module
+    plan = {"vertical": "hotel", "status": "valid", "destination": {"title": "کیش"}, "origin": None,
+            "departure_date": None, "return_date": None, "party": {"travellers": 2, "rooms": 1}}
+    monkeypatch.setattr(planner_module, "plan_goal", lambda text, **kw: {
+        "goal": planner_module.GOAL_SEARCH, "plan": plan, "error_code": None,
+    })
+    call_count = {"n": 0}
+    def fake_call_tool(name, args):
+        if name != "search_travel":
+            return tools_module.REGISTRY[name].handler(args), 1.0
+        call_count["n"] += 1
+        price = 200 if call_count["n"] == 1 else 350   # price changes between selection and booking-prep revalidation
+        data = {"executed": True, "result": {"pagination": {"total": 1}, "entities": [_entity(1, "هتل الف", price)], "plan": plan}}
+        return tools_module.ToolResult(status="ok", data=data, error_code=None), 3.0
+    monkeypatch.setattr(tools_module, "call_tool", fake_call_tool)
+
+    r1 = client.post("/v1/conversation/message", json={"text": "هتل کیش برای دو نفر یک اتاق"})
+    cid = r1.json()["conversation_id"]
+    client.post("/v1/conversation/message", json={"conversation_id": cid, "text": "اولی رو انتخاب کن"})
+    r3 = client.post("/v1/conversation/message", json={"conversation_id": cid, "text": "رزروش کن"})
+    assert r3.json()["message"]["data"]["type"] == "CLARIFY"
+    reval = r3.json()["message"]["data"]["revalidation"]
+    assert reval["changed"] is True and reval["old_price"] == 200 and reval["new_price"] == 350
+    assert fake_db.booking_drafts == {}   # never created a draft on top of a stale price
+
+
+# ---- trip state machine ----
+
+def test_invalid_trip_transition_is_rejected(fake_db):
+    from app import trip as trip_module
+    ts = trip_module.get_or_create("c1", None)
+    with pytest.raises(trip_module.InvalidTransition):
+        trip_module.transition(ts["id"], trip_module.STATUS_DRAFT, trip_module.STATUS_BOOKED)
+
+
+def test_valid_trip_transition_succeeds(fake_db):
+    from app import trip as trip_module
+    ts = trip_module.get_or_create("c1", None)
+    new_status = trip_module.transition(ts["id"], trip_module.STATUS_DRAFT, trip_module.STATUS_PLANNING)
+    assert new_status == trip_module.STATUS_PLANNING
+    assert fake_db.trip_states[ts["id"]]["status"] == trip_module.STATUS_PLANNING
+
+
+def test_same_status_transition_is_a_safe_noop(fake_db):
+    from app import trip as trip_module
+    ts = trip_module.get_or_create("c1", None)
+    assert trip_module.transition(ts["id"], trip_module.STATUS_DRAFT, trip_module.STATUS_DRAFT) == trip_module.STATUS_DRAFT
+
+
+# ---- human handoff ----
+
+def test_human_handoff_request(client, fake_db):
+    r = client.post("/v1/conversation/message", json={"text": "میخوام با پشتیبان صحبت کنم"})
+    assert r.json()["action"] == "REQUEST_HUMAN_HANDOFF"
+    assert "escalation" in r.json()["message"]["data"]
+    assert r.json()["message"]["data"]["escalation"]["conversation_id"] == r.json()["conversation_id"]
+
+
+# ---- action plan ----
+
+def test_action_plan_created_on_booking_prep(client, monkeypatch, fake_db):
+    cid, r3 = _search_select_prep(client, monkeypatch, party={"travellers": 2, "rooms": 1})
+    plans = [p for p in fake_db.action_plans.values() if p["conversation_id"] == cid]
+    assert len(plans) == 1
+    assert plans[0]["goal"] == "book_hotel"
+    assert len(plans[0]["steps"]) == 1
+    assert plans[0]["steps"][0]["tool"] == "create_booking_draft"
+
+
+# ---- hallucination-safety wording check across the module ----
+
+def test_no_forbidden_success_wording_anywhere_in_source():
+    import pathlib
+    forbidden = ("رزرو شد", "پرداخت شد", "بلیط صادر شد", "کنسل شد", "استرداد شد")
+    src_dir = pathlib.Path(__file__).parent.parent / "app"
+    for py in src_dir.glob("*.py"):
+        text = py.read_text(encoding="utf-8")
+        for phrase in forbidden:
+            assert phrase not in text, f"forbidden success wording {phrase!r} found in {py.name}"

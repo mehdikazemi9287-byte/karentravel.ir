@@ -12,9 +12,56 @@ from . import db
 
 STATUS_DRAFT = "DRAFT"
 STATUS_PLANNING = "PLANNING"
+STATUS_SHORTLIST_READY = "SHORTLIST_READY"
+STATUS_SELECTION_READY = "SELECTION_READY"
 STATUS_READY_FOR_BOOKING_PREP = "READY_FOR_BOOKING_PREP"
+STATUS_TRAVELLER_INFO_NEEDED = "TRAVELLER_INFO_NEEDED"
 STATUS_BOOKING_PREPARED = "BOOKING_PREPARED"
+STATUS_APPROVAL_NEEDED = "APPROVAL_NEEDED"
+STATUS_RESERVATION_PENDING = "RESERVATION_PENDING"
+STATUS_BOOKED = "BOOKED"
+STATUS_DISRUPTED = "DISRUPTED"
+STATUS_COMPLETED = "COMPLETED"
 STATUS_CANCELLED = "CANCELLED"
+
+# Phase 3 sec 9: a validated state machine -- impossible transitions are
+# rejected rather than silently allowed. Every state can reach CANCELLED;
+# every state except the two terminal ones can be marked DISRUPTED.
+_TERMINAL = {STATUS_COMPLETED, STATUS_CANCELLED}
+ALLOWED_TRANSITIONS: dict[str, set[str]] = {
+    STATUS_DRAFT: {STATUS_PLANNING},
+    STATUS_PLANNING: {STATUS_SHORTLIST_READY, STATUS_SELECTION_READY, STATUS_READY_FOR_BOOKING_PREP},
+    STATUS_SHORTLIST_READY: {STATUS_SELECTION_READY},
+    STATUS_SELECTION_READY: {STATUS_READY_FOR_BOOKING_PREP, STATUS_PLANNING},   # re-selection after revalidation
+    STATUS_READY_FOR_BOOKING_PREP: {STATUS_TRAVELLER_INFO_NEEDED, STATUS_BOOKING_PREPARED, STATUS_APPROVAL_NEEDED, STATUS_PLANNING},
+    STATUS_TRAVELLER_INFO_NEEDED: {STATUS_READY_FOR_BOOKING_PREP, STATUS_BOOKING_PREPARED},
+    STATUS_BOOKING_PREPARED: {STATUS_APPROVAL_NEEDED, STATUS_PLANNING},
+    STATUS_APPROVAL_NEEDED: {STATUS_RESERVATION_PENDING, STATUS_BOOKING_PREPARED},
+    STATUS_RESERVATION_PENDING: {STATUS_BOOKED, STATUS_DISRUPTED},
+    STATUS_BOOKED: {STATUS_COMPLETED, STATUS_DISRUPTED},
+    STATUS_DISRUPTED: {STATUS_PLANNING, STATUS_CANCELLED},
+}
+for _s in list(ALLOWED_TRANSITIONS) + [STATUS_COMPLETED]:
+    if _s not in _TERMINAL:
+        ALLOWED_TRANSITIONS.setdefault(_s, set()).add(STATUS_CANCELLED)
+
+
+class InvalidTransition(Exception):
+    pass
+
+
+def transition(trip_state_id: str, current_status: str, new_status: str) -> str:
+    """Validated status change. Raises InvalidTransition rather than
+    silently allowing an impossible jump (e.g. DRAFT -> BOOKED). Setting the
+    same status again is always a safe no-op (idempotent), not a transition."""
+    if new_status == current_status:
+        return current_status
+    if current_status in _TERMINAL:
+        raise InvalidTransition(f"{current_status} is terminal, cannot transition to {new_status}")
+    if new_status not in ALLOWED_TRANSITIONS.get(current_status, set()):
+        raise InvalidTransition(f"{current_status} -> {new_status} is not an allowed transition")
+    db.conn().execute("UPDATE trip_states SET status = %s, updated_at = now() WHERE id = %s", (new_status, trip_state_id))
+    return new_status
 
 
 def get_or_create(conversation_id: str, existing_trip_state_id: str | None) -> dict:
@@ -34,10 +81,19 @@ def update_from_selection(trip_state_id: str, vertical: str, selected_item: dict
     verticals) or selected_accommodation (hotel/accommodation/vacation_rental).
     Never a reservation -- purely local state."""
     field = "selected_transport" if vertical in ("flight", "train", "bus") else "selected_accommodation"
-    db.conn().execute(
-        f"UPDATE trip_states SET {field} = %s, status = %s, updated_at = now() WHERE id = %s",
-        (json.dumps(selected_item, ensure_ascii=False), STATUS_PLANNING, trip_state_id),
-    )
+    row = db.conn().execute("SELECT status FROM trip_states WHERE id = %s", (trip_state_id,)).fetchone()
+    current = row[0] if row else STATUS_DRAFT
+    db.conn().execute(f"UPDATE trip_states SET {field} = %s, updated_at = now() WHERE id = %s",
+                       (json.dumps(selected_item, ensure_ascii=False), trip_state_id))
+    # A re-selection after booking prep already started returns the trip to
+    # PLANNING (a fresh selection invalidates whatever was prepared for the
+    # old one) -- reachable per ALLOWED_TRANSITIONS; DRAFT/PLANNING move
+    # forward to PLANNING normally.
+    target = STATUS_PLANNING
+    try:
+        transition(trip_state_id, current, target)
+    except InvalidTransition:
+        pass   # already at/past PLANNING via a path that doesn't loop back -- selection itself still recorded above
 
 
 def evaluate_readiness(vertical: str, selected_item: dict | None, party: dict | None) -> dict:
@@ -82,6 +138,11 @@ def create_booking_draft(trip_state_id: str, vertical: str, selected_item: dict,
         (new_id, trip_state_id, vertical, json.dumps(selected_item, ensure_ascii=False),
          json.dumps(missing_fields, ensure_ascii=False), STATUS_DRAFT, idem_key),
     )
-    c.execute("UPDATE trip_states SET status = %s, updated_at = now() WHERE id = %s",
-              (STATUS_READY_FOR_BOOKING_PREP if not missing_fields else STATUS_PLANNING, trip_state_id))
+    current = c.execute("SELECT status FROM trip_states WHERE id = %s", (trip_state_id,)).fetchone()
+    current_status = current[0] if current else STATUS_PLANNING
+    target = STATUS_READY_FOR_BOOKING_PREP if not missing_fields else STATUS_TRAVELLER_INFO_NEEDED
+    try:
+        transition(trip_state_id, current_status, target)
+    except InvalidTransition:
+        pass
     return {"id": new_id, "status": STATUS_DRAFT, "duplicate": False}

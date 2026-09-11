@@ -17,6 +17,9 @@ START_BOOKING_PREP = "START_BOOKING_PREP"
 UNSUPPORTED_ACTION = "UNSUPPORTED_ACTION"
 CANCEL_CURRENT_FLOW = "CANCEL_CURRENT_FLOW"
 BLOCKED_FINANCIAL_ACTION = "BLOCKED_FINANCIAL_ACTION"
+ADVANCE_ACTION = "ADVANCE_ACTION"                    # "ادامه بده" / "برو جلو" -- meaningless unless main.py finds something concrete to advance
+CONFIRM_PENDING_APPROVAL = "CONFIRM_PENDING_APPROVAL"  # "تایید می‌کنم" -- only ever binds to an ALREADY-PROPOSED pending approval, never inferred
+REQUEST_HUMAN_HANDOFF = "REQUEST_HUMAN_HANDOFF"
 
 
 def _fold(s: str) -> str:
@@ -29,6 +32,9 @@ def _fold(s: str) -> str:
 _RESET_PHRASES = ("از اول", "یه سفر دیگه", "یک سفر دیگه", "این رو بیخیال", "بیخیالش", "جستجوی جدید", "start over", "new search")
 _PAYMENT_PHRASES = ("پولشو", "پول رو", "پرداخت کن", "پرداختش کن", "بخرش", "بخر", "pay for it", "make the payment")
 _BOOKING_PHRASES = ("رزروش کن", "رزرو کن", "رزروش رو انجام", "book it", "reserve it")
+_ADVANCE_PHRASES = ("ادامه بده", "برو جلو", "ادامه بدیم", "continue", "go ahead")
+_CONFIRM_PHRASES = ("تایید می کنم", "تاییدش کن", "باشه تاییدش کن", "تایید میکنم", "confirm it", "i confirm", "i approve")
+_HANDOFF_PHRASES = ("پشتیبان", "اپراتور", "انسان صحبت", "با یک نفر صحبت", "human agent", "talk to a person")
 _ORDINAL_WORDS = {
     "اولی": 1, "اول": 1, "دومی": 2, "دوم": 2, "سومی": 3, "سوم": 3,
     "چهارمی": 4, "چهارم": 4, "پنجمی": 5, "پنجم": 5,
@@ -61,6 +67,19 @@ def classify(text: str, *, has_active_plan: bool, has_result_set: bool) -> dict:
 
     if any(_fold(p) in folded for p in _PAYMENT_PHRASES):
         return {"action": BLOCKED_FINANCIAL_ACTION, "ordinal_ref": None}
+
+    if any(_fold(p) in folded for p in _HANDOFF_PHRASES):
+        return {"action": REQUEST_HUMAN_HANDOFF, "ordinal_ref": None}
+
+    if any(_fold(p) in folded for p in _CONFIRM_PHRASES):
+        # category only -- main.py still requires an actual PENDING approval
+        # bound to this conversation before treating this as a real decision
+        return {"action": CONFIRM_PENDING_APPROVAL, "ordinal_ref": None}
+
+    if any(_fold(p) in folded for p in _ADVANCE_PHRASES):
+        # category only -- main.py still requires an actual advanceable
+        # state (e.g. a booking-ready trip) before doing anything with it
+        return {"action": ADVANCE_ACTION, "ordinal_ref": None}
 
     ordinal = _find_ordinal(folded)
     if ordinal is not None and has_result_set:

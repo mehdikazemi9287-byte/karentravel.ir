@@ -65,3 +65,23 @@ def result_set_is_fresh(result_set: dict | None, *, max_age_seconds: float = 180
 
 def state_hash(state: dict) -> str:
     return hashlib.sha256(json.dumps(state, sort_keys=True, ensure_ascii=False, default=str).encode()).hexdigest()[:16]
+
+
+def revalidate_price(selected_item: dict, fresh_search_response: dict) -> dict:
+    """Compares a previously-selected item's price against a freshly
+    re-fetched Search response (Phase 3 sec 11). Never silently substitutes
+    another offer -- reports the material facts and lets the caller decide.
+    Returns {"changed": bool, "available": bool, "old_price": ..., "new_price": ...,
+    "new_item": <fresh compact item or None>}."""
+    entities = fresh_search_response.get("entities", [])
+    match = next((e for e in entities if e.get("entity_id") == selected_item.get("entity_id")), None)
+    if not match:
+        return {"changed": True, "available": False, "old_price": selected_item.get("price"),
+                "new_price": None, "new_item": None}
+    best = match.get("best_offer") or {}
+    new_price = best.get("final_price")
+    old_price = selected_item.get("price")
+    new_item = {**selected_item, "price": new_price, "currency": best.get("currency"),
+                "offer_id": best.get("offer_id") or best.get("id")}
+    return {"changed": new_price != old_price, "available": True,
+            "old_price": old_price, "new_price": new_price, "new_item": new_item}

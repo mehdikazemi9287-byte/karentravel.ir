@@ -127,6 +127,34 @@ def _bootstrap(c) -> None:
     c.execute("CREATE INDEX IF NOT EXISTS ix_booking_drafts_trip ON booking_drafts (trip_state_id)")
     c.execute("CREATE INDEX IF NOT EXISTS ix_audit_log_conv ON audit_log (conversation_id, created_at)")
 
+    # Phase 3: additive tables only.
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS action_plans (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            conversation_id UUID NOT NULL REFERENCES conversations(id),
+            trip_state_id UUID,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+            goal TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'DRAFT',
+            steps JSONB NOT NULL
+        )
+    """)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS approvals (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            conversation_id UUID NOT NULL REFERENCES conversations(id),
+            plan_id UUID,
+            tool TEXT NOT NULL,
+            operation_fingerprint TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'PENDING',
+            created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+            decided_at TIMESTAMPTZ
+        )
+    """)
+    c.execute("CREATE INDEX IF NOT EXISTS ix_action_plans_conv ON action_plans (conversation_id)")
+    c.execute("CREATE INDEX IF NOT EXISTS ix_approvals_conv ON approvals (conversation_id, tool)")
+
 
 def health() -> dict:
     try:
