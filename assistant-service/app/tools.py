@@ -125,6 +125,12 @@ def _monolith_call(user_token: str, method: str, path: str, *, json_body: dict |
             detail = r.json()
         except Exception:
             detail = {"raw": r.text[:200]}
+        if r.status_code == 401:
+            # Phase 5: distinct from a generic commerce error -- the caller's
+            # forwarded token was rejected by the monolith's own current_user
+            # (missing/invalid/expired/wrong-tenant). Reported as "blocked"
+            # (a truthful, actionable state -- login again), never "error".
+            return ToolResult(status="blocked", data=detail, error_code="AUTHENTICATION_INVALID_OR_EXPIRED")
         return ToolResult(status="error", data=detail, error_code=f"HTTP_{r.status_code}")
     return ToolResult(status="ok", data=r.json(), error_code=None)
 

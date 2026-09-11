@@ -14,6 +14,8 @@ from . import db, tools
 PENDING = "PENDING"
 APPROVED = "APPROVED"
 REJECTED = "REJECTED"
+CONSUMED = "CONSUMED"   # Phase 5: successfully executed -- a repeat confirm
+                         # replays the stored (redacted) result, never re-executes
 
 
 def request_approval(conversation_id: str, plan_id: str | None, tool: str, fingerprint: str) -> dict:
@@ -42,10 +44,18 @@ def decide_approval(approval_id: str, approved: bool) -> dict:
 
 def find_approval(conversation_id: str, tool: str, fingerprint: str) -> dict | None:
     row = db.conn().execute(
-        "SELECT id, status FROM approvals WHERE conversation_id = %s AND tool = %s AND operation_fingerprint = %s",
+        "SELECT id, status, result_reference FROM approvals WHERE conversation_id = %s AND tool = %s AND operation_fingerprint = %s",
         (conversation_id, tool, fingerprint),
     ).fetchone()
-    return {"id": str(row[0]), "status": row[1]} if row else None
+    return {"id": str(row[0]), "status": row[1], "result_reference": row[2]} if row else None
+
+
+def mark_consumed(approval_id: str, result_reference: dict) -> None:
+    """result_reference must already be redacted by the caller -- this
+    layer does not know which fields are sensitive for a given tool."""
+    import json
+    db.conn().execute("UPDATE approvals SET status = %s, result_reference = %s WHERE id = %s",
+                       (CONSUMED, json.dumps(result_reference, ensure_ascii=False), approval_id))
 
 
 def check_execution_guard(*, tool_name: str, args: dict, conversation_id: str,

@@ -30,11 +30,33 @@ class MessageIn(BaseModel):
     text: str = Field(max_length=500)
     public: bool = True
     tenant_ref: str | None = Field(default=None, max_length=120)
-    # Phase 4: forwarded verbatim from whatever caller has a real, already-
-    # authenticated user session -- this service never mints or stores a
-    # user credential itself. Absent (the default) means every LEVEL_2
-    # commerce tool call stays truthfully blocked (USER_AUTHENTICATION_REQUIRED).
-    user_token: str | None = Field(default=None, max_length=2000)
+    # Phase 5: the caller's bearer token now travels the same way it already
+    # does to every other backend in this system -- a standard
+    # `Authorization: Bearer <token>` HTTP header (see _extract_user_token),
+    # not a JSON body field. This service never mints, stores, decodes, or
+    # persists that token; absent, every LEVEL_2 commerce tool call stays
+    # truthfully blocked (USER_AUTHENTICATION_REQUIRED).
+
+
+def _fingerprint_selection(selected: dict | None) -> dict | None:
+    """Phase 5 fix: `selected_result` gains a `reservation` field once a
+    hold succeeds (an execution OUTPUT, attached after the fact) -- that
+    must never change the operation's fingerprint, or a resumed/repeat
+    confirm reading the now-mutated state would compute a fingerprint that
+    no longer matches its own approval record and stop finding it."""
+    if not selected:
+        return selected
+    return {k: v for k, v in selected.items() if k != "reservation"}
+
+
+def _extract_user_token(authorization: str | None) -> str | None:
+    """Ephemeral, request-scoped only -- never stored, logged, or echoed.
+    Anything not a well-formed 'Bearer <token>' header is treated as "no
+    session", never partially trusted."""
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    token = authorization[len("Bearer "):].strip()
+    return token or None
 
 
 @app.get("/health")
@@ -161,9 +183,15 @@ def _handle_search(text: str, state: dict, public: bool, tenant_ref: str | None,
 
 
 @app.post("/v1/conversation/message")
-def post_message(data: MessageIn = Body(...), x_correlation_id: str | None = Header(default=None)):
+def post_message(data: MessageIn = Body(...), x_correlation_id: str | None = Header(default=None),
+                  authorization: str | None = Header(default=None)):
     corr = x_correlation_id or str(uuid.uuid4())
     turn_id = str(uuid.uuid4())
+    # Phase 5: identity propagation. The token lives only in this local
+    # variable for the lifetime of this single request -- never assigned to
+    # `data`, never put in reply_data/audit/telemetry, never passed to any
+    # classifier/planner/LLM path.
+    user_token = _extract_user_token(authorization)
     try:
         conversation_id = _get_or_create_conversation(data.conversation_id, data.public, data.tenant_ref)
         state = _load_state(conversation_id)
@@ -189,7 +217,7 @@ def post_message(data: MessageIn = Body(...), x_correlation_id: str | None = Hea
         # clearing state -- never just silently dropped from view.
         prior_selected = state.get("selected_result") or {}
         reservation = prior_selected.get("reservation")
-        if reservation and reservation.get("id") and data.user_token:
+        if reservation and reservation.get("id") and user_token:
             rel_args = {"reservation_id": reservation["id"]}
             rel_fp = tools.operation_fingerprint("release_reservation_hold", rel_args)
             # The user's own explicit reset command IS the bound confirmation
@@ -205,7 +233,7 @@ def post_message(data: MessageIn = Body(...), x_correlation_id: str | None = Hea
             )
             if rel_guard["allowed"]:
                 rel_result, rel_latency = tools.call_tool("release_reservation_hold", {
-                    "reservation_id": reservation["id"], "idempotency_key": rel_fp, "user_token": data.user_token,
+                    "reservation_id": reservation["id"], "idempotency_key": rel_fp, "user_token": user_token,
                 })
                 _record_tool_call(conversation_id, "release_reservation_hold", tools.LEVEL_APPROVAL, rel_result.status, rel_latency, rel_result.error_code)
                 tool_used = "release_reservation_hold"
@@ -297,7 +325,7 @@ def post_message(data: MessageIn = Body(...), x_correlation_id: str | None = Hea
             reply_data["type"] = classifier.UNSUPPORTED_ACTION
             action = classifier.UNSUPPORTED_ACTION
         else:
-            args = {"trip_state_id": ts_id, "selected_item": selected}
+            args = {"trip_state_id": ts_id, "selected_item": _fingerprint_selection(selected)}
             fp = tools.operation_fingerprint("submit_reservation_hold", args)
             appr = approval.request_approval(conversation_id, None, "submit_reservation_hold", fp)
             try:
@@ -312,47 +340,83 @@ def post_message(data: MessageIn = Body(...), x_correlation_id: str | None = Hea
     elif action == classifier.CONFIRM_PENDING_APPROVAL:
         selected = state.get("selected_result")
         ts_id = state.get("trip_state_id")
-        fp = tools.operation_fingerprint("submit_reservation_hold", {"trip_state_id": ts_id, "selected_item": selected}) if selected and ts_id else None
+        fp = tools.operation_fingerprint("submit_reservation_hold", {"trip_state_id": ts_id, "selected_item": _fingerprint_selection(selected)}) if selected and ts_id else None
         pending = approval.find_approval(conversation_id, "submit_reservation_hold", fp) if fp else None
-        if not pending or pending["status"] != approval.PENDING:
+        if not pending:
             # not unambiguously bound to a real pending action -- never inferred
             reply_text = "در حال حاضر چیزی برای تأیید وجود ندارد."
             reply_data["type"] = classifier.UNSUPPORTED_ACTION
             action = classifier.UNSUPPORTED_ACTION
+        elif pending["status"] == approval.CONSUMED:
+            # Phase 5 resume/idempotency: this exact operation already
+            # executed successfully once. A repeat confirm (duplicate
+            # submit, network retry, a stale client re-sending after
+            # login) NEVER re-calls the monolith and NEVER creates a
+            # second Reservation -- it just replays the stored, already-
+            # redacted outcome.
+            reply_data["reservation_result"] = pending["result_reference"]
+            reply_text = "این درخواست قبلاً با موفقیت ثبت شده است؛ رزرو تکراری ایجاد نمی‌شود."
+        elif pending["status"] == approval.REJECTED:
+            reply_text = "این درخواست قبلاً رد شده است."
+            reply_data["type"] = classifier.UNSUPPORTED_ACTION
+            action = classifier.UNSUPPORTED_ACTION
         else:
-            approval.decide_approval(pending["id"], approved=True)
+            # PENDING -> first confirm: record the approval decision.
+            # APPROVED already (Phase 5 resume after AUTHENTICATION_REQUIRED
+            # on a prior attempt) -> do NOT re-decide; this is the resume
+            # path re-entering at the guard/execution step directly.
+            if pending["status"] == approval.PENDING:
+                approval.decide_approval(pending["id"], approved=True)
             guard = approval.check_execution_guard(
-                tool_name="submit_reservation_hold", args={"trip_state_id": ts_id, "selected_item": selected},
+                tool_name="submit_reservation_hold", args={"trip_state_id": ts_id, "selected_item": _fingerprint_selection(selected)},
                 conversation_id=conversation_id, selected_result=selected,
                 result_set=state.get("last_result_set"), readiness=None,
             )
             reply_data["execution_guard"] = guard
             if guard["allowed"]:
-                # Phase 4: a real, caller-forwarded user_token enables the
-                # real price_check -> reservation-hold chain against the
-                # monolith. No token -> submit_reservation_hold itself
-                # returns a truthful USER_AUTHENTICATION_REQUIRED block --
-                # never a simulated success either way.
+                # Phase 4/5: a real, caller-forwarded user_token (from the
+                # Authorization header) enables the real price_check ->
+                # reservation-hold chain against the monolith. No token, or
+                # an invalid/expired one, is reported as a clean,
+                # distinct AUTHENTICATION_REQUIRED reply -- authentication
+                # alone is never treated as approval, and the existing
+                # APPROVED approval is left untouched (not consumed) so the
+                # very next confirm after a real login resumes right here,
+                # without re-approving and without duplicating anything.
                 price_check_id = None
-                if data.user_token:
+                price_check_auth_error = None
+                if user_token:
                     pc_args = {"offer_id": selected.get("offer_id"), "command_id": f"pc-{fp}"[:120],
-                               "units": 1, "user_token": data.user_token}
+                               "units": 1, "user_token": user_token}
                     pc_result, pc_latency = tools.call_tool("price_check_offer", pc_args)
                     _record_tool_call(conversation_id, "price_check_offer", tools.LEVEL_READ, pc_result.status, pc_latency, pc_result.error_code)
                     if pc_result.status == "ok":
                         price_check_id = pc_result.data.get("id")
+                    elif pc_result.error_code == "AUTHENTICATION_INVALID_OR_EXPIRED":
+                        price_check_auth_error = pc_result.error_code
 
-                hold_args = {"trip_state_id": ts_id, "selected_item": selected, "user_token": data.user_token,
+                hold_args = {"trip_state_id": ts_id, "selected_item": selected, "user_token": user_token,
                              "command_id": fp, "price_check_id": price_check_id}
                 result, latency_ms = tools.call_tool("submit_reservation_hold", hold_args)
                 _record_tool_call(conversation_id, "submit_reservation_hold", tools.LEVEL_APPROVAL, result.status, latency_ms, result.error_code)
                 tool_used, error_code = "submit_reservation_hold", result.error_code
-                reply_data["reservation_result"] = {"status": result.status, "error_code": result.error_code}
+                # An expired/invalid token surfaces via price-check first --
+                # report that precise cause rather than the resulting (also
+                # true, but less specific) PRICE_CHECK_REQUIRED from the
+                # hold call.
+                effective_error_code = price_check_auth_error or result.error_code
+                reply_data["reservation_result"] = {
+                    "status": "blocked" if price_check_auth_error else result.status,
+                    "error_code": effective_error_code,
+                }
                 if result.status == "ok":
                     reply_text = "درخواست رزرو موقت ثبت شد. این یک رزرو نهایی/پرداخت‌شده نیست؛ برای تکمیل نیاز به مراحل بعدی دارد."
                     _save_state(conversation_id, selected_result={**selected, "reservation": result.data})
-                elif result.error_code == "USER_AUTHENTICATION_REQUIRED":
-                    reply_text = "تأیید شما ثبت شد، اما برای ثبت واقعی رزرو نیاز به یک نشست کاربری معتبر است که در حال حاضر در دسترس نیست."
+                    approval.mark_consumed(pending["id"], {"status": "ok", "reservation_id": result.data.get("id")})
+                elif effective_error_code in ("USER_AUTHENTICATION_REQUIRED", "AUTHENTICATION_INVALID_OR_EXPIRED"):
+                    reply_text = ("برای ادامه ثبت رزرو باید وارد حساب کاربری خود شوید. تأیید شما نگه‌داشته شده "
+                                  "و پس از ورود، همین درخواست ادامه می‌یابد -- نیازی به تأیید دوباره نیست.")
+                    reply_data["type"] = "AUTHENTICATION_REQUIRED"
                 else:
                     reply_text = "تأیید شما ثبت شد، اما درخواست رزرو با خطا مواجه شد؛ رزروی ایجاد نشده است."
                 reply_data["blocked_level"] = tools.LEVEL_APPROVAL if result.status != "ok" else None

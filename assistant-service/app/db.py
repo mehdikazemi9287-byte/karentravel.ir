@@ -155,6 +155,11 @@ def _bootstrap(c) -> None:
     c.execute("CREATE INDEX IF NOT EXISTS ix_action_plans_conv ON action_plans (conversation_id)")
     c.execute("CREATE INDEX IF NOT EXISTS ix_approvals_conv ON approvals (conversation_id, tool)")
 
+    # Phase 5: additive -- stores only a REDACTED result summary (never a
+    # raw token, never full monolith payloads) so a repeat confirm after
+    # login/resume can replay it idempotently instead of re-executing.
+    c.execute("ALTER TABLE approvals ADD COLUMN IF NOT EXISTS result_reference JSONB")
+
 
 def health() -> dict:
     try:

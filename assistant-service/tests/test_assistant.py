@@ -161,7 +161,16 @@ class _FakeConn:
                 self.action_plans[pid]["steps"] = json.loads(steps)
             return _FakeCursor()
 
+        if s.startswith("SELECT id, status, result_reference FROM approvals WHERE conversation_id"):
+            cid, tool, fp = params
+            for a in self.approvals.values():
+                if a["conversation_id"] == cid and a["tool"] == tool and a["operation_fingerprint"] == fp:
+                    return _FakeCursor([(a["id"], a["status"], a.get("result_reference"))])
+            return _FakeCursor([])
+
         if s.startswith("SELECT id, status FROM approvals WHERE conversation_id"):
+            # request_approval's own idempotency-check SELECT (2 columns) --
+            # distinct from find_approval's 3-column SELECT above.
             cid, tool, fp = params
             for a in self.approvals.values():
                 if a["conversation_id"] == cid and a["tool"] == tool and a["operation_fingerprint"] == fp:
@@ -171,7 +180,14 @@ class _FakeConn:
         if s.startswith("INSERT INTO approvals"):
             aid, cid, pid, tool, fp = params
             self.approvals[aid] = {"id": aid, "conversation_id": cid, "plan_id": pid, "tool": tool,
-                                    "operation_fingerprint": fp, "status": "PENDING"}
+                                    "operation_fingerprint": fp, "status": "PENDING", "result_reference": None}
+            return _FakeCursor()
+
+        if s.startswith("UPDATE approvals SET status = %s, result_reference = %s"):
+            status, result_reference, aid = params
+            if aid in self.approvals:
+                self.approvals[aid]["status"] = status
+                self.approvals[aid]["result_reference"] = json.loads(result_reference) if result_reference else None
             return _FakeCursor()
 
         if s.startswith("UPDATE approvals SET status"):
@@ -785,13 +801,21 @@ def test_confirm_with_real_user_token_creates_real_reservation_end_to_end(client
     ))
     monkeypatch.setattr(tools_module, "_monolith_client", lambda token: fake)
 
-    r5 = client.post("/v1/conversation/message", json={"conversation_id": cid, "text": "تایید می‌کنم", "user_token": "real-user-jwt"})
+    r5 = client.post("/v1/conversation/message", json={"conversation_id": cid, "text": "تایید می‌کنم"},
+                      headers={"Authorization": "Bearer real-user-jwt"})
     assert r5.json()["message"]["data"]["reservation_result"]["status"] == "ok"
     assert "درخواست رزرو موقت ثبت شد" in r5.json()["message"]["text"]
     assert fake_db.conversations[cid]["selected_result"]["reservation"]["id"] == "res1"
     # both real calls happened in the right order with the right shapes
     assert fake.calls[0]["path"] == "/offers/o1/price-check"
     assert fake.calls[1]["path"] == "/orchestration/bookings" and fake.calls[1]["json"]["price_check_id"] == "pc1"
+    # a repeat confirm after success is an idempotent replay -- no third
+    # monolith call, no second Reservation
+    calls_before = len(fake.calls)
+    r5b = client.post("/v1/conversation/message", json={"conversation_id": cid, "text": "تایید می‌کنم"},
+                       headers={"Authorization": "Bearer real-user-jwt"})
+    assert r5b.json()["message"]["data"]["reservation_result"] == {"status": "ok", "reservation_id": "res1"}
+    assert len(fake.calls) == calls_before
 
 
 def test_reset_with_active_reservation_and_token_calls_real_release(client, monkeypatch, fake_db):
@@ -803,11 +827,128 @@ def test_reset_with_active_reservation_and_token_calls_real_release(client, monk
         else _FakeHttpResponse(201, {"id": "res1", "status": "reserved"})
     ))
     monkeypatch.setattr(tools_module, "_monolith_client", lambda token: fake)
-    client.post("/v1/conversation/message", json={"conversation_id": cid, "text": "تایید می‌کنم", "user_token": "real-user-jwt"})
+    client.post("/v1/conversation/message", json={"conversation_id": cid, "text": "تایید می‌کنم"},
+                headers={"Authorization": "Bearer real-user-jwt"})
 
     fake.calls.clear()
     fake._responder = lambda m, p, j, h: _FakeHttpResponse(202, {"status": "submitted"})
-    r6 = client.post("/v1/conversation/message", json={"conversation_id": cid, "text": "از اول", "user_token": "real-user-jwt"})
+    r6 = client.post("/v1/conversation/message", json={"conversation_id": cid, "text": "از اول"},
+                      headers={"Authorization": "Bearer real-user-jwt"})
     assert r6.json()["message"]["data"]["release_result"]["status"] == "ok"
     assert fake.calls[0]["path"] == "/reservations/res1/service-requests"
     assert fake_db.conversations[cid]["selected_result"] is None   # state cleared after release
+
+
+# ================= Phase 5: identity propagation, login-resume, isolation =================
+
+def test_confirm_without_authorization_header_is_authentication_required_and_resumable(client, monkeypatch, fake_db):
+    """No Authorization header -> a clean AUTHENTICATION_REQUIRED, the
+    approval is left APPROVED (not consumed, not rejected), and the very
+    next confirm -- now with a real header -- resumes the SAME pending
+    action and succeeds, without re-approving."""
+    from app import tools as tools_module, approval as approval_module
+    cid, r3 = _search_select_prep(client, monkeypatch, party={"travellers": 2, "rooms": 1})
+    r4 = client.post("/v1/conversation/message", json={"conversation_id": cid, "text": "ادامه بده"})
+    approval_id = r4.json()["message"]["data"]["pending_approval_id"]
+
+    r5 = client.post("/v1/conversation/message", json={"conversation_id": cid, "text": "تایید می‌کنم"})
+    assert r5.json()["message"]["data"]["type"] == "AUTHENTICATION_REQUIRED"
+    assert r5.json()["message"]["data"]["reservation_result"]["error_code"] == "USER_AUTHENTICATION_REQUIRED"
+    assert fake_db.approvals[approval_id]["status"] == "APPROVED"   # not consumed, not reset to PENDING
+
+    fake = _FakeMonolithClient(lambda m, p, j, h: (
+        _FakeHttpResponse(201, {"id": "pc1"}) if "price-check" in p
+        else _FakeHttpResponse(201, {"id": "res1", "status": "reserved"})
+    ))
+    monkeypatch.setattr(tools_module, "_monolith_client", lambda token: fake)
+
+    r6 = client.post("/v1/conversation/message", json={"conversation_id": cid, "text": "تایید می‌کنم"},
+                      headers={"Authorization": "Bearer real-user-jwt"})
+    assert r6.json()["message"]["data"]["reservation_result"]["status"] == "ok"
+    assert fake_db.approvals[approval_id]["status"] == approval_module.CONSUMED
+    # the resume never re-decided the approval as a fresh PENDING -> APPROVED
+    # transition; decided_at from the very first approval stands.
+    assert fake.calls[0]["path"] == "/offers/o1/price-check"
+
+
+def test_confirm_with_expired_token_reports_precise_auth_error_not_generic(client, monkeypatch, fake_db):
+    from app import tools as tools_module
+    cid, r3 = _search_select_prep(client, monkeypatch, party={"travellers": 2, "rooms": 1})
+    client.post("/v1/conversation/message", json={"conversation_id": cid, "text": "ادامه بده"})
+
+    fake = _FakeMonolithClient(lambda m, p, j, h: _FakeHttpResponse(401, {"detail": "توکن نامعتبر است"}))
+    monkeypatch.setattr(tools_module, "_monolith_client", lambda token: fake)
+
+    r5 = client.post("/v1/conversation/message", json={"conversation_id": cid, "text": "تایید می‌کنم"},
+                      headers={"Authorization": "Bearer an-expired-jwt"})
+    data = r5.json()["message"]["data"]
+    assert data["type"] == "AUTHENTICATION_REQUIRED"
+    assert data["reservation_result"]["error_code"] == "AUTHENTICATION_INVALID_OR_EXPIRED"
+    # only the price-check was attempted -- no attempt to fabricate a hold
+    # result from a rejected credential
+    assert fake.calls[0]["path"] == "/offers/o1/price-check"
+
+
+def test_commerce_tool_payload_never_carries_client_supplied_tenant_or_user_claims(client, monkeypatch, fake_db):
+    """The monolith derives tenant/user identity purely from the verified
+    JWT (current_user) -- nothing this service builds may claim to carry an
+    identity itself. Extra JSON fields on the request are simply not part
+    of the MessageIn contract and are dropped, never forwarded."""
+    from app import tools as tools_module
+    cid, r3 = _search_select_prep(client, monkeypatch, party={"travellers": 2, "rooms": 1})
+    client.post("/v1/conversation/message", json={"conversation_id": cid, "text": "ادامه بده"})
+
+    fake = _FakeMonolithClient(lambda m, p, j, h: (
+        _FakeHttpResponse(201, {"id": "pc1"}) if "price-check" in p
+        else _FakeHttpResponse(201, {"id": "res1", "status": "reserved"})
+    ))
+    monkeypatch.setattr(tools_module, "_monolith_client", lambda token: fake)
+
+    client.post("/v1/conversation/message",
+                json={"conversation_id": cid, "text": "تایید می‌کنم",
+                      "tenant_id": "attacker-tenant", "user_id": "attacker-user", "role": "admin"},
+                headers={"Authorization": "Bearer real-user-jwt"})
+    for call in fake.calls:
+        body = call["json"] or {}
+        for forbidden in ("tenant_id", "user_id", "role", "tenant_ref", "organization_id"):
+            assert forbidden not in body
+
+
+def test_no_raw_token_persisted_anywhere_in_conversation_state(client, monkeypatch, fake_db):
+    """Structural proof, not just inspection: scan every table the fake DB
+    holds after a token-bearing flow for the literal token substring."""
+    from app import tools as tools_module
+    cid, r3 = _search_select_prep(client, monkeypatch, party={"travellers": 2, "rooms": 1})
+    client.post("/v1/conversation/message", json={"conversation_id": cid, "text": "ادامه بده"})
+
+    fake = _FakeMonolithClient(lambda m, p, j, h: (
+        _FakeHttpResponse(201, {"id": "pc1"}) if "price-check" in p
+        else _FakeHttpResponse(201, {"id": "res1", "status": "reserved"})
+    ))
+    monkeypatch.setattr(tools_module, "_monolith_client", lambda token: fake)
+
+    secret_token = "super-secret-real-jwt-value"
+    client.post("/v1/conversation/message", json={"conversation_id": cid, "text": "تایید می‌کنم"},
+                headers={"Authorization": f"Bearer {secret_token}"})
+
+    haystack = json.dumps({
+        "conversations": fake_db.conversations, "messages": fake_db.messages,
+        "audit_log": fake_db.audit_log, "approvals": fake_db.approvals,
+        "tool_calls": fake_db.tool_calls,
+    }, default=str, ensure_ascii=False)
+    assert secret_token not in haystack
+
+
+def test_anonymous_search_and_planning_unaffected_by_auth(client, monkeypatch, fake_db):
+    """Public capabilities (search/planning/conversation) must keep working
+    for anonymous users -- only user-bound commerce actions require login."""
+    from app import planner as planner_module
+    plan = {"vertical": "hotel", "status": "valid", "destination": {"title": "کیش"}, "origin": None,
+            "departure_date": None, "return_date": None, "party": {"travellers": 1, "rooms": 1}}
+    monkeypatch.setattr(planner_module, "plan_goal", lambda text, **kw: {
+        "goal": planner_module.GOAL_SEARCH, "plan": plan, "error_code": None,
+    })
+    _stub_search_ok(monkeypatch, plan=plan, total=1, entities=[_entity(1, "هتل الف", 200)])
+    r = client.post("/v1/conversation/message", json={"text": "هتل کیش"})
+    assert r.json()["action"] == "NEW_SEARCH"
+    assert r.status_code == 200
