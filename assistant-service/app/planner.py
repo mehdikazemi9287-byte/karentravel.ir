@@ -17,11 +17,22 @@ GOAL_UNSUPPORTED = "unsupported"
 GOAL_UNKNOWN = "unknown"
 
 
-def plan_goal(text: str, *, public: bool, tenant_ref: str | None) -> dict:
-    """Returns {"goal": ..., "plan": <SearchPlan dict or None>, "error_code": ...|None}."""
+def plan_goal(text: str, *, public: bool, tenant_ref: str | None, overrides: dict | None = None) -> dict:
+    """Returns {"goal": ..., "plan": <SearchPlan dict or None>, "error_code": ...|None}.
+
+    `overrides` (vertical/origin/destination/start_date/end_date) are the
+    STRUCTURED fields of karenseir-search's own CanonicalQueryInput contract
+    -- passing the previous turn's resolved vertical/route/dates this way is
+    what lets a follow-up like "ارزون‌تر" refine the current search instead
+    of starting over, using the planner's own already-built, already-tested
+    "explicit fields always win over inferred" rule (Phase 4/5). Nothing
+    about follow-up handling is reimplemented here."""
+    payload = {"text": text, "public": public, "tenant_ref": tenant_ref}
+    if overrides:
+        payload.update({k: v for k, v in overrides.items() if v is not None})
     try:
         with httpx.Client(base_url=config.SEARCH_SERVICE_URL, timeout=config.SEARCH_TIMEOUT_SECONDS) as c:
-            r = c.post("/v1/query/plan", json={"text": text, "public": public, "tenant_ref": tenant_ref})
+            r = c.post("/v1/query/plan", json=payload)
     except httpx.HTTPError as exc:
         return {"goal": GOAL_UNKNOWN, "plan": None, "error_code": f"SEARCH_UNREACHABLE:{type(exc).__name__}"}
     if r.status_code >= 400:
@@ -37,6 +48,24 @@ def plan_goal(text: str, *, public: bool, tenant_ref: str | None) -> dict:
     else:
         goal = GOAL_UNKNOWN
     return {"goal": goal, "plan": plan, "error_code": None}
+
+
+def context_overrides(last_plan: dict | None) -> dict:
+    """Builds carry-over structured fields from the previous turn's
+    SearchPlan. Only carries fields that were actually resolved -- never
+    invents an origin/destination/date the previous plan didn't have."""
+    if not last_plan or not last_plan.get("vertical"):
+        return {}
+    out = {"vertical": last_plan["vertical"]}
+    if last_plan.get("origin"):
+        out["origin"] = last_plan["origin"]["title"]
+    if last_plan.get("destination"):
+        out["destination"] = last_plan["destination"]["title"]
+    if last_plan.get("departure_date"):
+        out["start_date"] = last_plan["departure_date"]
+    if last_plan.get("return_date"):
+        out["end_date"] = last_plan["return_date"]
+    return out
 
 
 def compose_reply(goal: str, plan: dict | None, tool_result) -> tuple[str, dict]:

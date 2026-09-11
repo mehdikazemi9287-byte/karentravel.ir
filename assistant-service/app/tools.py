@@ -53,10 +53,10 @@ def search_travel(args: dict) -> ToolResult:
     deterministic Query Planner already inside karenseir-search, not
     duplicated here. Never fabricates a result: a provider outage surfaces
     as a real error_code, not an invented empty/success response."""
-    payload = {
-        "text": args.get("text", ""), "public": args.get("public", True),
-        "tenant_ref": args.get("tenant_ref"), "vertical": args.get("vertical"),
-    }
+    payload = {"text": args.get("text", ""), "public": args.get("public", True), "tenant_ref": args.get("tenant_ref")}
+    for k in ("vertical", "origin", "destination", "start_date", "end_date"):
+        if args.get(k) is not None:
+            payload[k] = args[k]
     try:
         with _search_client() as c:
             r = c.post("/v1/query/search", json=payload)

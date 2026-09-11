@@ -34,13 +34,23 @@ class _FakeConn:
         s = " ".join(sql.split())
         if s.startswith("INSERT INTO conversations"):
             cid, public, tenant_ref = params
-            self.conversations[cid] = {"id": cid, "public": public, "tenant_ref": tenant_ref, "active_goal": None}
+            self.conversations[cid] = {"id": cid, "public": public, "tenant_ref": tenant_ref, "active_goal": None, "last_plan": None}
             self.messages[cid] = []
             return _FakeCursor()
         if s.startswith("SELECT id FROM conversations"):
             (cid,) = params
             row = self.conversations.get(cid)
             return _FakeCursor([(row["id"],)] if row else [])
+        if s.startswith("SELECT last_plan FROM conversations"):
+            (cid,) = params
+            row = self.conversations.get(cid)
+            return _FakeCursor([(row["last_plan"],)] if row else [])
+        if s.startswith("UPDATE conversations SET last_plan"):
+            import json
+            plan_json, cid = params
+            if cid in self.conversations:
+                self.conversations[cid]["last_plan"] = json.loads(plan_json)
+            return _FakeCursor()
         if s.startswith("INSERT INTO messages"):
             cid, role, text, data = params
             self.messages.setdefault(cid, []).append({"role": role, "text": text, "data": data})
@@ -185,3 +195,49 @@ def test_get_conversation_returns_history(client, fake_db):
 def test_get_unknown_conversation_404(client):
     r = client.get(f"/v1/conversation/{uuid.uuid4()}")
     assert r.status_code == 404
+
+
+# ---- multi-turn refinement (master prompt sec 4) ----
+
+def test_followup_reuses_last_plan_context(client, monkeypatch, fake_db):
+    from app import tools as tools_module, planner as planner_module
+
+    first_plan = {"vertical": "hotel", "status": "valid",
+                  "destination": {"id": "city-kish", "title": "کیش", "type": "city", "code": None},
+                  "origin": None, "departure_date": None, "return_date": None}
+    calls = []
+
+    def fake_plan_goal(text, *, public, tenant_ref, overrides=None):
+        calls.append({"text": text, "overrides": overrides})
+        if overrides:   # second call: the follow-up, carrying context
+            return {"goal": planner_module.GOAL_SEARCH, "plan": {**first_plan, **overrides}, "error_code": None}
+        if len(calls) == 1:   # first call: the original search
+            return {"goal": planner_module.GOAL_SEARCH, "plan": first_plan, "error_code": None}
+        return {"goal": planner_module.GOAL_CLARIFY, "plan": {"ambiguities": []}, "error_code": None}   # bare follow-up alone
+
+    monkeypatch.setattr(planner_module, "plan_goal", fake_plan_goal)
+    monkeypatch.setattr(tools_module, "call_tool", lambda name, args: (
+        tools_module.ToolResult(status="ok", data={"executed": True,
+                                                     "result": {"pagination": {"total": 2}, "plan": first_plan}}, error_code=None), 3.0,
+    ))
+
+    r1 = client.post("/v1/conversation/message", json={"text": "هتل کیش"})
+    cid = r1.json()["conversation_id"]
+    assert fake_db.conversations[cid]["last_plan"] is not None   # persisted after a successful search
+
+    r2 = client.post("/v1/conversation/message", json={"conversation_id": cid, "text": "ارزون‌تر"})
+    body = r2.json()
+    assert body["refined"] is True
+    assert body["message"]["data"]["refined"] is True
+    # the follow-up's second plan_goal call carried the previous vertical forward
+    assert calls[-1]["overrides"]["vertical"] == "hotel"
+    assert calls[-1]["overrides"]["destination"] == "کیش"
+
+
+def test_followup_without_prior_search_is_not_marked_refined(client, monkeypatch):
+    from app import planner as planner_module
+    monkeypatch.setattr(planner_module, "plan_goal", lambda text, **kw: {
+        "goal": planner_module.GOAL_CLARIFY, "plan": {"ambiguities": []}, "error_code": None,
+    })
+    r = client.post("/v1/conversation/message", json={"text": "ارزون‌تر"})
+    assert r.json()["refined"] is False

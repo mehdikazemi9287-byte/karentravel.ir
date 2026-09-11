@@ -81,11 +81,29 @@ def _record_tool_call(conversation_id: str, tool_name: str, level: int, status: 
     )
 
 
+def _get_last_plan(conversation_id: str) -> dict | None:
+    row = db.conn().execute("SELECT last_plan FROM conversations WHERE id = %s", (conversation_id,)).fetchone()
+    return row[0] if row and row[0] else None
+
+
+def _set_last_plan(conversation_id: str, plan: dict) -> None:
+    import json
+    db.conn().execute("UPDATE conversations SET last_plan = %s WHERE id = %s",
+                       (json.dumps(plan, ensure_ascii=False), conversation_id))
+
+
+def _run_search_tool(text: str, plan: dict, public: bool, tenant_ref: str | None, overrides: dict) -> tuple:
+    args = {"text": text, "public": public, "tenant_ref": tenant_ref, "vertical": plan.get("vertical")}
+    args.update(overrides)
+    return tools.call_tool("search_travel", args)
+
+
 @app.post("/v1/conversation/message")
 def post_message(data: MessageIn = Body(...), x_correlation_id: str | None = Header(default=None)):
     corr = x_correlation_id or str(uuid.uuid4())
     try:
         conversation_id = _get_or_create_conversation(data.conversation_id, data.public, data.tenant_ref)
+        last_plan = _get_last_plan(conversation_id) if data.conversation_id else None
     except Exception:
         # conversation state is real product state, not best-effort -- a DB
         # outage is a real, truthful error, never a fabricated conversation.
@@ -94,17 +112,33 @@ def post_message(data: MessageIn = Body(...), x_correlation_id: str | None = Hea
     _append_message(conversation_id, "user", data.text, None)
 
     goal_result = planner.plan_goal(data.text, public=data.public, tenant_ref=data.tenant_ref)
+    refined = False
+    overrides: dict = {}
+    if goal_result["goal"] != planner.GOAL_SEARCH and last_plan:
+        # Live Conversational Search (master prompt sec 4): a follow-up like
+        # "صبح نباشه" rarely re-states the vertical/route on its own. Retry
+        # planning with the PREVIOUS turn's resolved vertical/route/dates as
+        # explicit structured overrides -- never inventing a new one, only
+        # carrying forward what was already genuinely resolved -- before
+        # falling back to whatever the bare new text alone produced.
+        overrides = planner.context_overrides(last_plan)
+        if overrides:
+            retry = planner.plan_goal(data.text, public=data.public, tenant_ref=data.tenant_ref, overrides=overrides)
+            if retry["goal"] == planner.GOAL_SEARCH:
+                goal_result = retry
+                refined = True
     goal, plan = goal_result["goal"], goal_result["plan"]
 
     tool_result = None
     if goal == planner.GOAL_SEARCH:
-        result, latency_ms = tools.call_tool("search_travel", {
-            "text": data.text, "public": data.public, "tenant_ref": data.tenant_ref, "vertical": plan.get("vertical"),
-        })
-        tool_result = result
-        _record_tool_call(conversation_id, "search_travel", tools.LEVEL_READ, result.status, latency_ms, result.error_code)
+        tool_result, latency_ms = _run_search_tool(data.text, plan, data.public, data.tenant_ref, overrides if refined else {})
+        _record_tool_call(conversation_id, "search_travel", tools.LEVEL_READ, tool_result.status, latency_ms, tool_result.error_code)
+        if tool_result.status == "ok" and tool_result.data.get("executed"):
+            _set_last_plan(conversation_id, tool_result.data["result"].get("plan", plan))
 
     reply_text, reply_data = planner.compose_reply(goal, plan, tool_result)
+    if refined:
+        reply_data["refined"] = True
     _append_message(conversation_id, "assistant", reply_text, reply_data)
     db.conn().execute("UPDATE conversations SET updated_at = now(), active_goal = %s WHERE id = %s", (goal, conversation_id))
 
@@ -112,6 +146,7 @@ def post_message(data: MessageIn = Body(...), x_correlation_id: str | None = Hea
         "conversation_id": conversation_id,
         "correlation_id": corr,
         "goal": goal,
+        "refined": refined,
         "message": {"role": "assistant", "text": reply_text, "data": reply_data},
     }
 
