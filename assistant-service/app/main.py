@@ -30,6 +30,11 @@ class MessageIn(BaseModel):
     text: str = Field(max_length=500)
     public: bool = True
     tenant_ref: str | None = Field(default=None, max_length=120)
+    # Phase 4: forwarded verbatim from whatever caller has a real, already-
+    # authenticated user session -- this service never mints or stores a
+    # user credential itself. Absent (the default) means every LEVEL_2
+    # commerce tool call stays truthfully blocked (USER_AUTHENTICATION_REQUIRED).
+    user_token: str | None = Field(default=None, max_length=2000)
 
 
 @app.get("/health")
@@ -179,6 +184,32 @@ def post_message(data: MessageIn = Body(...), x_correlation_id: str | None = Hea
     refined = False
 
     if action == classifier.CANCEL_CURRENT_FLOW:
+        # Phase 4: if a real reservation hold exists for this selection and
+        # a real user_token is available, request its real rollback before
+        # clearing state -- never just silently dropped from view.
+        prior_selected = state.get("selected_result") or {}
+        reservation = prior_selected.get("reservation")
+        if reservation and reservation.get("id") and data.user_token:
+            rel_args = {"reservation_id": reservation["id"]}
+            rel_fp = tools.operation_fingerprint("release_reservation_hold", rel_args)
+            # The user's own explicit reset command IS the bound confirmation
+            # for cancelling exactly this hold -- auto-approved here (a
+            # cancellation reduces commitment; it is not a new one), but
+            # still routed through the same real approval record + guard as
+            # every other LEVEL_2 action, not a bypass of that mechanism.
+            rel_appr = approval.request_approval(conversation_id, None, "release_reservation_hold", rel_fp)
+            approval.decide_approval(rel_appr["id"], approved=True)
+            rel_guard = approval.check_execution_guard(
+                tool_name="release_reservation_hold", args=rel_args, conversation_id=conversation_id,
+                selected_result=prior_selected, result_set=None, readiness=None,
+            )
+            if rel_guard["allowed"]:
+                rel_result, rel_latency = tools.call_tool("release_reservation_hold", {
+                    "reservation_id": reservation["id"], "idempotency_key": rel_fp, "user_token": data.user_token,
+                })
+                _record_tool_call(conversation_id, "release_reservation_hold", tools.LEVEL_APPROVAL, rel_result.status, rel_latency, rel_result.error_code)
+                tool_used = "release_reservation_hold"
+                reply_data["release_result"] = {"status": rel_result.status, "error_code": rel_result.error_code}
         _save_state(conversation_id, last_plan=None, previous_plan=None, last_result_set=None, selected_result=None)
         reply_text = "باشه، از اول شروع می‌کنیم."
 
@@ -297,11 +328,34 @@ def post_message(data: MessageIn = Body(...), x_correlation_id: str | None = Hea
             )
             reply_data["execution_guard"] = guard
             if guard["allowed"]:
-                result, latency_ms = tools.call_tool("submit_reservation_hold", {"trip_state_id": ts_id, "selected_item": selected})
+                # Phase 4: a real, caller-forwarded user_token enables the
+                # real price_check -> reservation-hold chain against the
+                # monolith. No token -> submit_reservation_hold itself
+                # returns a truthful USER_AUTHENTICATION_REQUIRED block --
+                # never a simulated success either way.
+                price_check_id = None
+                if data.user_token:
+                    pc_args = {"offer_id": selected.get("offer_id"), "command_id": f"pc-{fp}"[:120],
+                               "units": 1, "user_token": data.user_token}
+                    pc_result, pc_latency = tools.call_tool("price_check_offer", pc_args)
+                    _record_tool_call(conversation_id, "price_check_offer", tools.LEVEL_READ, pc_result.status, pc_latency, pc_result.error_code)
+                    if pc_result.status == "ok":
+                        price_check_id = pc_result.data.get("id")
+
+                hold_args = {"trip_state_id": ts_id, "selected_item": selected, "user_token": data.user_token,
+                             "command_id": fp, "price_check_id": price_check_id}
+                result, latency_ms = tools.call_tool("submit_reservation_hold", hold_args)
                 _record_tool_call(conversation_id, "submit_reservation_hold", tools.LEVEL_APPROVAL, result.status, latency_ms, result.error_code)
                 tool_used, error_code = "submit_reservation_hold", result.error_code
-                reply_text = "تأیید شما ثبت شد؛ اما در حال حاضر امکان تکمیل رزرو نهایی از طریق دستیار وجود ندارد و نیاز به مسیر رسمی رزرو دارد."
-                reply_data["blocked_level"] = tools.LEVEL_APPROVAL
+                reply_data["reservation_result"] = {"status": result.status, "error_code": result.error_code}
+                if result.status == "ok":
+                    reply_text = "درخواست رزرو موقت ثبت شد. این یک رزرو نهایی/پرداخت‌شده نیست؛ برای تکمیل نیاز به مراحل بعدی دارد."
+                    _save_state(conversation_id, selected_result={**selected, "reservation": result.data})
+                elif result.error_code == "USER_AUTHENTICATION_REQUIRED":
+                    reply_text = "تأیید شما ثبت شد، اما برای ثبت واقعی رزرو نیاز به یک نشست کاربری معتبر است که در حال حاضر در دسترس نیست."
+                else:
+                    reply_text = "تأیید شما ثبت شد، اما درخواست رزرو با خطا مواجه شد؛ رزروی ایجاد نشده است."
+                reply_data["blocked_level"] = tools.LEVEL_APPROVAL if result.status != "ok" else None
             else:
                 reply_text = f"تأیید ثبت نشد: {guard['reason']}"
                 reply_data["type"] = "CLARIFY"

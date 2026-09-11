@@ -535,9 +535,11 @@ def test_full_advance_then_confirm_flow_is_blocked_at_commerce_not_at_approval(c
     assert fake_db.approvals[approval_id]["status"] == "APPROVED"
     guard = r5.json()["message"]["data"]["execution_guard"]
     assert guard["allowed"] is True   # approval mechanism itself works end-to-end
-    # the tool call was attempted and truthfully blocked -- never simulated success
+    # the tool call was attempted and truthfully blocked -- no user_token was
+    # forwarded (the normal case in this session), so the REAL handler
+    # reports the precise reason rather than simulating success
     assert fake_db.tool_calls[-1][1] == "submit_reservation_hold"
-    assert "امکان تکمیل رزرو نهایی" in r5.json()["message"]["text"]
+    assert r5.json()["message"]["data"]["reservation_result"]["error_code"] == "USER_AUTHENTICATION_REQUIRED"
     assert "رزرو شد" not in r5.json()["message"]["text"] and "پرداخت شد" not in r5.json()["message"]["text"]
 
 
@@ -687,3 +689,125 @@ def test_no_forbidden_success_wording_anywhere_in_source():
         text = py.read_text(encoding="utf-8")
         for phrase in forbidden:
             assert phrase not in text, f"forbidden success wording {phrase!r} found in {py.name}"
+
+
+# ================= Phase 4: real reservation/hold wiring =================
+
+class _FakeHttpResponse:
+    def __init__(self, status_code, body):
+        self.status_code = status_code
+        self._body = body
+        self.text = json.dumps(body)
+    def json(self):
+        return self._body
+
+
+class _FakeMonolithClient:
+    """Records exactly what was sent so tests can assert the real request
+    shape confirmed by reading backend/app/main.py."""
+    def __init__(self, responder):
+        self.calls = []
+        self._responder = responder
+    def __enter__(self):
+        return self
+    def __exit__(self, *a):
+        return False
+    def request(self, method, path, json=None, headers=None):
+        self.calls.append({"method": method, "path": path, "json": json, "headers": headers})
+        return self._responder(method, path, json, headers)
+
+
+def test_price_check_offer_without_token_is_blocked():
+    from app import tools as tools_module
+    result = tools_module.price_check_offer({"offer_id": "o1", "command_id": "cmd12345"})
+    assert result.status == "blocked" and result.error_code == "USER_AUTHENTICATION_REQUIRED"
+
+
+def test_price_check_offer_calls_real_endpoint_shape(monkeypatch):
+    from app import tools as tools_module
+    fake = _FakeMonolithClient(lambda m, p, j, h: _FakeHttpResponse(201, {"id": "pc1", "amount": 5000000, "currency": "IRR", "expires_at": "2026-01-01T00:00:00Z"}))
+    monkeypatch.setattr(tools_module, "_monolith_client", lambda token: fake)
+    result = tools_module.price_check_offer({"offer_id": "o1", "command_id": "cmd12345", "units": 2, "user_token": "tok"})
+    assert result.status == "ok" and result.data["id"] == "pc1"
+    assert fake.calls[0]["method"] == "POST" and fake.calls[0]["path"] == "/offers/o1/price-check"
+    assert fake.calls[0]["json"] == {"units": 2, "command_id": "cmd12345"}
+
+
+def test_submit_reservation_hold_without_price_check_id_is_blocked():
+    from app import tools as tools_module
+    result = tools_module.submit_reservation_hold({"user_token": "tok", "command_id": "cmd12345"})
+    assert result.status == "blocked" and result.error_code == "PRICE_CHECK_REQUIRED"
+
+
+def test_submit_reservation_hold_calls_real_orchestration_endpoint(monkeypatch):
+    from app import tools as tools_module
+    fake = _FakeMonolithClient(lambda m, p, j, h: _FakeHttpResponse(201, {"id": "res1", "status": "reserved"}))
+    monkeypatch.setattr(tools_module, "_monolith_client", lambda token: fake)
+    result = tools_module.submit_reservation_hold({"user_token": "tok", "command_id": "cmd12345", "price_check_id": "pc1"})
+    assert result.status == "ok" and result.data["status"] == "reserved"
+    assert fake.calls[0]["path"] == "/orchestration/bookings"
+    assert fake.calls[0]["json"] == {"price_check_id": "pc1", "command_id": "cmd12345"}
+
+
+def test_submit_reservation_hold_propagates_real_http_error(monkeypatch):
+    from app import tools as tools_module
+    fake = _FakeMonolithClient(lambda m, p, j, h: _FakeHttpResponse(409, {"code": "PRICE_CHANGED"}))
+    monkeypatch.setattr(tools_module, "_monolith_client", lambda token: fake)
+    result = tools_module.submit_reservation_hold({"user_token": "tok", "command_id": "cmd12345", "price_check_id": "pc1"})
+    assert result.status == "error" and result.error_code == "HTTP_409"
+
+
+def test_release_reservation_hold_without_token_is_blocked():
+    from app import tools as tools_module
+    result = tools_module.release_reservation_hold({"reservation_id": "res1", "idempotency_key": "k1"})
+    assert result.status == "blocked" and result.error_code == "USER_AUTHENTICATION_REQUIRED"
+
+
+def test_release_reservation_hold_calls_real_cancel_endpoint(monkeypatch):
+    from app import tools as tools_module
+    fake = _FakeMonolithClient(lambda m, p, j, h: _FakeHttpResponse(202, {"reservation_id": "res1", "request_type": "cancel", "status": "submitted"}))
+    monkeypatch.setattr(tools_module, "_monolith_client", lambda token: fake)
+    result = tools_module.release_reservation_hold({"reservation_id": "res1", "idempotency_key": "k1", "user_token": "tok"})
+    assert result.status == "ok"
+    assert fake.calls[0]["path"] == "/reservations/res1/service-requests"
+    assert fake.calls[0]["json"]["request_type"] == "cancel"
+    assert fake.calls[0]["headers"]["Idempotency-Key"] == "k1"
+
+
+def test_confirm_with_real_user_token_creates_real_reservation_end_to_end(client, monkeypatch, fake_db):
+    from app import tools as tools_module
+    cid, r3 = _search_select_prep(client, monkeypatch, party={"travellers": 2, "rooms": 1})
+    client.post("/v1/conversation/message", json={"conversation_id": cid, "text": "ادامه بده"})
+
+    fake = _FakeMonolithClient(lambda m, p, j, h: (
+        _FakeHttpResponse(201, {"id": "pc1", "amount": 200, "currency": "IRR"}) if "price-check" in p
+        else _FakeHttpResponse(201, {"id": "res1", "status": "reserved"})
+    ))
+    monkeypatch.setattr(tools_module, "_monolith_client", lambda token: fake)
+
+    r5 = client.post("/v1/conversation/message", json={"conversation_id": cid, "text": "تایید می‌کنم", "user_token": "real-user-jwt"})
+    assert r5.json()["message"]["data"]["reservation_result"]["status"] == "ok"
+    assert "درخواست رزرو موقت ثبت شد" in r5.json()["message"]["text"]
+    assert fake_db.conversations[cid]["selected_result"]["reservation"]["id"] == "res1"
+    # both real calls happened in the right order with the right shapes
+    assert fake.calls[0]["path"] == "/offers/o1/price-check"
+    assert fake.calls[1]["path"] == "/orchestration/bookings" and fake.calls[1]["json"]["price_check_id"] == "pc1"
+
+
+def test_reset_with_active_reservation_and_token_calls_real_release(client, monkeypatch, fake_db):
+    from app import tools as tools_module
+    cid, r3 = _search_select_prep(client, monkeypatch, party={"travellers": 2, "rooms": 1})
+    client.post("/v1/conversation/message", json={"conversation_id": cid, "text": "ادامه بده"})
+    fake = _FakeMonolithClient(lambda m, p, j, h: (
+        _FakeHttpResponse(201, {"id": "pc1"}) if "price-check" in p
+        else _FakeHttpResponse(201, {"id": "res1", "status": "reserved"})
+    ))
+    monkeypatch.setattr(tools_module, "_monolith_client", lambda token: fake)
+    client.post("/v1/conversation/message", json={"conversation_id": cid, "text": "تایید می‌کنم", "user_token": "real-user-jwt"})
+
+    fake.calls.clear()
+    fake._responder = lambda m, p, j, h: _FakeHttpResponse(202, {"status": "submitted"})
+    r6 = client.post("/v1/conversation/message", json={"conversation_id": cid, "text": "از اول", "user_token": "real-user-jwt"})
+    assert r6.json()["message"]["data"]["release_result"]["status"] == "ok"
+    assert fake.calls[0]["path"] == "/reservations/res1/service-requests"
+    assert fake_db.conversations[cid]["selected_result"] is None   # state cleared after release

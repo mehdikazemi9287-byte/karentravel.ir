@@ -1,16 +1,26 @@
 """Tool registry + permission model (master prompt secs 31-33, Phase 3
-secs 3-4). Every tool declares name/version/capability/required_inputs/
-output_contract/level/idempotent/approval_required/timeout_seconds.
+secs 3-4, Phase 4 real reservation wiring). Every tool declares name/
+version/capability/required_inputs/output_contract/level/idempotent/
+approval_required/timeout_seconds.
 
 LEVEL_0/LEVEL_1 tools execute automatically (search, create_booking_draft).
-LEVEL_2 ("submit_reservation_hold") and LEVEL_3 ("execute_financial_action")
-are DECLARED -- the approval-gating and execution-guard mechanism around
-them is real and tested -- but their handlers always return a truthful
-BLOCKED result. No real commerce/payment/PNR call exists from this service
-in this phase; inventing one (or simulating success) would be exactly the
-fabrication this project forbids. Search is consumed as a TOOL over HTTP
-(karenseir-search's existing, unmodified /v1/query/search) -- this service
-never reimplements Query Intelligence/orchestration/ranking/dedup itself."""
+LEVEL_2 tools (price_check_offer, submit_reservation_hold,
+release_reservation_hold) now call the REAL monolith commerce endpoints
+(confirmed by reading backend/app/main.py: POST /offers/{id}/price-check ->
+POST /orchestration/bookings creates a real Reservation(status="reserved");
+POST /reservations/{id}/service-requests with request_type="cancel" is the
+real rollback path) -- but EVERY one of those endpoints requires a real
+signed user Bearer JWT via the monolith's own `current_user` dependency.
+This service has no login/session mechanism and MUST NOT mint, hold, or
+guess a user credential -- that would be an authorization violation, not a
+shortcut. Each LEVEL_2 handler therefore only proceeds when the CALLER
+(whatever invokes this service) forwards a real `user_token` in the tool
+args; otherwise it returns a truthful "blocked: USER_AUTHENTICATION_REQUIRED"
+result, never a simulated success. execute_financial_action (LEVEL_3,
+payment/ticketing) remains unimplemented and always blocked -- payment was
+never part of this phase's objective. Search is consumed as a TOOL over
+HTTP (karenseir-search's existing, unmodified /v1/query/search) -- this
+service never reimplements Query Intelligence/orchestration/ranking/dedup."""
 from __future__ import annotations
 
 import hashlib
@@ -92,14 +102,82 @@ def create_booking_draft_tool(args: dict) -> ToolResult:
     return ToolResult(status="ok", data=result, error_code=None)
 
 
+def _monolith_client(user_token: str) -> httpx.Client:
+    return httpx.Client(base_url=config.MONOLITH_BASE_URL, timeout=config.MONOLITH_TIMEOUT_SECONDS,
+                         headers={"Authorization": f"Bearer {user_token}"})
+
+
+def _no_auth_result() -> ToolResult:
+    return ToolResult(status="blocked",
+                       data={"reason": "no authenticated user session was forwarded to the assistant for this action"},
+                       error_code="USER_AUTHENTICATION_REQUIRED")
+
+
+def _monolith_call(user_token: str, method: str, path: str, *, json_body: dict | None = None,
+                    extra_headers: dict | None = None) -> ToolResult:
+    try:
+        with _monolith_client(user_token) as c:
+            r = c.request(method, path, json=json_body, headers=extra_headers)
+    except httpx.HTTPError as exc:
+        return ToolResult(status="error", data={}, error_code=f"MONOLITH_UNREACHABLE:{type(exc).__name__}")
+    if r.status_code >= 400:
+        try:
+            detail = r.json()
+        except Exception:
+            detail = {"raw": r.text[:200]}
+        return ToolResult(status="error", data=detail, error_code=f"HTTP_{r.status_code}")
+    return ToolResult(status="ok", data=r.json(), error_code=None)
+
+
+def price_check_offer(args: dict) -> ToolResult:
+    """LEVEL_0 per Phase 3's own spec ("price_check" listed as a read/
+    compute example) -- confirms the current real price for a real offer_id
+    via the monolith's own idempotent (command_id-keyed) endpoint. Does not
+    reserve inventory; that only happens in submit_reservation_hold."""
+    user_token = args.get("user_token")
+    if not user_token:
+        return _no_auth_result()
+    offer_id = args.get("offer_id")
+    if not offer_id:
+        return ToolResult(status="error", data={}, error_code="MISSING_OFFER_ID")
+    body = {"units": args.get("units", 1), "command_id": args["command_id"]}
+    return _monolith_call(user_token, "POST", f"/offers/{offer_id}/price-check", json_body=body)
+
+
 def submit_reservation_hold(args: dict) -> ToolResult:
-    """LEVEL_2. No production-safe commerce integration is wired from this
-    service in this phase (Phase 2/3 both explicitly forbid real booking).
-    Always returns a truthful blocked result -- proves the approval-gating
-    and execution-guard mechanism end-to-end without ever attempting or
-    simulating an external mutation."""
-    return ToolResult(status="blocked", data={"reason": "no authorized commerce integration wired in this phase"},
-                       error_code="BLOCKED_LEVEL2_NO_COMMERCE_INTEGRATION")
+    """LEVEL_2. Calls the real monolith POST /orchestration/bookings, which
+    creates a real Reservation(status="reserved") from an already-confirmed
+    price_check_id -- a genuine inventory hold, not a payment or ticket.
+    Requires a real forwarded user_token; without one this is a truthful
+    block, never a simulated success (unchanged posture from Phase 3, now
+    with a precise reason instead of a blanket "not implemented")."""
+    user_token = args.get("user_token")
+    if not user_token:
+        return _no_auth_result()
+    price_check_id = args.get("price_check_id")
+    if not price_check_id:
+        return ToolResult(status="blocked", data={"reason": "price_check_offer must succeed first"},
+                           error_code="PRICE_CHECK_REQUIRED")
+    body = {"price_check_id": price_check_id, "command_id": args["command_id"]}
+    return _monolith_call(user_token, "POST", "/orchestration/bookings", json_body=body)
+
+
+def release_reservation_hold(args: dict) -> ToolResult:
+    """LEVEL_2 (rollback path for submit_reservation_hold). Calls the real
+    monolith POST /reservations/{id}/service-requests with
+    request_type="cancel" -- the genuine cancellation path for a reserved
+    booking. Not instantaneous (the monolith records it as "submitted" for
+    review), but it is the real rollback primitive that exists; nothing
+    here fabricates an immediate "cancelled" state."""
+    user_token = args.get("user_token")
+    if not user_token:
+        return _no_auth_result()
+    reservation_id = args.get("reservation_id")
+    if not reservation_id:
+        return ToolResult(status="error", data={}, error_code="MISSING_RESERVATION_ID")
+    body = {"request_type": "cancel", "reason": args.get("reason", "assistant_rollback")}
+    return _monolith_call(user_token, "POST", f"/reservations/{reservation_id}/service-requests",
+                           json_body=body, extra_headers={"Idempotency-Key": args["idempotency_key"]})
 
 
 def blocked_financial_action(args: dict) -> ToolResult:
@@ -122,11 +200,27 @@ REGISTRY: dict[str, Tool] = {
         output_contract="{id, status, duplicate}", permission_level=LEVEL_DRAFT,
         idempotent=True, approval_required=False, timeout_seconds=3.0, handler=create_booking_draft_tool,
     ),
+    "price_check_offer": Tool(
+        name="price_check_offer", version="1.0", capability="confirm the real current price of a real offer (read/compute)",
+        required_inputs=("offer_id", "command_id", "user_token"), output_contract="monolith POST /offers/{id}/price-check response",
+        permission_level=LEVEL_READ, idempotent=True, approval_required=False,
+        timeout_seconds=config.MONOLITH_TIMEOUT_SECONDS, handler=price_check_offer,
+    ),
     "submit_reservation_hold": Tool(
-        name="submit_reservation_hold", version="1.0", capability="place a provider reservation hold (NOT IMPLEMENTED)",
-        required_inputs=("trip_state_id", "selected_item"), output_contract="{status: blocked, reason}",
+        name="submit_reservation_hold", version="2.0",
+        capability="place a real provider reservation hold via monolith POST /orchestration/bookings",
+        required_inputs=("price_check_id", "command_id", "user_token"),
+        output_contract="monolith reservation object, or {status: blocked, error_code}",
         permission_level=LEVEL_APPROVAL, idempotent=True, approval_required=True,
-        timeout_seconds=5.0, handler=submit_reservation_hold,
+        timeout_seconds=config.MONOLITH_TIMEOUT_SECONDS, handler=submit_reservation_hold,
+    ),
+    "release_reservation_hold": Tool(
+        name="release_reservation_hold", version="1.0",
+        capability="cancel a reservation hold via monolith POST /reservations/{id}/service-requests (request_type=cancel)",
+        required_inputs=("reservation_id", "idempotency_key", "user_token"),
+        output_contract="monolith service-request object, or {status: blocked, error_code}",
+        permission_level=LEVEL_APPROVAL, idempotent=True, approval_required=True,
+        timeout_seconds=config.MONOLITH_TIMEOUT_SECONDS, handler=release_reservation_hold,
     ),
     "execute_financial_action": Tool(
         name="execute_financial_action", version="1.0", capability="payment/ticketing/refund (NOT IMPLEMENTED)",
