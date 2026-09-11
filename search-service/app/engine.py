@@ -8,24 +8,10 @@ import hashlib
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+from . import dedup
 from .normalization import aware, normalize_text, search_datetime
+from .ranking import ENTITY_SORTERS, LEGACY_SORT, OFFER_SORTERS, RANKING_VERSION, score_breakdown, score_offer
 
-_LEGACY_SORT = {"lowest_price": "price_asc", "cheapest": "price_asc", "highest_rated": "review_desc"}
-_OFFER_SORTERS = {
-    "price_asc": lambda i: (i["total_amount"], -i["ranking_score"]),
-    "price_desc": lambda i: (-i["total_amount"], -i["ranking_score"]),
-    "review_desc": lambda i: (-(i["review_score"] or 0), i["total_amount"]),
-    "freshness": lambda i: (i["freshness"] != "live", i["last_updated_at"]),
-    "recommended": lambda i: (-i["ranking_score"], i["total_amount"]),
-}
-_ENTITY_SORTERS = {
-    "lowest_price": lambda i: i["best_offer"]["final_price"],
-    "cheapest": lambda i: i["best_offer"]["final_price"],
-    "highest_rated": lambda i: -(i["best_offer"]["review_score"] or 0),
-    "best_location": lambda i: -float(i["best_offer"]["attributes"].get("location_score", 0)),
-    "most_flexible": lambda i: not bool((i["best_offer"].get("cancellation_policy") or {}).get("refundable")),
-    "fastest": lambda i: float(i["best_offer"]["attributes"].get("duration_minutes", 10 ** 9)),
-}
 _PUBLIC_SAFE_OFFER_KEYS = frozenset({
     "id", "offer_id", "entity_id", "service_type", "title", "provider", "provider_status",
     "freshness", "freshness_state", "observed_at", "availability_state", "inventory_status",
@@ -42,6 +28,11 @@ def _f(v, d=0):
 
 
 def normalize_offer(row: dict, *, query_norm: str, filters: dict, include_stale: bool, now: datetime) -> dict | None:
+    # Malformed-provider-response guard: a row missing its identity fields is
+    # skipped, never crashes the search and never becomes a half-fabricated
+    # entity (classified under the MALFORMED_PROVIDER_RESPONSE taxonomy).
+    if not row.get("id") or not row.get("service_type"):
+        return None
     attrs = row.get("attributes") or {}
     policy = row.get("policy") or {}
     searchable = normalize_text(" ".join(str(v) for v in [
@@ -110,16 +101,14 @@ def normalize_offer(row: dict, *, query_norm: str, filters: dict, include_stale:
         "attributes": attrs,
         "valid_until": search_datetime(row.get("valid_until"), now).isoformat(),
     }
-    breakdown = {
-        "price": round(1_000_000_000 / max(result["total_amount"], 1), 4),
-        "reviews": review_score * 10,
-        "flexibility": 10 if cancellation and cancellation.get("refundable") else 0,
-        "policy": 5 if attrs.get("organization_policy_compliant") else 0,
-        "freshness": 0 if stale else 15,
-        "provider_reliability": float(attrs.get("provider_reliability", 5)),
-    }
+    breakdown = score_breakdown(
+        final_price=result["total_amount"], review_score=review_score,
+        refundable=bool(cancellation and cancellation.get("refundable")),
+        policy_compliant=bool(attrs.get("organization_policy_compliant")),
+        stale=stale, provider_reliability=attrs.get("provider_reliability", 5),
+    )
     result["ranking_breakdown"] = breakdown
-    result["ranking_score"] = round(sum(breakdown.values()), 4)
+    result["ranking_score"] = score_offer(breakdown)
     result["ranking_explanation"] = [
         label for enabled, label in (
             (not stale, "داده تازه"),
@@ -149,7 +138,7 @@ def assemble(req, pools: dict[str, list[dict]], provider_meta: list[dict], elaps
     safe_filters = {k: v for k, v in (req.filters or {}).items() if k in {
         "min_price", "max_price", "min_review_score", "refundable", "amenities", "instant_booking", "map_bounds",
     }}
-    legacy_sort = _LEGACY_SORT.get(req.sort, "recommended")
+    legacy_sort = LEGACY_SORT.get(req.sort, "recommended")
 
     offers: list[dict] = []
     for vertical, rows in pools.items():
@@ -162,13 +151,11 @@ def assemble(req, pools: dict[str, list[dict]], provider_meta: list[dict], elaps
             n = normalize_offer(row, query_norm=query_norm, filters=safe_filters, include_stale=req.include_stale, now=now)
             if n is not None:
                 norm.append(n)
-        norm.sort(key=_OFFER_SORTERS[legacy_sort])
+        norm.sort(key=OFFER_SORTERS[legacy_sort])
         offers.extend(norm)
 
-    groups: dict[str, dict] = {}
-    for o in offers:
-        g = groups.setdefault(o["entity_id"], {"entity_id": o["entity_id"], "title": o["title"], "service_type": o["service_type"], "offers": []})
-        g["offers"].append(o)
+    # explicit deduplication stage (dedup.py) -- conservative, identity-based grouping
+    groups = dedup.group_by_entity(offers)
     entities = []
     for g in groups.values():
         g["offers"].sort(key=lambda i: (i["final_price"], -i["ranking_score"]))
@@ -176,7 +163,7 @@ def assemble(req, pools: dict[str, list[dict]], provider_meta: list[dict], elaps
         g["provider_count"] = len({i["provider"] for i in g["offers"]})
         g["ranking_score"] = max(i["ranking_score"] for i in g["offers"])
         entities.append(g)
-    entities.sort(key=_ENTITY_SORTERS.get(req.sort, lambda i: -i["ranking_score"]))
+    entities.sort(key=ENTITY_SORTERS.get(req.sort, lambda i: -i["ranking_score"]))
 
     offset = (req.page - 1) * req.page_size
     page_items = entities[offset:offset + req.page_size]
@@ -211,10 +198,15 @@ def assemble(req, pools: dict[str, list[dict]], provider_meta: list[dict], elaps
         "search_metadata": {
             "providers_requested": len(provider_meta),
             "providers_completed": sum(1 for m in provider_meta if m["status"] in ("available", "not_connected")),
+            "providers_succeeded": sum(1 for m in provider_meta if m["status"] == "available"),
             "providers_failed": len(failed),
             "partial_results": bool(failed) and bool(entities),
             "elapsed_ms": elapsed_ms,
             "correlation_id": req.correlation_id,
+            "ranking_version": RANKING_VERSION,
+            "provider_latency_ms": {
+                m["provider"]: m["latency_ms"] for m in provider_meta if m.get("latency_ms") is not None
+            },
         },
         "tenant_data_included": not req.public,
         "elapsed_ms": elapsed_ms,

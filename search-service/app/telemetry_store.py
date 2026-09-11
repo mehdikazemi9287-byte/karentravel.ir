@@ -48,6 +48,14 @@ def _bootstrap(conn) -> None:
         )
     """)
     conn.execute("CREATE INDEX IF NOT EXISTS ix_search_telemetry_ts ON search_telemetry (ts)")
+    # Phase 3: additive columns only -- existing rows/readers are unaffected,
+    # nullable so a partially-migrated reader/writer pair never breaks.
+    for stmt in (
+        "ALTER TABLE search_telemetry ADD COLUMN IF NOT EXISTS providers_succeeded INT",
+        "ALTER TABLE search_telemetry ADD COLUMN IF NOT EXISTS ranking_version TEXT",
+        "ALTER TABLE search_telemetry ADD COLUMN IF NOT EXISTS avg_provider_latency_ms NUMERIC",
+    ):
+        conn.execute(stmt)
 
 
 def record(event: dict) -> None:
@@ -60,11 +68,13 @@ def record(event: dict) -> None:
         conn.execute(
             """INSERT INTO search_telemetry
                (correlation_id, verticals, public, tenant_ref, result_count, partial_results,
-                providers_requested, providers_failed, elapsed_ms, cache, failure_code)
-               VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                providers_requested, providers_failed, elapsed_ms, cache, failure_code,
+                providers_succeeded, ranking_version, avg_provider_latency_ms)
+               VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
             (event["correlation_id"], event["verticals"], event["public"], event.get("tenant_ref"),
              event["result_count"], event["partial_results"], event["providers_requested"],
-             event["providers_failed"], event["elapsed_ms"], event.get("cache"), event.get("failure_code")),
+             event["providers_failed"], event["elapsed_ms"], event.get("cache"), event.get("failure_code"),
+             event.get("providers_succeeded"), event.get("ranking_version"), event.get("avg_provider_latency_ms")),
         )
     except Exception:
         # a telemetry outage degrades observability, never search itself

@@ -6,22 +6,22 @@ autocomplete foundation. Does NOT own reservation / payment / trip / identity.
 """
 from __future__ import annotations
 
-import hashlib
-import json
-import time
 import uuid
 
 from fastapi import Body, FastAPI, Header, Query, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import BaseModel, Field
 
-from . import autocomplete, config, engine, telemetry, telemetry_store
+from . import autocomplete, config, orchestrator, telemetry, telemetry_store
 from .cache import CACHE
+from .cache_keys import autocomplete_cache_key, search_cache_key
 from .domain import (
     ALLOWED_SORTS, ALLOWED_VERTICALS, INTERNAL_SEARCH_ERROR, INVALID_SEARCH_REQUEST,
     NO_RESULTS, PROVIDER_UNAVAILABLE, SearchError, SearchRequest,
 )
-from .providers import EXTERNAL_PROVIDERS, _POOL, fan_out
+from .providers import EXTERNAL_PROVIDERS, _POOL
+from .ranking import RANKING_VERSION
+from .registry import REGISTRY
 
 app = FastAPI(title="karenseir-search", version=config.SERVICE_VERSION)
 
@@ -89,13 +89,8 @@ def metrics():
     return telemetry.snapshot()
 
 
-def _cache_key(payload: dict) -> str:
-    return "kss:v1:" + hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
-
-
 @app.post("/v1/search")
 def v1_search(data: SearchIn = Body(...), x_correlation_id: str | None = Header(default=None)):
-    started = time.perf_counter()
     corr = x_correlation_id or str(uuid.uuid4())
 
     bad = [v for v in data.verticals if v not in ALLOWED_VERTICALS]
@@ -104,7 +99,7 @@ def v1_search(data: SearchIn = Body(...), x_correlation_id: str | None = Header(
     if data.sort not in ALLOWED_SORTS:
         raise SearchError(INVALID_SEARCH_REQUEST, "مرتب‌سازی معتبر نیست", 422)
 
-    key = _cache_key(data.model_dump())
+    key = search_cache_key(data.model_dump())
     cached = CACHE.get(key)
     if cached is not None:
         telemetry.incr("cache_hit")
@@ -119,29 +114,29 @@ def v1_search(data: SearchIn = Body(...), x_correlation_id: str | None = Header(
         include_stale=data.include_stale, page=data.page, page_size=data.page_size,
         public=data.public, tenant_ref=data.tenant_ref, correlation_id=corr,
     )
-    pools, meta = fan_out(req)
+
+    # Central Search Orchestrator (orchestrator.py): fan-out -> normalize ->
+    # dedup -> rank -> filter -> paginate. result is None exactly when every
+    # eligible connected provider failed -- fail closed, never a fake zero-result.
+    result, meta, elapsed = orchestrator.fan_out_and_assemble(req)
     for m in meta:
         if m["status"] == "PROVIDER_TIMEOUT":
             telemetry.incr("provider_timeouts")
         elif m["status"] == "PROVIDER_UNAVAILABLE":
             telemetry.incr("provider_unavailable")
 
-    # A total infrastructure failure (every requested vertical's pool provider
-    # failed) is never presented as a valid zero-result search.
-    pool_meta = [m for m in meta if m["provider"] == _POOL.key]
-    if pool_meta and all(m["status"] != "available" for m in pool_meta):
-        elapsed = round((time.perf_counter() - started) * 1000, 3)
+    if result is None:
+        attempted = [m for m in meta if m["status"] in ("available", "PROVIDER_TIMEOUT", "PROVIDER_UNAVAILABLE")]
         telemetry.incr("search_errors")
         telemetry_store.record({
             "correlation_id": corr, "verticals": list(data.verticals), "public": data.public,
             "tenant_ref": None if data.public else data.tenant_ref, "result_count": 0,
-            "partial_results": False, "providers_requested": len(pool_meta), "providers_failed": len(pool_meta),
+            "partial_results": False, "providers_requested": len(attempted), "providers_failed": len(attempted),
             "elapsed_ms": elapsed, "cache": "n/a", "failure_code": PROVIDER_UNAVAILABLE,
+            "providers_succeeded": 0, "ranking_version": RANKING_VERSION, "avg_provider_latency_ms": None,
         })
         raise SearchError(PROVIDER_UNAVAILABLE, "موتور جست‌وجو موقتاً در دسترس نیست", 503)
 
-    elapsed = round((time.perf_counter() - started) * 1000, 3)
-    result = engine.assemble(req, pools, meta, elapsed)
     result["search_metadata"]["cache"] = "miss"
 
     telemetry.incr("search_requests")
@@ -154,6 +149,7 @@ def v1_search(data: SearchIn = Body(...), x_correlation_id: str | None = Header(
     telemetry.log_event("search", corr=corr, verticals=list(data.verticals), public=data.public,
                         total=result["pagination"]["total"], elapsed_ms=elapsed,
                         partial=result["search_metadata"]["partial_results"])
+    latencies = [v for v in result["search_metadata"]["provider_latency_ms"].values() if v is not None]
     telemetry_store.record({
         "correlation_id": corr, "verticals": list(data.verticals), "public": data.public,
         "tenant_ref": None if data.public else data.tenant_ref,
@@ -161,6 +157,9 @@ def v1_search(data: SearchIn = Body(...), x_correlation_id: str | None = Header(
         "providers_requested": result["search_metadata"]["providers_requested"],
         "providers_failed": result["search_metadata"]["providers_failed"],
         "elapsed_ms": elapsed, "cache": "miss", "failure_code": None,
+        "providers_succeeded": result["search_metadata"]["providers_succeeded"],
+        "ranking_version": RANKING_VERSION,
+        "avg_provider_latency_ms": round(sum(latencies) / len(latencies), 2) if latencies else None,
     })
 
     CACHE.set(key, result, config.CACHE_TTL_SECONDS)
@@ -170,7 +169,7 @@ def v1_search(data: SearchIn = Body(...), x_correlation_id: str | None = Header(
 @app.get("/v1/autocomplete")
 def v1_autocomplete(q: str = Query(default="", max_length=120), limit: int = Query(default=8, ge=1, le=20)):
     telemetry.incr("autocomplete_requests")
-    key = f"kss:ac:v1:{limit}:{q}"
+    key = autocomplete_cache_key(q, limit)
     cached = CACHE.get(key)
     if cached is not None:
         telemetry.incr("cache_hit")
@@ -186,4 +185,21 @@ def v1_providers():
     return {
         "wired": [{"provider": _POOL.key, **_POOL.status()}],
         "external": [p.status() | {"verticals": list(p.verticals)} for p in EXTERNAL_PROVIDERS],
+    }
+
+
+@app.get("/v1/diagnostics")
+def v1_diagnostics():
+    """Operations-facing diagnostics -- not gatewayed to the public internet
+    (the service only binds 127.0.0.1:8090 on the host; the monolith gateway
+    proxies /v1/search and /v1/autocomplete only, never this route). No
+    secrets/tokens/provider URLs are included."""
+    return {
+        "providers_enabled": len(REGISTRY.all()),
+        "providers_connected": sum(1 for p in REGISTRY.all() if p.connected),
+        "capability_matrix": REGISTRY.capability_matrix(),
+        "cache": {"backend": getattr(CACHE, "backend", "unknown"), "ok": CACHE.ping()},
+        "telemetry": telemetry_store.health(),
+        "ranking_version": RANKING_VERSION,
+        "recent_metrics": telemetry.snapshot(),
     }

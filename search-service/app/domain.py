@@ -47,6 +47,19 @@ NO_RESULTS = "NO_RESULTS"
 SEARCH_EXPIRED = "SEARCH_EXPIRED"
 OFFER_EXPIRED = "OFFER_EXPIRED"
 INTERNAL_SEARCH_ERROR = "INTERNAL_SEARCH_ERROR"
+# Phase 3 additions -- reserved for provider adapters that need a finer-grained
+# classification than PROVIDER_TIMEOUT/PROVIDER_UNAVAILABLE. The existing
+# all-providers-down invariant is UNCHANGED: it still raises PROVIDER_UNAVAILABLE
+# (never this new ALL_PROVIDERS_UNAVAILABLE constant) so it stays a stable,
+# already-tested public contract; ALL_PROVIDERS_UNAVAILABLE exists for callers
+# that want to distinguish "one provider down" from "every provider down" in
+# their own diagnostics/logging without changing the public HTTP error code.
+AUTHENTICATION_FAILURE = "AUTHENTICATION_FAILURE"
+RATE_LIMITED = "RATE_LIMITED"
+MALFORMED_PROVIDER_RESPONSE = "MALFORMED_PROVIDER_RESPONSE"
+PROVIDER_INTERNAL_ERROR = "PROVIDER_INTERNAL_ERROR"
+TENANT_UNRESOLVED = "TENANT_UNRESOLVED"
+ALL_PROVIDERS_UNAVAILABLE = "ALL_PROVIDERS_UNAVAILABLE"
 
 
 class SearchError(Exception):

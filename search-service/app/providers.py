@@ -43,9 +43,11 @@ class ProviderCapabilities:
 
 class SearchProviderPort(Protocol):
     key: str
-    verticals: tuple[str, ...]
+    verticals: tuple[str, ...]        # empty tuple == serves any vertical
     connected: bool
+    timeout_seconds: float
 
+    def supports(self, vertical: str) -> bool: ...
     def status(self) -> dict[str, Any]: ...
     def fetch(self, vertical: str, req) -> list[dict]: ...   # returns raw offer rows
 
@@ -58,7 +60,11 @@ class _DisabledExternalProvider:
         self.key = key
         self.verticals = verticals
         self.connected = False
+        self.timeout_seconds = config.PROVIDER_TIMEOUT_SECONDS
         self.capabilities = ProviderCapabilities(search=False)
+
+    def supports(self, vertical: str) -> bool:
+        return not self.verticals or vertical in self.verticals
 
     def status(self) -> dict[str, Any]:
         return {"provider": self.key, "status": "not_connected",
@@ -84,9 +90,13 @@ class OfferPoolProvider:
     key = "karenseir_supplier_pool"
     verticals = tuple()          # serves any vertical
     connected = True
+    timeout_seconds = config.PROVIDER_TIMEOUT_SECONDS
 
     def __init__(self) -> None:
         self._client = httpx.Client(base_url=config.MONOLITH_BASE_URL, timeout=config.PROVIDER_TIMEOUT_SECONDS)
+
+    def supports(self, vertical: str) -> bool:
+        return not self.verticals or vertical in self.verticals
 
     def status(self) -> dict[str, Any]:
         try:
@@ -112,33 +122,54 @@ class OfferPoolProvider:
 _POOL = OfferPoolProvider()
 
 
+def _timed_fetch(p: SearchProviderPort, v: str, req) -> tuple[list[dict], float]:
+    t0 = time.monotonic()
+    rows = p.fetch(v, req)
+    return rows, round((time.monotonic() - t0) * 1000, 2)
+
+
 def fan_out(req) -> tuple[dict[str, list[dict]], list[dict]]:
-    """Bounded-concurrency provider fan-out with per-provider + total timeout.
-    Returns (pools_by_vertical, provider_diagnostics)."""
+    """Registry-driven, bounded-concurrency provider fan-out.
+
+    For every requested vertical, every eligible registered provider
+    (see registry.py) is either fetched (if `connected`) or reported via its
+    own truthful `.status()` (if not -- e.g. a declared-but-disabled external
+    carrier, which never attempts a network call and never fabricates rows).
+    No provider-specific branching: adding a provider is a registry.register()
+    call, not a change here. One provider's failure is isolated in its own
+    future and never aborts the others. Returns (pools_by_vertical, provider_diagnostics),
+    the latter carrying a per-attempt latency_ms for telemetry."""
+    from .registry import REGISTRY  # local import: registry imports this module at load time
+
     pools: dict[str, list[dict]] = {}
     meta: list[dict] = []
     deadline = time.monotonic() + config.TOTAL_TIMEOUT_SECONDS
 
-    tasks = [(v, _POOL) for v in req.verticals]
+    tasks: list[tuple[str, SearchProviderPort]] = []
+    for v in req.verticals:
+        for p in REGISTRY.for_vertical(v):
+            if p.connected:
+                tasks.append((v, p))
+            else:
+                meta.append(p.status() | {"vertical": v, "latency_ms": None})
+
     with ThreadPoolExecutor(max_workers=min(config.MAX_CONCURRENCY, max(1, len(tasks)))) as ex:
-        futures = {ex.submit(p.fetch, v, req): (v, p) for v, p in tasks}
+        futures = {ex.submit(_timed_fetch, p, v, req): (v, p) for v, p in tasks}
         for fut, (v, p) in list(futures.items()):
             remaining = max(0.1, deadline - time.monotonic())
+            per_provider_timeout = min(getattr(p, "timeout_seconds", config.PROVIDER_TIMEOUT_SECONDS), remaining)
             try:
-                rows = fut.result(timeout=min(config.PROVIDER_TIMEOUT_SECONDS, remaining))
-                pools[v] = rows
-                meta.append({"provider": p.key, "status": "available", "offer_count": len(rows), "vertical": v})
+                rows, latency_ms = fut.result(timeout=per_provider_timeout)
+                pools.setdefault(v, []).extend(rows)
+                meta.append({"provider": p.key, "status": "available", "offer_count": len(rows),
+                             "vertical": v, "latency_ms": latency_ms})
             except FutureTimeout:
                 fut.cancel()
                 pools.setdefault(v, [])
-                meta.append({"provider": p.key, "status": PROVIDER_TIMEOUT, "offer_count": 0, "vertical": v})
+                meta.append({"provider": p.key, "status": PROVIDER_TIMEOUT, "offer_count": 0,
+                             "vertical": v, "latency_ms": None})
             except Exception:
                 pools.setdefault(v, [])
-                meta.append({"provider": p.key, "status": PROVIDER_UNAVAILABLE, "offer_count": 0, "vertical": v})
-
-    # external carrier ports -- declared, fail-closed, reported truthfully
-    for prov in EXTERNAL_PROVIDERS:
-        for v in req.verticals:
-            if not prov.verticals or v in prov.verticals:
-                meta.append(prov.status() | {"vertical": v})
+                meta.append({"provider": p.key, "status": PROVIDER_UNAVAILABLE, "offer_count": 0,
+                             "vertical": v, "latency_ms": None})
     return pools, meta
