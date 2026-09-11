@@ -63,6 +63,13 @@ def test_search_normalizes_dedupes_ranks():
     b = r.json()
     assert b["pagination"]["total"] == 1                    # two identical offers -> one entity
     ent = b["entities"][0]
+    # ENTITY DEDUP groups both rows under one entity (same generated
+    # entity_id). Phase 5's separate OFFER DEDUP (dedup.dedup_offers)
+    # deliberately does NOT collapse these two: they share an id but each
+    # _offer() call takes its own datetime.now() observed_at, so they are
+    # NOT byte-identical rows -- offer dedup only removes a truly identical
+    # repeated row (see test_offer_dedup_end_to_end_via_search), never two
+    # offers that merely share an id with different observation times.
     assert ent["provider_count"] == 1 and len(ent["offers"]) == 2
     assert "ranking_score" in ent["best_offer"] is False or True  # public projection strips it; ensure key set is safe
     assert b["tenant_data_included"] is False

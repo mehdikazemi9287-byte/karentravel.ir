@@ -140,6 +140,7 @@ def assemble(req, pools: dict[str, list[dict]], provider_meta: list[dict], elaps
     }}
     legacy_sort = LEGACY_SORT.get(req.sort, "recommended")
 
+    raw_offer_count = sum(len(rows) for rows in pools.values())
     offers: list[dict] = []
     for vertical, rows in pools.items():
         norm = []
@@ -153,11 +154,18 @@ def assemble(req, pools: dict[str, list[dict]], provider_meta: list[dict], elaps
                 norm.append(n)
         norm.sort(key=OFFER_SORTERS[legacy_sort])
         offers.extend(norm)
+    normalized_offer_count = len(offers)
 
-    # explicit deduplication stage (dedup.py) -- conservative, identity-based grouping
+    # ENTITY DEDUP (different offers selling the same thing -> one entity)
+    # and OFFER DEDUP (the same row appearing twice -> collapse) are kept as
+    # two distinct stages -- see dedup.py's module docstring for why.
     groups = dedup.group_by_entity(offers)
     entities = []
+    offer_dedup_removed = 0
     for g in groups.values():
+        before = len(g["offers"])
+        g["offers"] = dedup.dedup_offers(g["offers"])
+        offer_dedup_removed += before - len(g["offers"])
         g["offers"].sort(key=lambda i: (i["final_price"], -i["ranking_score"]))
         g["best_offer"] = g["offers"][0]
         g["provider_count"] = len({i["provider"] for i in g["offers"]})
@@ -206,6 +214,16 @@ def assemble(req, pools: dict[str, list[dict]], provider_meta: list[dict], elaps
             "ranking_version": RANKING_VERSION,
             "provider_latency_ms": {
                 m["provider"]: m["latency_ms"] for m in provider_meta if m.get("latency_ms") is not None
+            },
+            # explainability (Phase 5): raw provider rows -> normalized/
+            # filtered offers -> offers removed by OFFER DEDUP -> the
+            # resulting sellable entities (ENTITY DEDUP's output count).
+            "result_counts": {
+                "raw_offer_count": raw_offer_count,
+                "normalized_offer_count": normalized_offer_count,
+                "offer_dedup_removed": offer_dedup_removed,
+                "deduped_offer_count": normalized_offer_count - offer_dedup_removed,
+                "entity_count": len(entities),
             },
         },
         "tenant_data_included": not req.public,

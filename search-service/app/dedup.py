@@ -14,7 +14,23 @@ cross-provider matching is a future, explicitly opt-in enhancement, not a
 default behavior.
 
 Grouping is deterministic: dict insertion order follows input order, and
-group ordering is decided later by the ranking stage, not by dedup."""
+group ordering is decided later by the ranking stage, not by dedup.
+
+Phase 5 adds a second, distinct stage -- OFFER DEDUP (dedup_offers) -- kept
+separate from ENTITY DEDUP (group_by_entity) on purpose, per the two having
+different identity rules:
+
+  ENTITY DEDUP groups DIFFERENT offers (different providers, different
+  prices) that sell the SAME underlying thing (same entity_id).
+
+  OFFER DEDUP removes offers that are the SAME underlying row appearing
+  more than once (a provider response accidentally repeating a row) --
+  identity here is (provider, id, total_amount, observed_at): all four
+  must match. Two offers differing in ANY of these -- including a fresh
+  observed_at from a genuinely separate fetch -- are always kept as
+  distinct, real options. This is deliberately narrower than entity
+  identity: never collapses two offers with different fare conditions
+  (price, refundability, etc.) just because they share a provider."""
 from __future__ import annotations
 
 
@@ -26,3 +42,15 @@ def group_by_entity(offers: list[dict]) -> dict[str, dict]:
         })
         g["offers"].append(o)
     return groups
+
+
+def dedup_offers(offers: list[dict]) -> list[dict]:
+    seen: set[tuple] = set()
+    out: list[dict] = []
+    for o in offers:
+        key = (o.get("provider"), o.get("id"), o.get("total_amount"), o.get("observed_at"))
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(o)
+    return out

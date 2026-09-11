@@ -175,11 +175,11 @@ def test_multi_intent_detection():
 
 def test_planner_version_in_plan():
     p = plan("هتل کیش")
-    assert p.planner_version == "v1-deterministic"
+    assert p.planner_version == "v2-deterministic"
 
 def test_planner_version_in_endpoint_response():
     r = client.post("/v1/query/plan", json={"text": "هتل کیش"}).json()
-    assert r["plan"]["planner_version"] == "v1-deterministic"
+    assert r["plan"]["planner_version"] == "v2-deterministic"
 
 
 # ---- 20. cache key planner-version isolation ----

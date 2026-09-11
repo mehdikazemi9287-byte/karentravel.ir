@@ -19,12 +19,26 @@ _NUMBER_ALT = r"(\d+|" + "|".join(_NUMBER_WORDS) + r")"
 _TRAVELLERS_RE = re.compile(_NUMBER_ALT + r"\s*(نفر|بزرگسال|مسافر)")
 _ROOMS_RE = re.compile(_NUMBER_ALT + r"\s*اتاق")
 _NIGHTS_RE = re.compile(_NUMBER_ALT + r"\s*شب")
+_CHILDREN_RE = re.compile(_NUMBER_ALT + r"\s*(کودک|بچه)")
 _STAR_RE = re.compile(r"(\d+)\s*ستاره")
-_PRICE_RE = re.compile(r"(?:زیر|حداکثر|تا سقف)\s*(\d+)\s*(میلیون|هزار)?")
+# زیر/حداکثر/تا سقف = an explicit ceiling; حدود = "around" -- both are read
+# conservatively as a soft ceiling (max_price), never as inventing a minimum.
+_PRICE_RE = re.compile(r"(?:زیر|حداکثر|تا سقف|حدود)\s*" + _NUMBER_ALT + r"\s*(میلیون|هزار)?")
 
 _REFUNDABLE_PHRASES = ("قابل استرداد", "استرداد پذیر")
 _BREAKFAST_PHRASES = ("صبحانه",)
 _DIRECT_PHRASES = ("مستقیم",)
+_NEARBY_PHRASES = ("نزدیک",)
+_CHEAPEST_PHRASES = ("ارزان ترین", "ارزانترین")
+_CHEAP_PHRASES = ("ارزان",)
+_BEST_PHRASES = ("بهترین",)
+_ONE_WAY_PHRASES = ("یک طرفه", "یکطرفه", "فقط رفت")
+_ROUND_TRIP_PHRASES = ("رفت و برگشت", "رفت برگشت")
+_CABIN_KEYWORDS = (
+    ("بیزینس", "business"),
+    ("فرست کلاس", "first"), ("درجه یک", "first"),
+    ("اکونومی", "economy"), ("اقتصادی", "economy"),
+)
 
 _PRICE_MULTIPLIER = {"میلیون": 1_000_000, "هزار": 1_000}
 
@@ -38,6 +52,11 @@ def extract_travellers(normalized_text: str) -> int | None:
     return _to_int(m.group(1)) if m else None
 
 
+def extract_children(normalized_text: str) -> int | None:
+    m = _CHILDREN_RE.search(normalized_text)
+    return _to_int(m.group(1)) if m else None
+
+
 def extract_rooms(normalized_text: str) -> int | None:
     m = _ROOMS_RE.search(normalized_text)
     return _to_int(m.group(1)) if m else None
@@ -46,6 +65,35 @@ def extract_rooms(normalized_text: str) -> int | None:
 def extract_nights(normalized_text: str) -> int | None:
     m = _NIGHTS_RE.search(normalized_text)
     return _to_int(m.group(1)) if m else None
+
+
+def extract_cabin(normalized_text: str) -> str | None:
+    for phrase, cabin in _CABIN_KEYWORDS:
+        if phrase in normalized_text:
+            return cabin
+    return None
+
+
+def extract_nearby_allowed(normalized_text: str) -> bool:
+    return any(p in normalized_text for p in _NEARBY_PHRASES)
+
+
+def extract_sort_hint(normalized_text: str) -> str | None:
+    """Deterministic keyword -> sort mapping. "بهترین" maps to the existing
+    "recommended" default rather than a fabricated new sort mode."""
+    if any(p in normalized_text for p in _CHEAPEST_PHRASES) or any(p in normalized_text for p in _CHEAP_PHRASES):
+        return "price_asc"
+    if any(p in normalized_text for p in _BEST_PHRASES):
+        return "recommended"
+    return None
+
+
+def extract_trip_type(normalized_text: str) -> str | None:
+    if any(p in normalized_text for p in _ONE_WAY_PHRASES):
+        return "one_way"
+    if any(p in normalized_text for p in _ROUND_TRIP_PHRASES):
+        return "round_trip"
+    return None
 
 
 def extract_filters_and_unsupported(normalized_text: str) -> tuple[dict, tuple[str, ...]]:
@@ -68,7 +116,7 @@ def extract_filters_and_unsupported(normalized_text: str) -> tuple[dict, tuple[s
 
     price = _PRICE_RE.search(normalized_text)
     if price:
-        amount = int(price.group(1)) * _PRICE_MULTIPLIER.get(price.group(2) or "", 1)
+        amount = _to_int(price.group(1)) * _PRICE_MULTIPLIER.get(price.group(2) or "", 1)
         filters["max_price"] = amount   # same raw-number convention the structured frontend path already sends
 
     assert set(filters) <= SAFE_FILTER_KEYS

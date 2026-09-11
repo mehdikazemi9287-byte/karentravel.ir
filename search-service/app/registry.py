@@ -38,9 +38,13 @@ class ProviderRegistry:
         out = []
         for p in self.all():
             status = p.status()
+            regions = getattr(p, "regions", ("*",))
             out.append({
                 "provider": p.key,
                 "verticals": list(p.verticals) if p.verticals else ["*"],
+                "regions": list(regions) if regions else ["*"],
+                "priority": next((r.priority for r in self._registrations if r.provider is p), None),
+                "timeout_seconds": getattr(p, "timeout_seconds", None),
                 "connected": p.connected,
                 "status": status.get("status"),
                 "capabilities": status.get("capabilities", {"search": p.connected}),

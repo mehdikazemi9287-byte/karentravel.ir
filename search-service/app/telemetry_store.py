@@ -81,6 +81,13 @@ def _bootstrap(conn) -> None:
         )
     """)
     conn.execute("CREATE INDEX IF NOT EXISTS ix_query_plan_telemetry_ts ON query_plan_telemetry (ts)")
+    # Phase 5: explainability counts -- additive, nullable.
+    for stmt in (
+        "ALTER TABLE search_telemetry ADD COLUMN IF NOT EXISTS raw_offer_count INT",
+        "ALTER TABLE search_telemetry ADD COLUMN IF NOT EXISTS normalized_offer_count INT",
+        "ALTER TABLE search_telemetry ADD COLUMN IF NOT EXISTS offer_dedup_removed INT",
+    ):
+        conn.execute(stmt)
 
 
 def record(event: dict) -> None:
@@ -94,12 +101,14 @@ def record(event: dict) -> None:
             """INSERT INTO search_telemetry
                (correlation_id, verticals, public, tenant_ref, result_count, partial_results,
                 providers_requested, providers_failed, elapsed_ms, cache, failure_code,
-                providers_succeeded, ranking_version, avg_provider_latency_ms)
-               VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                providers_succeeded, ranking_version, avg_provider_latency_ms,
+                raw_offer_count, normalized_offer_count, offer_dedup_removed)
+               VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
             (event["correlation_id"], event["verticals"], event["public"], event.get("tenant_ref"),
              event["result_count"], event["partial_results"], event["providers_requested"],
              event["providers_failed"], event["elapsed_ms"], event.get("cache"), event.get("failure_code"),
-             event.get("providers_succeeded"), event.get("ranking_version"), event.get("avg_provider_latency_ms")),
+             event.get("providers_succeeded"), event.get("ranking_version"), event.get("avg_provider_latency_ms"),
+             event.get("raw_offer_count"), event.get("normalized_offer_count"), event.get("offer_dedup_removed")),
         )
     except Exception:
         # a telemetry outage degrades observability, never search itself

@@ -37,7 +37,7 @@ def autocomplete_cache_key(q: str, limit: int) -> str:
     return f"kss:ac:{CACHE_KEY_VERSION}:{limit}:{q}"
 
 
-def query_plan_cache_key(payload: dict, planner_version: str) -> str:
+def query_plan_cache_key(payload: dict, planner_version: str, provider_set: tuple[str, ...] = ()) -> str:
     """Phase 4: for the natural-language /v1/query/search execution path.
     Keyed from the canonical, already-resolved SearchPlan fields (vertical,
     origin/destination entity ids, date_range, party, filters, public,
@@ -47,10 +47,15 @@ def query_plan_cache_key(payload: dict, planner_version: str) -> str:
     planner change invalidates stale cached plans/results instead of
     silently reusing an incompatible shape. public/tenant_ref remain
     ordinary hashed fields -- the same collision-proof pattern as
-    search_cache_key, so tenant isolation holds here identically."""
+    search_cache_key, so tenant isolation holds here identically.
+
+    Phase 5: also folds in provider_set (the sorted keys of currently
+    CONNECTED providers) -- when a provider comes online/offline the set of
+    entities a query can return changes, so a stale cached result from a
+    different provider composition must never be served."""
     envelope = {
         "cache_key_version": CACHE_KEY_VERSION, "ranking_version": RANKING_VERSION,
-        "planner_version": planner_version, **payload,
+        "planner_version": planner_version, "provider_set": sorted(provider_set), **payload,
     }
     digest = hashlib.sha256(json.dumps(envelope, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
     return f"kss:qp:{CACHE_KEY_VERSION}:{digest}"

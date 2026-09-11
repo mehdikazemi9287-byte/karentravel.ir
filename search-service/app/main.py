@@ -46,9 +46,11 @@ class SearchIn(BaseModel):
 
 
 class QueryPlanIn(BaseModel):
-    """Phase 4: canonical input for /v1/query/plan and /v1/query/search.
-    Structured fields always take precedence over anything inferred from
-    `text` -- see query_intelligence/planner.py."""
+    """Canonical input for /v1/query/plan and /v1/query/search. Structured
+    fields always take precedence over anything inferred from `text` -- see
+    query_intelligence/planner.py. `sort` default is None (not a fixed
+    "recommended" string) so the planner can distinguish "not supplied,
+    infer a hint from text" from "explicitly requested"."""
     text: str = Field(default="", max_length=300)
     vertical: str | None = Field(default=None, max_length=32)
     origin: str | None = Field(default=None, max_length=120)
@@ -56,13 +58,22 @@ class QueryPlanIn(BaseModel):
     start_date: str | None = Field(default=None, max_length=32)
     end_date: str | None = Field(default=None, max_length=32)
     passengers: int | None = Field(default=None, ge=1, le=20)
+    adults: int | None = Field(default=None, ge=1, le=20)
+    children: int | None = Field(default=None, ge=0, le=20)
+    infants: int | None = Field(default=None, ge=0, le=20)
     rooms: int | None = Field(default=None, ge=1, le=20)
+    quantity: int | None = Field(default=None, ge=1, le=50)
+    cabin: str | None = Field(default=None, max_length=32)
+    budget_min: int | None = Field(default=None, ge=0)
+    budget_max: int | None = Field(default=None, ge=0)
+    trip_type: str | None = Field(default=None, max_length=16)
     filters: dict = Field(default_factory=dict)
     locale: str | None = Field(default=None, max_length=16)
     currency: str | None = Field(default=None, max_length=8)
     public: bool = True
     tenant_ref: str | None = Field(default=None, max_length=120)
-    sort: str = Field(default="recommended", max_length=32)
+    sort: str | None = Field(default=None, max_length=32)
+    flexibility: str | None = Field(default=None, max_length=32)
     page: int = Field(default=1, ge=1, le=1000)
     page_size: int = Field(default=20, ge=1, le=100)
 
@@ -76,12 +87,20 @@ def _plan_to_dict(plan) -> dict:
         "query_id": plan.query_id, "original_text": plan.original_text, "normalized_text": plan.normalized_text,
         "intent": list(plan.intent), "vertical": plan.vertical, "multi_intent": plan.multi_intent,
         "origin": _entity_out(plan.origin), "destination": _entity_out(plan.destination),
+        "intermediate_stops": [_entity_out(e) for e in plan.intermediate_stops],
         "date_range": {"start_date": plan.date_range.start_date, "end_date": plan.date_range.end_date, "source": plan.date_range.source},
-        "party": {"travellers": plan.party.travellers, "rooms": plan.party.rooms},
-        "filters": plan.filters, "unsupported_constraints": list(plan.unsupported_constraints),
+        "departure_date": plan.departure_date, "return_date": plan.return_date, "nights": plan.nights,
+        "trip_type": plan.trip_type,
+        "party": {"travellers": plan.party.travellers, "adults": plan.party.adults, "children": plan.party.children,
+                  "infants": plan.party.infants, "rooms": plan.party.rooms, "quantity": plan.party.quantity},
+        "cabin": plan.cabin, "budget_min": plan.budget_min, "budget_max": plan.budget_max, "currency": plan.currency,
+        "filters": plan.filters, "sort": plan.sort, "flexibility": plan.flexibility, "nearby_allowed": plan.nearby_allowed,
+        "unsupported_constraints": list(plan.unsupported_constraints),
+        "inferred_fields": list(plan.inferred_fields), "explicit_fields": list(plan.explicit_fields),
+        "unresolved_fields": list(plan.unresolved_fields),
         "public": plan.public, "tenant_ref": plan.tenant_ref, "confidence": plan.confidence, "status": plan.status,
         "ambiguities": [{"code": a.code, "message": a.message} for a in plan.ambiguities],
-        "planner_version": plan.planner_version,
+        "locale": plan.locale, "planner_version": plan.planner_version,
     }
 
 
@@ -217,6 +236,8 @@ def v1_search(data: SearchIn = Body(...), x_correlation_id: str | None = Header(
         "providers_succeeded": result["search_metadata"]["providers_succeeded"],
         "ranking_version": RANKING_VERSION,
         "avg_provider_latency_ms": round(sum(latencies) / len(latencies), 2) if latencies else None,
+        **{k: result["search_metadata"]["result_counts"][k] for k in
+           ("raw_offer_count", "normalized_offer_count", "offer_dedup_removed")},
     })
 
     CACHE.set(key, result, config.CACHE_TTL_SECONDS)
@@ -265,7 +286,10 @@ def v1_diagnostics():
 def _canonical_input(data: QueryPlanIn, corr: str) -> CanonicalQueryInput:
     return CanonicalQueryInput(
         text=data.text, vertical=data.vertical, origin=data.origin, destination=data.destination,
-        start_date=data.start_date, end_date=data.end_date, passengers=data.passengers, rooms=data.rooms,
+        start_date=data.start_date, end_date=data.end_date, passengers=data.passengers,
+        adults=data.adults, children=data.children, infants=data.infants, rooms=data.rooms,
+        quantity=data.quantity, cabin=data.cabin, budget_min=data.budget_min, budget_max=data.budget_max,
+        trip_type=data.trip_type, sort=data.sort, flexibility=data.flexibility,
         filters=data.filters or {}, locale=data.locale, currency=data.currency,
         public=data.public, tenant_ref=data.tenant_ref, correlation_id=corr,
     )
@@ -311,16 +335,17 @@ def v1_query_search(data: QueryPlanIn = Body(...), x_correlation_id: str | None 
     if plan.date_range.end_date:
         plan_filters.setdefault("check_out", plan.date_range.end_date)
 
+    provider_set = tuple(sorted(p.key for p in REGISTRY.all() if p.connected))
     cache_payload = {
         "vertical": plan.vertical, "origin_id": plan.origin.id if plan.origin else None,
         "destination_id": plan.destination.id if plan.destination else None,
         "destination_title": plan.destination.title if plan.destination else None,
         "date_range": {"start": plan.date_range.start_date, "end": plan.date_range.end_date},
         "party": {"travellers": plan.party.travellers, "rooms": plan.party.rooms},
-        "filters": plan_filters, "sort": data.sort, "page": data.page, "page_size": data.page_size,
+        "filters": plan_filters, "sort": plan.sort, "page": data.page, "page_size": data.page_size,
         "public": plan.public, "tenant_ref": plan.tenant_ref,
     }
-    key = query_plan_cache_key(cache_payload, PLANNER_VERSION)
+    key = query_plan_cache_key(cache_payload, PLANNER_VERSION, provider_set)
     cached = CACHE.get(key)
     if cached is not None:
         telemetry.incr("cache_hit")
@@ -334,7 +359,7 @@ def v1_query_search(data: QueryPlanIn = Body(...), x_correlation_id: str | None 
     req = SearchRequest(
         verticals=(plan.vertical,), destination=plan.destination.title if plan.destination else None,
         origin=plan.origin.title if plan.origin else None, travellers=plan.party.travellers or 1,
-        sort=data.sort, filters=plan_filters, page=data.page, page_size=data.page_size,
+        sort=plan.sort, flexibility=plan.flexibility, filters=plan_filters, page=data.page, page_size=data.page_size,
         public=plan.public, tenant_ref=plan.tenant_ref, correlation_id=corr,
     )
     result, meta, elapsed = orchestrator.fan_out_and_assemble(req)
@@ -376,6 +401,8 @@ def v1_query_search(data: QueryPlanIn = Body(...), x_correlation_id: str | None 
         "providers_succeeded": result["search_metadata"]["providers_succeeded"],
         "ranking_version": RANKING_VERSION,
         "avg_provider_latency_ms": round(sum(latencies) / len(latencies), 2) if latencies else None,
+        **{k: result["search_metadata"]["result_counts"][k] for k in
+           ("raw_offer_count", "normalized_offer_count", "offer_dedup_removed")},
     })
     _record_plan_telemetry(plan, planning_latency, executed=True)
 
