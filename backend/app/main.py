@@ -1607,6 +1607,36 @@ def search_autocomplete(q: str, service_type: Optional[str] = None, user: User =
     return {"query": q, "normalized_query": normalized, "suggestions": suggestions[:10], "cache_policy": "private_tenant_30s"}
 
 
+@app.get("/search/autocomplete/v3/public")
+async def autocomplete_v3_public_gateway(q: str) -> dict:
+    """Gateway to karenseir-search /v1/autocomplete. Public geo catalog only --
+    identical scope to /search/autocomplete/public. Adapts the canonical
+    response into the exact legacy shape the frontend already renders."""
+    import httpx
+    normalized = _normalize_search_text(q)
+    if len(normalized) < 2:
+        raise HTTPException(status_code=422, detail="حداقل دو نویسه برای پیشنهاد لازم است")
+    corr = str(uuid.uuid4())
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(f"{_SEARCH_SERVICE_URL}/v1/autocomplete", params={"q": q}, headers={"X-Correlation-ID": corr})
+    except httpx.HTTPError:
+        raise HTTPException(status_code=503, detail={"code": "SEARCH_SERVICE_UNAVAILABLE", "correlation_id": corr})
+    if resp.status_code >= 400:
+        raise HTTPException(status_code=resp.status_code, detail=resp.json())
+    body = resp.json()
+    suggestions = [{
+        "id": s["id"], "title": s["title"],
+        "subtitle": " · ".join(filter(None, [s.get("city"), s.get("country")])),
+        "entity_type": s["type"], "city": s.get("city"), "country": s.get("country"),
+        "code": s.get("code"), "coordinates": None, "popularity_score": s.get("popularity", 0),
+        "match_type": "contains", "ranking_score": s.get("popularity", 0),
+        "source": "karenseir_geo_catalog",
+    } for s in body.get("suggestions", [])]
+    return {"query": q, "normalized_query": body.get("normalized_query", normalized),
+            "suggestions": suggestions, "cache_policy": "public_5m", "tenant_data_included": False}
+
+
 @app.get("/search/autocomplete/public")
 def public_search_autocomplete(q: str) -> dict:
     """Expose only the non-tenant geographic catalog for pre-login search."""
@@ -1837,16 +1867,16 @@ def internal_search_offer_pool(data: _OfferPoolIn, x_internal_token: str = Heade
     return {"service_type": data.service_type, "public": data.public, "offers": offers}
 
 
-@app.post("/search/v3/public")
-async def search_v3_public_gateway(data: UnifiedSearchIn) -> dict:
-    """Gateway to karenseir-search. Result-compatible with /search/v2/public.
-    Falls closed to a truthful error rather than a fabricated empty result."""
+async def _search_service_call(data: UnifiedSearchIn, *, public: bool, tenant_ref: Optional[str]) -> dict:
+    """Shared gateway to karenseir-search. The service NEVER receives a raw JWT
+    or user record -- only a resolved, minimal SearchContext (tenant slug,
+    public flag). Falls closed to a truthful error, never a fabricated result."""
     import httpx
     payload = {
         "verticals": list(data.verticals), "query": data.query, "origin": data.origin,
         "destination": data.destination, "travellers": data.travellers, "flexibility": data.flexibility,
         "sort": data.sort, "filters": data.filters, "include_stale": data.include_stale,
-        "page": data.page, "page_size": data.page_size, "public": True,
+        "page": data.page, "page_size": data.page_size, "public": public, "tenant_ref": tenant_ref,
     }
     corr = str(uuid.uuid4())
     try:
@@ -1858,6 +1888,24 @@ async def search_v3_public_gateway(data: UnifiedSearchIn) -> dict:
         raise HTTPException(status_code=resp.status_code, detail=resp.json())
     record_business_event("search", "success")
     return resp.json()
+
+
+@app.post("/search/v3/public")
+async def search_v3_public_gateway(data: UnifiedSearchIn) -> dict:
+    """Result-compatible with /search/v2/public. Anonymous, public-catalog scope only."""
+    return await _search_service_call(data, public=True, tenant_ref=None)
+
+
+@app.post("/search/v3")
+async def search_v3_authenticated_gateway(data: UnifiedSearchIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    """Result-compatible with /search/v2. The caller's tenant is resolved here
+    from the validated JWT -- the client can never supply or spoof tenant_ref.
+    Fails closed (404) if the tenant cannot be resolved; never falls back to
+    public/base pricing."""
+    tenant = db.get(Tenant, user.tenant_id)
+    if tenant is None:
+        raise HTTPException(status_code=404, detail={"code": "TENANT_UNRESOLVED"})
+    return await _search_service_call(data, public=False, tenant_ref=tenant.slug)
 
 
 @app.get("/search/recent")

@@ -74,7 +74,7 @@ function EntityInput({kind,label,value,onChange,onSelect,open,setOpen,vertical}:
     if(!open||query.length<2)return;
     let cancelled=false;
     const timer=window.setTimeout(async()=>{
-      try{const response=await api.publicGet<AutocompleteResponse>(`/search/autocomplete/public?q=${encodeURIComponent(query)}`);if(!cancelled)setLookup({query,items:response.suggestions,failed:false})}
+      try{const response=await api.publicGet<AutocompleteResponse>(`/search/autocomplete/v3/public?q=${encodeURIComponent(query)}`);if(!cancelled)setLookup({query,items:response.suggestions,failed:false})}
       catch{if(!cancelled)setLookup({query,items:[],failed:true})}
     },180);
     return()=>{window.clearTimeout(timer);cancelled=true};

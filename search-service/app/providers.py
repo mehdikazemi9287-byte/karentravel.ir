@@ -10,12 +10,35 @@ from __future__ import annotations
 
 import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+from dataclasses import dataclass, field
 from typing import Any, Optional, Protocol
 
 import httpx
 
 from . import config
 from .domain import PROVIDER_TIMEOUT, PROVIDER_UNAVAILABLE
+
+
+@dataclass(frozen=True)
+class ProviderError:
+    """Normalized provider error -- every adapter (present or future) reports
+    through this shape so the engine never has to understand provider-specific
+    exceptions."""
+    code: str                      # PROVIDER_TIMEOUT | PROVIDER_UNAVAILABLE | ...
+    provider: str
+    vertical: str
+    correlation_id: str
+    retryable: bool = False
+    detail: str = ""
+
+
+@dataclass(frozen=True)
+class ProviderCapabilities:
+    search: bool = True
+    recheck: bool = False
+    reserve: bool = False          # reservation stays in the commerce domain regardless
+    fuzzy_match: bool = False
+    geo: bool = False
 
 
 class SearchProviderPort(Protocol):
@@ -35,10 +58,12 @@ class _DisabledExternalProvider:
         self.key = key
         self.verticals = verticals
         self.connected = False
+        self.capabilities = ProviderCapabilities(search=False)
 
     def status(self) -> dict[str, Any]:
         return {"provider": self.key, "status": "not_connected",
-                "detail": "No authorized external provider connection.", "offer_count": 0}
+                "detail": "No authorized external provider connection.", "offer_count": 0,
+                "capabilities": self.capabilities.__dict__}
 
     def fetch(self, vertical: str, req) -> list[dict]:
         return []

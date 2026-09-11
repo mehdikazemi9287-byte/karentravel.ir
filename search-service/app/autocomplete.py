@@ -16,12 +16,14 @@ ENTITIES = (
     {"id": "city-tehran", "title": "تهران", "type": "city", "code": "THR", "country": "ایران", "popularity": 100, "aliases": ["تهرون", "Tehran"]},
     {"id": "city-shiraz", "title": "شیراز", "type": "city", "code": "SYZ", "country": "ایران", "popularity": 92, "aliases": ["Shiraz"]},
     {"id": "city-mashhad", "title": "مشهد", "type": "city", "code": "MHD", "country": "ایران", "popularity": 96, "aliases": ["Mashhad"]},
-    {"id": "city-isfahan", "title": "اصفهان", "type": "city", "code": "IFN", "country": "ایران", "popularity": 90, "aliases": ["Isfahan", "Esfahan"]},
     {"id": "city-yazd", "title": "یزد", "type": "city", "code": "AZD", "country": "ایران", "popularity": 78, "aliases": ["Yazd"]},
+    {"id": "city-isfahan", "title": "اصفهان", "type": "city", "code": "IFN", "country": "ایران", "popularity": 90, "aliases": ["Isfahan", "Esfahan"]},
     {"id": "city-kish", "title": "کیش", "type": "city", "code": "KIH", "country": "ایران", "popularity": 86, "aliases": ["Kish"]},
     {"id": "city-qeshm", "title": "قشم", "type": "city", "code": "GSM", "country": "ایران", "popularity": 82, "aliases": ["Qeshm"]},
     {"id": "airport-thr", "title": "فرودگاه مهرآباد", "type": "airport", "code": "THR", "city": "تهران", "country": "ایران", "popularity": 94, "aliases": ["Mehrabad"]},
-    {"id": "airport-ika", "title": "فرودگاه امام خمینی", "type": "airport", "code": "IKA", "city": "تهران", "country": "ایران", "popularity": 88, "aliases": ["Imam Khomeini"]},
+    {"id": "airport-ika", "title": "فرودگاه امام خمینی", "type": "airport", "code": "IKA", "city": "تهران", "country": "ایران", "popularity": 91, "aliases": ["Imam Khomeini Airport"]},
+    {"id": "poi-hafezieh", "title": "حافظیه", "type": "attraction", "city": "شیراز", "country": "ایران", "popularity": 75, "aliases": ["Hafezieh"]},
+    {"id": "poi-persepolis", "title": "تخت جمشید", "type": "attraction", "city": "مرودشت", "country": "ایران", "popularity": 88, "aliases": ["Persepolis"]},
 )
 
 

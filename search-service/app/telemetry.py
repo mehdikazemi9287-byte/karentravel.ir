@@ -13,6 +13,7 @@ COUNTERS = {
     "autocomplete_requests": 0,
 }
 DURATIONS: list[float] = []
+RESULT_COUNTS: list[int] = []
 
 logger = logging.getLogger("karenseir.search")
 if not logger.handlers:
@@ -38,11 +39,20 @@ def log_event(event: str, **fields) -> None:
     logger.info(json.dumps({"ts": time.time(), "event": event, **fields}, ensure_ascii=False))
 
 
+def observe_result_count(n: int) -> None:
+    with _lock:
+        RESULT_COUNTS.append(n)
+        if len(RESULT_COUNTS) > 500:
+            del RESULT_COUNTS[: len(RESULT_COUNTS) - 500]
+
+
 def snapshot() -> dict:
     with _lock:
         d = sorted(DURATIONS)
-        pct = lambda p: d[min(len(d) - 1, int(len(d) * p))] if d else 0.0
+        rc = sorted(RESULT_COUNTS)
+        pct = lambda arr, p: arr[min(len(arr) - 1, int(len(arr) * p))] if arr else 0
         return {
             "counters": dict(COUNTERS),
-            "duration_ms": {"count": len(d), "p50": round(pct(0.5), 2), "p95": round(pct(0.95), 2), "max": round(d[-1], 2) if d else 0.0},
+            "duration_ms": {"count": len(d), "p50": round(pct(d, 0.5), 2), "p95": round(pct(d, 0.95), 2), "max": round(d[-1], 2) if d else 0.0},
+            "result_count": {"count": len(rc), "p50": pct(rc, 0.5), "p95": pct(rc, 0.95), "zero_pct": round(100 * sum(1 for x in rc if x == 0) / len(rc), 1) if rc else 0.0},
         }

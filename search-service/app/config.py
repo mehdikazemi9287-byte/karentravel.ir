@@ -3,6 +3,7 @@ import os
 MONOLITH_BASE_URL = os.getenv("MONOLITH_BASE_URL", "http://karenseir-api-1:8000")
 INTERNAL_TOKEN = os.getenv("SEARCH_INTERNAL_TOKEN", "")
 REDIS_URL = os.getenv("SEARCH_REDIS_URL", "")           # e.g. redis://karenseir-redis:6379/1
+TELEMETRY_DB_URL = os.getenv("SEARCH_TELEMETRY_DB_URL", "")   # Search-owned Postgres DB, separate from the monolith DB
 PROVIDER_TIMEOUT_SECONDS = float(os.getenv("SEARCH_PROVIDER_TIMEOUT", "6"))
 TOTAL_TIMEOUT_SECONDS = float(os.getenv("SEARCH_TOTAL_TIMEOUT", "12"))
 MAX_CONCURRENCY = int(os.getenv("SEARCH_MAX_CONCURRENCY", "6"))

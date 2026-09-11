@@ -15,11 +15,11 @@ from fastapi import Body, FastAPI, Header, Query, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import BaseModel, Field
 
-from . import autocomplete, config, engine, telemetry
+from . import autocomplete, config, engine, telemetry, telemetry_store
 from .cache import CACHE
 from .domain import (
     ALLOWED_SORTS, ALLOWED_VERTICALS, INTERNAL_SEARCH_ERROR, INVALID_SEARCH_REQUEST,
-    NO_RESULTS, SearchError, SearchRequest,
+    NO_RESULTS, PROVIDER_UNAVAILABLE, SearchError, SearchRequest,
 )
 from .providers import EXTERNAL_PROVIDERS, _POOL, fan_out
 
@@ -71,6 +71,7 @@ def ready():
         "status": "ready" if ok else "degraded",
         "offer_pool": pool["status"],
         "cache": {"backend": getattr(CACHE, "backend", "unknown"), "ok": cache_ok},
+        "telemetry": telemetry_store.health(),
         "external_providers": {p.key: p.status()["status"] for p in EXTERNAL_PROVIDERS},
     }
     return JSONResponse(status_code=200 if ok else 503, content=body)
@@ -125,12 +126,27 @@ def v1_search(data: SearchIn = Body(...), x_correlation_id: str | None = Header(
         elif m["status"] == "PROVIDER_UNAVAILABLE":
             telemetry.incr("provider_unavailable")
 
+    # A total infrastructure failure (every requested vertical's pool provider
+    # failed) is never presented as a valid zero-result search.
+    pool_meta = [m for m in meta if m["provider"] == _POOL.key]
+    if pool_meta and all(m["status"] != "available" for m in pool_meta):
+        elapsed = round((time.perf_counter() - started) * 1000, 3)
+        telemetry.incr("search_errors")
+        telemetry_store.record({
+            "correlation_id": corr, "verticals": list(data.verticals), "public": data.public,
+            "tenant_ref": None if data.public else data.tenant_ref, "result_count": 0,
+            "partial_results": False, "providers_requested": len(pool_meta), "providers_failed": len(pool_meta),
+            "elapsed_ms": elapsed, "cache": "n/a", "failure_code": PROVIDER_UNAVAILABLE,
+        })
+        raise SearchError(PROVIDER_UNAVAILABLE, "موتور جست‌وجو موقتاً در دسترس نیست", 503)
+
     elapsed = round((time.perf_counter() - started) * 1000, 3)
     result = engine.assemble(req, pools, meta, elapsed)
     result["search_metadata"]["cache"] = "miss"
 
     telemetry.incr("search_requests")
     telemetry.observe_duration(elapsed)
+    telemetry.observe_result_count(result["pagination"]["total"])
     if not result["entities"]:
         telemetry.incr("search_zero_result")
     if result["search_metadata"]["partial_results"]:
@@ -138,6 +154,14 @@ def v1_search(data: SearchIn = Body(...), x_correlation_id: str | None = Header(
     telemetry.log_event("search", corr=corr, verticals=list(data.verticals), public=data.public,
                         total=result["pagination"]["total"], elapsed_ms=elapsed,
                         partial=result["search_metadata"]["partial_results"])
+    telemetry_store.record({
+        "correlation_id": corr, "verticals": list(data.verticals), "public": data.public,
+        "tenant_ref": None if data.public else data.tenant_ref,
+        "result_count": result["pagination"]["total"], "partial_results": result["search_metadata"]["partial_results"],
+        "providers_requested": result["search_metadata"]["providers_requested"],
+        "providers_failed": result["search_metadata"]["providers_failed"],
+        "elapsed_ms": elapsed, "cache": "miss", "failure_code": None,
+    })
 
     CACHE.set(key, result, config.CACHE_TTL_SECONDS)
     return result
