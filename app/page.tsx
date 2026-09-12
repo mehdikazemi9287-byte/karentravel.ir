@@ -2,7 +2,12 @@
 import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import {
+  AssistantChatMessage, AssistantEntity, AssistantReplyData, AssistantTurnResponse,
+  assistantErrorMessage, consumeResumePending, loadConversationId, loadStoredMessages,
+  markResumePending, saveConversationId, saveStoredMessages, selectResultPhrase, sendAssistantMessage,
+} from '../lib/api/assistant-client';
 import { ConnectedCompare, ConnectedOrganization, ConnectedRolePanel, ErrorState } from '../components/operational/ConnectedViews';
 import { EmployeePortal } from '../components/operational/EmployeePortal';
 import { AgencyPortal } from '../components/operational/AgencyPortal';
@@ -102,32 +107,153 @@ function FloatingAssistant(){
 function Home(){return <div className="home-page"><HomeHeader/><main><ReferenceHero/><HomeServicesHub/><DestinationMosaic/><ReferenceTrips/><SmartCompanion/><CompareBand/><LocalExperiences/><ReferenceOrganization/><TrustSection/><ServiceRibbon/></main><HomeMobileNav/><ReferenceFooter/><FloatingAssistant/></div>}
 function Hotels(){return <Shell><div className="page-hero"><span className="eyebrow">اقامت · داده نمایشی</span><h1>هتل را با معیارهای واقعی‌تر انتخاب کنید.</h1><p>قیمت و موجودی زیر صرفاً برای نمایش Prototype هستند و قابل رزرو واقعی نیستند.</p></div><div className="container results"><aside className="filters"><strong>فیلترها</strong>{['بازه قیمت','امتیاز مهمانان','سیاست سازمان','امکانات','قوانین کنسلی'].map(x=><button key={x}>{x}<span>⌄</span></button>)}</aside><section><div className="result-bar"><span>۳ گزینه Mock برای تهران</span><Link href="/compare" className="button primary">مقایسه ۳ گزینه</Link></div><div className="result-list">{hotels.map(h=><HotelCard hotel={h} compact key={h.name}/>)}</div></section></div></Shell>}
 function Compare(){return <Shell><div className="page-hero"><span className="eyebrow">مقایسه حرفه‌ای · داده معتبر</span><h1>تفاوت‌ها را یک‌جا ببینید.</h1><p>امتیاز و معیارها فقط از Offerهای معتبر سازمان احرازشده محاسبه می‌شوند.</p><p className="mt-2 text-sm"><a className="text-link" href="/compare/package">مقایسه و رزرو بسته پرواز + هتل ←</a></p></div><ConnectedCompare/></Shell>}
-const policyIntents=['قوانین این رزرو چیه؟','می‌خوام کنسل کنم','چقدر پولم برمی‌گرده؟','می‌تونم تاریخ رو عوض کنم؟','هتلم رو کنسل کنم چقدر جریمه میشه؟','پروازم لغو شده','واچر جدیدم کجاست؟','درخواست استردادم چه وضعیتی داره؟'];
-type AssistantMessage={role:'user'|'bot';text?:string;links?:boolean};
-const assistantInitialMessages:AssistantMessage[]=[
-  {role:'user',text:'می‌خوام رزرو رو کنسل کنم؛ چقدر پولم برمی‌گرده؟'},
-  {role:'bot',text:'رزرو پرواز تهران به شیراز را پیدا کردم، اما مبلغ معتبر جریمه و بازگشت وجه در دسترس نیست: «نیاز به بررسی قوانین تأمین‌کننده».'},
-  {role:'bot',links:true},
-];
-// This chat has no live backend (0 assistant routes; see CAPABILITY_REGISTRY.json
-// ai_travel_assistant: NOT_STARTED) - previously the input was a plain <span>
-// (not a real field) and "ارسال"/the intent chips had no handler at all, so
-// nothing happened on click/type. Fixed to be genuinely interactive without
-// fabricating an AI answer: every message - typed or a clicked example intent -
-// is echoed back, and the reply is always the exact same honest
-// no-live-provider-data fallback already shown in the static example above,
-// consistent with how the rest of the app (e.g. "Provider زنده در دسترس نیست")
-// discloses missing live data instead of inventing a number.
+const policyIntents=['هتل کیش برای دو نفر آخر هفته','پرواز تهران مشهد جمعه','ارزون‌ترین گزینه رو نشون بده','می‌خوام کنسل کنم','با یک نفر صحبت کنم'];
+
+function formatOfferPrice(entity: AssistantEntity): string {
+  const price = entity.best_offer?.final_price ?? entity.price;
+  const currency = entity.best_offer?.currency ?? entity.currency ?? '';
+  if (price == null) return 'قیمت نامشخص';
+  return `${Number(price).toLocaleString('fa-IR')} ${currency === 'IRR' ? 'ریال' : currency}`;
+}
+
+function AssistantResultCards({ entities, disabled, onSelect }: { entities: AssistantEntity[]; disabled: boolean; onSelect: (displayIndex: number) => void }) {
+  return <div className="assistant-results" role="list">
+    {entities.map((entity, i) => {
+      const displayIndex = entity.display_index ?? i + 1;
+      const phrase = selectResultPhrase(displayIndex);
+      return <article className="panel assistant-result-card" role="listitem" key={entity.entity_id || i}>
+        <span className="tag">گزینه {displayIndex}</span>
+        <h3>{entity.title || 'بدون عنوان'}</h3>
+        <p>{formatOfferPrice(entity)}</p>
+        {phrase && <button className="button secondary" type="button" disabled={disabled} onClick={() => onSelect(displayIndex)}>انتخاب این گزینه</button>}
+      </article>;
+    })}
+  </div>;
+}
+
+function AssistantPanel({ children, tone }: { children: React.ReactNode; tone: 'warn' | 'error' | 'ok' }) {
+  return <div className={`panel assistant-panel assistant-panel-${tone}`} role={tone === 'error' ? 'alert' : 'status'}>{children}</div>;
+}
+
+// Real integration (Phase 6): every message goes through the Assistant
+// gateway (/assistant/message -> karenseir-assistant), which is anonymous-
+// friendly by design -- Search/Planning/Conversation work with no session.
+// Bearer identity, when a session exists, rides the standard Authorization
+// header via api.postOptionalAuth; this component never reads or stores a
+// token itself. All UI state (approval/auth-required/reservation panels) is
+// derived purely from the LAST assistant reply's structured data -- no
+// separate client-side state machine to drift from the backend's own.
 function Assistant(){
-  const [messages,setMessages]=useState<AssistantMessage[]>(assistantInitialMessages);
-  const [draft,setDraft]=useState('');
-  function send(raw:string){
-    const text=raw.trim();
-    if(!text)return;
-    setMessages(current=>[...current,{role:'user',text},{role:'bot',text:'رزرو فعال شما (KS-MOCK-2841) را در نظر گرفتم، اما بدون اتصال به قوانین معتبر تأمین‌کننده نمی‌توانم مبلغ دقیق جریمه یا بازگشت وجه را اعلام کنم: «نیاز به بررسی قوانین تأمین‌کننده».'},{role:'bot',links:true}]);
+  const router = useRouter();
+  const { api, session } = useAuth();
+  const [messages, setMessages] = useState<AssistantChatMessage[]>(() => (typeof window === 'undefined' ? [] : loadStoredMessages()));
+  const [conversationId, setConversationId] = useState<string | null>(() => (typeof window === 'undefined' ? null : loadConversationId()));
+  const [draft, setDraft] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [resumeAvailable, setResumeAvailable] = useState(false);
+
+  useEffect(() => { if (session && consumeResumePending()) setResumeAvailable(true); }, [session]);
+  useEffect(() => { saveStoredMessages(messages); }, [messages]);
+
+  const lastAssistantData: AssistantReplyData | undefined = [...messages].reverse().find(m => m.role === 'assistant')?.data;
+
+  async function run(raw: string) {
+    const text = raw.trim();
+    if (!text || busy) return;
+    setBusy(true); setError(null); setResumeAvailable(false);
+    setMessages(current => [...current, { role: 'user', text }]);
     setDraft('');
+    try {
+      const resp: AssistantTurnResponse = await sendAssistantMessage(api, conversationId, text);
+      setConversationId(resp.conversation_id);
+      saveConversationId(resp.conversation_id);
+      setMessages(current => [...current, { role: 'assistant', text: resp.message.text, data: resp.message.data }]);
+    } catch (err) {
+      setError(assistantErrorMessage(err));
+    } finally {
+      setBusy(false);
+    }
   }
-  return <Shell><div className="assistant-page"><section className="assistant-intro"><span className="eyebrow">✦ دستیار هوشمند کارن‌سیر</span><h1>از تصمیم سفر تا<br/>مدیریت مشکل همراهت هستم.</h1><p>دستیار اطلاعات رزرو سفرت را در نظر می‌گیرد، اما بدون قوانین معتبر، جریمه یا مبلغ بازگشت را حدس نمی‌زند.</p><div className="assistant-steps"><span>برنامه‌ریزی و مقایسه</span><span>قوانین، تغییر و استرداد</span><span>اطراف من و پشتیبانی</span></div><div className="policy-intents" aria-label="نمونه پرسش‌های قابل فهم">{policyIntents.map(intent=><span key={intent} role="button" tabIndex={0} onClick={()=>send(intent)} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();send(intent)}}}>{intent}</span>)}</div><Link className="assistant-booking-context" href="/manage-booking/book1">رزرو فعال: KS-MOCK-2841 · مدیریت رزرو ←</Link></section><section className="chat"><div className="chat-bar">دستیار قوانین و سفر <span>● نسخه نمایشی</span></div><div className="messages">{messages.map((message,index)=><div className={`message ${message.role}`} key={index}>{message.links?<><Link href="/manage-booking/book1">پیش‌نمایش مدیریت رزرو</Link> · <Link href="/support?channel=expert&booking=book1">ارسال برای بررسی کارشناس</Link></>:message.text}</div>)}</div><form className="chat-input" onSubmit={event=>{event.preventDefault();send(draft)}}><input value={draft} onChange={event=>setDraft(event.target.value)} placeholder="مثلاً: امکان تغییر تاریخ هست؟" aria-label="پیام به دستیار هوشمند" style={{flex:1,border:'none',outline:'none',background:'transparent',font:'inherit',color:'inherit'}}/><button type="submit">ارسال</button></form></section></div></Shell>}
+
+  function goToLogin() {
+    markResumePending();
+    router.push('/login?redirect=/assistant');
+  }
+
+  // The same real backend action (CANCEL_CURRENT_FLOW) backs "انصراف" on
+  // both the approval and auth-required panels and "لغو رزرو" on a live
+  // reservation -- it clears pending state and, when a real hold exists,
+  // triggers the genuine rollback (release_reservation_hold), never a
+  // frontend-only "pretend cancel".
+  function cancelOrRollback() { run('از اول'); }
+
+  const authRequired = lastAssistantData?.type === 'AUTHENTICATION_REQUIRED';
+  const reservationResult = lastAssistantData?.reservation_result;
+  const releaseResult = lastAssistantData?.release_result;
+  const pendingApproval = !authRequired && !reservationResult && !!lastAssistantData?.requires_approval && !!lastAssistantData?.pending_approval_id;
+  const readiness = lastAssistantData?.readiness;
+  const searchEntities = lastAssistantData?.type === 'SEARCH_RESULT_CARD' ? (lastAssistantData.result?.entities ?? []) : [];
+
+  return <Shell><div className="assistant-page"><section className="assistant-intro">
+    <span className="eyebrow">✦ دستیار هوشمند کارن‌سیر</span>
+    <h1>از تصمیم سفر تا<br/>مدیریت رزرو همراهت هستم.</h1>
+    <p>بگویید کجا و کِی می‌خواهید سفر کنید؛ گزینه‌های واقعی را جست‌وجو، مقایسه و -- تنها با تأیید صریح شما -- رزرو موقت می‌کنم.</p>
+    <div className="assistant-steps"><span>جست‌وجو و مقایسه</span><span>انتخاب و تأیید</span><span>رزرو موقت و لغو</span></div>
+    <div className="policy-intents" aria-label="نمونه پرسش‌های قابل فهم">{policyIntents.map(intent=><span key={intent} role="button" tabIndex={0} onClick={()=>run(intent)} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();run(intent)}}}>{intent}</span>)}</div>
+  </section>
+  <section className="chat">
+    <div className="chat-bar">دستیار سفر کارن‌سیر <span>{session ? '● وارد شده' : '● مهمان'}</span></div>
+    {resumeAvailable && <div className="assistant-resume-banner" role="status">
+      <span>وارد حساب شدید؛ برای ادامه‌ی همان رزرو دکمه زیر را بزنید.</span>
+      <button className="button primary" type="button" disabled={busy} onClick={()=>run('تایید می‌کنم')}>ادامه رزرو</button>
+    </div>}
+    <div className="messages">
+      {messages.length===0 && <div className="message bot">سلام! بگویید کجا می‌خواهید سفر کنید تا جست‌وجو را شروع کنم.</div>}
+      {messages.map((message,index)=><div className={`message ${message.role==='user'?'user':'bot'}`} key={index}>{message.text}</div>)}
+      {busy && <div className="message bot" role="status" aria-live="polite">در حال بررسی…</div>}
+      {error && <div className="message bot assistant-message-error" role="alert">{error}</div>}
+      {searchEntities.length>0 && <AssistantResultCards entities={searchEntities} disabled={busy} onSelect={(idx)=>{const phrase=selectResultPhrase(idx); if(phrase) run(phrase);}} />}
+      {readiness?.ready && !pendingApproval && !authRequired && !reservationResult && <div className="assistant-inline-actions">
+        <button className="button secondary" type="button" disabled={busy} onClick={()=>run('ادامه بده')}>درخواست تأیید رزرو</button>
+      </div>}
+      {lastAssistantData?.type==='SELECT_RESULT' && lastAssistantData.selected && !readiness && <div className="assistant-inline-actions">
+        <button className="button secondary" type="button" disabled={busy} onClick={()=>run('رزروش کن')}>آماده‌سازی رزرو</button>
+      </div>}
+      {authRequired && <AssistantPanel tone="warn">
+        <strong>برای ادامه رزرو، وارد حساب کاربری شوید.</strong>
+        <p>گفت‌وگو و انتخاب شما نگه داشته می‌شود؛ پس از ورود، همین‌جا ادامه می‌دهیم -- نیازی به تأیید دوباره نیست.</p>
+        <div className="assistant-panel-actions">
+          <button className="button primary" type="button" onClick={goToLogin}>ورود</button>
+          <button className="button ghost" type="button" disabled={busy} onClick={cancelOrRollback}>انصراف</button>
+        </div>
+      </AssistantPanel>}
+      {pendingApproval && <AssistantPanel tone="warn">
+        <strong>تأیید رزرو موقت</strong>
+        <p>با تأیید شما، درخواست «رزرو موقت» (نه رزرو نهایی و نه پرداخت) برای گزینه انتخابی شما ثبت می‌شود.</p>
+        <div className="assistant-panel-actions">
+          <button className="button primary" type="button" disabled={busy} onClick={()=>run('تایید می‌کنم')}>تأیید و ادامه</button>
+          <button className="button ghost" type="button" disabled={busy} onClick={cancelOrRollback}>انصراف</button>
+        </div>
+      </AssistantPanel>}
+      {reservationResult && <AssistantPanel tone={reservationResult.status==='ok'?'ok':'error'}>
+        {reservationResult.status==='ok'
+          ? <><strong>رزرو موقت با موفقیت ثبت شد.</strong><p>این رزرو نهایی/پرداخت‌شده نیست. شناسه رزرو: {reservationResult.reservation_id ?? '—'}</p></>
+          : <><strong>رزرو انجام نشد.</strong><p>کد خطا: {reservationResult.error_code ?? 'نامشخص'}</p></>}
+        {reservationResult.status==='ok' && <div className="assistant-panel-actions">
+          <button className="button ghost" type="button" disabled={busy} onClick={cancelOrRollback}>لغو رزرو</button>
+        </div>}
+      </AssistantPanel>}
+      {releaseResult && <AssistantPanel tone={releaseResult.status==='ok'?'ok':'error'}>
+        {releaseResult.status==='ok' ? <strong>درخواست لغو رزرو ثبت شد.</strong> : <><strong>لغو رزرو انجام نشد.</strong><p>کد خطا: {releaseResult.error_code ?? 'نامشخص'}</p></>}
+      </AssistantPanel>}
+    </div>
+    <form className="chat-input" onSubmit={event=>{event.preventDefault();run(draft)}}>
+      <input value={draft} onChange={event=>setDraft(event.target.value)} placeholder="مثلاً: هتل کیش برای دو نفر آخر هفته" aria-label="پیام به دستیار هوشمند" disabled={busy} style={{flex:1,border:'none',outline:'none',background:'transparent',font:'inherit',color:'inherit'}}/>
+      <button type="submit" disabled={busy || !draft.trim()}>ارسال</button>
+    </form>
+  </section></div></Shell>;
+}
 function Organization(){return <Shell><div className="page-hero"><span className="eyebrow">داشبورد سازمانی</span><h1>ساختار و گردش تأیید سازمان</h1><p>نمای نقش‌محور با داده سازمان احرازشده.</p></div><ConnectedOrganization/></Shell>}
 function Employee(){return <Shell><EmployeePortal/></Shell>}
 function Dashboard({title,subtitle,tenant,employee}:{title:string;subtitle:string;tenant?:string;employee?:boolean}){return <div className="dashboard container"><div className="dashboard-title"><div><span className="eyebrow">{tenant?'داشبورد سازمانی':'داشبورد کارمند'}</span><h1>{title}</h1><p>{subtitle}</p></div><button className="button primary">{employee?'درخواست سفر جدید':'تعریف سیاست جدید'}</button></div><section className="metrics"><div><small>{employee?'اعتبار قابل مصرف':'بودجه تخصیص‌یافته'}</small><strong>{employee?'۴۸٬۰۰۰٬۰۰۰':'۳٬۲۰۰٬۰۰۰٬۰۰۰'} <em>ریال</em></strong><span>Mock · منبع server-side در محصول واقعی</span></div><div><small>{employee?'درخواست‌های من':'درخواست‌های در انتظار'}</small><strong>{employee?'۲':'۱۲'}</strong><span>{employee?'۱ نیازمند تأیید':'۶ مورد نزدیک به SLA'}</span></div><div><small>{employee?'سیاست فعال':'مصرف مطابق policy'}</small><strong>{employee?'سفر داخلی':'۹۴٪'}</strong><span>Mock</span></div></section><section className="dashboard-grid"><article className="panel"><div className="panel-head"><h3>{employee?'فعالیت‌های اخیر':'گردش تأیید'}</h3><span className="tag">Mock</span></div>{['اقامت تهران · در انتظار تأیید','تغییر سقف سفرهای داخلی','هتل زندیه · مطابق policy'].map((x,i)=><div className="activity" key={x}><span className={'status s'+i}></span><div><strong>{x}</strong><small>{i===0?'امروز، ۱۰:۲۵':'امروز، ۰۹:۴۰'}</small></div><button>مشاهده</button></div>)}</article><article className="panel"><div className="panel-head"><h3>{employee?'جزئیات اعتبار':'مصرف اعتبار براساس واحد'}</h3><span>Mock</span></div><div className="bar-list">{['فناوری','فروش','عملیات'].map((x,i)=><div key={x}><span>{x}</span><i><b style={{width:`${72-i*18}%`}}/></i><strong>{72-i*18}%</strong></div>)}</div></article></section></div>}

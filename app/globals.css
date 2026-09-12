@@ -301,3 +301,25 @@ html,body{font-family:'Vazirmatn',Tahoma,Arial,sans-serif;font-optical-sizing:au
 .jalali-grid button:hover,.jalali-grid button.is-selected{background:var(--fs-primary);color:#fff}
 .jalali-grid button:disabled{color:#c4b8bf;cursor:not-allowed}
 .jalali-target{display:block;color:var(--fs-muted);text-align:center;margin-top:6px}
+
+/* Phase 6: real Assistant integration -- approval / auth-required /
+   reservation-result / result-card surfaces. Reuses existing tokens
+   (--ink/--ocean/--line/.panel/.button/.tag) for visual consistency;
+   no new color system introduced. */
+.assistant-resume-banner{margin:0 22px 4px;padding:12px 14px;border-radius:12px;background:#eef7f4;color:var(--ink);font-size:13px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.assistant-panel{margin:0 22px 14px;padding:16px;font-size:13px}
+.assistant-panel strong{display:block;font-size:14px;margin-bottom:4px}
+.assistant-panel p{margin:0 0 8px;color:var(--muted)}
+.assistant-panel-warn{border-color:#f0c56b;background:#fffaf0}
+.assistant-panel-error{border-color:#e79a9a;background:#fff5f5}
+.assistant-panel-ok{border-color:#9bd4c9;background:#f2fbf8}
+.assistant-panel-actions{display:flex;gap:10px;flex-wrap:wrap}
+.assistant-inline-actions{margin:0 22px 14px}
+.assistant-message-error{background:#fff5f5!important;color:#8a2c2c!important}
+.assistant-results{margin:4px 22px 14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+.assistant-result-card{padding:14px;display:grid;gap:6px}
+.assistant-result-card h3{margin:0;font-size:14px}
+.assistant-result-card p{margin:0;color:var(--muted);font-size:13px}
+@media (max-width:760px){
+  .assistant-resume-banner,.assistant-panel,.assistant-inline-actions,.assistant-results{margin-left:12px;margin-right:12px}
+}

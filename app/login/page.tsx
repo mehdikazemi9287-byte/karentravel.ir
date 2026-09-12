@@ -1,8 +1,19 @@
 'use client';
-import { FormEvent, useState } from 'react';
+import { FormEvent, Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ApiError } from '../../lib/api/karenseir-client';
 import { useAuth } from '../../lib/api/auth-context';
 import { Shell } from '../page';
+
+// Phase 6: only a same-origin, in-app path (starting with a single "/") is
+// ever honored as a post-login destination -- an absolute or protocol-
+// relative value is refused so a crafted "?redirect=" query can never turn
+// this into an open redirect.
+function safeRedirectTarget(raw: string | null): string | null {
+  if (!raw) return null;
+  if (!raw.startsWith('/') || raw.startsWith('//')) return null;
+  return raw;
+}
 
 // Real public login entry point. Before this page existed, the site-wide "ورود /
 // ثبت‌نام" button (and every other "please sign in" prompt across the app) linked
@@ -20,7 +31,13 @@ import { Shell } from '../page';
 // (this button, the generic 401 gate, and the two anonymous-search-results CTAs)
 // now point here instead.
 export default function LoginPage() {
+  return <Suspense fallback={null}><LoginPageInner/></Suspense>;
+}
+
+function LoginPageInner() {
   const { requestOtp, verifyOtp } = useAuth();
+  const router = useRouter();
+  const redirectTarget = safeRedirectTarget(useSearchParams().get('redirect'));
   const [tenantSlug, setTenantSlug] = useState('');
   const [identifier, setIdentifier] = useState('');
   const [challengeId, setChallengeId] = useState('');
@@ -33,7 +50,14 @@ export default function LoginPage() {
   }
   async function verifyCode(event: FormEvent) {
     event.preventDefault();
-    try { await verifyOtp(tenantSlug, challengeId, otp); setMessage('ورود موفق بود.'); }
+    try {
+      await verifyOtp(tenantSlug, challengeId, otp);
+      // Phase 6: return the caller to whatever it was doing (e.g. the
+      // Assistant's pending action) instead of stranding them here --
+      // only ever a same-origin in-app path, never an external one.
+      if (redirectTarget) { router.push(redirectTarget); return; }
+      setMessage('ورود موفق بود.');
+    }
     catch (error) { setMessage(error instanceof ApiError ? error.message : 'کد ورود معتبر نیست.'); }
   }
   return <Shell>

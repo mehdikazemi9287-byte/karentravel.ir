@@ -19,7 +19,7 @@ from typing import Generator, Optional
 from urllib.parse import urlparse
 
 import jwt
-from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Query, Request, UploadFile, status
+from fastapi import Body, Depends, FastAPI, File, Form, Header, HTTPException, Query, Request, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse, Response
 from pydantic import BaseModel, ConfigDict, Field
@@ -1906,6 +1906,39 @@ async def search_v3_authenticated_gateway(data: UnifiedSearchIn, user: User = De
     if tenant is None:
         raise HTTPException(status_code=404, detail={"code": "TENANT_UNRESOLVED"})
     return await _search_service_call(data, public=False, tenant_ref=tenant.slug)
+
+
+_ASSISTANT_SERVICE_URL = os.getenv("ASSISTANT_SERVICE_URL", "http://karenseir-assistant:8080")
+
+
+@app.post("/assistant/message")
+async def assistant_message_gateway(payload: dict = Body(...), authorization: Optional[str] = Header(default=None),
+                                     x_correlation_id: Optional[str] = Header(default=None)) -> JSONResponse:
+    """Phase 6: transparent gateway to karenseir-assistant, mirroring the
+    /search/v3 pattern (the browser never reaches an internal service port
+    directly). Unlike /search/v3, this does NOT resolve identity here and
+    is NOT gated behind current_user -- Assistant must keep working for
+    anonymous callers (public search/planning/conversation). The caller's
+    raw Authorization header, if present, is forwarded byte-for-byte and
+    otherwise untouched: this gateway never decodes, logs, or persists it.
+    karenseir-assistant forwards that same header, per request only, to
+    this monolith's own commerce endpoints, where current_user performs
+    the real verification (assistant-service Phase 5)."""
+    import httpx
+    corr = x_correlation_id or str(uuid.uuid4())
+    headers = {"X-Correlation-ID": corr}
+    if authorization:
+        headers["Authorization"] = authorization
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.post(f"{_ASSISTANT_SERVICE_URL}/v1/conversation/message", json=payload, headers=headers)
+    except httpx.HTTPError:
+        raise HTTPException(status_code=503, detail={"code": "ASSISTANT_SERVICE_UNAVAILABLE", "correlation_id": corr})
+    try:
+        content = resp.json()
+    except Exception:
+        content = {"detail": resp.text[:500]}
+    return JSONResponse(status_code=resp.status_code, content=content)
 
 
 @app.get("/search/recent")

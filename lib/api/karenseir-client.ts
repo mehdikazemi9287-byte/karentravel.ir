@@ -69,6 +69,14 @@ export class KarenSeirApi {
   async put<T>(path: string, body: unknown) {
     return this.request<T>(path, { method: 'PUT', body: JSON.stringify(body) });
   }
+  // Phase 6 (Assistant): the token is attached WHEN a session exists, but a
+  // missing session never throws -- unlike `post`, which requires one. This
+  // is the one shape Assistant's own contract needs: anonymous callers must
+  // keep working, and an already-logged-in caller's identity should still
+  // be forwarded on every call without the caller having to ask for it.
+  async postOptionalAuth<T>(path: string, body: unknown) {
+    return this.request<T>(path, { method: 'POST', body: JSON.stringify(body) }, 'optional');
+  }
   async postAudio<T>(path: string, blob: Blob, filename: string) {
     const form = new FormData();
     form.append('audio', blob, filename);
@@ -91,16 +99,18 @@ export class KarenSeirApi {
     this.setSession({ ...this.session, ...next });
   }
 
-  private async request<T>(path: string, init: RequestInit = {}, authenticated = true, retry = true, isMultipart = false): Promise<T> {
+  private async request<T>(path: string, init: RequestInit = {}, authenticated: boolean | 'optional' = true, retry = true, isMultipart = false): Promise<T> {
     const headers = new Headers(init.headers);
     if (!isMultipart) headers.set('Content-Type', 'application/json');
     headers.set('X-Correlation-ID', newId());
-    if (authenticated) {
+    if (authenticated === true) {
       if (!this.session) throw new ApiError(401, 'برای ادامه وارد شوید.');
+      headers.set('Authorization', `Bearer ${this.session.access_token}`);
+    } else if (authenticated === 'optional' && this.session) {
       headers.set('Authorization', `Bearer ${this.session.access_token}`);
     }
     const response = await fetch(`${this.baseUrl}${path}`, { ...init, headers });
-    if (response.status === 401 && authenticated && retry && this.session?.refresh_token) {
+    if (response.status === 401 && authenticated === true && retry && this.session?.refresh_token) {
       await this.refresh();
       return this.request<T>(path, init, true, false, isMultipart);
     }
