@@ -107,7 +107,7 @@ function FloatingAssistant(){
 function Home(){return <div className="home-page"><HomeHeader/><main><ReferenceHero/><HomeServicesHub/><DestinationMosaic/><ReferenceTrips/><SmartCompanion/><CompareBand/><LocalExperiences/><ReferenceOrganization/><TrustSection/><ServiceRibbon/></main><HomeMobileNav/><ReferenceFooter/><FloatingAssistant/></div>}
 function Hotels(){return <Shell><div className="page-hero"><span className="eyebrow">اقامت · داده نمایشی</span><h1>هتل را با معیارهای واقعی‌تر انتخاب کنید.</h1><p>قیمت و موجودی زیر صرفاً برای نمایش Prototype هستند و قابل رزرو واقعی نیستند.</p></div><div className="container results"><aside className="filters"><strong>فیلترها</strong>{['بازه قیمت','امتیاز مهمانان','سیاست سازمان','امکانات','قوانین کنسلی'].map(x=><button key={x}>{x}<span>⌄</span></button>)}</aside><section><div className="result-bar"><span>۳ گزینه Mock برای تهران</span><Link href="/compare" className="button primary">مقایسه ۳ گزینه</Link></div><div className="result-list">{hotels.map(h=><HotelCard hotel={h} compact key={h.name}/>)}</div></section></div></Shell>}
 function Compare(){return <Shell><div className="page-hero"><span className="eyebrow">مقایسه حرفه‌ای · داده معتبر</span><h1>تفاوت‌ها را یک‌جا ببینید.</h1><p>امتیاز و معیارها فقط از Offerهای معتبر سازمان احرازشده محاسبه می‌شوند.</p><p className="mt-2 text-sm"><a className="text-link" href="/compare/package">مقایسه و رزرو بسته پرواز + هتل ←</a></p></div><ConnectedCompare/></Shell>}
-const policyIntents=['هتل کیش برای دو نفر آخر هفته','پرواز تهران مشهد جمعه','ارزون‌ترین گزینه رو نشون بده','می‌خوام کنسل کنم','با یک نفر صحبت کنم'];
+const policyIntents=['هتل کیش برای دو نفر یک اتاق','پرواز تهران استانبول جمعه تا دوشنبه','ارزون‌ترین گزینه رو نشون بده','می‌خوام کنسل کنم','با یک نفر صحبت کنم'];
 
 function formatOfferPrice(entity: AssistantEntity): string {
   const price = entity.best_offer?.final_price ?? entity.price;
@@ -146,15 +146,28 @@ function AssistantPanel({ children, tone }: { children: React.ReactNode; tone: '
 function Assistant(){
   const router = useRouter();
   const { api, session } = useAuth();
-  const [messages, setMessages] = useState<AssistantChatMessage[]>(() => (typeof window === 'undefined' ? [] : loadStoredMessages()));
-  const [conversationId, setConversationId] = useState<string | null>(() => (typeof window === 'undefined' ? null : loadConversationId()));
+  // Server-rendered HTML has no sessionStorage, so state MUST start from the
+  // same SSR-safe default on both server and client (an empty transcript) --
+  // reading sessionStorage inside a useState initializer would make the
+  // client's first paint differ from the server's and trigger a hydration
+  // mismatch (React error #418). Restoring the saved conversation happens
+  // only inside this effect, after hydration -- the same pattern this app's
+  // own auth-context.tsx already uses for restoring the session.
+  const [messages, setMessages] = useState<AssistantChatMessage[]>([]);
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resumeAvailable, setResumeAvailable] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
 
+  useEffect(() => {
+    setConversationId(loadConversationId());
+    setMessages(loadStoredMessages());
+    setHydrated(true);
+  }, []);
   useEffect(() => { if (session && consumeResumePending()) setResumeAvailable(true); }, [session]);
-  useEffect(() => { saveStoredMessages(messages); }, [messages]);
+  useEffect(() => { if (hydrated) saveStoredMessages(messages); }, [hydrated, messages]);
 
   const lastAssistantData: AssistantReplyData | undefined = [...messages].reverse().find(m => m.role === 'assistant')?.data;
 
@@ -249,7 +262,7 @@ function Assistant(){
       </AssistantPanel>}
     </div>
     <form className="chat-input" onSubmit={event=>{event.preventDefault();run(draft)}}>
-      <input value={draft} onChange={event=>setDraft(event.target.value)} placeholder="مثلاً: هتل کیش برای دو نفر آخر هفته" aria-label="پیام به دستیار هوشمند" disabled={busy} style={{flex:1,border:'none',outline:'none',background:'transparent',font:'inherit',color:'inherit'}}/>
+      <input value={draft} onChange={event=>setDraft(event.target.value)} placeholder="مثلاً: هتل کیش برای دو نفر یک اتاق" aria-label="پیام به دستیار هوشمند" disabled={busy} style={{flex:1,border:'none',outline:'none',background:'transparent',font:'inherit',color:'inherit'}}/>
       <button type="submit" disabled={busy || !draft.trim()}>ارسال</button>
     </form>
   </section></div></Shell>;
