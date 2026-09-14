@@ -57,6 +57,12 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(160), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(160))
     role: Mapped[str] = mapped_column(String(48))
+    # Canonical E.164 mobile (+989xxxxxxxxx), nullable/additive: an existing
+    # account with no mobile on file simply cannot receive a real SMS OTP
+    # yet (same as today) -- email-identified OTP lookup keeps working
+    # unchanged. Unique only among non-null values (standard SQL null
+    # semantics), matching the existing `email` uniqueness convention.
+    mobile_e164: Mapped[Optional[str]] = mapped_column(String(16), unique=True, index=True, nullable=True)
 class Hotel(Base):
     __tablename__ = "hotels"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -616,23 +622,45 @@ def request_otp(data: OTPRequestIn, request: Request, db: Session = Depends(get_
         _secure_hash(f"{generic_id}:000000")
         return {"status": "accepted", "challenge_id": generic_id, "expires_in": 300}
     set_tenant_context(db, tenant.id)
-    identifier = data.identifier.strip().lower()
-    user = db.scalar(select(User).where(User.tenant_id == tenant.id, User.email == identifier))
+    identifier = data.identifier.strip()
+    # Dual-mode, shape-based dispatch (never ambiguous: a string either
+    # normalizes as a real Iranian mobile number or it doesn't). This is
+    # the backward-compatible option the mobile-OTP integration calls for:
+    # the request contract (`identifier`) is unchanged, but a mobile-shaped
+    # value now resolves against the real, canonical mobile_e164 column
+    # instead of email -- existing email-identified accounts keep working
+    # exactly as before.
+    from .kavenegar_adapter import normalize_iranian_mobile as _normalize_mobile_receptor
+    mobile_receptor = _normalize_mobile_receptor(identifier)
+    if mobile_receptor:
+        user = db.scalar(select(User).where(User.tenant_id == tenant.id, User.mobile_e164 == f"+{mobile_receptor}"))
+    else:
+        user = db.scalar(select(User).where(User.tenant_id == tenant.id, User.email == identifier.lower()))
     if user is None:
         _secure_hash(f"{generic_id}:000000")
         return {"status": "accepted", "challenge_id": generic_id, "expires_in": 300}
+    # A real account with no mobile on file yet is NOT gated here -- it
+    # falls through to the existing "delivery failed" path below exactly
+    # like any other provider-side failure (invalid_receptor on an empty
+    # destination), which already responds with the same enumeration-safe
+    # generic "accepted". This keeps the externally-visible behavior
+    # identical for legacy accounts while never inventing a new code path.
     auth_state = db.scalar(select(operational_models.AuthenticationState).where(operational_models.AuthenticationState.tenant_id == tenant.id, operational_models.AuthenticationState.user_id == user.id).with_for_update())
     now = datetime.now(timezone.utc)
     if auth_state and auth_state.locked_until and _aware(auth_state.locked_until) > now:
         return {"status": "accepted", "challenge_id": generic_id, "expires_in": 300}
     code = f"{secrets.randbelow(1_000_000):06d}"
-    challenge = operational_models.OTPChallenge(tenant_id=tenant.id, user_id=user.id, identifier_hash=_secure_hash(identifier), code_hash="pending", expires_at=now + timedelta(minutes=5))
+    challenge = operational_models.OTPChallenge(tenant_id=tenant.id, user_id=user.id, identifier_hash=_secure_hash(identifier.lower()), code_hash="pending", expires_at=now + timedelta(minutes=5))
     db.add(challenge); db.flush()
     challenge.code_hash = _secure_hash(f"{challenge.id}:{code}")
     context = operational_models.uuid4_str()
     from .providers import ADAPTERS, ProviderContext
     try:
-        delivery = ADAPTERS["otp"].execute("send_otp", {"destination_reference": identifier, "code": code}, ProviderContext(tenant_id=tenant.id, correlation_id=context, idempotency_key=f"otp:{challenge.id}"))
+        # Only the account's own stored, validated mobile_e164 is ever
+        # forwarded as the SMS destination -- never the raw request
+        # `identifier`, so an email string can never reach the provider
+        # even if a future caller mistakenly submitted one as "mobile".
+        delivery = ADAPTERS["otp"].execute("send_otp", {"destination_reference": user.mobile_e164 or "", "code": code}, ProviderContext(tenant_id=tenant.id, correlation_id=context, idempotency_key=f"otp:{challenge.id}"))
     except Exception:
         logging.getLogger("karenseir.otp").exception("otp_provider_unavailable", extra={"correlation_id": context, "status": 503})
         db.rollback()
