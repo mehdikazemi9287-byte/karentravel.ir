@@ -296,6 +296,13 @@ def configured_adapter(key: str) -> IntegrationAdapter:
         from .grs_contract import GRSConfig
         from .grs_adapter import GRSAdapter
         return GRSAdapter(config=GRSConfig.from_env())
+    if key == "otp" and os.getenv("KARENSEIR_SMS_PROVIDER", "") == "kavenegar":
+        from .kavenegar_adapter import KavenegarSmsOtpProvider
+        return KavenegarSmsOtpProvider(
+            api_key=os.getenv("KAVENEGAR_API_KEY", ""),
+            template=os.getenv("KAVENEGAR_OTP_TEMPLATE", ""),
+            sender=os.getenv("KAVENEGAR_SENDER", ""),
+        )
     mode = configured_mode(key)
     if mode in {"disabled", "mock"}:
         return DisabledMockAdapter(key, mode=mode)
@@ -310,6 +317,10 @@ def _resilient(adapter: IntegrationAdapter) -> ResilientAdapter:
     return ResilientAdapter(adapter, redis_url=_resilience_url, rate_limit=max(1, limit))
 
 ADAPTERS = {key: _resilient(configured_adapter(key)) for key in ("flight", "hotel", "tour_hotel", "train", "payment", "email", "supplier_inventory", "voucher_issuance")}
-ADAPTERS["otp"] = _resilient(configured_adapter("otp") if configured_mode("otp") == "sandbox" else OTPAdapter("otp", mode=configured_mode("otp")))
+ADAPTERS["otp"] = _resilient(
+    configured_adapter("otp")
+    if configured_mode("otp") == "sandbox" or os.getenv("KARENSEIR_SMS_PROVIDER", "") == "kavenegar"
+    else OTPAdapter("otp", mode=configured_mode("otp"))
+)
 ADAPTERS["sms"] = _resilient(configured_adapter("sms") if configured_mode("sms") == "sandbox" else NotificationAdapter("sms", mode=configured_mode("sms")))
 ADAPTERS["push"] = _resilient(configured_adapter("push") if configured_mode("push") == "sandbox" else NotificationAdapter("push", mode=configured_mode("push")))
