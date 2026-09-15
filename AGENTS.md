@@ -1,5 +1,19 @@
 # Working Agreement
 
+## MASTER SUPERVISOR — چارچوب نهایی
+
+قواعد مشترک و تعریف کامل شش نقش در [agent-framework/MASTER_RULES.md](agent-framework/MASTER_RULES.md)
+قرار دارند؛ خواندن و اعمال آن فایل در شروع Task الزامی است. این بخش و قواعد مادر،
+طبق دستور جدید کاربر، بر قواعد متعارض قدیمی همین فایل مقدم‌اند؛ سایر قواعد قبلی حفظ می‌شوند.
+MASTER SUPERVISOR همان Supervisor موجود و حاکم بر Backend، Frontend، QA، DevOps،
+Security و Research / Integration است؛ نقش جدید مدیریتی موازی ایجاد نمی‌شود.
+
+**استثنای Source/Production:** عدم تطابق قطعی برای application/runtime/deployment/DB/infra
+موجب STOP + REPORT است؛ برای AGENTS.md، تعریف Agent، template، مستندات و configuration
+صرفاً مدیریتی مانع نیست. این استثنا هیچ مجوز تغییر runtime یا Production نمی‌دهد.
+قواعد اختصاصی Karen Travel در ادامه همین فایل باقی می‌مانند؛ قواعد مشترک بدون اتصال
+کد، دیتابیس یا زیرساخت پروژه‌ها قابل استفاده‌اند. Bootstrap فقط پیکربندی Agent تولید می‌کند.
+
 ## Karen Travel — دستور دائمی Supervisor
 
 این قواعد برای همین پروژه Karen Travel در مسیر `/home/ubuntu/karenseir-current`
