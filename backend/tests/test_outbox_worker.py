@@ -1,13 +1,32 @@
 import json
 import uuid
 
-from sqlalchemy import select
+import pytest
+from sqlalchemy import delete, select
 
 from app.database import SessionLocal
 from app.main import User
 from app.operations import NotificationDeliveryAttempt, NotificationRecord, OutboxEvent
 from app.outbox_worker import process_batch
 from datetime import datetime, timedelta, timezone
+
+
+@pytest.fixture(autouse=True)
+def _isolate_outbox_state():
+    # The backend test suite uses one shared database per pytest session, so
+    # these worker tests must clear prior outbox/notification rows explicitly
+    # to avoid depending on suite order or batch-size side effects.
+    with SessionLocal() as db:
+        db.execute(delete(NotificationDeliveryAttempt))
+        db.execute(delete(NotificationRecord))
+        db.execute(delete(OutboxEvent))
+        db.commit()
+    yield
+    with SessionLocal() as db:
+        db.execute(delete(NotificationDeliveryAttempt))
+        db.execute(delete(NotificationRecord))
+        db.execute(delete(OutboxEvent))
+        db.commit()
 
 
 def _seed_user():
