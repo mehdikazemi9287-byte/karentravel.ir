@@ -1,6 +1,7 @@
 import json
 import uuid
 
+import pytest
 from sqlalchemy import select
 
 from app.database import SessionLocal
@@ -8,6 +9,29 @@ from app.main import User
 from app.operations import NotificationDeliveryAttempt, NotificationRecord, OutboxEvent
 from app.outbox_worker import process_batch
 from datetime import datetime, timedelta, timezone
+
+
+@pytest.fixture(autouse=True)
+def _isolated_outbox_state():
+    """Every test in this file asserts exact attempts/status accounting for the
+    single OutboxEvent it just created, via process_batch()'s default limit=50.
+    The test database is only reset once per pytest session (conftest.py's
+    pytest_sessionstart), so other test files' booking/trip-event side effects
+    leave hundreds of never-cleaned, still-due OutboxEvent rows behind (measured:
+    232 leftover pending/retry rows by the time this file runs in a full-suite
+    run). Those outrank a freshly created attempts=0 event under process_batch's
+    `order_by(attempts.desc(), available_at, created_at).limit(50)` priority
+    ordering, starving this file's own event out of the batch and making these
+    tests fail depending on suite run order/volume rather than on outbox_worker
+    behavior. Clearing only the two tables these tests own, before each test,
+    removes that cross-file coupling without touching process_batch() or any
+    other file's data.
+    """
+    with SessionLocal() as db:
+        db.query(NotificationDeliveryAttempt).delete()
+        db.query(OutboxEvent).delete()
+        db.commit()
+    yield
 
 
 def _seed_user():
