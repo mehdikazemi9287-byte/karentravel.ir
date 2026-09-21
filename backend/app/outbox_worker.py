@@ -12,7 +12,7 @@ from sqlalchemy import func, select
 from . import main as _main_models  # noqa: F401 - register FK target metadata in worker process
 from .database import SessionLocal
 from .observability import configure_logging, prometheus_metrics, set_gauge
-from .operations import NotificationDeliveryAttempt, NotificationRecord, OutboxEvent
+from .operations import NotificationDeliveryAttempt, NotificationRecord, OutboxEvent, sweep_expired_reservations
 from .providers import ADAPTERS, ProviderContext
 
 logger = logging.getLogger("karenseir.outbox")
@@ -105,12 +105,28 @@ def start_status_server() -> ThreadingHTTPServer:
     return server
 
 
+def sweep_reservations_once() -> int:
+    with SessionLocal() as db:
+        expired = sweep_expired_reservations(db)
+    if expired:
+        logger.info("reservation_reaper", extra={"expired": len(expired)})
+    return len(expired)
+
+
 def run() -> None:
     configure_logging()
     start_status_server()
+    tick = 0
     while True:
         count = process_batch()
         logger.info("outbox_batch", extra={"processed": count})
+        # Reservation reaper runs far less often than outbox delivery --
+        # every ~12th tick (roughly once every 1-3 minutes depending on
+        # backlog) is plenty for a 30-minute hold window and avoids an
+        # extra full table scan on every 5s loop.
+        tick += 1
+        if tick % 12 == 0:
+            sweep_reservations_once()
         time.sleep(5 if count else 15)
 
 

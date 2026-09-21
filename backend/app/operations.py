@@ -1086,6 +1086,35 @@ def transition_reservation(db: Session, reservation: Reservation, target: str, a
     return reservation
 
 
+RESERVATION_HOLD_MINUTES = 30
+
+
+def sweep_expired_reservations(db: Session, *, now: Optional[datetime] = None, hold_minutes: int = RESERVATION_HOLD_MINUTES) -> list[str]:
+    """Expire reservations abandoned before payment/confirmation and release the
+    Offer inventory they held. Intended to run from the worker process (BYPASSRLS
+    role) on a periodic cadence, scanning across tenants like the outbox worker
+    does. Idempotent per reservation via transition_reservation()'s own guard;
+    a reservation that already expired is simply not selected again."""
+    now = now or utcnow()
+    cutoff = now - timedelta(minutes=hold_minutes)
+    stale = db.scalars(select(Reservation).where(Reservation.status.in_(["reserved", "awaiting_payment"]), Reservation.updated_at < cutoff).with_for_update(skip_locked=True)).all()
+    expired_ids: list[str] = []
+    for reservation in stale:
+        transition_reservation(db, reservation, "expired", actor_id=None, command_id=f"reaper:{reservation.id}")
+        if reservation.status != "expired":
+            continue
+        if reservation.price_check_id:
+            check = db.get(PriceCheck, reservation.price_check_id)
+            if check is not None:
+                offer = db.get(Offer, check.offer_id)
+                if offer is not None:
+                    offer.available_units += check.units
+        expired_ids.append(reservation.id)
+    if expired_ids:
+        db.commit()
+    return expired_ids
+
+
 def post_ledger(db: Session, *, tenant_id: int, wallet_id: Optional[str] = None, credit_account_id: Optional[str] = None, command_id: str, entry_type: str, amount: int, reservation_id: Optional[str] = None, reversal_of_id: Optional[str] = None) -> FinancialLedgerEntry:
     if bool(wallet_id) == bool(credit_account_id):
         raise ValueError("ledger entry must reference exactly one of wallet_id or credit_account_id")
