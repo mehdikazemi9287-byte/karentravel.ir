@@ -5,7 +5,7 @@ import pytest
 from sqlalchemy import func, select
 
 from app.main import SessionLocal, User
-from app.operations import BookingStatusHistory, Offer, PaymentIntent, RefundRecord, Reservation, Supplier, Voucher
+from app.operations import BookingStatusHistory, Offer, PaymentIntent, RefundRecord, Reservation, Supplier, SupplierMembership, Voucher
 
 
 def auth(token):
@@ -22,7 +22,9 @@ def active_supplier():
     with SessionLocal() as db:
         user = db.scalar(select(User).where(User.email == "supplier@aftab.test"))
         supplier = Supplier(tenant_id=user.tenant_id, supplier_type="travel", display_name="تأمین‌کننده آزمون", status="active")
-        db.add(supplier); db.commit()
+        db.add(supplier); db.flush()
+        db.add(SupplierMembership(tenant_id=user.tenant_id, user_id=user.id, supplier_id=supplier.id, role="owner"))
+        db.commit()
         return supplier.id
 
 

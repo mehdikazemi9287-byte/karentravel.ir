@@ -1,6 +1,7 @@
 import json
 import uuid
 
+import pytest
 from sqlalchemy import select
 
 from app.database import SessionLocal
@@ -8,6 +9,21 @@ from app.main import User
 from app.operations import NotificationDeliveryAttempt, NotificationRecord, OutboxEvent
 from app.outbox_worker import process_batch
 from datetime import datetime, timedelta, timezone
+
+
+@pytest.fixture(autouse=True)
+def _isolate_outbox_tables():
+    # This file asserts exact attempts/status values for freshly-created
+    # OutboxEvent rows. The test database is reset once per pytest session,
+    # not per test, so leftover rows from other test files' booking/trip
+    # side effects can outrank a fresh event in process_batch()'s ordering
+    # and push it out of the batch. Scope cleanup to only the two tables
+    # this file owns.
+    with SessionLocal() as db:
+        db.query(NotificationDeliveryAttempt).delete()
+        db.query(OutboxEvent).delete()
+        db.commit()
+    yield
 
 
 def _seed_user():
