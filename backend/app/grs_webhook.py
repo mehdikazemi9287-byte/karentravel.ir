@@ -134,7 +134,7 @@ def process_webhook_event(db: Session, event: ProviderWebhookEvent) -> WebhookPr
 
     if decision.target_status is not None:
         try:
-            transition_reservation(db, reservation, decision.target_status, actor_id=0, command_id=f"webhook:{event.id}")
+            transition_reservation(db, reservation, decision.target_status, actor_id=None, command_id=f"webhook:{event.id}")
         except ValueError:
             # Out-of-order event trying an already-superseded transition -
             # never applied, never regresses a newer state.

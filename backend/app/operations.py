@@ -631,7 +631,7 @@ class BookingStatusHistory(OperationalMixin, Base):
     reservation_id: Mapped[str] = mapped_column(ForeignKey("reservations.id"), index=True)
     from_status: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     to_status: Mapped[str] = mapped_column(String(32), index=True)
-    actor_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    actor_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
     command_id: Mapped[str] = mapped_column(String(120))
     reason: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     __table_args__ = (UniqueConstraint("tenant_id", "command_id", name="uq_booking_history_command"),)
@@ -1062,7 +1062,7 @@ def record_trip_event(db: Session, *, tenant_id: int, trip_id: str, event_key: s
     ingest_trip_event(db, TripEventRecord(tenant_id=tenant_id, trip_id=trip_id, reservation_id=reservation_id, event_key=event_key, event_type=event_type, source=source, title=title, message=message, severity=severity, requires_action=requires_action, effective_at=utcnow(), deep_link=deep_link))
 
 
-def transition_reservation(db: Session, reservation: Reservation, target: str, actor_id: int, command_id: str) -> Reservation:
+def transition_reservation(db: Session, reservation: Reservation, target: str, actor_id: Optional[int], command_id: str) -> Reservation:
     prior = next((item for item in db.new if isinstance(item, IdempotencyKey) and item.tenant_id == reservation.tenant_id and item.scope == "reservation.transition" and item.key == command_id), None)
     if prior is None:
         prior = db.scalar(select(IdempotencyKey).where(IdempotencyKey.tenant_id == reservation.tenant_id, IdempotencyKey.scope == "reservation.transition", IdempotencyKey.key == command_id))
