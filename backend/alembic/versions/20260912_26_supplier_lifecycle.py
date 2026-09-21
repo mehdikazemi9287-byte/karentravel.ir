@@ -9,8 +9,14 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column("suppliers", sa.Column("lifecycle_status", sa.String(length=32), nullable=False, server_default="UNSELECTED"))
-    op.create_index("ix_suppliers_lifecycle_status", "suppliers", ["lifecycle_status"])
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    existing_cols = {c["name"] for c in inspector.get_columns("suppliers")}
+    if "lifecycle_status" not in existing_cols:
+        op.add_column("suppliers", sa.Column("lifecycle_status", sa.String(length=32), nullable=False, server_default="UNSELECTED"))
+    existing_indexes = {i["name"] for i in inspector.get_indexes("suppliers")}
+    if "ix_suppliers_lifecycle_status" not in existing_indexes:
+        op.create_index("ix_suppliers_lifecycle_status", "suppliers", ["lifecycle_status"])
 
 
 def downgrade() -> None:
