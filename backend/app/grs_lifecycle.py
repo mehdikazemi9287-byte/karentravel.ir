@@ -15,6 +15,7 @@ been sent to a real endpoint.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import uuid
 from dataclasses import dataclass
@@ -111,7 +112,7 @@ def reserve_with_grs(
     """Calls GRS reserve for an existing draft/pending Reservation. Never
     guesses on ambiguous outcomes - opens a reconciliation case instead."""
     _authorize(actor, reservation, "reservation:create")
-    request_hash = json.dumps(dict(reserve_payload), sort_keys=True)
+    request_hash = hashlib.sha256(json.dumps(dict(reserve_payload), sort_keys=True).encode("utf-8")).hexdigest()
     cached = _idempotent_guard(db, tenant_id=reservation.tenant_id, scope="grs.reserve", key=command_id, request_hash=request_hash)
     if cached is not None:
         return GRSReserveOutcome(ok=cached.get("ok", False), reservation=reservation,
