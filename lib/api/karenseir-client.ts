@@ -42,6 +42,10 @@ export class KarenSeirApi {
     return this.request<{ status: string; challenge_id: string; expires_in: number }>('/auth/otp/request', { method: 'POST', body: JSON.stringify({ tenant_slug, identifier }) }, false);
   }
 
+  async register(mobile: string, name?: string) {
+    return this.request<{ status: string; challenge_id: string; expires_in: number; tenant_slug: string }>('/auth/register/request', { method: 'POST', body: JSON.stringify({ mobile, name }) }, false);
+  }
+
   async verifyOtp(tenant_slug: string, challenge_id: string, code: string) {
     const session = await this.request<AuthSession>('/auth/otp/verify', { method: 'POST', body: JSON.stringify({ tenant_slug, challenge_id, code, device_id: this.deviceId }) }, false);
     this.setSession(session);

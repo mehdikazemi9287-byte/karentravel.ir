@@ -8,6 +8,7 @@ type AuthContextValue = {
   session: AuthSession | null;
   devLogin(email: string): Promise<AuthSession>;
   requestOtp(tenant: string, identifier: string): ReturnType<KarenSeirApi['requestOtp']>;
+  register(mobile: string, name?: string): ReturnType<KarenSeirApi['register']>;
   verifyOtp(tenant: string, challenge: string, code: string): Promise<AuthSession>;
   logout(): Promise<void>;
 };
@@ -22,6 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     api, session,
     async devLogin(email) { const next = await api.devLogin(email); setSession(next); return next; },
     requestOtp(tenant, identifier) { return api.requestOtp(tenant, identifier); },
+    register(mobile, name) { return api.register(mobile, name); },
     async verifyOtp(tenant, challenge, code) { const next = await api.verifyOtp(tenant, challenge, code); setSession(next); return next; },
     async logout() { await api.logout(); setSession(null); },
   }), [api, session]);
