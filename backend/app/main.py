@@ -24,6 +24,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse, Response
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, Text, func, select, text, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from .config import read_secret
@@ -109,7 +110,7 @@ def get_db() -> Generator[Session, None, None]:
     try: yield db
     finally: db.close()
 def seed(db: Session) -> None:
-    if db.scalar(select(Tenant.id).limit(1)): return
+    if db.scalar(select(Tenant.id).where(Tenant.slug == "aftab-bank").limit(1)): return
     a, b = Tenant(slug="aftab-bank", name="بانک آفتاب", primary_color="#0E7490"), Tenant(slug="faraz-industries", name="صنایع فراز", primary_color="#B65C2D")
     db.add_all([a,b]); db.flush()
     db.add_all([
@@ -138,6 +139,7 @@ class ServiceRequestIn(BaseModel): request_type: str = Field(pattern="^(cancel|c
 class RefreshIn(BaseModel): refresh_token: str = Field(min_length=32, max_length=512); device_id: Optional[str] = Field(default=None, min_length=8, max_length=200)
 class OTPRequestIn(BaseModel): tenant_slug: str = Field(min_length=2, max_length=64); identifier: str = Field(min_length=3, max_length=160)
 class OTPVerifyIn(BaseModel): tenant_slug: str = Field(min_length=2, max_length=64); challenge_id: str = Field(min_length=36, max_length=36); code: str = Field(pattern=r"^\d{6}$"); device_id: str = Field(min_length=8, max_length=200)
+class RegisterRequestIn(BaseModel): mobile: str = Field(min_length=8, max_length=20); name: Optional[str] = Field(default=None, min_length=2, max_length=160)
 class LogoutIn(BaseModel): refresh_token: str = Field(min_length=32, max_length=512)
 class CreditCommandIn(BaseModel): command_id: str = Field(min_length=8, max_length=120); entry_type: str = Field(pattern="^(allocate|reserve|capture|release|reverse_capture)$"); amount: int = Field(gt=0)
 class ApprovalDecisionIn(BaseModel): decision: str = Field(pattern="^(approve|reject)$"); rejection_reason: Optional[str] = Field(default=None, max_length=500)
@@ -676,6 +678,73 @@ def request_otp(data: OTPRequestIn, request: Request, db: Session = Depends(get_
     db.commit()
     record_business_event("otp", "requested")
     return {"status": "accepted", "challenge_id": challenge.id, "expires_in": 300}
+
+
+CONSUMER_TENANT_SLUG = "karenseir-consumer"
+
+
+@app.post("/auth/register/request", status_code=status.HTTP_202_ACCEPTED)
+def register_request(data: RegisterRequestIn, request: Request, db: Session = Depends(get_db)) -> dict:
+    """Public B2C self-service registration. Assigns new individual customers
+    to the fixed consumer tenant only -- never organization/supplier/agency/
+    staff/admin roles, which remain separately provisioned. A mobile already
+    on file (in ANY tenant) never gets a second account: this reuses the
+    existing OTPChallenge + /auth/otp/verify flow unchanged, so a repeat
+    request is just a normal login OTP for the account that already exists."""
+    generic_id = str(uuid.uuid4())
+    from .kavenegar_adapter import normalize_iranian_mobile as _normalize_mobile_receptor
+    mobile_receptor = _normalize_mobile_receptor(data.mobile)
+    if mobile_receptor is None:
+        raise HTTPException(status_code=422, detail="شماره موبایل معتبر نیست")
+    mobile_e164 = f"+{mobile_receptor}"
+    tenant = db.scalar(select(Tenant).where(Tenant.slug == CONSUMER_TENANT_SLUG))
+    if tenant is None:
+        # Lazily create the fixed consumer tenant on first use rather than
+        # via a migration: a migration-inserted row would grab a low
+        # auto-increment id ahead of seed()'s demo tenants on any fresh
+        # database, shifting ids other tests/code may assume are stable.
+        tenant = Tenant(slug=CONSUMER_TENANT_SLUG, name="مشتریان کارن‌سیر", primary_color="#0E7490")
+        db.add(tenant)
+        try:
+            db.flush()
+        except IntegrityError:
+            db.rollback()
+            tenant = db.scalar(select(Tenant).where(Tenant.slug == CONSUMER_TENANT_SLUG))
+    set_tenant_context(db, tenant.id)
+    user = db.scalar(select(User).where(User.tenant_id == tenant.id, User.mobile_e164 == mobile_e164))
+    if user is None:
+        user = User(tenant_id=tenant.id, email=f"{mobile_receptor}@mobile.karenseir.local", name=(data.name or "مشتری کارن‌سیر"), role="customer", mobile_e164=mobile_e164)
+        db.add(user)
+        try:
+            db.flush()
+        except IntegrityError:
+            # mobile_e164 is globally unique -- someone else (a different
+            # tenant's staff/org account) already holds this number. Never
+            # create a duplicate and never reveal that here (enumeration-safe).
+            db.rollback()
+            _secure_hash(f"{generic_id}:000000")
+            return {"status": "accepted", "challenge_id": generic_id, "expires_in": 300}
+    code = f"{secrets.randbelow(1_000_000):06d}"
+    challenge = operational_models.OTPChallenge(tenant_id=tenant.id, user_id=user.id, identifier_hash=_secure_hash(mobile_e164.lower()), code_hash="pending", expires_at=datetime.now(timezone.utc) + timedelta(minutes=5))
+    db.add(challenge); db.flush()
+    challenge.code_hash = _secure_hash(f"{challenge.id}:{code}")
+    context = operational_models.uuid4_str()
+    from .providers import ADAPTERS, ProviderContext
+    try:
+        delivery = ADAPTERS["otp"].execute("send_otp", {"destination_reference": user.mobile_e164 or "", "code": code}, ProviderContext(tenant_id=tenant.id, correlation_id=context, idempotency_key=f"otp:{challenge.id}"))
+    except Exception:
+        logging.getLogger("karenseir.otp").exception("otp_provider_unavailable", extra={"correlation_id": context, "status": 503})
+        db.rollback()
+        record_business_event("register", "delivery_failed")
+        return {"status": "accepted", "challenge_id": generic_id, "expires_in": 300}
+    if not delivery.get("ok"):
+        db.rollback()
+        record_business_event("register", "delivery_failed")
+        return {"status": "accepted", "challenge_id": generic_id, "expires_in": 300}
+    challenge.delivery_reference = str(delivery.get("reference", "accepted"))[:160]
+    db.commit()
+    record_business_event("register", "requested")
+    return {"status": "accepted", "challenge_id": challenge.id, "expires_in": 300, "tenant_slug": tenant.slug}
 
 
 @app.post("/auth/otp/verify")
