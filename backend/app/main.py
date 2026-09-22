@@ -1132,6 +1132,102 @@ def reservation_price_breakdown(reservation_id: str, user: User = Depends(curren
         raise HTTPException(status_code=404, detail="جزئیات قیمت برای این رزرو ثبت نشده است")
     return {key: getattr(row, key) for key in ("id", "booking_id", "source", "source_contract_id", "supplier_net_rate", "supplier_currency", "exchange_rate", "supplier_net_rate_irr", "platform_markup", "platform_markup_type", "service_fee", "supplier_commission", "agent_commission", "discount_amount", "discount_source", "promo_code", "vat", "airport_tax", "i6_tax", "red_crescent", "other_taxes", "wl_channel_id", "wl_revenue_share", "wl_commission_type", "total_selling_price", "total_cost", "gross_margin", "net_margin", "calculated_at", "calculated_by", "override_reason", "approved_by")}
 
+def _voucher_html(*, reservation, booking_item, user, tenant, voucher, tickets) -> str:
+    attrs = {}
+    title = reservation.service_type
+    supplier_id = None
+    if booking_item is not None:
+        try:
+            snap = json.loads(booking_item.snapshot_json or "{}")
+        except (TypeError, ValueError):
+            snap = {}
+        title = snap.get("title") or title
+        attrs = snap.get("attributes") or {}
+        supplier_id = snap.get("supplier_id")
+    status_label = operational_models.TRIP_STATUS_TITLES.get(reservation.status, reservation.status)
+    qr_rows = "".join(
+        f'<div class="qr-row"><span>کد ورود</span><strong>{t.qr_token}</strong></div>'
+        for t in tickets if t.qr_token
+    )
+    voucher_row = (
+        f'<div class="row"><span>شماره واچر</span><strong>{voucher.id} (نسخه {voucher.revision})</strong></div>'
+        if voucher is not None else ""
+    )
+    detail_rows = "".join(
+        f'<div class="row"><span>{label}</span><strong>{value}</strong></div>'
+        for label, value in (
+            ("شهر / مقصد", attrs.get("city") or attrs.get("destination")),
+            ("تاریخ شروع", attrs.get("session_starts_at") or attrs.get("check_in")),
+            ("تاریخ پایان", attrs.get("session_ends_at") or attrs.get("check_out")),
+        ) if value
+    )
+    return f"""<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<title>واچر / بلیت کارن‌سیر — {reservation.booking_reference or reservation.id}</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;800&display=swap" />
+<style>
+  :root{{--ink:#08253d;--ocean:#0e7490;--sun:#f4b942;--mist:#f7fafc;--muted:#617184;--line:#dce6eb;--surface:#fff}}
+  *{{box-sizing:border-box}}
+  body{{margin:0;background:var(--mist);color:var(--ink);font-family:Vazirmatn,Tahoma,Arial,sans-serif;line-height:1.7}}
+  .sheet{{max-width:640px;margin:24px auto;background:var(--surface);border-radius:18px;overflow:hidden;box-shadow:0 18px 45px rgba(8,37,61,.12)}}
+  .header{{background:var(--ink);color:#fff;padding:22px 28px;display:flex;justify-content:space-between;align-items:center}}
+  .brand{{font-weight:800;font-size:20px}}
+  .brand small{{display:block;color:#9ed4e1;font-size:11px;font-weight:500}}
+  .status-pill{{background:var(--ocean);color:#fff;border-radius:99px;padding:6px 14px;font-size:12px;font-weight:800}}
+  .body{{padding:26px 28px}}
+  h1{{font-size:22px;margin:0 0 4px}}
+  .ref{{color:var(--muted);font-size:13px;margin:0 0 18px}}
+  .row{{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:10px 0;font-size:14px}}
+  .row span{{color:var(--muted)}}
+  .qr-row{{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:10px 0;font-size:14px}}
+  .qr-row span{{color:var(--muted)}}
+  .qr-row strong{{font-family:monospace;letter-spacing:1px}}
+  .note{{margin-top:20px;background:var(--mist);border-radius:10px;padding:14px;font-size:12px;color:var(--muted)}}
+  .footer{{padding:16px 28px;color:var(--muted);font-size:11px;border-top:1px solid var(--line)}}
+  @media print{{body{{background:#fff}} .sheet{{box-shadow:none;margin:0}}}}
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <div class="header">
+      <div class="brand">کارن‌سیر<small>KarenSeir Travel</small></div>
+      <div class="status-pill">{status_label}</div>
+    </div>
+    <div class="body">
+      <h1>{title}</h1>
+      <p class="ref">شماره رزرو: {reservation.booking_reference or reservation.id}</p>
+      <div class="row"><span>مسافر / مشتری</span><strong>{user.name}</strong></div>
+      <div class="row"><span>سازمان</span><strong>{tenant.name}</strong></div>
+      {detail_rows}
+      {voucher_row}
+      {qr_rows}
+      <div class="note">این سند به صورت خودکار توسط کارن‌سیر صادر شده است. لطفاً هنگام مراجعه، شماره رزرو یا کد QR فوق را همراه داشته باشید.</div>
+    </div>
+    <div class="footer">KarenSeir Travel &middot; صادرشده در {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}</div>
+  </div>
+</body>
+</html>"""
+
+
+@app.get("/reservations/{reservation_id}/voucher")
+def reservation_voucher(reservation_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> Response:
+    """Minimum production-grade customer deliverable: a downloadable/
+    printable HTML voucher (browsers print-to-PDF natively, so this needs
+    no new PDF-rendering dependency) using KarenSeir's existing brand
+    tokens (--ink/--ocean/--sun from app/globals.css), RTL, Vazirmatn.
+    Reuses the same owner-only authorization as GET /reservations/{id}."""
+    reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == reservation_id, operational_models.Reservation.tenant_id == user.tenant_id, operational_models.Reservation.user_id == user.id))
+    if reservation is None:
+        raise HTTPException(status_code=404, detail="رزرو در این حساب وجود ندارد")
+    booking_item = db.scalar(select(operational_models.BookingItem).where(operational_models.BookingItem.reservation_id == reservation.id, operational_models.BookingItem.tenant_id == user.tenant_id))
+    voucher = db.scalar(select(operational_models.Voucher).where(operational_models.Voucher.reservation_id == reservation.id, operational_models.Voucher.tenant_id == user.tenant_id).order_by(operational_models.Voucher.revision.desc()))
+    tickets = db.scalars(select(operational_models.Ticket).where(operational_models.Ticket.reservation_id == reservation.id, operational_models.Ticket.tenant_id == user.tenant_id, operational_models.Ticket.status == "issued")).all()
+    tenant = db.get(Tenant, user.tenant_id)
+    html = _voucher_html(reservation=reservation, booking_item=booking_item, user=user, tenant=tenant, voucher=voucher, tickets=tickets)
+    return Response(content=html, media_type="text/html")
+
 
 @app.post("/reservations/{reservation_id}/commands")
 def reservation_command(reservation_id: str, data: ReservationCommandIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
