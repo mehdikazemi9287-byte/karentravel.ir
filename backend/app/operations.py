@@ -1109,6 +1109,15 @@ def sweep_expired_reservations(db: Session, *, now: Optional[datetime] = None, h
                 offer = db.get(Offer, check.offer_id)
                 if offer is not None:
                     offer.available_units += check.units
+                try:
+                    snapshot_attrs = (json.loads(check.snapshot_json or "{}").get("attributes") or {})
+                except (TypeError, ValueError):
+                    snapshot_attrs = {}
+                leisure_session_id = snapshot_attrs.get("leisure_session_id")
+                if leisure_session_id:
+                    leisure_session = db.scalar(select(LeisureSession).where(LeisureSession.id == leisure_session_id, LeisureSession.tenant_id == reservation.tenant_id).with_for_update())
+                    if leisure_session is not None:
+                        leisure_session.capacity_available += check.units
         expired_ids.append(reservation.id)
     if expired_ids:
         db.commit()
