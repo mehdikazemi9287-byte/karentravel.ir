@@ -1,0 +1,192 @@
+[
+  {
+    "viewportWidth": 1440,
+    "path": "/",
+    "status": 200,
+    "dir": "rtl",
+    "width": 1440,
+    "fonts": true,
+    "css": 2,
+    "headings": [
+      "سفر رازندگی کن"
+    ],
+    "textLength": 3903,
+    "errors": [],
+    "api": []
+  },
+  {
+    "viewportWidth": 1440,
+    "path": "/register",
+    "status": 200,
+    "dir": "rtl",
+    "width": 1440,
+    "fonts": true,
+    "css": 2,
+    "headings": [
+      "ساخت حساب کاربری جدید."
+    ],
+    "textLength": 719,
+    "errors": [],
+    "api": []
+  },
+  {
+    "viewportWidth": 1440,
+    "path": "/login",
+    "status": 200,
+    "dir": "rtl",
+    "width": 1440,
+    "fonts": true,
+    "css": 2,
+    "headings": [
+      "با کد یک‌بارمصرف وارد شوید."
+    ],
+    "textLength": 731,
+    "errors": [],
+    "api": []
+  },
+  {
+    "viewportWidth": 1440,
+    "path": "/search/results?vertical=flight&origin=تهران&destination=شیراز&adults=1&depart=2026-10-10&trip_type=one_way",
+    "status": 200,
+    "dir": "rtl",
+    "width": 1440,
+    "fonts": true,
+    "css": 2,
+    "headings": [
+      "پرواز از تهران به شیراز"
+    ],
+    "textLength": 743,
+    "errors": [],
+    "api": [
+      {
+        "url": "http://95.38.184.209:8000/search/v3/public",
+        "status": 200
+      }
+    ]
+  },
+  {
+    "viewportWidth": 1440,
+    "path": "/trips",
+    "status": 200,
+    "dir": "rtl",
+    "width": 1440,
+    "fonts": true,
+    "css": 2,
+    "headings": [
+      "سفرها، مدارک و کارهای باقی‌مانده"
+    ],
+    "textLength": 395,
+    "errors": [],
+    "api": []
+  },
+  {
+    "viewportWidth": 1440,
+    "path": "/assistant",
+    "status": 200,
+    "dir": "rtl",
+    "width": 1440,
+    "fonts": true,
+    "css": 2,
+    "headings": [
+      "از تصمیم سفر تامدیریت رزرو همراهت هستم."
+    ],
+    "textLength": 929,
+    "errors": [],
+    "api": []
+  },
+  {
+    "viewportWidth": 390,
+    "path": "/",
+    "status": 200,
+    "dir": "rtl",
+    "width": 390,
+    "fonts": true,
+    "css": 2,
+    "headings": [
+      "سفر رازندگی کن"
+    ],
+    "textLength": 3736,
+    "errors": [],
+    "api": []
+  },
+  {
+    "viewportWidth": 390,
+    "path": "/register",
+    "status": 200,
+    "dir": "rtl",
+    "width": 390,
+    "fonts": true,
+    "css": 2,
+    "headings": [
+      "ساخت حساب کاربری جدید."
+    ],
+    "textLength": 649,
+    "errors": [],
+    "api": []
+  },
+  {
+    "viewportWidth": 390,
+    "path": "/login",
+    "status": 200,
+    "dir": "rtl",
+    "width": 390,
+    "fonts": true,
+    "css": 2,
+    "headings": [
+      "با کد یک‌بارمصرف وارد شوید."
+    ],
+    "textLength": 661,
+    "errors": [],
+    "api": []
+  },
+  {
+    "viewportWidth": 390,
+    "path": "/search/results?vertical=flight&origin=تهران&destination=شیراز&adults=1&depart=2026-10-10&trip_type=one_way",
+    "status": 200,
+    "dir": "rtl",
+    "width": 390,
+    "fonts": true,
+    "css": 2,
+    "headings": [
+      "پرواز از تهران به شیراز"
+    ],
+    "textLength": 613,
+    "errors": [],
+    "api": [
+      {
+        "url": "http://95.38.184.209:8000/search/v3/public",
+        "status": 200
+      }
+    ]
+  },
+  {
+    "viewportWidth": 390,
+    "path": "/trips",
+    "status": 200,
+    "dir": "rtl",
+    "width": 390,
+    "fonts": true,
+    "css": 2,
+    "headings": [
+      "سفرها، مدارک و کارهای باقی‌مانده"
+    ],
+    "textLength": 409,
+    "errors": [],
+    "api": []
+  },
+  {
+    "viewportWidth": 390,
+    "path": "/assistant",
+    "status": 200,
+    "dir": "rtl",
+    "width": 390,
+    "fonts": true,
+    "css": 2,
+    "headings": [
+      "از تصمیم سفر تامدیریت رزرو همراهت هستم."
+    ],
+    "textLength": 859,
+    "errors": [],
+    "api": []
+  }
+]
