@@ -19,3 +19,8 @@ explicit Mock QA offer in SQLite; trip-basket.cjs verifies customer-authored not
 real offer linkage, repeat-add idempotency, recheck, reload and offer-detail handoff
 at both widths. It does not initiate payment. Backend test additionally changes
 stored price and expiry and verifies no silent substitution or duplicate audit.
+
+Booking recovery: preview :3342, existing marketplace-host QA fixture. The test
+changes actual QA stored cleaning fees after a quote, checks explicit price-change
+and requote, then drops a successful reservation response and refreshes the browser.
+The retry must return the same persisted reservation ID. No payment is initiated.

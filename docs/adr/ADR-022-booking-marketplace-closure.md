@@ -56,3 +56,11 @@ expired/unavailable/changed/ready/provider-required result, never substitute ite
 A rechecked plan does not hold inventory or imply a combined purchase. Final per-item
 booking retains the existing recheck/hold guards. Provider-only inventory stays
 fail-closed. No bulk charge or all-or-nothing booking is introduced implicitly.
+
+Booking recovery delta: known 409/422 invalidates the quote and asks for explicit
+recheck; PRICE_CHANGED displays both totals. Unknown response keeps the command;
+session-scoped pending command survives refresh, scoped by authenticated subject and
+stay selection. The local claim is only a storage namespace, never authorization.
+Server ownership checks remain authoritative. A received result clears retry state.
+Desktop/mobile QA changed a real stored rate, dropped an already persisted response,
+refreshed and recovered the same request ID; no duplicate booking or real charge.

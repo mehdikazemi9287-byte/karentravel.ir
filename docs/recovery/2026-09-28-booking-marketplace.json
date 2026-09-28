@@ -147,6 +147,71 @@
           "detailHandoff": true
         }
       ]
+    },
+    "deployed_commit": "9166800",
+    "deployment": {
+      "deployed": true,
+      "fingerprint": "c1382497b65198aa6ae971d9bfc323da30edebcc-worktree-4a97559505a0",
+      "rollback_containers": [
+        "karenseir-api-1-pre-trip-basket-20260928",
+        "karenseir-worker-1-pre-trip-basket-20260928",
+        "karenseir-frontend-1-pre-trip-basket-20260928"
+      ],
+      "api_image": "sha256:e4bace796f3fd4e44778916d763ae7522d242987e65a65611cf65c35bf4a0173",
+      "web_unchanged": false,
+      "search_unchanged": true,
+      "worker_changed": true,
+      "legacy_holds_excluded": true,
+      "migration_executed": false,
+      "financial_transaction": false
+    },
+    "public_smoke": {
+      "pass": true,
+      "rows": [
+        {
+          "width": 1440,
+          "path": "/itineraries",
+          "pass": true
+        },
+        {
+          "width": 1440,
+          "path": "/offers/00000000-0000-4000-8000-000000000001",
+          "pass": true
+        },
+        {
+          "width": 390,
+          "path": "/itineraries",
+          "pass": true
+        },
+        {
+          "width": 390,
+          "path": "/offers/00000000-0000-4000-8000-000000000001",
+          "pass": true
+        }
+      ]
     }
+  },
+  "booking_recovery": {
+    "pass": true,
+    "checks": [
+      {
+        "width": 1440,
+        "pass": true,
+        "priceChanged": true,
+        "explicitRequote": true,
+        "lostResponseSameReservation": true,
+        "refreshPreservesCommand": true,
+        "reservation": "dec3838a-1aae-4771-8c8b-41d5a738803b"
+      },
+      {
+        "width": 390,
+        "pass": true,
+        "priceChanged": true,
+        "explicitRequote": true,
+        "lostResponseSameReservation": true,
+        "refreshPreservesCommand": true,
+        "reservation": "3a705324-6dde-491d-a49c-8e6834f7480b"
+      }
+    ]
   }
 }
