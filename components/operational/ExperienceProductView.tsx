@@ -11,7 +11,7 @@ const money=(value:number,currency='IRR')=>`${value.toLocaleString('fa-IR')} ${c
 function failure(error: unknown) { return error instanceof ApiError&&error.status===409?'قیمت، ظرفیت یا وضعیت این خدمت تغییر کرده است؛ دوباره بررسی کنید.':'دریافت یا ثبت درخواست انجام نشد؛ دوباره تلاش کنید یا با پشتیبانی تماس بگیرید.'; }
 const verticalLabels: Record<string, string> = { restaurant: 'رستوران و کافه', event_hall: 'رویداد و تالار', pool_sport: 'استخر و ورزش', attraction: 'اماکن گردشگری و تفریحی' };
 
-type TicketType = { id: string; code: string; label: string; price: number; currency: string; quota: number | null; active: boolean;min_age?:number|null;max_age?:number|null };
+type TicketType = { id: string; code: string; label: string; price: number; currency: string; quota: number | null; active: boolean;min_age?:number|null;max_age?:number|null;restrictions?:{entry_rules?:string[]} };
 type SessionRow = { id: string; starts_at: string; ends_at: string; capacity_available: number; status: string;restrictions?:{entry_rules?:string[]} };
 type Place = { id: string; name: string; city: string; address: string | null;amenities?:string[] };
 type Product = { id: string; title: string; description: string; service_type: string; booking_mode: string;cancellation_policy?:{description?:string;cancellation?:{description?:string}};restrictions?:{entry_rules?:string[]} };
@@ -83,7 +83,7 @@ export function ExperienceProductView({ productId }: { productId: string }) {
       <h2>{wholeVenue?'رزرو کل تالار در بازهٔ انتخاب‌شده':product.service_type==='restaurant'?'نوع پذیرش و تعداد مهمان':'نوع بلیت'}</h2>
       {ticketTypes.length === 0 ? <p>بلیتی برای این خدمت تعریف نشده است.</p> : <div style={{ marginTop: 10 }}>
         {ticketTypes.map(ticketType => <div key={ticketType.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--line)' }}>
-          <span><b>{ticketType.label}</b><small style={{ display: 'block', color: 'var(--muted)' }}>{money(ticketType.price,ticketType.currency)}</small></span>
+          <span><b>{ticketType.label}</b><small style={{ display: 'block', color: 'var(--muted)' }}>{money(ticketType.price,ticketType.currency)}</small>{(ticketType.min_age!=null||ticketType.max_age!=null)&&<small className="ticket-condition">شرط سنی: {ticketType.min_age!=null?`از ${ticketType.min_age.toLocaleString('fa-IR')} سال`:''}{ticketType.min_age!=null&&ticketType.max_age!=null?' — ':''}{ticketType.max_age!=null?`تا ${ticketType.max_age.toLocaleString('fa-IR')} سال`:''}</small>}{Array.isArray(ticketType.restrictions?.entry_rules)&&ticketType.restrictions.entry_rules.filter(rule=>typeof rule==='string').map((rule,i)=><small className="ticket-condition" key={i}>{rule}</small>)}</span>
           <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <button type="button" disabled={busy||!!pending||!(quantities[ticketType.id]>0)} onClick={() => setQuantity(ticketType.id, (quantities[ticketType.id] || 0) - 1)} aria-label={`کاهش ${ticketType.label}`}>−</button>
             <b>{quantities[ticketType.id] || 0}</b>

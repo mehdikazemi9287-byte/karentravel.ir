@@ -1,5 +1,6 @@
-import { Suspense } from 'react';
-import { Shell } from '../page';
-import { UnifiedSearchView } from '../../components/operational/UnifiedSearchView';
-export const metadata={title:'اماکن گردشگری و تفریحی | کارن‌سیر'};
-export default function AttractionsPage(){return <Shell><div className="ref-container" style={{paddingTop:24}}><h1>اماکن گردشگری و تفریحی</h1><p>بلیت جاذبه‌ها و مراکز تفریحی هر مقصد.</p></div><Suspense fallback={null}><UnifiedSearchView defaultVertical="attraction"/></Suspense></Shell>}
+import {Suspense} from 'react';
+import {JourneyShell} from '../../components/journey/JourneyShell';
+import {UnifiedSearchView} from '../../components/operational/UnifiedSearchView';
+import {LeisureSearch} from '../../components/marketplace/LeisureSearch';
+export const metadata={title:'جاذبه‌ها و تفریح | کارن‌سیر'};
+export default function AttractionsPage(){return <JourneyShell><main className="journey-main dining-marketplace"><span className="eyebrow">دیدنی‌ها و تجربه‌های مقصد</span><h1>جاذبه‌ها و مراکز تفریحی</h1><p>زمان بازدید و بلیت‌های ثبت‌شده را بررسی کن. شرایط ورود و هزینهٔ انتخابت پیش از رزرو مشخص می‌شود.</p><Suspense fallback={<p role="status">آماده‌سازی جست‌وجوی جاذبه‌ها…</p>}><LeisureSearch service="attraction"/><UnifiedSearchView embedded defaultVertical="attraction"/></Suspense></main></JourneyShell>}

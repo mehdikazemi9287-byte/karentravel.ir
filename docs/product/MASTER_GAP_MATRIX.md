@@ -128,3 +128,6 @@ Explicit remaining gaps: supplier media/gallery contract and host UI editing, co
 
 - Slice 5a published: restaurant dated discovery, actual session handoff, login continuity and durable booking retry completed with isolated QA; public empty journey desktop/mobile verified. Search cache namespace advanced without deleting keys. Supplier/OTP/payment remain external.
 - Slice 5b: pool/sport landing still legacy generic results without dedicated destination/date/party form; reuse the proven leisure detail and booking API.
+
+- Slice 5b deployed 280c5bb: pool/sport entry + shared result CTA contrast. Public and isolated QA desktop/mobile PASS; external inventory still blocked. Prior restaurant visual acceptance corrected: clickable CTA had missing background token, now fixed.
+- Attraction public baseline at 1440/390: two h1 headings and no standalone destination/date/party form; existing edit category is correct. Ticket age/restriction fields exist in API but are not displayed on PDP.
