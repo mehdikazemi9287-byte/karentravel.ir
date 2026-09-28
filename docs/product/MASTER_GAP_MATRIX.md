@@ -136,3 +136,6 @@ Explicit remaining gaps: supplier media/gallery contract and host UI editing, co
 - Next: venue inquiry modes show contact-only despite existing general support-case API. Connect human inquiry with honest non-reservation status and durable retry; no new financial policy or migration.
 
 - Slice 5d published: event entry and prebooking human inquiry; actual QA support cases/replies, replay ownership and public login handoff verified. This is human inquiry, not supplier RFQ/hold/confirmed booking. Customer support card navigation remains an internal gap.
+
+- Slice 6 deployed c9ee7ab: customer case navigation, Persian statuses, scoped detail and owned reply with replay/audit/outbox; QA and public login handoff PASS. No real notification delivery claim.
+- Next P0: generic OfferDetail reserve command is only in memory; UnifiedSearchView reserve generates a new command per click. Preserve original pending command across refresh and surfaces; search→detail→back context currently omitted. Do not infer infant fares or group unit pricing from party counts.

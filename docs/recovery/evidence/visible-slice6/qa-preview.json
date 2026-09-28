@@ -1,0 +1,32 @@
+{
+  "pass": true,
+  "qa": true,
+  "checks": [
+    {
+      "width": 1440,
+      "accountLink": true,
+      "customerReply": true,
+      "replaySameMessage": true,
+      "refreshPersisted": true,
+      "opsReadOnly": true,
+      "auditOnce": true,
+      "readErrorRetry": true,
+      "notFoundRecovery": true,
+      "pageErrors": 0,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "accountLink": true,
+      "customerReply": true,
+      "replaySameMessage": false,
+      "refreshPersisted": true,
+      "opsReadOnly": true,
+      "auditOnce": true,
+      "readErrorRetry": false,
+      "notFoundRecovery": true,
+      "pageErrors": 0,
+      "overflow": false
+    }
+  ]
+}

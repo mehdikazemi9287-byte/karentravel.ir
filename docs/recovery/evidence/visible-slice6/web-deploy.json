@@ -1,0 +1,9 @@
+{
+  "slice": "slice6-permission",
+  "image": "sha256:eecc82aa6589278142a0ed7a10354dfc4eb8f79cb2782f07357ae8c1f697246b",
+  "fingerprint": "c9ee7abc00dd6adec1ad9d4166ee25f081eac4b5",
+  "public_product_marker": true,
+  "rollback": "karenseir-frontend-1-pre-visible-slice6-permission",
+  "api_unchanged": true,
+  "migration": false
+}
