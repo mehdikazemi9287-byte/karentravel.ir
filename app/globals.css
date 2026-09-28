@@ -361,3 +361,5 @@ html,body{font-family:'Vazirmatn',Tahoma,Arial,sans-serif;font-optical-sizing:au
 
 .leisure-product .ticket-condition{display:block;color:var(--muted);font-size:12px;max-width:44ch;margin-top:5px}.leisure-product .panel>div>div{gap:14px}.leisure-product .panel>div>div>span:last-child{flex-shrink:0}
 .service-inquiry fieldset{border:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.service-inquiry label{display:grid;gap:6px}.service-inquiry label:has(textarea){grid-column:1/-1}.service-inquiry input,.service-inquiry textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;font:inherit}.service-inquiry textarea{min-height:120px}.service-inquiry article{border-top:1px solid var(--line);padding-top:18px;margin-top:18px;overflow-wrap:anywhere}.service-inquiry p{line-height:1.9}@media(max-width:700px){.service-inquiry fieldset{grid-template-columns:1fr}.service-inquiry h1{font-size:26px}}
+
+.leisure-product h1{font-size:clamp(26px,3vw,34px);line-height:1.5}.service-inquiry h1{font-size:clamp(26px,3vw,34px);line-height:1.5}
