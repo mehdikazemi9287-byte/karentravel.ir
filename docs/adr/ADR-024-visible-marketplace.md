@@ -68,3 +68,6 @@ Format valid ISO transport dates with the supplied wall clock and offset; never 
 
 ### Slice 10 — durable human support reply
 Reuse case lock and existing idempotency table for supplied human-reply keys, hashing actor/body and replaying before closed-state guard. Optional header preserves older clients during API-first release; new UI always supplies durable key. Atomic audit/message/in-app notice/outbox; no external channels. New account-scoped Ops composer retains exact case/body/key through ambiguous response/refresh. Storage failure blocks any new reply POST, including existing customer composer. No schema change. Verify response-loss replay produces one message/notice/audit.
+
+### Slice 11 — rental date-range continuity
+Public1440/390 accepts reverse rental dates. Validate actual calendar dates and end>=start at entry and shared search before API requests; same-day remains allowed because no new rental policy is inferred. Preserve return for non-flight verticals regardless of inherited one-way flight flag. Clear stale results on invalid rental range, expose truthful corrective error. No inventory/price/booking/backend change.
