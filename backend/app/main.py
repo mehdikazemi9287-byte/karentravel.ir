@@ -3564,6 +3564,41 @@ def create_support_case(data: SupportCaseIn, user: User = Depends(current_user),
     db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="support_case", aggregate_id=row.id, event_type="support.case.opened", payload_json=json.dumps({"case_id": row.id, "priority": row.priority}), correlation_id=str(uuid.uuid4()), idempotency_key=idempotency_key)); db.commit(); return _case_output(row, [message])
 
 
+@app.get("/support/cases/{case_id}")
+def support_case_detail(case_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    query = select(operational_models.SupportCase).where(operational_models.SupportCase.id == case_id, operational_models.SupportCase.tenant_id == user.tenant_id)
+    if not role_has_permission(user.role, "support:manage"): query = query.where(operational_models.SupportCase.user_id == user.id)
+    row = db.scalar(query)
+    if row is None: raise HTTPException(404, "پرونده در این حساب وجود ندارد")
+    messages = db.scalars(select(operational_models.SupportThreadMessage).where(operational_models.SupportThreadMessage.tenant_id == user.tenant_id, operational_models.SupportThreadMessage.case_id == row.id).order_by(operational_models.SupportThreadMessage.created_at)).all()
+    return _case_output(row, messages)
+
+
+@app.post("/support/cases/{case_id}/customer-replies", status_code=status.HTTP_201_CREATED)
+def customer_support_reply(case_id: str, data: SupportReplyIn, user: User = Depends(current_user), db: Session = Depends(get_db), idempotency_key: str = Header(alias="Idempotency-Key", min_length=8, max_length=120)) -> dict:
+    row = db.scalar(select(operational_models.SupportCase).where(operational_models.SupportCase.id == case_id, operational_models.SupportCase.tenant_id == user.tenant_id, operational_models.SupportCase.user_id == user.id).with_for_update())
+    if row is None: raise HTTPException(404, "پرونده در این حساب وجود ندارد")
+    body = data.body.strip()
+    if len(body) < 3: raise HTTPException(422, "متن پاسخ کوتاه است")
+    scope = "support.customer_reply:" + row.id
+    digest = _secure_hash(f"{user.id}:{body}")
+    prior = db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id == user.tenant_id, operational_models.IdempotencyKey.scope == scope, operational_models.IdempotencyKey.key == idempotency_key))
+    if prior:
+        if prior.request_hash != digest: raise HTTPException(409, "کلید تکرار متعلق به متن دیگری است")
+        return json.loads(prior.response_json)
+    if row.status in ("closed", "resolved"): raise HTTPException(409, "پرونده پایان‌یافته قابل پاسخ نیست")
+    message = operational_models.SupportThreadMessage(tenant_id=user.tenant_id, case_id=row.id, sender_type="customer", sender_user_id=user.id, body=body)
+    db.add(message); db.flush()
+    audit = json.loads(row.audit_trail_json or "[]")
+    audit.append({"event": "customer_replied", "actor_id": user.id, "message_id": message.id, "at": datetime.now(timezone.utc).isoformat()})
+    row.audit_trail_json = json.dumps(audit)
+    response = {"id": message.id, "case_id": row.id, "sender_type": "customer", "body": body}
+    db.add(operational_models.IdempotencyKey(tenant_id=user.tenant_id, scope=scope, key=idempotency_key, request_hash=digest, response_json=json.dumps(response)))
+    db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="support_case", aggregate_id=row.id, event_type="support.customer_reply.created", payload_json=json.dumps({"case_id": row.id, "message_id": message.id}), correlation_id=str(uuid.uuid4()), idempotency_key=f"customer-reply:{message.id}"))
+    db.commit()
+    return response
+
+
 @app.post("/support/cases/{case_id}/human-replies", status_code=status.HTTP_201_CREATED)
 def human_support_reply(case_id: str, data: SupportReplyIn, user: User = Depends(require_permission("support:manage")), db: Session = Depends(get_db)) -> dict:
     row = db.scalar(select(operational_models.SupportCase).where(operational_models.SupportCase.id == case_id, operational_models.SupportCase.tenant_id == user.tenant_id).with_for_update())
