@@ -1468,7 +1468,7 @@ Index("ix_provider_reconciliation_status", ProviderReconciliationCase.tenant_id,
 NOTIFICATION_EVENT_TYPES: frozenset[str] = frozenset({
     "booking_created", "reservation_confirmed", "payment_success", "payment_failed",
     "booking_cancelled", "change_requested", "trip_changed", "flight_time_changed",
-    "hotel_changed", "refund_requested", "refund_completed", "support_case_updated",
+    "hotel_changed", "refund_requested", "refund_completed", "support_case_updated", "support_reply_received",
     "corporate_approval_required", "corporate_approval_result",
 })
 
@@ -1490,6 +1490,7 @@ _DEFAULT_NOTIFICATION_TEMPLATES: dict[str, tuple[str, str]] = {
     "hotel_changed": ("تغییر در اقامت", "جزئیات اقامت رزرو {booking_reference} تغییر کرد: {summary}"),
     "refund_requested": ("درخواست استرداد ثبت شد", "درخواست استرداد مبلغ {amount} {currency} برای رزرو {booking_reference} ثبت شد."),
     "refund_completed": ("استرداد انجام شد", "مبلغ {amount} {currency} برای رزرو {booking_reference} بازگردانده شد."),
+    "support_reply_received": ("پاسخ تازهٔ پشتیبانی", "برای پروندهٔ «{subject}» پاسخ تازه‌ای ثبت شده است."),
     "support_case_updated": ("به‌روزرسانی پرونده پشتیبانی", "پرونده پشتیبانی «{subject}» به وضعیت «{status}» تغییر کرد."),
     "corporate_approval_required": ("نیاز به تأیید سازمانی", "درخواست تأیید رزرو {booking_reference} در انتظار تصمیم شماست."),
     "corporate_approval_result": ("نتیجه درخواست تأیید سازمانی", "درخواست تأیید رزرو {booking_reference} با نتیجه «{result}» تعیین تکلیف شد."),
@@ -1567,10 +1568,12 @@ def _notification_channel_pending_external(channel: str) -> bool:
 def emit_notification_event(
     db: Session, *, tenant_id: int, event_type: str, recipient_user_id: int, payload: dict,
     dedupe_key: str, deep_link: Optional[str] = None, topic: str = "account_activity",
-    locale: str = "fa", scheduled_at: Optional[datetime] = None,
+    locale: str = "fa", scheduled_at: Optional[datetime] = None, channels: Optional[tuple[str, ...]] = None,
 ) -> "NotificationEvent":
     """Create a notification event and fan it out across channels in the caller's
     transaction. Idempotent per (tenant_id, dedupe_key)."""
+    if channels is not None and not set(channels).issubset(_NOTIFICATION_CHANNELS):
+        raise ValueError("unsupported notification channel")
     if event_type not in NOTIFICATION_EVENT_TYPES:
         raise ValueError(f"unknown notification event_type: {event_type}")
     existing = db.scalar(select(NotificationEvent).where(
@@ -1598,6 +1601,8 @@ def emit_notification_event(
 
     has_external = False
     for channel in _NOTIFICATION_CHANNELS:
+        if channels is not None and channel not in channels:
+            continue
         if db.scalar(select(NotificationPreference.id).where(
                 NotificationPreference.tenant_id == tenant_id,
                 NotificationPreference.user_id == recipient_user_id,

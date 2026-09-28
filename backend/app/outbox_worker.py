@@ -8,7 +8,7 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 
 from . import main as _main_models  # noqa: F401 - register FK target metadata in worker process
 from .database import SessionLocal
@@ -51,7 +51,8 @@ def process_batch(limit: int = 50, *, adapter=None) -> int:
                 push_attempt = db.scalar(select(NotificationDeliveryAttempt).where(NotificationDeliveryAttempt.notification_id == notification_id, NotificationDeliveryAttempt.tenant_id == event.tenant_id, NotificationDeliveryAttempt.channel == "push"))
                 sms_attempt = db.scalar(select(NotificationDeliveryAttempt).where(NotificationDeliveryAttempt.notification_id == notification_id, NotificationDeliveryAttempt.tenant_id == event.tenant_id, NotificationDeliveryAttempt.channel == "sms"))
                 if notification:
-                    notification.status = event.status
+                    # Keep the read acknowledgement even if delivery races with it.
+                    db.execute(update(NotificationRecord).where(NotificationRecord.id == notification.id, NotificationRecord.tenant_id == event.tenant_id, NotificationRecord.status != "read").values(status=event.status).execution_options(synchronize_session=False))
                 # A channel explicitly parked as pending_external (no authorized
                 # transport) is never advanced or retried by the outbox loop.
                 if push_attempt and push_attempt.status != "pending_external":

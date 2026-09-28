@@ -863,6 +863,15 @@ def my_notifications(user: User = Depends(current_user), db: Session = Depends(g
     return [{"id": row.id, "topic": row.topic, "title": row.title, "message": row.message, "deep_link": row.deep_link, "status": row.status, "created_at": row.created_at.isoformat()} for row in rows]
 
 
+@app.post("/me/notifications/{notification_id}/read")
+def read_my_notification(notification_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    row = db.scalar(select(operational_models.NotificationRecord).where(operational_models.NotificationRecord.id == notification_id, operational_models.NotificationRecord.tenant_id == user.tenant_id, operational_models.NotificationRecord.user_id == user.id).with_for_update())
+    if row is None: raise HTTPException(404, "اعلان در این حساب وجود ندارد")
+    row.status = "read"
+    db.commit()
+    return {"id": row.id, "status": row.status}
+
+
 @app.get("/me/notification-channels")
 def my_notification_channels(user: User = Depends(current_user)) -> list[dict]:
     """Truthful per-channel deliverability so the Notification Center never implies
@@ -3605,6 +3614,7 @@ def human_support_reply(case_id: str, data: SupportReplyIn, user: User = Depends
     if row is None: raise HTTPException(status_code=404, detail="پرونده پشتیبانی در این tenant وجود ندارد")
     if row.status == "closed": raise HTTPException(status_code=409, detail="پرونده بسته قابل پاسخ نیست")
     message = operational_models.SupportThreadMessage(tenant_id=user.tenant_id, case_id=row.id, sender_type="human_agent", sender_user_id=user.id, body=data.body.strip()); row.status = "in_progress"; row.assigned_to_user_id = row.assigned_to_user_id or user.id; db.add(message); db.flush()
+    operational_models.emit_notification_event(db, tenant_id=user.tenant_id, event_type="support_reply_received", recipient_user_id=row.user_id, payload={"subject": row.subject}, dedupe_key=f"support-reply:{message.id}", deep_link=f"/support?case={row.id}", channels=("web", "app"))
     db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="support_case", aggregate_id=row.id, event_type="support.human_reply.created", payload_json=json.dumps({"case_id": row.id, "message_id": message.id, "source": "human_agent"}), correlation_id=str(uuid.uuid4()), idempotency_key=f"human-reply:{message.id}")); db.commit(); return {"id": message.id, "case_id": row.id, "sender_type": message.sender_type, "body": message.body, "status": row.status}
 
 

@@ -9,7 +9,9 @@ type Notice = { id: string; topic: string; title: string; message: string; deep_
 type Pref = { topic: string; channel: string; enabled: boolean };
 type Channel = { channel: string; deliverable_now: boolean; note: string };
 
-const CH_LABEL: Record<string, string> = { web: 'وب', app: 'اپ', push: 'نوتیفیکیشن (Push)', sms: 'پیامک (SMS)' };
+const CH_LABEL: Record<string, string> = { web: 'وب', app: 'اپ', push: 'اعلان دستگاه', sms: 'پیامک' };
+const TOPIC_LABEL:Record<string,string>={account_activity:'فعالیت حساب',booking_updates:'وضعیت رزرو',reservation_updates:'وضعیت رزرو',trip_updates:'تغییرات سفر',payment_updates:'پرداخت',payment_status:'وضعیت پرداخت',marketing:'پیشنهادهای سفر',support:'پشتیبانی'};
+const topicLabel=(topic:string)=>TOPIC_LABEL[topic]||'پیام‌های حساب';
 const msgOf = (e: unknown) => (e instanceof ApiError ? e.message : 'خطای پیش‌بینی‌نشده رخ داد.');
 const faTime = (iso: string) => new Date(iso).toLocaleString('fa-IR', { dateStyle: 'medium', timeStyle: 'short' });
 
@@ -19,7 +21,8 @@ export function NotificationCenter() {
   const [prefs, setPrefs] = useState<Pref[]>([]);
   const [channels, setChannels] = useState<Channel[]>([]);
   const [err, setErr] = useState<{ status: number; message: string } | null>(null);
-  const [notice, setNotice] = useState('');
+  const [notice, setNotice] = useState('');const [reading,setReading]=useState<string|null>(null);
+  async function markRead(id:string){if(reading)return;setReading(id);try{await api.post('/me/notifications/'+id+'/read',{});setItems(rows=>rows?.map(row=>row.id===id?{...row,status:'read'}:row)||[]);setNotice('اعلان خوانده‌شده ثبت شد.')}catch{setNotice('ثبت خوانده‌شدن انجام نشد؛ دوباره تلاش کن.')}finally{setReading(null)}}
 
   const load = useCallback(async () => {
     try {
@@ -51,7 +54,7 @@ export function NotificationCenter() {
   if (err) return <div className="container"><p role="alert" className="rounded-2xl bg-rose-50 p-6 text-rose-700">اعلان‌ها دریافت نشدند؛ دوباره تلاش کنید.</p><button className="button secondary" onClick={()=>void load()}>تلاش دوباره</button><Link href="/support">پشتیبانی</Link></div>;
   if (!items) return <div className="container"><p role="status" className="my-8 animate-pulse rounded-2xl bg-white p-8 text-center text-slate-600">در حال دریافت اعلان‌ها…</p></div>;
 
-  const unread = items.filter(i => i.status !== 'read' && i.status !== 'delivered').length;
+  const unread = items.filter(i => i.status !== 'read').length;
 
   return <div className="container" style={{ maxWidth: 820 }}>
     <div className="page-hero"><span className="eyebrow">مرکز اعلان‌ها · داده احرازشده</span>
@@ -64,15 +67,15 @@ export function NotificationCenter() {
       {items.length === 0
         ? <p className="mt-3 rounded-xl border border-dashed border-slate-300 p-4 text-sm text-slate-600">اعلانی ندارید.</p>
         : <ul className="mt-4 space-y-3">{items.map(n => {
-            const isNew = n.status !== 'read' && n.status !== 'delivered';
+            const isNew = n.status !== 'read';
             return <li key={n.id} className={`rounded-xl p-4 ${isNew ? 'bg-cyan-50' : 'bg-slate-50'}`}>
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div><b className="block">{n.title}{isNew && <span className="mr-2 rounded-full bg-cyan-600 px-2 py-0.5 text-xs text-white">جدید</span>}</b>
                   <small className="text-slate-600">{n.message}</small></div>
                 <time className="shrink-0 text-xs text-slate-500">{faTime(n.created_at)}</time>
               </div>
-              <div className="mt-2 flex items-center gap-3 text-xs">
-                <span className="rounded bg-slate-200 px-2 py-0.5">{n.topic}</span>
+              <div className="mt-2 flex flex-wrap items-center gap-3 text-xs">
+                <span className="rounded bg-slate-200 px-2 py-0.5">{topicLabel(n.topic)}</span>{isNew&&<button className="button secondary" disabled={reading!==null} onClick={()=>void markRead(n.id)}>علامت خوانده‌شده</button>}
                 {n.deep_link && <Link className="text-link" href={n.deep_link}>مشاهده ←</Link>}
               </div>
             </li>;
@@ -87,15 +90,15 @@ export function NotificationCenter() {
         </p>)}
       </div>
       {topics.length === 0
-        ? <p className="mt-3 text-sm text-slate-600">هنوز ترجیحی تنظیم نشده است؛ همه‌ی کانال‌ها به‌صورت پیش‌فرض فعال‌اند.</p>
+        ? <p className="mt-3 text-sm text-slate-600">ترجیح اختصاصی ثبت نشده است؛ ارسال فقط از کانال‌های فعال بالا انجام می‌شود.</p>
         : <div className="mt-4 overflow-x-auto"><table className="w-full text-sm">
             <thead><tr><th className="p-2 text-right">موضوع</th>{['web', 'app', 'push', 'sms'].map(ch => <th key={ch} className="p-2">{CH_LABEL[ch]}</th>)}</tr></thead>
             <tbody>{topics.map(topic => <tr key={topic} className="border-t">
-              <td className="p-2 font-bold">{topic}</td>
+              <td className="p-2 font-bold">{topicLabel(topic)}</td>
               {['web', 'app', 'push', 'sms'].map(ch => {
                 const cap = channels.find(c => c.channel === ch);
                 return <td key={ch} className="p-2 text-center">
-                  <input type="checkbox" aria-label={`${topic} - ${CH_LABEL[ch]}`} checked={enabledFor(topic, ch)}
+                  <input type="checkbox" aria-label={`${topicLabel(topic)} - ${CH_LABEL[ch]}`} checked={enabledFor(topic, ch)}
                     onChange={e => setPref(topic, ch, e.target.checked)} />
                   {cap && !cap.deliverable_now && <small className="block text-[10px] text-amber-600">ذخیره می‌شود؛ تحویل خیر</small>}
                 </td>;

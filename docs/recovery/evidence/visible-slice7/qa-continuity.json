@@ -1,0 +1,53 @@
+{
+  "pass": true,
+  "checks": [
+    {
+      "width": 1440,
+      "surface": "detail",
+      "context": true,
+      "unitsRefresh": true,
+      "backButton": true,
+      "recheckFailureRetry": true,
+      "pendingRefresh": true,
+      "sameCommand": true,
+      "sameReservation": true,
+      "pageErrors": 0
+    },
+    {
+      "width": 1440,
+      "surface": "inline",
+      "context": false,
+      "unitsRefresh": false,
+      "backButton": false,
+      "recheckFailureRetry": true,
+      "pendingRefresh": true,
+      "sameCommand": true,
+      "sameReservation": true,
+      "pageErrors": 0
+    },
+    {
+      "width": 390,
+      "surface": "detail",
+      "context": true,
+      "unitsRefresh": true,
+      "backButton": true,
+      "recheckFailureRetry": false,
+      "pendingRefresh": true,
+      "sameCommand": true,
+      "sameReservation": true,
+      "pageErrors": 0
+    },
+    {
+      "width": 390,
+      "surface": "inline",
+      "context": false,
+      "unitsRefresh": false,
+      "backButton": false,
+      "recheckFailureRetry": false,
+      "pendingRefresh": true,
+      "sameCommand": true,
+      "sameReservation": true,
+      "pageErrors": 0
+    }
+  ]
+}

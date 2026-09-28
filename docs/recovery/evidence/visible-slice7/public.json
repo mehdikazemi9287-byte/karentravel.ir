@@ -1,0 +1,15 @@
+{
+  "pass": true,
+  "checks": [
+    {
+      "width": 1440,
+      "loginContext": true,
+      "publicBooking": false
+    },
+    {
+      "width": 390,
+      "loginContext": true,
+      "publicBooking": false
+    }
+  ]
+}

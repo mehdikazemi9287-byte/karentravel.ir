@@ -1,0 +1,9 @@
+{
+  "slice": "slice7-recovery",
+  "image": "sha256:e32a8dcda42506b02624770f6c9c6af54387f9c5b96baffbe6875490d71764f6",
+  "fingerprint": "4e7f72adc67b8c6498f32df99032f754857575f5",
+  "public_product_marker": true,
+  "rollback": "karenseir-frontend-1-pre-visible-slice7-recovery",
+  "api_unchanged": true,
+  "migration": false
+}
