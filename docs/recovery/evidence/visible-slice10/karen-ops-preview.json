@@ -1,0 +1,28 @@
+{
+  "pass": true,
+  "qa": true,
+  "checks": [
+    {
+      "width": 1440,
+      "opsStorageFailClosed": true,
+      "customerStorageFailClosed": true,
+      "refreshReplaySameId": true,
+      "oneMessage": true,
+      "oneNotice": true,
+      "caseLink": true,
+      "pageErrors": 0,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "opsStorageFailClosed": true,
+      "customerStorageFailClosed": true,
+      "refreshReplaySameId": true,
+      "oneMessage": true,
+      "oneNotice": true,
+      "caseLink": true,
+      "pageErrors": 0,
+      "overflow": false
+    }
+  ]
+}

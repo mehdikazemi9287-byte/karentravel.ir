@@ -1,0 +1,10 @@
+{
+  "commit": "ec49978e70d4103a19db5ba53654462e4a82b9c2",
+  "image": "sha256:67365993f67bb4086e8e739d175b7df07c1ddc4530410de3457f5418b05cd03c",
+  "rollback": [
+    "karenseir-api-1-pre-ops-reply-ec49978",
+    "karenseir-worker-1-pre-ops-reply-ec49978"
+  ],
+  "migration": false,
+  "health": true
+}

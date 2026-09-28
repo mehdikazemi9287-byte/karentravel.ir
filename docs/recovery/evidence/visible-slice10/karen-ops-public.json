@@ -1,0 +1,16 @@
+{
+  "pass": true,
+  "qa": false,
+  "checks": [
+    {
+      "width": 1440,
+      "publicLogin": true,
+      "publicMutation": false
+    },
+    {
+      "width": 390,
+      "publicLogin": true,
+      "publicMutation": false
+    }
+  ]
+}

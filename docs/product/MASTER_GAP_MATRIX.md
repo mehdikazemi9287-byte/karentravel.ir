@@ -147,3 +147,5 @@ Explicit remaining gaps: supplier media/gallery contract and host UI editing, co
 - Slice 8: support reply in-app notice + read persistence + case deep link released; QA desktop/mobile PASS, public login PASS. No external delivery. Human reply endpoint retry idempotency remains internal.
 
 - Slice 9: supplied transport times, offer login back context and latest50 notification wording released. QA/public scoped browser PASS. Next internal gap: durable Ops reply; customer reply storage must fail closed.
+
+- Slice 10: Ops human reply durable keyed retry/audit and customer storage fail-closed released. QA 1440/390 PASS, public login PASS. No live SMS or payment; older API clients without Idempotency-Key retain previous behavior.

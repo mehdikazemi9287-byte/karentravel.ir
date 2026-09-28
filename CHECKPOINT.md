@@ -1,3 +1,6 @@
+## Latest runtime checkpoint — Slice 10 / 2026-09-28
+Web/API/worker ec49978; images d189371d6db1 /67365993f67b. Search32f2a68/schema34 unchanged. QA reply response-loss/replay/storage1440/390 and public BackOffice login PASS. Rollbacks pre-visible-slice10-reply/pre-ops-reply-ec49978 retained. No new migration or real SMS/payment. Next exact action: public car-rental date validation and criteria continuity. Entire cumulative product remains incomplete; see master gap matrix.
+
 ## Latest runtime checkpoint — Slice 9 / 2026-09-28
 Web b901e02/facb9dc89b6e; API/worker e295c0c/a4e0c852533c; search32f2a68/schema34 unchanged. QA/provider-clock and public login/back1440/390 PASS. Rollback pre-visible-slice9-times retained. Next exact action: durable Ops human reply + customer storage-failure guard. No real SMS/payment/migration.
 
