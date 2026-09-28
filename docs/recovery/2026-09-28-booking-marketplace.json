@@ -212,6 +212,88 @@
         "refreshPreservesCommand": true,
         "reservation": "3a705324-6dde-491d-a49c-8e6834f7480b"
       }
-    ]
-  }
+    ],
+    "deployment": {
+      "deployed": true,
+      "fingerprint": "916680044d173390d5e3a6a0a59328a038f00b69-worktree-bb9fb10134d0",
+      "rollback_containers": [
+        "karenseir-frontend-1-pre-booking-recovery-20260928"
+      ],
+      "api_image": "sha256:e4bace796f3fd4e44778916d763ae7522d242987e65a65611cf65c35bf4a0173",
+      "web_unchanged": false,
+      "search_unchanged": true,
+      "worker_changed": false,
+      "legacy_holds_excluded": true,
+      "migration_executed": false,
+      "financial_transaction": false
+    },
+    "public_smoke": {
+      "pass": true,
+      "rows": [
+        {
+          "width": 1440,
+          "path": "/villas/00000000-0000-4000-8000-000000000001",
+          "pass": true
+        },
+        {
+          "width": 390,
+          "path": "/villas/00000000-0000-4000-8000-000000000001",
+          "pass": true
+        }
+      ]
+    }
+  },
+  "latest_deployed_code_commit": "5a714cb",
+  "final_health": {
+    "pass": true,
+    "services": {
+      "karenseir-api-1": {
+        "image": "sha256:e4bace796f3fd4e44778916d763ae7522d242987e65a65611cf65c35bf4a0173",
+        "health": "healthy"
+      },
+      "karenseir-worker-1": {
+        "image": "sha256:e4bace796f3fd4e44778916d763ae7522d242987e65a65611cf65c35bf4a0173",
+        "health": "healthy"
+      },
+      "karenseir-frontend-1": {
+        "image": "sha256:6809c6a51d6e77e12713bacb1068758d11cbee30e61a24bc01ca0b07bcccedde",
+        "health": "healthy"
+      },
+      "karenseir-search": {
+        "image": "sha256:1a8f947d45778f57d3730e830eedf82a2dcfb4b99a251c4e197b1790d1137191",
+        "health": "healthy"
+      },
+      "karenseir-assistant": {
+        "image": "sha256:c93cca148186d9071fba13ac816b0663e60313825faa1986248b225a1e34d731",
+        "health": "healthy"
+      }
+    },
+    "fingerprint": "916680044d173390d5e3a6a0a59328a038f00b69-worktree-bb9fb10134d0",
+    "source_matches": true,
+    "rollback_containers": [
+      "karenseir-api-1-pre-marketplace-20260928",
+      "karenseir-worker-1-pre-marketplace-20260928",
+      "karenseir-frontend-1-pre-marketplace-20260928",
+      "karenseir-api-1-pre-trip-basket-20260928",
+      "karenseir-worker-1-pre-trip-basket-20260928",
+      "karenseir-frontend-1-pre-trip-basket-20260928",
+      "karenseir-frontend-1-pre-booking-recovery-20260928"
+    ],
+    "rollback_executed": false
+  },
+  "full_booking_domain_complete": false,
+  "next_internal_work": [
+    "Complete accommodation property creation/content/moderation/publication and public discovery without exposing private tenant inventory",
+    "Connect basket reservations explicitly to one Trip, including vertical-specific selections",
+    "Add protected structured traveller fields and supplier-specific identity requirements",
+    "Close remaining applicable lifecycle/after-sales/vertical gaps against the approved product requirements"
+  ],
+  "external_references_needed": [
+    "Approved CheckLine API/source reference for the requested capability audit",
+    "Approved Figma file/node reference for edits in Figma itself"
+  ],
+  "baseline_tests_not_repeated": [
+    "42/42",
+    "25/25"
+  ]
 }
