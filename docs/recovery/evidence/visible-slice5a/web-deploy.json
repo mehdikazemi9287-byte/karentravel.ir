@@ -1,0 +1,9 @@
+{
+  "slice": "slice5a-final",
+  "image": "sha256:7379c3aadabc4311d066fd167e7ec6c1733f359a8f79b1d24d99a836633f19a1",
+  "fingerprint": "9cc109b1c62005554afe2a09ce338f6725cdd69b",
+  "public_product_marker": true,
+  "rollback": "karenseir-frontend-1-pre-visible-slice5a-final",
+  "api_unchanged": true,
+  "migration": false
+}

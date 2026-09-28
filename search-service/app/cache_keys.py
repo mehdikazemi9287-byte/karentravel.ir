@@ -24,7 +24,7 @@ import json
 
 from .ranking import RANKING_VERSION
 
-CACHE_KEY_VERSION = "v2"
+CACHE_KEY_VERSION = "v3-leisure-day"
 
 
 def search_cache_key(payload: dict) -> str:
