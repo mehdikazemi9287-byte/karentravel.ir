@@ -1,3 +1,6 @@
+## Latest runtime checkpoint — Slice 8 / 2026-09-28
+Web/API/worker e295c0c; images b79c77046942 / a4e0c852533c. Search 32f2a68, schema34 unchanged. QA notification journey and public login 1440/390 PASS; rollback pre-visible-slice8-final / pre-notification-e295c0c retained. Next: readable supplied transport times and scoped offer login styling. No SMS/payment/migration. Older checkpoints below superseded.
+
 ## Latest runtime checkpoint — Slice 6 / 2026-09-28
 Source/runtime application commit c9ee7ab. Frontend eecc82aa6589, API/worker ee73e4754f2a, search a0b0f86c7fa0 (32f2a68), DB34 unchanged. Public support login and isolated customer conversation E2E PASS at 1440/390; see recovery/2026-09-28-visible-marketplace.md. Rollbacks frontend pre-visible-slice6-permission and API/worker pre-case-reply-c9ee7ab retained. No financial/SMS operation. Next exact action: durable generic offer/results pending booking and preserved search back-link; scoped heading sizing. Other historical states below are superseded.
 

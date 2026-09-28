@@ -1,0 +1,26 @@
+{
+  "pass": true,
+  "qa": true,
+  "checks": [
+    {
+      "width": 1440,
+      "oneInboxNotice": true,
+      "readPersisted": true,
+      "readRetry": true,
+      "caseDeepLink": true,
+      "humanReplyVisible": true,
+      "pageErrors": 0,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "oneInboxNotice": true,
+      "readPersisted": true,
+      "readRetry": false,
+      "caseDeepLink": true,
+      "humanReplyVisible": true,
+      "pageErrors": 0,
+      "overflow": false
+    }
+  ]
+}

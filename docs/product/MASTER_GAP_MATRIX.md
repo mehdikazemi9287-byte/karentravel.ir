@@ -143,3 +143,5 @@ Explicit remaining gaps: supplier media/gallery contract and host UI editing, co
 - Slice 7 deployed 4e7f72a: generic result/detail command recovery, criteria/back/login preservation and expired/storage-unavailable states verified. Explicit units retained; no infant/group pricing inferred.
 - P1 visible: ISO flight timestamps need readable supplied-timezone formatting; anonymous offer guard needs same navy shell.
 - Next: human support response → in-app notification → case deep link. Existing outbox record alone does not prove an inbox notification. External channels must remain untouched.
+
+- Slice 8: support reply in-app notice + read persistence + case deep link released; QA desktop/mobile PASS, public login PASS. No external delivery. Human reply endpoint retry idempotency remains internal.

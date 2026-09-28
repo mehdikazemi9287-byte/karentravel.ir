@@ -1,0 +1,10 @@
+{
+  "commit": "e295c0cd13009a67ed760ec9d08fa765a6e5d365",
+  "image": "sha256:a4e0c852533cfc0365037fd8a717b0d12d8bad2bd20e037a97bc4499e4afb7e6",
+  "rollback": [
+    "karenseir-api-1-pre-notification-e295c0c",
+    "karenseir-worker-1-pre-notification-e295c0c"
+  ],
+  "migration": false,
+  "health": true
+}

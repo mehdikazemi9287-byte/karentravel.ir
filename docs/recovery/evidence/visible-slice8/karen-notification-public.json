@@ -1,0 +1,16 @@
+{
+  "pass": true,
+  "qa": false,
+  "checks": [
+    {
+      "width": 1440,
+      "loginHandoff": true,
+      "publicMutation": false
+    },
+    {
+      "width": 390,
+      "loginHandoff": true,
+      "publicMutation": false
+    }
+  ]
+}
