@@ -2,7 +2,7 @@
 
 Target: Source and isolated Preview/QA. Production is unchanged: deployed 5a714cb,
 API/worker e4bace796f3f, web 6809c6a51d6e. Existing rollback containers are preserved.
-Baseline Source aeac353. User-owned backend/debug_voucher.py is excluded.
+Baseline Source aeac353; implementation committed as 01adfcb. User-owned backend/debug_voucher.py is excluded.
 
 ## Implemented increment
 - Nine request use cases; persisted requirements, frozen policy version/outcomes,
@@ -66,3 +66,6 @@ Jabama business URL retrieval failed; no unobserved competitor claims were made.
 
 Next: obtain specific approval for additive migration/release of this tested increment;
 continue remaining internal enterprise/finance/gift implementation with isolated QA.
+
+Candidate web image: karenseir-current-web:enterprise-preview-20260928 (9f458b8601bb); source delta fingerprint aeac353d1c85ce0846e5f1bd7b58662fa547fff6-worktree-56bb81f6ce5f. Backend candidate: karenseir-current-api:enterprise-01adfcb. Five live services were read-only checked healthy; seven prior rollback containers still exist. Local compile initially could not write a cache owned by another user; rerun with PYTHONPYCACHEPREFIX under /tmp passed without permission changes.
+Final candidate QA: rebuilt backend image b495c4ad774a3837ec7d0e2493783ac71d8fc0c27e1c83c40ac68b54634ebf35; all four targeted tests passed against the candidate image's own /app code (only tests mounted, isolated SQLite/media, no network). This repeat was required to validate the newly built runtime dependencies. Candidate web and backend are prepared, not deployed. Documentation/evidence links and git diff whitespace checks passed.

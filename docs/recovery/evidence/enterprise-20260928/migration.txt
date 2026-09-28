@@ -1,0 +1,13 @@
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running stamp_revision  -> 20260922_33
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade 20260922_33 -> 20260928_34, Add tenant-isolated enterprise request, policy, approval audit and RFQ tables.
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running downgrade 20260928_34 -> 20260922_33, Add tenant-isolated enterprise request, policy, approval audit and RFQ tables.
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade 20260922_33 -> 20260928_34, Add tenant-isolated enterprise request, policy, approval audit and RFQ tables.
+{"migration": "20260928_34", "tables": 7, "force_rls": true, "tenant_and_no_context_isolation": true, "isolated_downgrade_upgrade": true}
