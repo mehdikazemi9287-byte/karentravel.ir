@@ -1,4 +1,3 @@
-import { Shell } from '../page';
-import { TourList } from '../../components/operational/TravelCommerceViews';
-import { ServiceIntro } from '../../components/customer/CustomerHelp';
-export default function Page(){return <Shell><ServiceIntro title="تور و سفر گروهی" description="برای استعلام تور، مقصد، تاریخ و خدمات مورد نظرتان را آماده کنید." vertical="tour"/><TourList/></Shell>}
+import {JourneyShell} from '../../components/journey/JourneyShell';
+import {TourList} from '../../components/operational/TravelCommerceViews';
+export default function Page(){return <JourneyShell><main className="journey-main"><TourList/></main></JourneyShell>}

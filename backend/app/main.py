@@ -1788,10 +1788,19 @@ def create_tour_departure(tour_id: str, data: TourDepartureIn, user: User = Depe
 
 
 @app.get("/tour-products")
-def list_tours(destination: Optional[str] = None, user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
-    query = select(operational_models.TourProduct).where(operational_models.TourProduct.tenant_id == user.tenant_id, operational_models.TourProduct.status == "published")
-    if destination: query = query.where(operational_models.TourProduct.destination == destination)
-    rows = db.scalars(query).all(); return [{"id": r.id, "slug": r.slug, "title": r.title, "origin": r.origin, "destination": r.destination, "tour_type": r.tour_type, "details": json.loads(r.details_json)} for r in rows]
+def list_tours(destination: Optional[str] = None, depart: Optional[date] = None, travellers: Optional[int] = Query(default=None, ge=1, le=100), user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
+    tour = operational_models.TourProduct
+    query = select(tour).where(tour.tenant_id == user.tenant_id, tour.status == "published")
+    if destination: query = query.where(tour.destination == destination)
+    if depart is not None or travellers is not None:
+        departure = operational_models.TourDeparture
+        conditions = [departure.tour_id == tour.id, departure.tenant_id == user.tenant_id, departure.status == "active", departure.remaining >= (travellers or 1), departure.booking_deadline > datetime.now(timezone.utc)]
+        if depart is not None:
+            start = datetime.combine(depart, datetime.min.time(), tzinfo=timezone(timedelta(hours=3, minutes=30))).astimezone(timezone.utc)
+            conditions.extend([departure.starts_at >= start, departure.starts_at < start + timedelta(days=1)])
+        query = query.where(select(departure.id).where(*conditions).exists())
+    rows = db.scalars(query.order_by(tour.created_at.desc(), tour.id)).all()
+    return [{"id": r.id, "slug": r.slug, "title": r.title, "origin": r.origin, "destination": r.destination, "tour_type": r.tour_type, "details": json.loads(r.details_json)} for r in rows]
 
 
 @app.get("/tour-products/{tour_id}")

@@ -1,0 +1,29 @@
+{
+  "pass": true,
+  "checks": [
+    {
+      "width": 1440,
+      "qa": true,
+      "criteriaPreserved": true,
+      "realDateCapacityFilter": true,
+      "refreshRoom": true,
+      "recheckReservationTraveller": true,
+      "loginHandoff": false,
+      "overflow": false,
+      "pageErrors": 0,
+      "consoleErrors": []
+    },
+    {
+      "width": 390,
+      "qa": true,
+      "criteriaPreserved": true,
+      "realDateCapacityFilter": true,
+      "refreshRoom": true,
+      "recheckReservationTraveller": true,
+      "loginHandoff": false,
+      "overflow": false,
+      "pageErrors": 0,
+      "consoleErrors": []
+    }
+  ]
+}
