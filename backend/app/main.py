@@ -1716,7 +1716,7 @@ def book_vacation_unit(unit_id: str, data: VacationBookIn, user: User = Depends(
     request_only = prop_details.get("booking_mode")=="REQUEST_TO_BOOK"
     policy = prop_details.get("cancellation_policy") if isinstance(prop_details.get("cancellation_policy"), dict) else {}
     reservation = operational_models.Reservation(tenant_id=user.tenant_id, user_id=user.id, service_type="vacation_rental", status="booking_pending" if request_only else "reserved", booking_reference=f"KS-VILLA-{uuid.uuid4().hex[:10].upper()}", price_snapshot_json=json.dumps({"booking_mode":prop_details.get("booking_mode","INSTANT_BOOKING"),"total_amount": total, "currency": unit.currency, "nights": nights,"unit_id":unit.id,"units":1, "guests": data.guests, "min_stay": pricing["min_stay"], "nightly_breakdown": pricing["nightly_breakdown"], "price_components": pricing["price_components"]}, sort_keys=True), policy_at_booking_json=json.dumps(policy, sort_keys=True), current_policy_json=json.dumps(policy, sort_keys=True)); db.add(reservation); db.flush(); row = operational_models.VacationReservation(tenant_id=user.tenant_id, unit_id=unit.id, user_id=user.id, reservation_id=reservation.id, check_in=check_in, check_out=check_out, guests=data.guests, total_amount=total, status="requested" if request_only else "held", command_id=data.command_id); db.add(row); db.flush(); _commerce_event(db, tenant_id=user.tenant_id, kind="vacation_reservation", aggregate_id=row.id, command_id=data.command_id, payload={"status": row.status, "reservation_id": reservation.id})
-    db.add(operational_models.BookingStatusHistory(tenant_id=user.tenant_id,reservation_id=reservation.id,from_status=None,to_status=reservation.status,actor_id=user.id,command_id="vacation-created:"+data.command_id))
+    db.add(operational_models.BookingStatusHistory(tenant_id=user.tenant_id,reservation_id=reservation.id,from_status=None,to_status=reservation.status,actor_id=user.id,command_id="vacation-created:"+hashlib.sha256(data.command_id.encode()).hexdigest()))
     db.add(operational_models.BookingItem(tenant_id=user.tenant_id,reservation_id=reservation.id,item_type="vacation_rental",snapshot_json=json.dumps({"title":prop.title+" — "+unit.title,"supplier_id":prop.supplier_id,"fulfillment_mode":"manual_supplier","provider_key":"manual_supplier","attributes":{"city":prop.city,"check_in":check_in.isoformat(),"check_out":check_out.isoformat(),"guests":data.guests}})))
     trip = operational_models.ensure_trip_for_reservation(db, reservation, title=f"سفر به {prop.city}", destination=prop.city, starts_at=check_in, ends_at=check_out)
     operational_models.record_trip_event(db, tenant_id=user.tenant_id, trip_id=trip.id, reservation_id=reservation.id, event_key=f"booking-created:{data.command_id}", event_type="booking.created", source="system", title="درخواست اقامت ثبت شد" if request_only else "نگه‌داشت اقامت ثبت شد", message=f"درخواست {reservation.booking_reference} برای {prop.title} در {prop.city} ثبت شد.", deep_link=f"/manage-booking/{reservation.id}")
@@ -1763,9 +1763,9 @@ def vacation_decision(reservation_id: str,data: VacationDecisionIn,user: User=De
         target="reserved";row.status="held"
     else:
         target="cancelled" if data.action=="withdraw" else "failed";row.status="cancelled" if data.action=="withdraw" else "rejected"
-    operational_models.transition_reservation(db,reservation,target,user.id,"vacation-decision:"+data.command_id)
+    operational_models.transition_reservation(db,reservation,target,user.id,"vacation-decision:"+hashlib.sha256(data.command_id.encode()).hexdigest())
     db.flush()
-    history=db.scalar(select(operational_models.BookingStatusHistory).where(operational_models.BookingStatusHistory.tenant_id==user.tenant_id,operational_models.BookingStatusHistory.command_id=="vacation-decision:"+data.command_id));history.reason=data.reason
+    history=db.scalar(select(operational_models.BookingStatusHistory).where(operational_models.BookingStatusHistory.tenant_id==user.tenant_id,operational_models.BookingStatusHistory.command_id=="vacation-decision:"+hashlib.sha256(data.command_id.encode()).hexdigest()));history.reason=data.reason
     result={"reservation_id":reservation.id,"status":reservation.status,"checkout_url":f"/checkout/{reservation.id}" if target=="reserved" else None}
     db.add(operational_models.IdempotencyKey(tenant_id=user.tenant_id,scope="vacation.decision",key=data.command_id,request_hash=digest,response_json=json.dumps(result)))
     db.commit();return result
@@ -3824,12 +3824,51 @@ def add_itinerary_item(itinerary_id: str, data: ItineraryItemIn, user: User = De
     if itinerary is None: raise HTTPException(status_code=404, detail="برنامه سفر وجود ندارد")
     prior = db.scalar(select(operational_models.EditableItineraryItem).where(operational_models.EditableItineraryItem.tenant_id == user.tenant_id, operational_models.EditableItineraryItem.command_id == data.command_id))
     if prior:
-        if prior.itinerary_id != itinerary.id: raise HTTPException(status_code=409, detail="کلید تکرار برای آیتم دیگری استفاده شده است")
+        if prior.itinerary_id != itinerary.id or prior.offer_id != data.offer_id or prior.service_type != data.service_type or prior.title != data.title.strip() or prior.day_number != data.day_number or prior.position != data.position: raise HTTPException(status_code=409, detail="کلید تکرار برای آیتم دیگری استفاده شده است")
         return _itinerary_output(db, itinerary)
     offer = db.scalar(select(operational_models.Offer).where(operational_models.Offer.id == data.offer_id, operational_models.Offer.tenant_id == user.tenant_id)) if data.offer_id else None
     if data.offer_id and (offer is None or offer.service_type != data.service_type): raise HTTPException(status_code=404, detail="Offer معتبر وجود ندارد")
     fresh = bool(offer and offer.status == "active" and offer.available_units > 0 and _aware(offer.valid_until) > datetime.now(timezone.utc)); snapshot = {"transactional_data_generated": False, "source": "search_offer" if offer else "user_plan", "offer_id": offer.id if offer else None, "amount": offer.amount if offer else None, "currency": offer.currency if offer else None, "valid_until": _aware(offer.valid_until).isoformat() if offer else None}
     row = operational_models.EditableItineraryItem(tenant_id=user.tenant_id, itinerary_id=itinerary.id, offer_id=data.offer_id, service_type=data.service_type, title=data.title.strip(), day_number=data.day_number, position=data.position, availability_state="live_at_save_time" if fresh else "needs_live_availability_check", snapshot_json=json.dumps(snapshot), command_id=data.command_id); db.add(row); db.flush(); db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="itinerary", aggregate_id=itinerary.id, event_type="itinerary.item.added", payload_json=json.dumps({"item_id": row.id, "availability_state": row.availability_state}), correlation_id=str(uuid.uuid4()), idempotency_key=data.command_id)); db.commit(); return _itinerary_output(db, itinerary)
+
+
+class ItineraryRecheckIn(BaseModel):
+    command_id: str=Field(min_length=8,max_length=80)
+
+
+@app.post("/itineraries/{itinerary_id}/recheck")
+def recheck_itinerary(itinerary_id: str,data: ItineraryRecheckIn,user: User=Depends(current_user),db: Session=Depends(get_db)):
+    plan=db.scalar(select(operational_models.EditableItinerary).where(operational_models.EditableItinerary.id==itinerary_id,operational_models.EditableItinerary.tenant_id==user.tenant_id,operational_models.EditableItinerary.user_id==user.id))
+    if plan is None: raise HTTPException(404,"برنامه سفر در این حساب وجود ندارد")
+    items=db.scalars(select(operational_models.EditableItineraryItem).where(operational_models.EditableItineraryItem.itinerary_id==plan.id,operational_models.EditableItineraryItem.tenant_id==user.tenant_id).order_by(operational_models.EditableItineraryItem.id)).all()
+    if len(items)>100: raise HTTPException(422,"حداکثر ۱۰۰ خدمت در هر بررسی مجاز است")
+    for item in items:
+        key=hashlib.sha256((plan.id+item.id+data.command_id).encode()).hexdigest()
+        prior=db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id==user.tenant_id,operational_models.IdempotencyKey.scope=="itinerary.recheck.item",operational_models.IdempotencyKey.key==key))
+        if prior: continue
+        original=json.loads(item.snapshot_json or "{}")
+        check={"state":"NEEDS_SELECTION","checked_at":datetime.now(timezone.utc).isoformat(),"held":False}
+        offer=db.scalar(select(operational_models.Offer).where(operational_models.Offer.id==item.offer_id,operational_models.Offer.tenant_id==user.tenant_id)) if item.offer_id else None
+        if item.offer_id:
+            if offer is None or offer.status!="active" or offer.available_units<1: check["state"]="UNAVAILABLE"
+            elif _aware(offer.valid_until)<=datetime.now(timezone.utc):check["state"]="EXPIRED"
+            else:
+                try:
+                    result=price_check(offer.id,PriceCheckIn(units=1,command_id="plan:"+hashlib.sha256((plan.id+item.id+data.command_id).encode()).hexdigest(),expected_final_price=original.get("amount")),user,db)
+                    check.update(state="READY" if _aware(datetime.fromisoformat(result["expires_at"]))>datetime.now(timezone.utc) else "EXPIRED",amount=result["amount"],currency=result["currency"],expires_at=result["expires_at"])
+                except HTTPException as exc:
+                    if isinstance(exc.detail,dict) and exc.detail.get("code")=="PRICE_CHANGED":check.update(state="PRICE_CHANGED",old_amount=exc.detail["old_price"],amount=exc.detail["new_price"],currency=offer.currency)
+                    elif exc.status_code==503:check["state"]="PROVIDER_REQUIRED"
+                    else:check["state"]="DETAILS_REQUIRED"
+        db.scalar(select(operational_models.EditableItinerary).where(operational_models.EditableItinerary.id==plan.id,operational_models.EditableItinerary.tenant_id==user.tenant_id).with_for_update())
+        prior=db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id==user.tenant_id,operational_models.IdempotencyKey.scope=="itinerary.recheck.item",operational_models.IdempotencyKey.key==key))
+        if prior: continue
+        db.add(operational_models.IdempotencyKey(tenant_id=user.tenant_id,scope="itinerary.recheck.item",key=key,request_hash=key,response_json=json.dumps(check)))
+        item.availability_state=check["state"]
+        item.snapshot_json=json.dumps({**original,"latest_check":check})
+        db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id,aggregate_type="itinerary",aggregate_id=plan.id,event_type="itinerary.item.rechecked",payload_json=json.dumps({"item_id":item.id,"state":check["state"],"amount":check.get("amount")}),correlation_id=str(uuid.uuid4()),idempotency_key="plan:"+hashlib.sha256((item.id+data.command_id).encode()).hexdigest()))
+        db.commit();set_tenant_context(db,user.tenant_id)
+    return _itinerary_output(db,plan)
 
 
 @app.put("/itineraries/{itinerary_id}/items/{item_id}")

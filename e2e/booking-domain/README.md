@@ -13,3 +13,9 @@ voucher and My Trips at desktop/mobile widths. JSON/screenshots remain under
 /tmp/karen-operational-e2e. check_accommodation_db.py runs inside QA and verifies
 single approval/payment/voucher plus Trip. Harness provisioning is reused, not
 included here; these scripts are not generic production smoke tests.
+
+Trip basket: local web :3341 and the same QA API. trip_basket_fixture.py creates one
+explicit Mock QA offer in SQLite; trip-basket.cjs verifies customer-authored notes,
+real offer linkage, repeat-add idempotency, recheck, reload and offer-detail handoff
+at both widths. It does not initiate payment. Backend test additionally changes
+stored price and expiry and verifies no silent substitution or duplicate audit.

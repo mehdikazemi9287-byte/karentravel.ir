@@ -80,7 +80,7 @@ def test_request_to_book_requires_host_recheck_and_is_idempotent(client):
     assert client.post('/reservations/'+rid+'/payment-intents',headers={**auth(employee),'Idempotency-Key':uuid.uuid4().hex}).status_code==409
     assert client.post('/reservations/'+rid+'/checkout-sessions',headers=auth(employee),json={'command_id':uuid.uuid4().hex}).status_code==409
     b=client.post('/vacation-units/'+uid+'/reservations',headers=auth(employee),json={**body,'command_id':uuid.uuid4().hex}).json()
-    decision={'action':'accept','reason':'Mock QA host acceptance','command_id':uuid.uuid4().hex}
+    decision={'action':'accept','reason':'Mock QA host acceptance','command_id':'x'*120}
     endpoint='/reservations/'+rid+'/accommodation-decision'
     assert client.post(endpoint,headers=auth(employee),json=decision).status_code==403
     accepted=client.post(endpoint,headers=auth(supplier),json=decision);assert accepted.status_code==200,accepted.text
@@ -97,6 +97,7 @@ def test_request_to_book_requires_host_recheck_and_is_idempotent(client):
         histories=db.scalars(select(m.BookingStatusHistory).where(m.BookingStatusHistory.reservation_id==rid)).all()
         assert [h.to_status for h in histories]==['booking_pending','reserved']
         assert histories[-1].reason=='Mock QA host acceptance'
+        assert all(len(h.command_id)<=120 for h in histories)
         assert db.scalar(select(m.Voucher).where(m.Voucher.reservation_id==rid)) is None
         assert db.scalar(select(m.PaymentIntent).where(m.PaymentIntent.reservation_id==rid)) is None
         reservation=db.get(m.Reservation,rid)

@@ -56,5 +56,97 @@
   "migration": false,
   "checkline": "No CheckLine source or approved API reference found in accessible supplied project paths; capability remains unverified, not declared unavailable.",
   "remaining_internal": "See ADR-022 gap matrix and authoritative product requirement files",
-  "rollback": "Retain old containers; before reverting after adoption, disable units using new rate/calendar fields because older code ignores them."
+  "rollback": "Retain old containers; before reverting after adoption, disable units using new rate/calendar fields because older code ignores them.",
+  "deployed_commit": "c138249",
+  "deployment": {
+    "deployed": true,
+    "fingerprint": "09950ec057e412624017dd2fa4a37c5b78818fda-worktree-45176ed3c7d4",
+    "rollback_containers": [
+      "karenseir-api-1-pre-marketplace-20260928",
+      "karenseir-worker-1-pre-marketplace-20260928",
+      "karenseir-frontend-1-pre-marketplace-20260928"
+    ],
+    "api_image": "sha256:3773fd1c20c250ee4623572514590cd3afc45dcd4a283ea74c40205f2f3ea800",
+    "web_unchanged": false,
+    "search_unchanged": true,
+    "worker_changed": true,
+    "legacy_holds_excluded": true,
+    "migration_executed": false,
+    "financial_transaction": false
+  },
+  "public_smoke": {
+    "pass": true,
+    "rows": [
+      {
+        "width": 1440,
+        "path": "/villas",
+        "pass": true
+      },
+      {
+        "width": 1440,
+        "path": "/supplier/accommodation",
+        "pass": true
+      },
+      {
+        "width": 1440,
+        "path": "/villas/00000000-0000-4000-8000-000000000001",
+        "pass": true
+      },
+      {
+        "width": 1440,
+        "path": "/manage-booking/00000000-0000-4000-8000-000000000001",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/villas",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/supplier/accommodation",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/villas/00000000-0000-4000-8000-000000000001",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/manage-booking/00000000-0000-4000-8000-000000000001",
+        "pass": true
+      }
+    ]
+  },
+  "trip_basket": {
+    "tests": "2 affected tests PASS (basket and maximum-length host command)",
+    "browser": {
+      "pass": true,
+      "checks": [
+        {
+          "width": 1440,
+          "pass": true,
+          "plan": "73ef1640-9f8c-4815-99ad-f3f46ebbbcb3",
+          "offer": "7149404c-ac2a-495e-8a22-15335564afbe",
+          "note": true,
+          "replayNoDuplicate": true,
+          "recheck": true,
+          "reload": true,
+          "detailHandoff": true
+        },
+        {
+          "width": 390,
+          "pass": true,
+          "plan": "d572c3f3-5ec6-4454-a635-76d5476e2411",
+          "offer": "7149404c-ac2a-495e-8a22-15335564afbe",
+          "note": true,
+          "replayNoDuplicate": true,
+          "recheck": true,
+          "reload": true,
+          "detailHandoff": true
+        }
+      ]
+    }
+  }
 }

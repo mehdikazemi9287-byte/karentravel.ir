@@ -48,3 +48,11 @@ trip event and outbox models. Supplier UI uses assigned-property scope only.
 
 Fulfillment consistency: explicit supplier issuance also changes VacationReservation
 from held to confirmed in the same DB transaction. Payment alone never does so.
+
+Third increment: reuse EditableItinerary/Item as the trip basket. Replace the
+placeholder add action with customer-authored items and real offer linkage. Recheck
+each linked offer through the existing PriceCheck boundary; persist each item's
+expired/unavailable/changed/ready/provider-required result, never substitute items.
+A rechecked plan does not hold inventory or imply a combined purchase. Final per-item
+booking retains the existing recheck/hold guards. Provider-only inventory stays
+fail-closed. No bulk charge or all-or-nothing booking is introduced implicitly.

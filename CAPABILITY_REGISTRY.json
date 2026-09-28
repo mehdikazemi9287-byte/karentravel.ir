@@ -72,11 +72,12 @@
       "evidence": "docs/recovery/2026-09-27-implementation-evidence.json"
     },
     "booking": {
-      "status": "READY_BLOCKED_EXTERNAL",
+      "status": "PARTIAL",
       "reason": "Internal quote, hold, passenger, recheck, policy, funding, invoice, intercepted payment, supplier issue, voucher and trips verified in isolated desktop/mobile browser; deployed. This is not evidence of a real public sale.",
       "blocker": "Live OTP delivery, provider allocation/contract and payment merchant/HTTPS callback",
       "last_verified_at": "2026-09-27T23:33:34.987023+00:00",
-      "evidence": "docs/recovery/2026-09-27-implementation-evidence.json"
+      "evidence": "docs/recovery/2026-09-27-implementation-evidence.json",
+      "expanded_scope_note": "2026-09-28 booking-domain requirements include internal gaps beyond previously tested checkout; do not interpret earlier READY_BLOCKED_EXTERNAL as full domain completion."
     },
     "wallet": {
       "status": "READY_BLOCKED_EXTERNAL",
@@ -221,6 +222,16 @@
         "backend/tests/test_accommodation_marketplace.py",
         "e2e/booking-domain/README.md"
       ]
+    },
+    "trip_basket": {
+      "status": "PARTIAL",
+      "reason": "Persisted real offer linkage, customer notes, per-item recheck, price-change/expiry/unavailable states and booking detail handoff; desktop/mobile isolated E2E. Does not promise combined atomic booking or hold inventory.",
+      "blocker": "Internal: explicit linking of resulting reservations to one Trip and vertical-specific non-Offer selections; external provider contracts for live availability.",
+      "evidence": [
+        "backend/tests/test_trip_basket_recheck.py",
+        "e2e/booking-domain/trip-basket.cjs"
+      ],
+      "last_verified_at": "2026-09-28"
     }
   }
 }
