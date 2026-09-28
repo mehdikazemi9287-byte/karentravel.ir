@@ -59,7 +59,7 @@ export function NotificationCenter() {
   return <div className="container" style={{ maxWidth: 820 }}>
     <div className="page-hero"><span className="eyebrow">مرکز اعلان‌ها · داده احرازشده</span>
       <h1>اعلان‌ها و ترجیحات</h1>
-      <p>{unread > 0 ? `${unread.toLocaleString('fa-IR')} اعلان خوانده‌نشده` : 'همه‌ی اعلان‌ها خوانده شده‌اند'}</p></div>
+      <p>حداکثر ۵۰ اعلان اخیر نمایش داده می‌شود.</p><p>{unread > 0 ? `${unread.toLocaleString('fa-IR')} اعلان خوانده‌نشده در این فهرست` : 'در این فهرست اعلان خوانده‌نشده‌ای نیست'}</p></div>
     {notice && <p role="status" className="mb-4 rounded-xl bg-cyan-50 p-4 text-sm">{notice}</p>}
 
     <section className="panel mb-5">

@@ -62,3 +62,6 @@ Slice 7 follow-up: preserve explicit offer query through ErrorState login redire
 
 ### Slice 8 — in-app support response notification
 QA baseline has six cases with human replies and zero linked inbox notifications. Reuse notification fanout with optional channel restriction (default unchanged), explicitly web/app only for support response. Add semantic support_reply_received template and case deep link. Add owned, idempotent mark-read endpoint using existing status field; worker must preserve read instead of overwriting it with transport status. UI delivery does not imply reading, shows Persian topics and explicit read action. No external delivery attempt for support response; no migration or production test messages.
+
+### Slice 9 — supplied transport times and contextual recovery
+Format valid ISO transport dates with the supplied wall clock and offset; never browser-local conversion or guessed airport timezone. Bare times retain no-zone disclosure, invalid/missing dates remain unavailable. Preserve original ISO in datetime. Share flight/rail renderer; anonymous offer wrapper retains navy/teal and back-to-search context. Notification count describes only the loaded latest50, not all historical unread records. No booking mutation/API/schema change.
