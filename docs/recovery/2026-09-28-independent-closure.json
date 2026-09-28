@@ -4,7 +4,7 @@
     "ed61766"
   ],
   "built_web": "ed617663aa80c2a5d3b06c83077f24dc64b8172c-worktree-59f97a5733bb",
-  "at": "2026-09-28T14:48:12.926504+00:00",
+  "at": "2026-09-28T14:58:18.555628+00:00",
   "tests": {
     "api_boundary_support_payment": "7 passed",
     "final_assistant_tenant_filter": "2 passed",
@@ -12,7 +12,8 @@
     "assistant_service": "4 passed",
     "logout_and_refresh": "PASS",
     "redirect_boundary": "PASS",
-    "targeted_lint": "PASS"
+    "targeted_lint": "PASS",
+    "final_assistant_timeout_ownership": "3 passed"
   },
   "browser": {
     "workflows": {
@@ -114,5 +115,195 @@
     "live supplier contract/credentials",
     "ZarinPal merchant/authorized real transaction",
     "Kavenegar live delivery access/authorized recipient"
+  ],
+  "deployed_code_commit": "75e4dc52ea924e5c077b5d4e021040944b2ea94c",
+  "public_browser": {
+    "pass": true,
+    "rows": [
+      {
+        "width": 1440,
+        "path": "/",
+        "pass": true
+      },
+      {
+        "width": 1440,
+        "path": "/assistant",
+        "pass": true
+      },
+      {
+        "width": 1440,
+        "path": "/login",
+        "pass": true
+      },
+      {
+        "width": 1440,
+        "path": "/register",
+        "pass": true
+      },
+      {
+        "width": 1440,
+        "path": "/account",
+        "pass": true
+      },
+      {
+        "width": 1440,
+        "path": "/notifications",
+        "pass": true
+      },
+      {
+        "width": 1440,
+        "path": "/support?booking=00000000-0000-4000-8000-000000000001",
+        "pass": true
+      },
+      {
+        "width": 1440,
+        "path": "/payments/00000000-0000-4000-8000-000000000001",
+        "pass": true
+      },
+      {
+        "width": 1440,
+        "path": "/backoffice",
+        "pass": true
+      },
+      {
+        "width": 1440,
+        "path": "/supplier",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/assistant",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/login",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/register",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/account",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/notifications",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/support?booking=00000000-0000-4000-8000-000000000001",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/payments/00000000-0000-4000-8000-000000000001",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/backoffice",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/supplier",
+        "pass": true
+      }
+    ]
+  },
+  "deployment": {
+    "deployed": true,
+    "fingerprint": "ed617663aa80c2a5d3b06c83077f24dc64b8172c-worktree-59f97a5733bb",
+    "rollback_containers": [
+      "karenseir-assistant-pre-closure-20260928",
+      "karenseir-api-1-pre-closure-20260928",
+      "karenseir-worker-1-pre-closure-20260928",
+      "karenseir-frontend-1-pre-closure-20260928"
+    ],
+    "api_image": "sha256:3c3ea84f700e2514b9c859136184b0da619c174208459cba44f7468bb198911f",
+    "web_unchanged": false,
+    "search_unchanged": true,
+    "worker_changed": true,
+    "legacy_holds_excluded": true,
+    "migration_executed": false,
+    "financial_transaction": false
+  },
+  "final_api_worker_deployment": {
+    "deployed": true,
+    "fingerprint": "ed617663aa80c2a5d3b06c83077f24dc64b8172c-worktree-59f97a5733bb",
+    "rollback_containers": [
+      "karenseir-api-1-pre-closure-claim-20260928",
+      "karenseir-worker-1-pre-closure-claim-20260928"
+    ],
+    "api_image": "sha256:fb8d03695ea01ac6c109403bf82846a0ef36b508f6d8ec77fe9d5ffe7bd15a78",
+    "web_unchanged": true,
+    "search_unchanged": true,
+    "worker_changed": true,
+    "legacy_holds_excluded": true,
+    "migration_executed": false,
+    "financial_transaction": false
+  },
+  "final_health": {
+    "pass": true,
+    "services": {
+      "karenseir-api-1": {
+        "health": "healthy",
+        "image": "sha256:fb8d03695ea01ac6c109403bf82846a0ef36b508f6d8ec77fe9d5ffe7bd15a78"
+      },
+      "karenseir-worker-1": {
+        "health": "healthy",
+        "image": "sha256:fb8d03695ea01ac6c109403bf82846a0ef36b508f6d8ec77fe9d5ffe7bd15a78"
+      },
+      "karenseir-frontend-1": {
+        "health": "healthy",
+        "image": "sha256:6e5e10f6c98769ae4bfbbeb30afc5b86602eff2d9bbd160487e8bbfa3155d4b8"
+      },
+      "karenseir-search": {
+        "health": "healthy",
+        "image": "sha256:1a8f947d45778f57d3730e830eedf82a2dcfb4b99a251c4e197b1790d1137191"
+      },
+      "karenseir-assistant": {
+        "health": "healthy",
+        "image": "sha256:c93cca148186d9071fba13ac816b0663e60313825faa1986248b225a1e34d731"
+      }
+    },
+    "fingerprint": "ed617663aa80c2a5d3b06c83077f24dc64b8172c-worktree-59f97a5733bb",
+    "source_matches": true,
+    "api_and_assistant_ready": true,
+    "original_and_current_rollback_retained": true,
+    "deployed_code_commit": "75e4dc52ea924e5c077b5d4e021040944b2ea94c"
+  },
+  "security_smoke": {
+    "pass": true,
+    "scope": "changed files and deployed static assets vs configured secret literals; recent API log; anonymous auth/role/internal guards",
+    "secret_matches": 0,
+    "files_scanned": 1,
+    "public_guards": {
+      "/auth/dev-login": 404,
+      "/me/trips": 401,
+      "/backoffice/records/payments": 401,
+      "/internal/search/offer-pool": 401
+    },
+    "https": "BLOCKED",
+    "full_penetration_test": false
+  },
+  "acceptance_scope": "Changed and previously evidenced internal workflows; E2E uses isolated databases and test transports. No live sale or real OTP delivery claim.",
+  "status": "EXTERNAL_BLOCKED",
+  "next_external_actions": [
+    "Domain owner: activate authoritative karentravel.ir zone on dns1..4.talahost.com with consistent IRNIC delegation; A @ and A api = 95.38.184.209, TTL 300. Verify authoritative and recursive DNS before issuing TLS.",
+    "Supplier: provide contracted endpoint, credentials/IP allowlist, currency IRR or IRT and versioned Search/Recheck/Hold/Book/Confirmation/Voucher contract.",
+    "ZarinPal: provide valid merchant and approve HTTPS callback https://api.karentravel.ir/payments/zarinpal/callback after TLS passes. A particular real purchase and maximum amount require explicit approval.",
+    "Kavenegar: confirm account Verify/Lookup endpoint and template permissions, then authorize one recipient and one real delivery test."
   ]
 }

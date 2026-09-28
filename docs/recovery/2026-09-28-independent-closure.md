@@ -27,3 +27,23 @@ Deployment rollback retains old containers/images and schema compatibility. If r
 Only external dependencies remain: authoritative DNS/TLS, a real contracted supplier, authorized ZarinPal merchant/real-charge approval, and Kavenegar account/template/recipient approval. Internal test PASS is not a claim of live supplier availability, delivered real OTP, successful real payment or issued real supplier voucher. The assistant is deterministic workflow orchestration, not an unconfigured LLM.
 
 Final security delta: claiming an anonymous conversation is durably committed before private assistant work; an upstream timeout cannot leave private state accessible with the former guest capability. The same authenticated owner may safely retry. Three focused ownership tests PASS, including timeout then guest/other-user denial. Public verifier corrected its heading-only assumption for the notifications login gate: acceptance checks the actual alert and working login link instead; no production behavior weakened.
+
+## Final release checkpoint
+Deployed code commit: `75e4dc5` (main workflow changes `92626fd`). Web retains content fingerprint `ed617663aa80c2a5d3b06c83077f24dc64b8172c-worktree-59f97a5733bb`; content hashes, not the older build label, establish correspondence. API/worker image `fb8d03695ea0`; assistant image `c93cca148186`; search unchanged. Five existing services healthy; API and assistant readiness PASS. No migration, real SMS, financial transaction or production test fixtures.
+
+Public browser delta: 20 route/viewport checks PASS at 1440px and 390px, no horizontal overflow or page errors. Notifications verifier excludes Next.js route announcer; payment probe uses valid UUID syntax. Earlier malformed UUID returned intentional 404, not a product defect. Public checks verify anonymous pages/gates; authenticated transactions were verified only in isolated QA. Security smoke covers configured-secret leakage and selected access guards, not a full penetration test. TLS remains externally blocked.
+
+Rollback READY: original rollback containers retained, plus pre-closure API/worker/web/assistant and pre-closure-claim API/worker. The legacy reservation reaper cutoff and persistent mounts were retained. Rollback availability and schema compatibility checked; no disruptive rollback rehearsal performed.
+
+KARENSEIR CHECKPOINT — final
+Completed: internal customer/assistant/payment/support recovery defects fixed and deployed.
+Verified: focused backend and browser evidence in adjacent JSON; baseline passing suites reused.
+Changed: scoped code/tests and recovery evidence; user debug file untouched.
+Production changed: API, worker, web and existing assistant; search unchanged.
+Git code HEAD: 75e4dc5.
+Tests: internal/isolated PASS; public changed-route smoke PASS.
+Token/context status: closure complete, no additional audit.
+Blockers: only DNS/TLS, contracted supplier, ZarinPal and Kavenegar live access/approval.
+Functional completion: scoped internal acceptance PASS; real-sale golden path remains blocked.
+Production readiness: EXTERNAL_BLOCKED.
+NEXT EXACT ACTION: domain owner activates authoritative zone and A records; remaining precise external inputs are in adjacent JSON.
