@@ -1,0 +1,29 @@
+{
+  "pass": true,
+  "checks": [
+    {
+      "width": 1440,
+      "qa": false,
+      "hotelDefault": true,
+      "categoryFilter": true,
+      "datesAndGuestsPreserved": true,
+      "quoteToTravellers": false,
+      "loginHandoff": true,
+      "rtl": "rtl",
+      "overflow": false,
+      "pageErrors": 0
+    },
+    {
+      "width": 390,
+      "qa": false,
+      "hotelDefault": true,
+      "categoryFilter": true,
+      "datesAndGuestsPreserved": true,
+      "quoteToTravellers": false,
+      "loginHandoff": true,
+      "rtl": "rtl",
+      "overflow": false,
+      "pageErrors": 0
+    }
+  ]
+}

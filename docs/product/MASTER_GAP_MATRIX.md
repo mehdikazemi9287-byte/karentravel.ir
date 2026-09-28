@@ -109,3 +109,13 @@ Accommodation | discover → type/city → property | typed landing links now pr
 - `/offers/[id]` → `/checkout/[id]`: existing real QA API/DB journey; Slice 2 regression pending.
 - `/assistant?prompt=…`, `/villas?property_type=…`: public Slice 1 handoffs verified.
 - Remaining route journeys stay unverified for this directive until actually exercised; route presence is not PASS.
+
+## Slice 3 delta
+
+AREA | JOURNEY | CURRENT | EXPECTED | FRONTEND | BACKEND | DATA | FIGMA | E2E | EXTERNAL | PRIORITY | NEXT ACTION
+---|---|---|---|---|---|---|---|---|---|---|---
+Hotel | /hotels → search | replaced service introduction with hotel-default search, 10 stay types and editorial destinations | correct vertical/dates/rooms | implemented | unchanged real search | no catalog fabrication | unspecified | preview desktop/mobile PASS | live hotel provider | P0 | publish and verify
+Accommodation | category → login → detail → quote → checkout | dates and guest count preserved; factual property details; calendar progressively disclosed | no criteria loss, honest capacity and total | implemented | existing scoped API reused | QA fixture only | unspecified | real QA API/DB quote/reservation to travellers PASS at 1440/390 | production host inventory, OTP | P0 | final visual gate/public verification
+Mobile search | filters | horizontally clipped controls replaced by wrapping grid | all filters visible without horizontal discovery | implemented | unchanged | unchanged | approved identity | build + targeted flight recovery regression pending | none | P0 | verify new grid
+
+Explicit remaining gaps: supplier media/gallery contract and host UI editing, complete advanced flight fare/party contract, multi-city fulfillment, wider tour/leisure/trip journeys. These are not declared complete or external solely because they remain unreviewed.

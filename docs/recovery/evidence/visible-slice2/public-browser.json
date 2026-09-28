@@ -1,0 +1,28 @@
+{
+  "pass": true,
+  "base": "http://95.38.184.209",
+  "checks": [
+    {
+      "width": 1440,
+      "qa": false,
+      "flightSearch": true,
+      "unknownStops": false,
+      "detailAndRecheckToTravellers": false,
+      "emptyRecovery": true,
+      "rtl": "rtl",
+      "overflow": false,
+      "pageErrors": 0
+    },
+    {
+      "width": 390,
+      "qa": false,
+      "flightSearch": true,
+      "unknownStops": false,
+      "detailAndRecheckToTravellers": false,
+      "emptyRecovery": true,
+      "rtl": "rtl",
+      "overflow": false,
+      "pageErrors": 0
+    }
+  ]
+}

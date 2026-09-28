@@ -95,7 +95,7 @@ function EntityInput({kind,label,value,onChange,onSelect,open,setOpen,vertical}:
 }
 
 const defaultDestinationFor=(vertical:string)=>vertical==='hotel'||vertical==='vacation_rental'?'یزد':vertical==='cruise'?'دبی':vertical==='visa'?'فرانسه':vertical==='car_rental'?'شیراز':vertical==='tour'?'استانبول':vertical==='attraction'?'شیراز':vertical==='pool_sport'||vertical==='restaurant'||vertical==='event_hall'?'تهران':'شیراز';
-export function HomeSearchExperience(){
+export function HomeSearchExperience({defaultVertical="flight"}:{defaultVertical?:string}={}){
   const router=useRouter(); const params=useSearchParams();
   // Previously this form always mounted with hardcoded defaults (flight/تهران/شیراز)
   // regardless of the URL - confirmed live: loading /?vertical=cruise&destination=دبی
@@ -104,7 +104,7 @@ export function HomeSearchExperience(){
   // this form itself writes on submit() fixes that mismatch on direct load/refresh/back-
   // forward, without changing the submit contract or the tab-switch defaults below.
   const initial=useMemo(()=>{
-    const vertical=params.get('vertical');
+    const vertical=params.get('vertical')||defaultVertical;
     const active=Math.max(0,services.findIndex(item=>item.vertical===vertical));
     const svc=services[active];
     return {
@@ -121,7 +121,7 @@ export function HomeSearchExperience(){
       rooms:Number(params.get('rooms')||1),
       cabin:params.get('cabin')||'economy',
     };
-  },[params]);
+  },[params,defaultVertical]);
   const [active,setActive]=useState(initial.active); const service=services[active];
   const [moreOpen,setMoreOpen]=useState(false);
   const [origin,setOrigin]=useState(initial.origin); const [destination,setDestination]=useState(initial.destination);
