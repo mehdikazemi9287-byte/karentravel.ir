@@ -16,3 +16,11 @@ QA: production build, desktop/mobile browser, tab-specific controls, real route 
 assistant prefill, navigation, public image/asset proof and screenshots. No SMS or money.
 Rollback: preserve currently served frontend container/image; frontend-only replacement.
 Master gap matrix remains cumulative; unreviewed baseline capabilities are not marked complete.
+
+Slice 2 scope: use existing Offer/recheck/checkout contracts. Show flight number,
+carrier, route, duration, stops, cabin, baggage and supplier only from supplied data;
+missing stops must never silently mean nonstop. Replace generic empty result dead end
+with date changes, editable criteria, transport alternatives and assistant handoff.
+Flight landing uses actual search controls. No invented supplier result or hold.
+
+Master autonomous directive is cumulative. Slice 2 also adopts the explicitly requested slogan «تمام سفر، در یک مسیر». Flight facts remain provider supplied; missing stops are unknown. QA uses isolated offers only. No schema change or live financial operation.

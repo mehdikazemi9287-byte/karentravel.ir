@@ -1,0 +1,28 @@
+{
+  "pass": true,
+  "base": "http://127.0.0.1:3346",
+  "checks": [
+    {
+      "width": 1440,
+      "qa": false,
+      "flightSearch": true,
+      "unknownStops": false,
+      "detailAndRecheckToTravellers": false,
+      "emptyRecovery": true,
+      "rtl": "rtl",
+      "overflow": false,
+      "pageErrors": 0
+    },
+    {
+      "width": 390,
+      "qa": false,
+      "flightSearch": true,
+      "unknownStops": false,
+      "detailAndRecheckToTravellers": false,
+      "emptyRecovery": true,
+      "rtl": "rtl",
+      "overflow": false,
+      "pageErrors": 0
+    }
+  ]
+}

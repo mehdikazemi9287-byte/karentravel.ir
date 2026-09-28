@@ -86,4 +86,26 @@ DOMAIN | CURRENT_STATE | FRONTEND | BACKEND | DATA | FIGMA | E2E | EXTERNAL_DEPE
 80. KARENSEIR DESIGN SYSTEM | BASELINE / gaps retained | existing implementation retained | existing implementation retained | no fabricated data | URL not supplied | prior evidence retained; no new PASS claim | domain-specific live credentials/policy where applicable | visible slices then remaining internal gaps
 
 ## Active delta
-Slice 1: Homepage/navigation/search shell/assistant entry/discovery — IMPLEMENTING. No finance expansion or migration.
+Slice 1: Homepage/navigation/search shell/assistant entry/discovery — DEPLOYED 2255a05, public Desktop/Mobile handoffs PASS (see recovery/2026-09-28-visible-marketplace.md). Full domain remains incomplete. No finance expansion or migration.
+
+## Active journey gaps — autonomous directive
+
+AREA | JOURNEY | CURRENT | EXPECTED | FRONTEND | BACKEND | DATA | FIGMA | E2E | EXTERNAL | PRIORITY | NEXT ACTION
+---|---|---|---|---|---|---|---|---|---|---|---
+Flight | search → empty recovery | Public baseline lacks dated alternatives; /flights is introductory only | actionable search and date/route recovery | Slice 2 in QA | existing public search | no fabricated offers | unspecified | public baseline clicked at 1440/390 | supplier for live inventory | P0 | verify and publish Slice 2
+Flight | result → details → recheck → checkout | unknown stops displayed as zero; detail whitelist drops flight facts | supplied facts and unknown preserved | Slice 2 in QA | whitelist corrected | isolated fixture only | unspecified | targeted API PASS; browser pending | live supplier issuance | P0 | browser real QA API/DB journey
+Search | anonymous → login → search | result CTA loses criteria | redirect preserves search | Slice 2 corrected | auth unchanged | existing session | unspecified | pending | OTP live delivery | P0 | verify handoff
+Accommodation | discover → type/city → property | typed landing links now preserved; full journey review pending | marketplace browsing and booking context intact | existing retained | existing retained | real registered property only | unspecified | prior baseline retained | supplier/host real inventory | P0 | next focused public browser slice
+
+## Bounded benchmark evidence
+
+2026-09-28: [Skyscanner flight page](https://www.skyscanner.net/flights) exposes origin/destination, dates, travellers/cabin, direct-flight criteria and flexible-date discovery. Our inference: flight alternatives must launch a fresh search and clearly distinguish unknown stops; no competitor fare or asset is reused. [Jabama business](https://www.jabama.com/business) could not be retrieved; Booking.com returned no useful page content. Neither is treated as inspected. Other benchmarks remain unreviewed.
+
+## Route inventory — observed delta
+
+- `/`: public Slice 1 desktop/mobile clicked search, service menu, assistant prompts, accommodation categories; evidence retained.
+- `/flights`: previous introduction does not expose direct search; replacing in Slice 2.
+- `/search/results`: public desktop/mobile search exercised; no dated recovery controls in baseline.
+- `/offers/[id]` → `/checkout/[id]`: existing real QA API/DB journey; Slice 2 regression pending.
+- `/assistant?prompt=…`, `/villas?property_type=…`: public Slice 1 handoffs verified.
+- Remaining route journeys stay unverified for this directive until actually exercised; route presence is not PASS.

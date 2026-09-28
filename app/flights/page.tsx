@@ -1,3 +1,5 @@
-import { Shell } from '../page';
-import { ServiceIntro } from '../../components/customer/CustomerHelp';
-export default function Page(){return <Shell><ServiceIntro title="پرواز" description="برای انتخاب پرواز، مبدأ، مقصد، تاریخ و تعداد مسافران را مشخص کنید." vertical="flight"/></Shell>}
+import {Suspense} from 'react';
+import Link from 'next/link';
+import {JourneyShell} from '../../components/journey/JourneyShell';
+import {HomeSearchExperience} from '../../components/search/HomeSearchExperience';
+export default function Page(){return <JourneyShell><main className="journey-main flight-entry"><span className="eyebrow">پرواز، از انتخاب مسیر تا پیگیری سفر</span><h1>پرواز بعدی‌ات را دقیق انتخاب کن</h1><p>مبدأ، مقصد و تاریخ را مشخص کن. زمان پرواز، بار، کلاس و قوانین هر نرخ را پیش از تأیید بررسی کن.</p><Suspense fallback={<p>در حال آماده‌سازی جست‌وجوی پرواز…</p>}><HomeSearchExperience/></Suspense><section className="flight-entry-steps"><article><b>۱. جست‌وجو و مقایسه</b><p>گزینه‌های تأمین‌کننده و شرایط هر نرخ را کنار هم ببین.</p></article><article><b>۲. استعلام دوباره</b><p>پیش از ادامه، قیمت و موجودی همان گزینه دوباره بررسی می‌شود.</p></article><article><b>۳. تکمیل و پیگیری</b><p>اطلاعات مسافران، وضعیت پرداخت و صدور را در مسیر رزرو پیگیری کن.</p></article></section><p>تا زمان تأیید تأمین‌کننده و صدور، بلیت قطعی نیست. <Link href="/trips">پیگیری سفرهای من</Link> · <Link href="/support">پشتیبانی پرواز</Link></p></main></JourneyShell>}
