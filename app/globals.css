@@ -330,3 +330,10 @@ html,body{font-family:'Vazirmatn',Tahoma,Arial,sans-serif;font-optical-sizing:au
 .trust-grid article>a{grid-column:1/-1;font-size:11px;border-top:1px solid #f0e6df;padding-top:8px}.support-paths article.support-path{display:flex;flex-direction:column;align-items:flex-start;gap:12px}.support-paths article.support-path a{white-space:normal}.support-dock{position:static;transform:none;margin:32px auto;display:flex;flex-wrap:wrap;max-height:none}.support-dock nav{font-size:14px}.support-dock h2{font-size:18px}.support-dock p{font-size:13px}.support-dock nav a{text-decoration:underline}.fs-unavailable .customer-actions a{font-size:13px}.fs-unavailable{height:auto!important;min-height:110px}.customer-page .panel{margin-top:24px}
 
 .journey-page .support-dock{background:#2a1530;color:#fff;border-radius:18px;box-shadow:none}.support-dock nav a{color:#fff}.customer-actions .button{gap:8px}
+
+/* Organization request workspace: preserve the existing shell and visual identity. */
+.enterprise-workspace label { display: block; margin-block: .5rem; }
+.enterprise-workspace input:not([type="checkbox"]), .enterprise-workspace select, .enterprise-workspace textarea { display: block; width: 100%; max-width: 100%; padding: .7rem; border: 1px solid #cbd5e1; border-radius: .6rem; background: white; color: #172033; box-sizing: border-box; }
+.enterprise-workspace input[type="checkbox"] { margin-inline-end: .5rem; }
+.enterprise-workspace article { padding-block: 1rem; border-bottom: 1px solid #e2e8f0; }
+.enterprise-workspace button { margin-block: .5rem; }

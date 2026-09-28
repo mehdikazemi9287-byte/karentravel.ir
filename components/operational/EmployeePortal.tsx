@@ -55,6 +55,7 @@ export function EmployeePortal() {
         <p>اعتبار سازمانی، کیف پول و وضعیت تأیید درخواست‌های شما مستقیماً از API مجاز همان tenant دریافت می‌شود.</p>
       </div></div>
 
+      <a className="button secondary" href="/organization/requests">درخواست سفر و مزایای سازمانی</a>
       <section className="metrics">
         <div><small>اعتبار سازمانی قابل استفاده</small><strong>{faMoney(totalCredit)}</strong><span>{data.credit.length ? 'مانده واقعی از ledger' : 'حساب اعتبار سازمانی تخصیص نیافته است'}</span></div>
         <div><small>کیف پول شخصی</small><strong>{faMoney(data.wallets.reduce((s, w) => s + w.available, 0))}</strong><span>{data.wallets.length ? `${data.wallets.length} کیف پول` : 'کیف پولی ندارید'}</span></div>

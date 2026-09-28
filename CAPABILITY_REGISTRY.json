@@ -232,6 +232,13 @@
         "e2e/booking-domain/trip-basket.cjs"
       ],
       "last_verified_at": "2026-09-28"
+    },
+    "enterprise_travel_welfare": {
+      "status": "PARTIAL",
+      "reason": "Source-only request/policy/sequential approvals/RFQ and campaign drafts; no production migration or deployment. Full enterprise/finance/gift requirements retained in ADR-023 gap matrix.",
+      "blocker": "Production migration approval needed for this increment; remaining internal implementation gaps are not external blockers.",
+      "last_verified_at": "2026-09-28",
+      "evidence": "docs/recovery/2026-09-28-enterprise-source-checkpoint.md"
     }
   }
 }

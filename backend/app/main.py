@@ -4713,3 +4713,8 @@ def supplier_ready_reservations(user:User=Depends(require_permission("inventory:
         payment=db.scalar(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.tenant_id==user.tenant_id,operational_models.PaymentIntent.reservation_id==reservation.id,operational_models.PaymentIntent.status=="captured",operational_models.PaymentIntent.captured_amount>0))
         if payment:out.append({"id":reservation.id,"booking_reference":reservation.booking_reference,"title":snapshot.get("title",reservation.service_type),"service_type":reservation.service_type,"status":reservation.status})
     return out
+
+
+# Enterprise pre-booking domain reuses the existing authentication and DB boundary.
+from .enterprise import router as enterprise_router
+app.include_router(enterprise_router(current_user, get_db, User))

@@ -64,3 +64,5 @@ stay selection. The local claim is only a storage namespace, never authorization
 Server ownership checks remain authoritative. A received result clears retry state.
 Desktop/mobile QA changed a real stored rate, dropped an already persisted response,
 refreshed and recovered the same request ID; no duplicate booking or real charge.
+
+Enterprise, finance, gift and benefit extension: see [ADR-023](ADR-023-enterprise-travel-welfare.md), including explicit internal gaps and Source-only implementation status.
