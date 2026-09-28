@@ -38,3 +38,6 @@ Live browser verified restaurant editor selects flight because restaurant is abs
 Leisure quote/reservation retains only price-check ID and command ID in an account-scoped pending record before sending the booking command. After a lost response, refresh exposes a resume action with the exact original command; it does not silently create a new quote/booking. Backend replay now enforces original PriceCheck.user_id, closing a same-tenant cross-user replay gap. Tests: backend 2 PASS (owner isolation + Tehran date boundary); search 1 PASS across all four leisure verticals. No database migration.
 
 Production search uses Redis (observed). Bump cache-key namespace with the changed date-filter semantics; retain old keys for natural TTL/rollback, never flush Redis. This is a search-only follow-up to the Slice 5a bundle, with frontend/API still built from 9cc109b.
+
+### Slice 5b — pool/sport entry
+Replace the legacy pool entry with destination/date/party discovery, embedded results and honest session-condition guidance. Reuse existing leisure detail, recheck and booking APIs; no new inventory model or schema. Validate URL party counts to safe form defaults. Isolated QA pool sessions and public anonymous desktop/mobile verification; retain frontend rollback.

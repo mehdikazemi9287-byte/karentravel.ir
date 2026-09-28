@@ -125,3 +125,6 @@ Explicit remaining gaps: supplier media/gallery contract and host UI editing, co
 - Slice 3 stay: hotel entry and catalog context deployed 3f0a33a; public and isolated QA verification recorded. Gallery/host metadata contract remains open, not falsely external.
 - Slice 4 tour/rail: deployed b70db19; scoped date/capacity/deadline filter and durable tour retry command; browser evidence in recovery/visible-slice4. No claim of live supplier issuance.
 - Next P0: leisure search edit service options omit current restaurant category; product login loses deep link; result-selected session not carried to PDP. Restaurant copy promises table reservation while current supported product is a scheduled admission/package. Fix truthful workflow and continuity before additional vertical expansion.
+
+- Slice 5a published: restaurant dated discovery, actual session handoff, login continuity and durable booking retry completed with isolated QA; public empty journey desktop/mobile verified. Search cache namespace advanced without deleting keys. Supplier/OTP/payment remain external.
+- Slice 5b: pool/sport landing still legacy generic results without dedicated destination/date/party form; reuse the proven leisure detail and booking API.

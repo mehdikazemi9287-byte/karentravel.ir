@@ -1,5 +1,6 @@
-import { Suspense } from 'react';
-import { Shell } from '../page';
-import { UnifiedSearchView } from '../../components/operational/UnifiedSearchView';
+import {Suspense} from 'react';
+import {JourneyShell} from '../../components/journey/JourneyShell';
+import {UnifiedSearchView} from '../../components/operational/UnifiedSearchView';
+import {PoolSearch} from '../../components/marketplace/PoolSearch';
 export const metadata={title:'استخر و ورزش | کارن‌سیر'};
-export default function PoolsSportsPage(){return <Shell><div className="ref-container" style={{paddingTop:24}}><h1>استخر و ورزش</h1><p>رزرو سانس استخر و مراکز ورزشی با بلیت بزرگ‌سال و کودک مجزا.</p></div><Suspense fallback={null}><UnifiedSearchView defaultVertical="pool_sport"/></Suspense></Shell>}
+export default function PoolsSportsPage(){return <JourneyShell><main className="journey-main dining-marketplace"><span className="eyebrow">تفریح و تندرستی در مقصد</span><h1>استخر و مراکز ورزشی</h1><p>سانس‌های ثبت‌شدهٔ مقصد را پیدا کن؛ زمان، شرایط ورود و هزینهٔ واقعی هر انتخاب در جزئیات نمایش داده می‌شود.</p><Suspense fallback={<p role="status">آماده‌سازی جست‌وجوی سانس‌ها…</p>}><PoolSearch/><UnifiedSearchView embedded defaultVertical="pool_sport"/></Suspense></main></JourneyShell>}

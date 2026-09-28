@@ -1,0 +1,8 @@
+{
+  "search_commit": "32f2a68fc0225ff400c61d77ede3c14bbdc08899",
+  "image": "sha256:a0b0f86c7fa0323b6276bc306c6c1d36cc78471dd6c3cf0a1c0eea06ff082500",
+  "cache_namespace": "v3-leisure-day",
+  "rollback": "karenseir-search-pre-cache-32f2a68",
+  "frontend_api_commit": "9cc109b",
+  "redis_keys_deleted": false
+}
