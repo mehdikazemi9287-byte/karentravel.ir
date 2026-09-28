@@ -3609,13 +3609,28 @@ def customer_support_reply(case_id: str, data: SupportReplyIn, user: User = Depe
 
 
 @app.post("/support/cases/{case_id}/human-replies", status_code=status.HTTP_201_CREATED)
-def human_support_reply(case_id: str, data: SupportReplyIn, user: User = Depends(require_permission("support:manage")), db: Session = Depends(get_db)) -> dict:
+def human_support_reply(case_id: str, data: SupportReplyIn, user: User = Depends(require_permission("support:manage")), db: Session = Depends(get_db), idempotency_key: Optional[str] = Header(default=None, alias="Idempotency-Key", min_length=8, max_length=120)) -> dict:
     row = db.scalar(select(operational_models.SupportCase).where(operational_models.SupportCase.id == case_id, operational_models.SupportCase.tenant_id == user.tenant_id).with_for_update())
     if row is None: raise HTTPException(status_code=404, detail="پرونده پشتیبانی در این tenant وجود ندارد")
+    body = data.body.strip()
+    if len(body) < 3: raise HTTPException(422, "متن پاسخ کوتاه است")
+    scope = "support.human_reply:" + row.id
+    digest = _secure_hash(f"{user.id}:{body}")
+    if idempotency_key:
+        prior = db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id == user.tenant_id, operational_models.IdempotencyKey.scope == scope, operational_models.IdempotencyKey.key == idempotency_key))
+        if prior:
+            if prior.request_hash != digest: raise HTTPException(409, "کلید تکرار متعلق به متن دیگری است")
+            return json.loads(prior.response_json)
     if row.status == "closed": raise HTTPException(status_code=409, detail="پرونده بسته قابل پاسخ نیست")
-    message = operational_models.SupportThreadMessage(tenant_id=user.tenant_id, case_id=row.id, sender_type="human_agent", sender_user_id=user.id, body=data.body.strip()); row.status = "in_progress"; row.assigned_to_user_id = row.assigned_to_user_id or user.id; db.add(message); db.flush()
+    message = operational_models.SupportThreadMessage(tenant_id=user.tenant_id, case_id=row.id, sender_type="human_agent", sender_user_id=user.id, body=body); row.status = "in_progress"; row.assigned_to_user_id = row.assigned_to_user_id or user.id; db.add(message); db.flush()
+    trail = json.loads(row.audit_trail_json or "[]")
+    trail.append({"event": "human_replied", "actor_id": user.id, "message_id": message.id, "at": datetime.now(timezone.utc).isoformat()})
+    row.audit_trail_json = json.dumps(trail)
+    response = {"id": message.id, "case_id": row.id, "sender_type": message.sender_type, "body": message.body, "status": row.status}
+    if idempotency_key:
+        db.add(operational_models.IdempotencyKey(tenant_id=user.tenant_id, scope=scope, key=idempotency_key, request_hash=digest, response_json=json.dumps(response)))
     operational_models.emit_notification_event(db, tenant_id=user.tenant_id, event_type="support_reply_received", recipient_user_id=row.user_id, payload={"subject": row.subject}, dedupe_key=f"support-reply:{message.id}", deep_link=f"/support?case={row.id}", channels=("web", "app"))
-    db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="support_case", aggregate_id=row.id, event_type="support.human_reply.created", payload_json=json.dumps({"case_id": row.id, "message_id": message.id, "source": "human_agent"}), correlation_id=str(uuid.uuid4()), idempotency_key=f"human-reply:{message.id}")); db.commit(); return {"id": message.id, "case_id": row.id, "sender_type": message.sender_type, "body": message.body, "status": row.status}
+    db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="support_case", aggregate_id=row.id, event_type="support.human_reply.created", payload_json=json.dumps({"case_id": row.id, "message_id": message.id, "source": "human_agent"}), correlation_id=str(uuid.uuid4()), idempotency_key=f"human-reply:{message.id}")); db.commit(); return response
 
 
 @app.put("/support/cases/{case_id}/assignment")

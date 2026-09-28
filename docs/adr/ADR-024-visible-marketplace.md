@@ -65,3 +65,6 @@ QA baseline has six cases with human replies and zero linked inbox notifications
 
 ### Slice 9 — supplied transport times and contextual recovery
 Format valid ISO transport dates with the supplied wall clock and offset; never browser-local conversion or guessed airport timezone. Bare times retain no-zone disclosure, invalid/missing dates remain unavailable. Preserve original ISO in datetime. Share flight/rail renderer; anonymous offer wrapper retains navy/teal and back-to-search context. Notification count describes only the loaded latest50, not all historical unread records. No booking mutation/API/schema change.
+
+### Slice 10 — durable human support reply
+Reuse case lock and existing idempotency table for supplied human-reply keys, hashing actor/body and replaying before closed-state guard. Optional header preserves older clients during API-first release; new UI always supplies durable key. Atomic audit/message/in-app notice/outbox; no external channels. New account-scoped Ops composer retains exact case/body/key through ambiguous response/refresh. Storage failure blocks any new reply POST, including existing customer composer. No schema change. Verify response-loss replay produces one message/notice/audit.
