@@ -1015,6 +1015,7 @@ class OutboxEvent(OperationalMixin, Base):
 
 
 BOOKING_TRANSITIONS = {
+    "booking_pending": {"reserved", "failed", "cancelled"},
     "draft": {"pending", "failed", "expired"},
     "pending": {"reserved", "failed", "expired"},
     "reserved": {"awaiting_payment", "confirmed", "cancel_requested", "expired"},
@@ -1029,6 +1030,7 @@ BOOKING_TRANSITIONS = {
 
 
 TRIP_STATUS_TITLES = {
+    "booking_pending": "در انتظار پاسخ میزبان",
     "pending": "در انتظار تأیید", "reserved": "رزرو شد", "awaiting_payment": "در انتظار پرداخت",
     "confirmed": "تأیید شد", "issued": "صادر شد", "completed": "تکمیل شد",
     "cancel_requested": "درخواست کنسلی ثبت شد", "change_requested": "درخواست تغییر ثبت شد",
@@ -1067,6 +1069,8 @@ def transition_reservation(db: Session, reservation: Reservation, target: str, a
     if prior is None:
         prior = db.scalar(select(IdempotencyKey).where(IdempotencyKey.tenant_id == reservation.tenant_id, IdempotencyKey.scope == "reservation.transition", IdempotencyKey.key == command_id))
     if prior:
+        if prior.request_hash != f"{reservation.id}:{target}":
+            raise ValueError("reservation transition command reused with different payload")
         return reservation
     if target not in BOOKING_TRANSITIONS.get(reservation.status, set()):
         raise ValueError(f"invalid reservation transition: {reservation.status} -> {target}")

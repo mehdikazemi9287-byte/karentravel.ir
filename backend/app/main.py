@@ -27,6 +27,7 @@ from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, Text, fun
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
+from .accommodation import PROPERTY_TYPES, StayRates, nightly_rate, stay_price
 from .config import read_secret
 from .database import Base, DATABASE_URL, SessionLocal, engine, set_tenant_context
 from . import operations as operational_models  # register additive operational tables
@@ -253,9 +254,10 @@ class BudgetTripIn(BaseModel):
     budget: int = Field(gt=0)
     interests: list[str] = Field(default_factory=list, max_length=20)
 class VacationPropertyIn(BaseModel):
-    supplier_id: str = Field(min_length=36, max_length=36); title: str = Field(min_length=3, max_length=200); slug: str = Field(pattern=r"^[a-z0-9-]{3,180}$"); city: str = Field(min_length=2, max_length=120); property_type: str = Field(pattern="^(villa|suite|furnished_apartment|cabin|ecolodge|rural|coastal|forest|mountain)$"); capacity: int = Field(ge=1, le=100); bedrooms: int = Field(ge=0, le=50); details: dict = Field(default_factory=dict)
+    booking_mode: str = Field(default="INSTANT_BOOKING", pattern="^(INSTANT_BOOKING|REQUEST_TO_BOOK)$")
+    supplier_id: str = Field(min_length=36, max_length=36); title: str = Field(min_length=3, max_length=200); slug: str = Field(pattern=r"^[a-z0-9-]{3,180}$"); city: str = Field(min_length=2, max_length=120); property_type: str = Field(pattern="^(" + "|".join(PROPERTY_TYPES) + ")$"); capacity: int = Field(ge=1, le=100); bedrooms: int = Field(ge=0, le=50); details: dict = Field(default_factory=dict)
 class VacationUnitIn(BaseModel):
-    title: str = Field(min_length=2, max_length=160); capacity: int = Field(ge=1, le=100); available_units: int = Field(ge=1, le=100); nightly_price: int = Field(gt=0); pricing: dict = Field(default_factory=dict)
+    title: str = Field(min_length=2, max_length=160); capacity: int = Field(ge=1, le=100); available_units: int = Field(ge=1, le=100); nightly_price: int = Field(gt=0); pricing: StayRates = Field(default_factory=StayRates)
 class VacationBookIn(BaseModel):
     expected_total_amount: Optional[int] = Field(default=None,gt=0)
     check_in: datetime; check_out: datetime; guests: int = Field(ge=1, le=100); command_id: str = Field(min_length=8, max_length=120)
@@ -449,55 +451,14 @@ def _verified_cancellation_quote(row: operational_models.Reservation) -> Optiona
         return None
 
 
-def _villa_stay_pricing(unit: "operational_models.VacationUnit", check_in: datetime, check_out: datetime) -> dict:
-    """Deterministic seasonal/weekend/min-stay pricing for a vacation-rental
-    stay. `unit.pricing_json` optionally carries: `min_stay` (int nights),
-    `weekend_days` (list of Python weekday ints, Mon=0..Sun=6; default
-    Thursday/Friday [3,4]), `weekend_price` (int, overrides base on weekend
-    nights) and `seasonal_rates` (list of {start:"MM-DD", end:"MM-DD",
-    nightly_price:int}, checked before the weekend rate and wrapping the
-    year boundary when start > end). Falls back to `unit.nightly_price` for
-    every night when no pricing config is set, matching prior flat pricing.
-    """
+def _villa_stay_pricing(unit: "operational_models.VacationUnit", check_in: datetime, check_out: datetime, guests: int = 1) -> dict:
     try:
-        pricing = json.loads(unit.pricing_json or "{}")
-        if not isinstance(pricing, dict):
-            pricing = {}
-    except json.JSONDecodeError:
-        pricing = {}
-    nights = (check_out.date() - check_in.date()).days
-    min_stay = int(pricing.get("min_stay") or 1)
-    if min_stay < 1:
-        min_stay = 1
-    if nights < min_stay:
-        raise HTTPException(status_code=422, detail=f"حداقل تعداد شب اقامت برای این واحد {min_stay} شب است")
-    weekend_days = pricing.get("weekend_days") if isinstance(pricing.get("weekend_days"), list) else [3, 4]
-    weekend_days = {int(day) for day in weekend_days if isinstance(day, int) and 0 <= day <= 6}
-    weekend_price = pricing.get("weekend_price")
-    weekend_price = int(weekend_price) if isinstance(weekend_price, int) and weekend_price > 0 else None
-    seasonal_rates = pricing.get("seasonal_rates") if isinstance(pricing.get("seasonal_rates"), list) else []
-    breakdown: list[dict] = []
-    total = 0
-    current = check_in.date()
-    for _ in range(nights):
-        nightly, source = unit.nightly_price, "base"
-        month_day = current.strftime("%m-%d")
-        for season in seasonal_rates:
-            if not isinstance(season, dict):
-                continue
-            start, end, rate = season.get("start"), season.get("end"), season.get("nightly_price")
-            if not (isinstance(start, str) and isinstance(end, str) and isinstance(rate, int) and rate > 0):
-                continue
-            in_season = (start <= month_day <= end) if start <= end else (month_day >= start or month_day <= end)
-            if in_season:
-                nightly, source = rate, "seasonal"
-                break
-        if source == "base" and weekend_price is not None and current.weekday() in weekend_days:
-            nightly, source = weekend_price, "weekend"
-        breakdown.append({"date": current.isoformat(), "nightly_price": nightly, "rate_source": source})
-        total += nightly
-        current += timedelta(days=1)
-    return {"total_amount": total, "nights": nights, "min_stay": min_stay, "currency": unit.currency, "nightly_breakdown": breakdown}
+        rates = StayRates.model_validate_json(unit.pricing_json or "{}")
+        return stay_price(rates, base=unit.nightly_price, capacity=unit.capacity, guests=guests,
+                          arrival=check_in.date(), departure=check_out.date(), currency=unit.currency)
+    except ValueError as exc:
+        raise HTTPException(422, "قوانین نرخ یا حداقل اقامت برای این انتخاب معتبر نیست") from exc
+
 
 
 def validate_production_config() -> None:
@@ -1639,7 +1600,7 @@ def create_vacation_property(data: VacationPropertyIn, user: User = Depends(requ
     if data.supplier_id not in _supplier_scope(db, user): raise HTTPException(403, "این تأمین‌کننده به کاربر جاری واگذار نشده است")
     supplier = db.scalar(select(operational_models.Supplier).where(operational_models.Supplier.id == data.supplier_id, operational_models.Supplier.tenant_id == user.tenant_id, operational_models.Supplier.status == "active"))
     if supplier is None: raise HTTPException(409, "تأمین‌کننده فعال وجود ندارد")
-    row = operational_models.VacationProperty(tenant_id=user.tenant_id, supplier_id=supplier.id, title=data.title, slug=data.slug, city=data.city, property_type=data.property_type, capacity=data.capacity, bedrooms=data.bedrooms, status="published", details_json=json.dumps(data.details, sort_keys=True)); db.add(row); db.flush(); _commerce_event(db, tenant_id=user.tenant_id, kind="vacation_property", aggregate_id=row.id, command_id=f"property:{row.id}", payload={"status": row.status}); db.commit(); return {"id": row.id, "slug": row.slug, "status": row.status}
+    row = operational_models.VacationProperty(tenant_id=user.tenant_id, supplier_id=supplier.id, title=data.title, slug=data.slug, city=data.city, property_type=data.property_type, capacity=data.capacity, bedrooms=data.bedrooms, status="published", details_json=json.dumps({**data.details,"booking_mode":data.booking_mode}, sort_keys=True)); db.add(row); db.flush(); _commerce_event(db, tenant_id=user.tenant_id, kind="vacation_property", aggregate_id=row.id, command_id=f"property:{row.id}", payload={"status": row.status}); db.commit(); return {"id": row.id, "slug": row.slug, "status": row.status}
 
 
 @app.post("/supplier/vacation-properties/{property_id}/units", status_code=201)
@@ -1647,14 +1608,19 @@ def create_vacation_unit(property_id: str, data: VacationUnitIn, user: User = De
     prop = db.scalar(select(operational_models.VacationProperty).where(operational_models.VacationProperty.id == property_id, operational_models.VacationProperty.tenant_id == user.tenant_id))
     if prop is None: raise HTTPException(404, "اقامتگاه وجود ندارد")
     if prop.supplier_id not in _supplier_scope(db,user):raise HTTPException(403,"این اقامتگاه به تأمین‌کنندهٔ جاری واگذار نشده است")
-    row = operational_models.VacationUnit(tenant_id=user.tenant_id, property_id=prop.id, title=data.title, capacity=data.capacity, available_units=data.available_units, nightly_price=data.nightly_price, pricing_json=json.dumps(data.pricing, sort_keys=True)); db.add(row); db.commit(); return {"id": row.id, "property_id": row.property_id, "status": row.status}
+    if data.pricing.base_capacity and data.pricing.base_capacity > data.capacity: raise HTTPException(422, "ظرفیت پایه بیشتر از ظرفیت واحد است")
+    row = operational_models.VacationUnit(tenant_id=user.tenant_id, property_id=prop.id, title=data.title, capacity=data.capacity, available_units=data.available_units, nightly_price=data.nightly_price, pricing_json=data.pricing.model_dump_json()); db.add(row); db.commit(); return {"id": row.id, "property_id": row.property_id, "status": row.status}
 
 
 @app.get("/vacation-rentals")
-def list_vacation_rentals(city: Optional[str] = None, user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
+def list_vacation_rentals(city: Optional[str] = None, property_type: Optional[str] = None, guests: int = Query(default=1,ge=1,le=100), offset: int = Query(default=0,ge=0), limit: int = Query(default=20,ge=1,le=100), user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
     query = select(operational_models.VacationProperty).where(operational_models.VacationProperty.tenant_id == user.tenant_id, operational_models.VacationProperty.status == "published")
     if city: query = query.where(operational_models.VacationProperty.city == city)
-    rows = db.scalars(query.order_by(operational_models.VacationProperty.created_at.desc())).all()
+    if property_type:
+        if property_type not in PROPERTY_TYPES: raise HTTPException(422,"نوع اقامتگاه معتبر نیست")
+        query=query.where(operational_models.VacationProperty.property_type==property_type)
+    query=query.where(operational_models.VacationProperty.capacity>=guests)
+    rows = db.scalars(query.order_by(operational_models.VacationProperty.created_at.desc(),operational_models.VacationProperty.id).offset(offset).limit(limit)).all()
     return [{"id": r.id, "slug": r.slug, "title": r.title, "city": r.city, "property_type": r.property_type, "capacity": r.capacity, "bedrooms": r.bedrooms, "details": json.loads(r.details_json)} for r in rows]
 
 
@@ -1673,15 +1639,67 @@ def _vacation_availability(db,user,unit_id,check_in,check_out,guests,exclude=Non
     if unit is None or guests>unit.capacity:raise HTTPException(409,"واحد یا ظرفیت معتبر نیست")
     prop=db.scalar(select(operational_models.VacationProperty).where(operational_models.VacationProperty.id==unit.property_id,operational_models.VacationProperty.tenant_id==user.tenant_id,operational_models.VacationProperty.status=="published"))
     if prop is None or db.scalar(select(operational_models.Supplier.id).where(operational_models.Supplier.id==prop.supplier_id,operational_models.Supplier.tenant_id==user.tenant_id,operational_models.Supplier.status=="active")) is None:raise HTTPException(409,"اقامتگاه یا تأمین‌کننده فعال نیست")
-    q=select(func.count()).select_from(operational_models.VacationReservation).where(operational_models.VacationReservation.tenant_id==user.tenant_id,operational_models.VacationReservation.unit_id==unit.id,operational_models.VacationReservation.status.in_(("held","confirmed")),operational_models.VacationReservation.check_in<check_out,operational_models.VacationReservation.check_out>check_in)
-    if exclude:q=q.where(operational_models.VacationReservation.reservation_id!=exclude)
-    if (db.scalar(q) or 0)>=unit.available_units:raise HTTPException(409,"این بازه دیگر موجود نیست")
-    return unit,prop,_villa_stay_pricing(unit,check_in,check_out)
+    remaining = _vacation_remaining(db, user.tenant_id, unit, check_in, check_out, exclude)
+    if min(remaining.values(), default=0) < 1: raise HTTPException(409, "این بازه دیگر موجود نیست")
+    return unit,prop,_villa_stay_pricing(unit,check_in,check_out,guests)
+
+
+def _vacation_remaining(db, tenant_id, unit, check_in, check_out, exclude=None):
+    q=select(operational_models.VacationReservation).where(operational_models.VacationReservation.tenant_id==tenant_id,operational_models.VacationReservation.unit_id==unit.id,operational_models.VacationReservation.status.in_(("held","confirmed")),operational_models.VacationReservation.check_in<check_out,operational_models.VacationReservation.check_out>check_in)
+    if exclude: q=q.where(operational_models.VacationReservation.reservation_id!=exclude)
+    holds=db.scalars(q).all()
+    # Capacity is nightly. Disjoint bookings must not be added across the whole stay.
+    return {(check_in.date()+timedelta(days=i)).isoformat(): max(0,unit.available_units-sum(_aware(h.check_in).date()<=check_in.date()+timedelta(days=i)<_aware(h.check_out).date() for h in holds)) for i in range((check_out.date()-check_in.date()).days)}
+
+
+class VacationRatesIn(BaseModel):
+    pricing: StayRates
+    command_id: str = Field(min_length=8, max_length=120)
+
+
+@app.put("/supplier/vacation-units/{unit_id}/rates")
+def update_vacation_rates(unit_id: str, data: VacationRatesIn, user: User=Depends(require_permission("inventory:manage")), db: Session=Depends(get_db)):
+    unit=db.scalar(select(operational_models.VacationUnit).where(operational_models.VacationUnit.id==unit_id,operational_models.VacationUnit.tenant_id==user.tenant_id).with_for_update())
+    if unit is None: raise HTTPException(404,"واحد اقامت وجود ندارد")
+    prop=db.scalar(select(operational_models.VacationProperty).where(operational_models.VacationProperty.id==unit.property_id,operational_models.VacationProperty.tenant_id==user.tenant_id))
+    if prop is None or prop.supplier_id not in _supplier_scope(db,user): raise HTTPException(403,"این واحد به تأمین‌کنندهٔ جاری واگذار نشده است")
+    if data.pricing.base_capacity and data.pricing.base_capacity>unit.capacity: raise HTTPException(422,"ظرفیت پایه بیشتر از ظرفیت واحد است")
+    payload=data.pricing.model_dump_json();digest=hashlib.sha256((unit_id+payload).encode()).hexdigest()
+    prior=db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id==user.tenant_id,operational_models.IdempotencyKey.scope=="vacation.rates",operational_models.IdempotencyKey.key==data.command_id))
+    if prior:
+        if prior.request_hash!=digest: raise HTTPException(409,"کلید تکرار برای نرخ دیگری استفاده شده است")
+        return json.loads(prior.response_json)
+    before=json.loads(unit.pricing_json or "{}");unit.pricing_json=payload
+    result={"unit_id":unit.id,"pricing":data.pricing.model_dump(mode="json")}
+    db.add(operational_models.IdempotencyKey(tenant_id=user.tenant_id,scope="vacation.rates",key=data.command_id,request_hash=digest,response_json=json.dumps(result)))
+    _commerce_event(db,tenant_id=user.tenant_id,kind="vacation_rates",aggregate_id=unit.id,command_id=data.command_id,payload={"actor_id":user.id,"old":before,"new":result["pricing"]})
+    db.commit();return result
+
+
+@app.get("/vacation-units/{unit_id}/calendar")
+def vacation_calendar(unit_id: str, start: datetime, days: int=Query(default=30,ge=1,le=90), user: User=Depends(current_user), db: Session=Depends(get_db)):
+    start=_aware(start).replace(hour=12,minute=0,second=0,microsecond=0)
+    if start.date()<datetime.now(timezone.utc).date() or (start.date()-datetime.now(timezone.utc).date()).days>365: raise HTTPException(422,"بازه تقویم معتبر نیست")
+    unit=db.scalar(select(operational_models.VacationUnit).where(operational_models.VacationUnit.id==unit_id,operational_models.VacationUnit.tenant_id==user.tenant_id,operational_models.VacationUnit.status=="active"))
+    if unit is None: raise HTTPException(404,"واحد اقامت وجود ندارد")
+    prop=db.scalar(select(operational_models.VacationProperty).where(operational_models.VacationProperty.id==unit.property_id,operational_models.VacationProperty.tenant_id==user.tenant_id,operational_models.VacationProperty.status=="published"))
+    if prop is None or db.scalar(select(operational_models.Supplier.id).where(operational_models.Supplier.id==prop.supplier_id,operational_models.Supplier.tenant_id==user.tenant_id,operational_models.Supplier.status=="active")) is None: raise HTTPException(409,"اقامتگاه فعال نیست")
+    try: rates=StayRates.model_validate_json(unit.pricing_json or "{}")
+    except ValueError: raise HTTPException(409,"تقویم نیازمند اصلاح تأمین‌کننده است")
+    remaining=_vacation_remaining(db,user.tenant_id,unit,start,start+timedelta(days=days))
+    items=[]
+    for i in range(days):
+        day=start.date()+timedelta(days=i);price,source,minimum,state=nightly_rate(rates,unit.nightly_price,day)
+        if state!="UNAVAILABLE": state="SOLD_OUT" if remaining[day.isoformat()]<1 else "MINIMUM_STAY" if minimum>1 else "SPECIAL_PRICE" if source!="base" else "AVAILABLE"
+        if state not in ("UNAVAILABLE","SOLD_OUT") and json.loads(prop.details_json).get("booking_mode")=="REQUEST_TO_BOOK": state="REQUEST"
+        items.append({"date":day.isoformat(),"state":state,"nightly_price":price if state not in ("UNAVAILABLE","SOLD_OUT") else None,"minimum_stay":minimum,"remaining_units":remaining[day.isoformat()] if state!="UNAVAILABLE" else 0})
+    return {"unit_id":unit.id,"currency":unit.currency,"days":items,"recheck_required":True}
+
 
 @app.get("/vacation-units/{unit_id}/quote")
 def quote_vacation(unit_id:str,check_in:datetime,check_out:datetime,guests:int=Query(default=1,ge=1,le=100),user:User=Depends(current_user),db:Session=Depends(get_db))->dict:
     unit,prop,pricing=_vacation_availability(db,user,unit_id,check_in,check_out,guests)
-    return {**pricing,"unit_id":unit.id,"guests":guests,"policy":json.loads(prop.details_json).get("cancellation_policy",{}),"expires_at":(datetime.now(timezone.utc)+timedelta(minutes=5)).isoformat()}
+    return {**pricing,"booking_mode":json.loads(prop.details_json).get("booking_mode","INSTANT_BOOKING"),"unit_id":unit.id,"guests":guests,"policy":json.loads(prop.details_json).get("cancellation_policy",{}),"expires_at":(datetime.now(timezone.utc)+timedelta(minutes=5)).isoformat()}
 
 
 @app.post("/vacation-units/{unit_id}/reservations", status_code=201)
@@ -1689,18 +1707,68 @@ def book_vacation_unit(unit_id: str, data: VacationBookIn, user: User = Depends(
     prior = db.scalar(select(operational_models.VacationReservation).where(operational_models.VacationReservation.tenant_id == user.tenant_id, operational_models.VacationReservation.command_id == data.command_id))
     if prior:
         if prior.unit_id != unit_id or prior.user_id!=user.id or prior.guests!=data.guests or _aware(prior.check_in)!=_aware(data.check_in) or _aware(prior.check_out)!=_aware(data.check_out): raise HTTPException(409, "کلید تکرار برای رزرو دیگری استفاده شده است")
-        return {"id": prior.id,"reservation_id":prior.reservation_id,"checkout_url":f"/checkout/{prior.reservation_id}", "status": prior.status, "total_amount": prior.total_amount}
+        return {"id": prior.id,"reservation_id":prior.reservation_id,"checkout_url":f"/manage-booking/{prior.reservation_id}" if prior.status=="requested" else f"/checkout/{prior.reservation_id}", "status": prior.status, "total_amount": prior.total_amount}
     check_in, check_out = _aware(data.check_in), _aware(data.check_out)
     unit,prop,pricing=_vacation_availability(db,user,unit_id,check_in,check_out,data.guests)
     nights,total=pricing["nights"],pricing["total_amount"]
     if data.expected_total_amount is not None and total!=data.expected_total_amount:raise HTTPException(409,{"code":"PRICE_CHANGED","new_price":total})
     prop_details = json.loads(prop.details_json) if prop else {}
+    request_only = prop_details.get("booking_mode")=="REQUEST_TO_BOOK"
     policy = prop_details.get("cancellation_policy") if isinstance(prop_details.get("cancellation_policy"), dict) else {}
-    reservation = operational_models.Reservation(tenant_id=user.tenant_id, user_id=user.id, service_type="vacation_rental", status="reserved", booking_reference=f"KS-VILLA-{uuid.uuid4().hex[:10].upper()}", price_snapshot_json=json.dumps({"total_amount": total, "currency": unit.currency, "nights": nights,"unit_id":unit.id,"units":1, "guests": data.guests, "min_stay": pricing["min_stay"], "nightly_breakdown": pricing["nightly_breakdown"]}, sort_keys=True), policy_at_booking_json=json.dumps(policy, sort_keys=True), current_policy_json=json.dumps(policy, sort_keys=True)); db.add(reservation); db.flush(); row = operational_models.VacationReservation(tenant_id=user.tenant_id, unit_id=unit.id, user_id=user.id, reservation_id=reservation.id, check_in=check_in, check_out=check_out, guests=data.guests, total_amount=total, command_id=data.command_id); db.add(row); db.flush(); _commerce_event(db, tenant_id=user.tenant_id, kind="vacation_reservation", aggregate_id=row.id, command_id=data.command_id, payload={"status": row.status, "reservation_id": reservation.id})
+    reservation = operational_models.Reservation(tenant_id=user.tenant_id, user_id=user.id, service_type="vacation_rental", status="booking_pending" if request_only else "reserved", booking_reference=f"KS-VILLA-{uuid.uuid4().hex[:10].upper()}", price_snapshot_json=json.dumps({"booking_mode":prop_details.get("booking_mode","INSTANT_BOOKING"),"total_amount": total, "currency": unit.currency, "nights": nights,"unit_id":unit.id,"units":1, "guests": data.guests, "min_stay": pricing["min_stay"], "nightly_breakdown": pricing["nightly_breakdown"], "price_components": pricing["price_components"]}, sort_keys=True), policy_at_booking_json=json.dumps(policy, sort_keys=True), current_policy_json=json.dumps(policy, sort_keys=True)); db.add(reservation); db.flush(); row = operational_models.VacationReservation(tenant_id=user.tenant_id, unit_id=unit.id, user_id=user.id, reservation_id=reservation.id, check_in=check_in, check_out=check_out, guests=data.guests, total_amount=total, status="requested" if request_only else "held", command_id=data.command_id); db.add(row); db.flush(); _commerce_event(db, tenant_id=user.tenant_id, kind="vacation_reservation", aggregate_id=row.id, command_id=data.command_id, payload={"status": row.status, "reservation_id": reservation.id})
+    db.add(operational_models.BookingStatusHistory(tenant_id=user.tenant_id,reservation_id=reservation.id,from_status=None,to_status=reservation.status,actor_id=user.id,command_id="vacation-created:"+data.command_id))
     db.add(operational_models.BookingItem(tenant_id=user.tenant_id,reservation_id=reservation.id,item_type="vacation_rental",snapshot_json=json.dumps({"title":prop.title+" — "+unit.title,"supplier_id":prop.supplier_id,"fulfillment_mode":"manual_supplier","provider_key":"manual_supplier","attributes":{"city":prop.city,"check_in":check_in.isoformat(),"check_out":check_out.isoformat(),"guests":data.guests}})))
     trip = operational_models.ensure_trip_for_reservation(db, reservation, title=f"سفر به {prop.city}", destination=prop.city, starts_at=check_in, ends_at=check_out)
-    operational_models.record_trip_event(db, tenant_id=user.tenant_id, trip_id=trip.id, reservation_id=reservation.id, event_key=f"booking-created:{data.command_id}", event_type="booking.created", source="system", title="رزرو ویلا ثبت شد", message=f"رزرو {reservation.booking_reference} برای {prop.title} در {prop.city} ثبت شد.", deep_link=f"/manage-booking/{reservation.id}")
-    db.commit(); return {"id": row.id, "reservation_id": reservation.id, "status": row.status, "total_amount": row.total_amount, "currency": unit.currency, "payment_required": True, "checkout_url": f"/checkout/{reservation.id}", "price_breakdown": pricing["nightly_breakdown"]}
+    operational_models.record_trip_event(db, tenant_id=user.tenant_id, trip_id=trip.id, reservation_id=reservation.id, event_key=f"booking-created:{data.command_id}", event_type="booking.created", source="system", title="درخواست اقامت ثبت شد" if request_only else "نگه‌داشت اقامت ثبت شد", message=f"درخواست {reservation.booking_reference} برای {prop.title} در {prop.city} ثبت شد.", deep_link=f"/manage-booking/{reservation.id}")
+    db.commit(); return {"id": row.id, "reservation_id": reservation.id, "status": row.status, "total_amount": row.total_amount, "currency": unit.currency, "payment_required": not request_only, "checkout_url": f"/manage-booking/{reservation.id}" if request_only else f"/checkout/{reservation.id}", "price_breakdown": pricing["nightly_breakdown"]}
+
+
+@app.get("/supplier/vacation-units")
+def supplier_vacation_units(user: User=Depends(require_permission("inventory:manage")),db: Session=Depends(get_db)):
+    rows=db.execute(select(operational_models.VacationUnit,operational_models.VacationProperty).join(operational_models.VacationProperty,operational_models.VacationUnit.property_id==operational_models.VacationProperty.id).where(operational_models.VacationUnit.tenant_id==user.tenant_id,operational_models.VacationProperty.tenant_id==user.tenant_id,operational_models.VacationProperty.supplier_id.in_(_supplier_scope(db,user)))).all()
+    return [{"id":u.id,"title":p.title+" — "+u.title,"capacity":u.capacity,"pricing":json.loads(u.pricing_json or "{}")} for u,p in rows]
+
+
+@app.get("/supplier/vacation-requests")
+def supplier_vacation_requests(user: User=Depends(require_permission("inventory:manage")),db: Session=Depends(get_db)):
+    rows=db.execute(select(operational_models.VacationReservation,operational_models.VacationProperty).join(operational_models.VacationUnit,operational_models.VacationReservation.unit_id==operational_models.VacationUnit.id).join(operational_models.VacationProperty,operational_models.VacationUnit.property_id==operational_models.VacationProperty.id).where(operational_models.VacationReservation.tenant_id==user.tenant_id,operational_models.VacationUnit.tenant_id==user.tenant_id,operational_models.VacationProperty.tenant_id==user.tenant_id,operational_models.VacationReservation.status=="requested",operational_models.VacationProperty.supplier_id.in_(_supplier_scope(db,user)))).all()
+    return [{"reservation_id":r.reservation_id,"title":p.title,"check_in":r.check_in.isoformat(),"check_out":r.check_out.isoformat(),"guests":r.guests,"total_amount":r.total_amount} for r,p in rows]
+
+
+class VacationDecisionIn(BaseModel):
+    action: str=Field(pattern="^(accept|reject|withdraw)$")
+    reason: str=Field(min_length=3,max_length=500)
+    command_id: str=Field(min_length=8,max_length=120)
+
+
+@app.post("/reservations/{reservation_id}/accommodation-decision")
+def vacation_decision(reservation_id: str,data: VacationDecisionIn,user: User=Depends(current_user),db: Session=Depends(get_db)):
+    reservation=db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id==reservation_id,operational_models.Reservation.tenant_id==user.tenant_id).with_for_update())
+    row=db.scalar(select(operational_models.VacationReservation).where(operational_models.VacationReservation.reservation_id==reservation_id,operational_models.VacationReservation.tenant_id==user.tenant_id).with_for_update())
+    if reservation is None or row is None: raise HTTPException(404,"درخواست اقامت وجود ندارد")
+    unit=db.scalar(select(operational_models.VacationUnit).where(operational_models.VacationUnit.id==row.unit_id,operational_models.VacationUnit.tenant_id==user.tenant_id))
+    prop=db.scalar(select(operational_models.VacationProperty).where(operational_models.VacationProperty.id==unit.property_id,operational_models.VacationProperty.tenant_id==user.tenant_id)) if unit else None
+    if data.action=="withdraw":
+        if reservation.user_id!=user.id: raise HTTPException(403,"درخواست متعلق به حساب دیگری است")
+    elif not role_has_permission(user.role,"inventory:manage") or prop is None or prop.supplier_id not in _supplier_scope(db,user): raise HTTPException(403,"این اقامتگاه به حساب جاری واگذار نشده است")
+    digest=hashlib.sha256(f"{reservation_id}:{data.action}:{data.reason}".encode()).hexdigest()
+    prior=db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id==user.tenant_id,operational_models.IdempotencyKey.scope=="vacation.decision",operational_models.IdempotencyKey.key==data.command_id))
+    if prior:
+        if prior.request_hash!=digest: raise HTTPException(409,"کلید تکرار برای تصمیم دیگری استفاده شده است")
+        return json.loads(prior.response_json)
+    if row.status!="requested" or reservation.status!="booking_pending": raise HTTPException(409,"این درخواست قبلاً تعیین تکلیف شده است")
+    if data.action=="accept":
+        _,_,pricing=_vacation_availability(db,user,row.unit_id,row.check_in,row.check_out,row.guests)
+        if pricing["total_amount"]!=row.total_amount: raise HTTPException(409,"قیمت تغییر کرده است؛ مشتری باید درخواست تازه با مبلغ جدید ثبت کند")
+        target="reserved";row.status="held"
+    else:
+        target="cancelled" if data.action=="withdraw" else "failed";row.status="cancelled" if data.action=="withdraw" else "rejected"
+    operational_models.transition_reservation(db,reservation,target,user.id,"vacation-decision:"+data.command_id)
+    db.flush()
+    history=db.scalar(select(operational_models.BookingStatusHistory).where(operational_models.BookingStatusHistory.tenant_id==user.tenant_id,operational_models.BookingStatusHistory.command_id=="vacation-decision:"+data.command_id));history.reason=data.reason
+    result={"reservation_id":reservation.id,"status":reservation.status,"checkout_url":f"/checkout/{reservation.id}" if target=="reserved" else None}
+    db.add(operational_models.IdempotencyKey(tenant_id=user.tenant_id,scope="vacation.decision",key=data.command_id,request_hash=digest,response_json=json.dumps(result)))
+    db.commit();return result
 
 
 @app.post("/supplier/tours", status_code=201)
@@ -2683,6 +2751,11 @@ def fulfill_reservation(reservation_id: str, data: FulfillmentIn, user: User = D
         operational_models.transition_reservation(db, reservation, "issued", user.id, f"{data.command_id}:issued")
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    if reservation.service_type == "vacation_rental":
+        stay = db.scalar(select(operational_models.VacationReservation).where(operational_models.VacationReservation.tenant_id==user.tenant_id,operational_models.VacationReservation.reservation_id==reservation.id).with_for_update())
+        if stay is not None:
+            if stay.status != "held": raise HTTPException(409,"نگه‌داشت اقامت برای صدور معتبر نیست")
+            stay.status = "confirmed"
     voucher = operational_models.Voucher(tenant_id=user.tenant_id, reservation_id=reservation.id, status="issued", revision=1, document_reference=data.document_reference)
     db.add(voucher); db.flush()
     leisure_session_id = (item_snapshot.get("attributes") or {}).get("leisure_session_id")

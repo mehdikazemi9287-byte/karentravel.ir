@@ -1,0 +1,11 @@
+'use client';
+import {useEffect,useState} from 'react';
+import {useAuth} from '../../lib/api/auth-context';
+type Day={date:string;state:string;nightly_price:number|null;minimum_stay:number;remaining_units:number};
+const labels:Record<string,string>={REQUEST:'نیازمند پذیرش میزبان',AVAILABLE:'قابل رزرو',UNAVAILABLE:'بسته',SOLD_OUT:'تکمیل ظرفیت',MINIMUM_STAY:'حداقل اقامت',SPECIAL_PRICE:'نرخ ویژه'};
+export function AccommodationCalendar({unit,start,onSelect}:{unit:string;start:string;onSelect:(date:string)=>void}){
+ const{api}=useAuth();const[data,setData]=useState<{currency:string;days:Day[]}|null>(null),[error,setError]=useState(false),[retry,setRetry]=useState(0);
+ useEffect(()=>{let active=true;setData(null);setError(false);if(unit)api.get<{currency:string;days:Day[]}>(`/vacation-units/${unit}/calendar?`+new URLSearchParams({start:(start||new Date().toISOString().slice(0,10))+'T12:00:00Z',days:'30'})).then(r=>{if(active)setData(r)}).catch(()=>{if(active)setError(true)});return()=>{active=false}},[api,unit,start,retry]);
+ if(!unit)return null;
+ return <section className="panel" aria-label="تقویم موجودی اقامت"><h2>تقویم موجودی و نرخ شب</h2><p>نرخ شب، بدون هزینهٔ مهمان اضافه و خدمات است. مبلغ نهایی و ظرفیت پیش از رزرو دوباره بررسی می‌شوند.</p>{error?<><p role="alert">تقویم دریافت نشد.</p><button className="button secondary" onClick={()=>setRetry(v=>v+1)}>دریافت دوبارهٔ تقویم</button></>:!data?<p role="status">در حال دریافت تقویم…</p>:<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(115px,1fr))',gap:8}}>{data.days.map(d=><button type="button" key={d.date} disabled={d.state==='UNAVAILABLE'||d.state==='SOLD_OUT'} onClick={()=>onSelect(d.date)} style={{border:'1px solid #d1d5db',borderRadius:12,padding:8,textAlign:'right',opacity:d.remaining_units?1:0.65}}><span style={{display:'block'}}>{new Date(d.date+'T12:00:00Z').toLocaleDateString('fa-IR')}</span><span style={{display:'block'}}>{labels[d.state]||'نیازمند استعلام'}</span>{d.nightly_price!==null&&<span style={{display:'block'}}>{d.nightly_price.toLocaleString('fa-IR')} {data.currency==='IRR'?'ریال':data.currency}</span>}{d.minimum_stay>1&&<span style={{display:'block'}}>حداقل {d.minimum_stay.toLocaleString('fa-IR')} شب</span>}</button>)}</div>}</section>
+}

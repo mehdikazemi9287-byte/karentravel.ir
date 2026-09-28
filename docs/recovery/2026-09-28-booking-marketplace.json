@@ -1,0 +1,60 @@
+{
+  "baseline": "09950ec",
+  "scope": "Accommodation calendar/pricing/request-to-book and discovery increment; not full booking-domain completion",
+  "tests": {
+    "domain": "7 passed",
+    "issuance_consistency_delta": "1 passed"
+  },
+  "browser": {
+    "pass": true,
+    "checks": [
+      {
+        "width": 1440,
+        "pass": true,
+        "title": "Mock QA Villa 54562a — Mock QA Unit",
+        "reservation": "1cbe28b4-0b19-4e6c-8593-456bc07efec9",
+        "interceptedPayment": true,
+        "voucher": true,
+        "myTrips": true,
+        "hostApprovalLostResponse": true,
+        "supplierRates": true
+      },
+      {
+        "width": 390,
+        "pass": true,
+        "title": "Mock QA Villa 54562a — Mock QA Unit",
+        "reservation": "48126f7f-7cc4-421e-bac7-b4da60723660",
+        "interceptedPayment": true,
+        "voucher": true,
+        "myTrips": true,
+        "hostApprovalLostResponse": true,
+        "supplierRates": true
+      }
+    ]
+  },
+  "discovery": {
+    "pass": true,
+    "checks": [
+      {
+        "width": 1440,
+        "pass": true,
+        "filters": true,
+        "empty": true
+      },
+      {
+        "width": 390,
+        "pass": true,
+        "filters": true,
+        "empty": true
+      }
+    ]
+  },
+  "database": "Single host acceptance/payment/voucher and trip verified for both isolated browser journeys",
+  "production_payment": false,
+  "production_sms": false,
+  "production_fixtures": false,
+  "migration": false,
+  "checkline": "No CheckLine source or approved API reference found in accessible supplied project paths; capability remains unverified, not declared unavailable.",
+  "remaining_internal": "See ADR-022 gap matrix and authoritative product requirement files",
+  "rollback": "Retain old containers; before reverting after adoption, disable units using new rate/calendar fields because older code ignores them."
+}

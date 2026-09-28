@@ -210,6 +210,17 @@
       "blocker": "Real production OTP/provider/payment verification remains external-blocked",
       "last_verified_at": "2026-09-27T23:33:34.987023+00:00",
       "evidence": "docs/recovery/2026-09-27-implementation-evidence.json"
+    },
+    "accommodation_marketplace": {
+      "status": "PARTIAL",
+      "reason": "Implemented tenant-scoped category/guest discovery, per-night capacity/calendar, validated fee/rate pricing, request-to-book host approval/rejection/withdrawal, audited supplier rates and shared checkout/issuance/trip. Isolated browser acceptance only, not live sales.",
+      "blocker": "Internal remaining: public catalog publication/moderation, property media/content completeness and remaining marketplace requirements. External live payment/OTP/DNS stay blocked separately.",
+      "last_verified_at": "2026-09-28",
+      "evidence": [
+        "docs/adr/ADR-022-booking-marketplace-closure.md",
+        "backend/tests/test_accommodation_marketplace.py",
+        "e2e/booking-domain/README.md"
+      ]
     }
   }
 }
