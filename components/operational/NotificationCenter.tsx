@@ -28,7 +28,7 @@ export function NotificationCenter() {
         api.get<Pref[]>('/me/notification-preferences'),
         api.get<Channel[]>('/me/notification-channels'),
       ]);
-      setItems(n); setPrefs(p); setChannels(c);
+      setItems(n); setPrefs(p); setChannels(c); setErr(null);
     } catch (e) { setErr(e instanceof ApiError ? { status: e.status, message: e.message } : { status: 0, message: msgOf(e) }); }
   }, [api]);
   useEffect(() => { if (session) load(); }, [session, load]);
@@ -47,8 +47,8 @@ export function NotificationCenter() {
     } catch (e) { setNotice(msgOf(e)); }
   }
 
-  if (!session) return <div className="container"><p role="alert" className="rounded-2xl bg-rose-50 p-6 text-rose-700">برای مشاهده اعلان‌ها وارد شوید.</p></div>;
-  if (err) return <div className="container"><p role="alert" className="rounded-2xl bg-rose-50 p-6 text-rose-700">خطای {err.status}: {err.message}</p></div>;
+  if (!session) return <div className="container"><p role="alert" className="rounded-2xl bg-rose-50 p-6 text-rose-700">برای مشاهده اعلان‌ها وارد شوید.</p><Link className="button primary" href="/login?redirect=%2Fnotifications">ورود و مشاهده اعلان‌ها</Link></div>;
+  if (err) return <div className="container"><p role="alert" className="rounded-2xl bg-rose-50 p-6 text-rose-700">اعلان‌ها دریافت نشدند؛ دوباره تلاش کنید.</p><button className="button secondary" onClick={()=>void load()}>تلاش دوباره</button><Link href="/support">پشتیبانی</Link></div>;
   if (!items) return <div className="container"><p role="status" className="my-8 animate-pulse rounded-2xl bg-white p-8 text-center text-slate-600">در حال دریافت اعلان‌ها…</p></div>;
 
   const unread = items.filter(i => i.status !== 'read' && i.status !== 'delivered').length;

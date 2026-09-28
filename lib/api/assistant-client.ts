@@ -121,6 +121,7 @@ export async function sendAssistantMessage(api: KarenSeirApi, conversationId: st
 
 export function assistantErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
+    if (error.status === 403) return 'این گفت‌وگو متعلق به نشست فعلی نیست؛ دکمهٔ گفت‌وگوی تازه را بزنید.';
     if (error.status === 503) return 'سرویس دستیار سفر موقتاً در دسترس نیست؛ لطفاً کمی بعد دوباره امتحان کنید.';
     return error.message || 'ارتباط با دستیار سفر برقرار نشد.';
   }

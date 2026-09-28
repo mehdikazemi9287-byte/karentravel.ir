@@ -805,6 +805,7 @@ def test_confirm_with_real_user_token_creates_real_reservation_end_to_end(client
                       headers={"Authorization": "Bearer real-user-jwt"})
     assert r5.json()["message"]["data"]["reservation_result"]["status"] == "ok"
     assert "درخواست رزرو موقت ثبت شد" in r5.json()["message"]["text"]
+    assert r5.json()["message"]["data"]["reservation_result"]["reservation_id"] == "res1"
     assert fake_db.conversations[cid]["selected_result"]["reservation"]["id"] == "res1"
     # both real calls happened in the right order with the right shapes
     assert fake.calls[0]["path"] == "/offers/o1/price-check"

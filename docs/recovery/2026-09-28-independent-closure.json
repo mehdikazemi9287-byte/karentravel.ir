@@ -1,0 +1,118 @@
+{
+  "baseline_commits": [
+    "dd1c569",
+    "ed61766"
+  ],
+  "built_web": "ed617663aa80c2a5d3b06c83077f24dc64b8172c-worktree-59f97a5733bb",
+  "at": "2026-09-28T14:48:12.926504+00:00",
+  "tests": {
+    "api_boundary_support_payment": "7 passed",
+    "final_assistant_tenant_filter": "2 passed",
+    "payment_callback": "5 passed",
+    "assistant_service": "4 passed",
+    "logout_and_refresh": "PASS",
+    "redirect_boundary": "PASS",
+    "targeted_lint": "PASS"
+  },
+  "browser": {
+    "workflows": {
+      "pass": true,
+      "checks": [
+        {
+          "width": 1440,
+          "pass": true,
+          "reservation": "0873b19b-a265-4a63-b11f-0ea17a535a81",
+          "assistant": true,
+          "paymentRefreshBackRetry": true,
+          "voucher": true,
+          "supportLostResponse": true,
+          "notificationsRetry": true,
+          "roles": true,
+          "rtl": true
+        },
+        {
+          "width": 390,
+          "pass": true,
+          "reservation": "98df621c-b7d1-409f-a1c1-13aed2d5cd6d",
+          "assistant": true,
+          "paymentRefreshBackRetry": true,
+          "voucher": true,
+          "supportLostResponse": true,
+          "notificationsRetry": true,
+          "roles": true,
+          "rtl": true
+        }
+      ]
+    },
+    "auth": {
+      "pass": true,
+      "checks": [
+        {
+          "width": 1440,
+          "pass": true,
+          "localOTPOnly": true,
+          "invalidCodeRejected": true,
+          "profilePersisted": true,
+          "loginDeepLink": true,
+          "unsafeRedirectRejected": true
+        },
+        {
+          "width": 390,
+          "pass": true,
+          "localOTPOnly": true,
+          "invalidCodeRejected": true,
+          "profilePersisted": true,
+          "loginDeepLink": true,
+          "unsafeRedirectRejected": true
+        }
+      ]
+    },
+    "payment_states": {
+      "pass": true,
+      "checks": [
+        {
+          "width": 1440,
+          "pass": true,
+          "ambiguousTimeoutNoResend": true,
+          "cancelThenServerVerify": true
+        },
+        {
+          "width": 390,
+          "pass": true,
+          "ambiguousTimeoutNoResend": true,
+          "cancelThenServerVerify": true
+        }
+      ]
+    },
+    "database": {
+      "pass": true,
+      "rows": [
+        {
+          "reservation": "0873b19b-a265-4a63-b11f-0ea17a535a81",
+          "one_payment": true,
+          "one_voucher": true,
+          "trip_exists": true,
+          "one_support_case": true,
+          "human_reply": true
+        },
+        {
+          "reservation": "98df621c-b7d1-409f-a1c1-13aed2d5cd6d",
+          "one_payment": true,
+          "one_voucher": true,
+          "trip_exists": true,
+          "one_support_case": true,
+          "human_reply": true
+        }
+      ]
+    }
+  },
+  "production_financial_transaction": false,
+  "production_sms": false,
+  "production_test_fixtures": false,
+  "external_blockers": [
+    "DNS/TLS",
+    "live supplier contract/credentials",
+    "ZarinPal merchant/authorized real transaction",
+    "Kavenegar live delivery access/authorized recipient"
+  ]
+}

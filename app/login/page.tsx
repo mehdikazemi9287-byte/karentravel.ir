@@ -14,7 +14,7 @@ import { Shell } from '../page';
 // this into an open redirect.
 function safeRedirectTarget(raw: string | null): string | null {
   if (!raw) return null;
-  if (!raw.startsWith('/') || raw.startsWith('//')) return null;
+  if (!raw.startsWith('/') || raw.startsWith('//') || raw.includes('\\') || /[\u0000-\u0020]/.test(raw)) return null;
   return raw;
 }
 

@@ -6,7 +6,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   AssistantChatMessage, AssistantEntity, AssistantReplyData, AssistantTurnResponse,
   assistantErrorMessage, consumeResumePending, loadConversationId, loadStoredMessages,
-  markResumePending, saveConversationId, saveStoredMessages, selectResultPhrase, sendAssistantMessage,
+  markResumePending, resetAssistantSession, saveConversationId, saveStoredMessages, selectResultPhrase, sendAssistantMessage,
 } from '../lib/api/assistant-client';
 import { ConnectedCompare, ConnectedOrganization, ConnectedRolePanel, ErrorState } from '../components/operational/ConnectedViews';
 import { EmployeePortal } from '../components/operational/EmployeePortal';
@@ -218,7 +218,7 @@ function Assistant(){
     <div className="policy-intents" aria-label="نمونه پرسش‌های قابل فهم">{policyIntents.map(intent=><span key={intent} role="button" tabIndex={0} onClick={()=>run(intent)} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();run(intent)}}}>{intent}</span>)}</div>
   </section>
   <section className="chat">
-    <div className="chat-bar">دستیار سفر کارن‌سیر <span>{session ? '● وارد شده' : '● مهمان'}</span></div>
+    <div className="chat-bar"><button type="button" disabled={busy} onClick={()=>{resetAssistantSession();setConversationId(null);setMessages([]);setError(null);setResumeAvailable(false)}}>گفت‌وگوی تازه</button>دستیار سفر کارن‌سیر <span>{session ? '● وارد شده' : '● مهمان'}</span></div>
     {resumeAvailable && <div className="assistant-resume-banner" role="status">
       <span>وارد حساب شدید؛ برای ادامه‌ی همان رزرو دکمه زیر را بزنید.</span>
       <button className="button primary" type="button" disabled={busy} onClick={()=>run('تایید می‌کنم')}>ادامه رزرو</button>
@@ -254,13 +254,13 @@ function Assistant(){
       {reservationResult && <AssistantPanel tone={reservationResult.status==='ok'?'ok':'error'}>
         {reservationResult.status==='ok'
           ? <><strong>رزرو موقت با موفقیت ثبت شد.</strong><p>این رزرو نهایی/پرداخت‌شده نیست. شناسه رزرو: {reservationResult.reservation_id ?? '—'}</p></>
-          : <><strong>رزرو انجام نشد.</strong><p>کد خطا: {reservationResult.error_code ?? 'نامشخص'}</p></>}
+          : <><strong>رزرو انجام نشد.</strong><p>قیمت، ظرفیت یا دسترسی به این گزینه تأیید نشد. دوباره جست‌وجو کنید یا از پشتیبانی کمک بگیرید.</p></>}
         {reservationResult.status==='ok' && <div className="assistant-panel-actions">
-          <button className="button ghost" type="button" disabled={busy} onClick={cancelOrRollback}>لغو رزرو</button>
+          {reservationResult.reservation_id&&<><Link className="button primary" href={`/checkout/${reservationResult.reservation_id}`}>تکمیل اطلاعات و ادامهٔ رزرو</Link><Link className="button secondary" href={`/manage-booking/${reservationResult.reservation_id}`}>پیگیری رزرو</Link></>}<button className="button ghost" type="button" disabled={busy} onClick={cancelOrRollback}>درخواست لغو رزرو</button>
         </div>}
       </AssistantPanel>}
       {releaseResult && <AssistantPanel tone={releaseResult.status==='ok'?'ok':'error'}>
-        {releaseResult.status==='ok' ? <strong>درخواست لغو رزرو ثبت شد.</strong> : <><strong>لغو رزرو انجام نشد.</strong><p>کد خطا: {releaseResult.error_code ?? 'نامشخص'}</p></>}
+        {releaseResult.status==='ok' ? <strong>درخواست لغو رزرو ثبت شد.</strong> : <><strong>لغو رزرو انجام نشد.</strong><p>درخواست لغو تأیید نشد؛ وضعیت رزرو را از حساب یا پشتیبانی پیگیری کنید.</p></>}
       </AssistantPanel>}
     </div>
     <form className="chat-input" onSubmit={event=>{event.preventDefault();run(draft)}}>

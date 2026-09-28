@@ -65,3 +65,13 @@ def test_untrusted_web_origin_cannot_receive_callback_state(client,monkeypatch):
     monkeypatch.setenv('PUBLIC_WEB_URL','https://web.example.test@attacker.test/path')
     r=client.get(url+'&Status=NOK',headers={'Accept':'text/html'},follow_redirects=False)
     assert r.status_code==200 and 'location' not in r.headers
+
+
+def test_cancel_signal_can_be_reconciled_if_provider_later_confirms_paid(client,monkeypatch):
+    session,payment_id,url,transport=setup_payment(client,monkeypatch)
+    assert client.get(url+'&Status=NOK').json()['payment_status']=='failed'
+    result=client.post('/payments/'+payment_id+'/verify',headers=auth(session))
+    assert result.status_code==200 and result.json()['status']=='captured'
+    assert client.get(url+'&Status=NOK').json()['status']=='duplicate'
+    assert client.post('/payments/'+payment_id+'/verify',headers=auth(session)).json()['status']=='captured'
+    assert len(transport.calls)==1

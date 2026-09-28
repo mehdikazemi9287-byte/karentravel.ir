@@ -37,6 +37,7 @@ def test_ambiguous_timeout_persists_attempt_and_redacts_exception(client,monkeyp
     assert client.post('/payments/'+p['id']+'/initiate',headers=auth(user)).status_code==503
     assert client.post('/payments/'+p['id']+'/initiate',headers=auth(user)).status_code==409
     assert adapter.calls==1 and 'SECRET-SHOULD-NOT-APPEAR' not in caplog.text
+    assert client.get('/payments/'+p['id'],headers=auth(user)).json()['requires_reconciliation'] is True
     with SessionLocal() as db:assert db.scalar(select(m.IdempotencyKey).where(m.IdempotencyKey.scope=='payment.initiate',m.IdempotencyKey.key==p['id'])) is not None
 
 def test_disabled_provider_does_not_consume_attempt(client,monkeypatch):

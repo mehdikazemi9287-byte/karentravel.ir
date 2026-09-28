@@ -60,9 +60,14 @@ export class KarenSeirApi {
   }
 
   async logout() {
-    if (!this.session) return;
-    await this.request<void>('/auth/logout', { method: 'POST', body: JSON.stringify({ refresh_token: this.session.refresh_token }) });
-    this.session = null;if(typeof window!=='undefined')sessionStorage.removeItem('karenseir-auth-session');
+    const previous = this.session;
+    this.session = null;
+    if(typeof window!=='undefined')for(const key of ['karenseir-auth-session','karenseir-assistant-conversation-id','karenseir-assistant-messages','karenseir-assistant-resume-pending'])sessionStorage.removeItem(key);
+    if (!previous) return;
+    // Clear this browser immediately; navigation or a failed network request must not restore it.
+    // Keepalive attempts server revocation with the captured credentials; never refresh after logout.
+    try { await this.request<void>('/auth/logout', { method:'POST', keepalive:true, headers:{Authorization:`Bearer ${previous.access_token}`}, body:JSON.stringify({refresh_token:previous.refresh_token}) }, false, false); }
+    catch { /* Local sign-out is complete. No claim of server revocation when unreachable. */ }
   }
 
   async getText(path: string) { return this.request<string>(path, {}, true, true, false, true); }

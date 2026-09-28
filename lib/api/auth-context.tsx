@@ -25,7 +25,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     requestOtp(tenant, identifier) { return api.requestOtp(tenant, identifier); },
     register(mobile, name) { return api.register(mobile, name); },
     async verifyOtp(tenant, challenge, code) { const next = await api.verifyOtp(tenant, challenge, code); setSession(next); return next; },
-    async logout() { await api.logout(); setSession(null); },
+    async logout() { const pending=api.logout(); setSession(null); await pending; },
   }), [api, session]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

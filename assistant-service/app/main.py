@@ -410,6 +410,7 @@ def post_message(data: MessageIn = Body(...), x_correlation_id: str | None = Hea
                     "error_code": effective_error_code,
                 }
                 if result.status == "ok":
+                    reply_data["reservation_result"]["reservation_id"] = result.data.get("id")
                     reply_text = "درخواست رزرو موقت ثبت شد. این یک رزرو نهایی/پرداخت‌شده نیست؛ برای تکمیل نیاز به مراحل بعدی دارد."
                     _save_state(conversation_id, selected_result={**selected, "reservation": result.data})
                     approval.mark_consumed(pending["id"], {"status": "ok", "reservation_id": result.data.get("id")})
@@ -418,7 +419,7 @@ def post_message(data: MessageIn = Body(...), x_correlation_id: str | None = Hea
                                   "و پس از ورود، همین درخواست ادامه می‌یابد -- نیازی به تأیید دوباره نیست.")
                     reply_data["type"] = "AUTHENTICATION_REQUIRED"
                 else:
-                    reply_text = "تأیید شما ثبت شد، اما درخواست رزرو با خطا مواجه شد؛ رزروی ایجاد نشده است."
+                    reply_text = "نتیجهٔ درخواست رزرو هنوز تأیید نشده است. همان درخواست را پیگیری کنید؛ برای جلوگیری از رزرو تکراری، درخواست تازه نسازید."
                 reply_data["blocked_level"] = tools.LEVEL_APPROVAL if result.status != "ok" else None
             else:
                 reply_text = f"تأیید ثبت نشد: {guard['reason']}"

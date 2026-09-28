@@ -1479,7 +1479,7 @@ def _verify_zarinpal_callback(state_token: str = Query(alias="state", min_length
             _record_payment_trip_event(db, tenant_id=tenant_id, intent=intent, event_key=f"payment-failed:{authority}", event_type="payment.failed", title="پرداخت ناموفق بود", message=f"پرداخت رزرو در درگاه لغو یا ناموفق شد.", severity="warning")
             db.commit()
         return {"status": "cancelled", "payment_status": intent.status}
-    if intent.status != "initiated": raise HTTPException(status_code=409, detail="Payment Intent قابل verify نیست")
+    if intent.status not in {"initiated", "failed"}: raise HTTPException(status_code=409, detail="Payment Intent قابل verify نیست")
     from .providers import ADAPTERS, ProviderContext
     result = ADAPTERS["payment"].execute("verify", {"payment_intent_id": intent.id, "amount": intent.amount, "currency": intent.currency, "authority": authority}, ProviderContext(tenant_id=tenant_id, correlation_id=str(uuid.uuid4()), idempotency_key=f"zarinpal-verify:{authority}"))
     if not result.get("ok") or result.get("authority") != authority or int(result.get("amount", 0)) != intent.amount: raise HTTPException(status_code=502, detail="تأیید server-side زرین‌پال ناموفق بود")
@@ -1535,7 +1535,9 @@ def customer_payment_status(payment_id: str, user: User = Depends(current_user),
     reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == intent.reservation_id, operational_models.Reservation.tenant_id == user.tenant_id, operational_models.Reservation.user_id == user.id))
     if reservation is None: raise HTTPException(status_code=404, detail="رزرو در حساب شما پیدا نشد")
     voucher = db.scalar(select(operational_models.Voucher).where(operational_models.Voucher.reservation_id == reservation.id, operational_models.Voucher.tenant_id == user.tenant_id, operational_models.Voucher.status == "issued"))
-    return {"id": intent.id, "status": intent.status, "amount": intent.amount, "currency": intent.currency, "captured_amount": intent.captured_amount, "refunded_amount": intent.refunded_amount, "receipt_reference": intent.provider_capture_reference if intent.status in {"captured", "refunded"} else None, "reservation_id": reservation.id, "reservation_status": reservation.status, "booking_reference": reservation.booking_reference, "voucher_available": voucher is not None and reservation.status == "issued"}
+    attempt = db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id == user.tenant_id, operational_models.IdempotencyKey.scope == "payment.initiate", operational_models.IdempotencyKey.key == intent.id))
+    needs_reconciliation = intent.status == "created" and attempt is not None and json.loads(attempt.response_json or "{}").get("status") == "initiation_pending"
+    return {"requires_reconciliation": needs_reconciliation, "id": intent.id, "status": intent.status, "amount": intent.amount, "currency": intent.currency, "captured_amount": intent.captured_amount, "refunded_amount": intent.refunded_amount, "receipt_reference": intent.provider_capture_reference if intent.status in {"captured", "refunded"} else None, "reservation_id": reservation.id, "reservation_status": reservation.status, "booking_reference": reservation.booking_reference, "voucher_available": voucher is not None and reservation.status == "issued"}
 
 
 @app.post("/payments/{payment_id}/verify")
@@ -1543,7 +1545,7 @@ def recover_payment_verification(payment_id: str, user: User = Depends(current_u
     intent = db.scalar(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.id == payment_id, operational_models.PaymentIntent.tenant_id == user.tenant_id, operational_models.PaymentIntent.user_id == user.id))
     if intent is None: raise HTTPException(status_code=404, detail="پرداخت در حساب شما پیدا نشد")
     if intent.status == "captured": return customer_payment_status(payment_id, user, db)
-    if intent.status != "initiated" or not intent.provider_authority: raise HTTPException(status_code=409, detail="این پرداخت در انتظار تأیید درگاه نیست")
+    if intent.status not in {"initiated", "failed"} or not intent.provider_authority: raise HTTPException(status_code=409, detail="این پرداخت در انتظار تأیید درگاه نیست")
     # Reconciliation checks the known authority and amount; it never initiates a charge.
     now = datetime.now(timezone.utc)
     state = jwt.encode({"iss": JWT_ISSUER, "aud": "karenseir-zarinpal-callback", "tenant_id": user.tenant_id, "payment_intent_id": intent.id, "user_id": user.id, "amount": intent.amount, "exp": now+timedelta(minutes=5), "iat": now, "jti": str(uuid.uuid4())}, JWT_SECRET, algorithm="HS256")
@@ -2322,33 +2324,58 @@ _ASSISTANT_SERVICE_URL = os.getenv("ASSISTANT_SERVICE_URL", "http://karenseir-as
 
 
 @app.post("/assistant/message")
-async def assistant_message_gateway(payload: dict = Body(...), authorization: Optional[str] = Header(default=None),
-                                     x_correlation_id: Optional[str] = Header(default=None)) -> JSONResponse:
-    """Phase 6: transparent gateway to karenseir-assistant, mirroring the
-    /search/v3 pattern (the browser never reaches an internal service port
-    directly). Unlike /search/v3, this does NOT resolve identity here and
-    is NOT gated behind current_user -- Assistant must keep working for
-    anonymous callers (public search/planning/conversation). The caller's
-    raw Authorization header, if present, is forwarded byte-for-byte and
-    otherwise untouched: this gateway never decodes, logs, or persists it.
-    karenseir-assistant forwards that same header, per request only, to
-    this monolith's own commerce endpoints, where current_user performs
-    the real verification (assistant-service Phase 5)."""
+async def assistant_message_gateway(payload: dict = Body(...), authorization: Optional[str] = Header(default=None), x_correlation_id: Optional[str] = Header(default=None), db: Session = Depends(get_db)) -> JSONResponse:
+    """Bind conversations and search scope to verified identity, not browser fields."""
     import httpx
-    corr = x_correlation_id or str(uuid.uuid4())
+    user = current_user(authorization, db) if authorization else None
+    owner = f"{user.tenant_id}:{user.id}" if user else "guest"
+    tenant = db.get(Tenant, user.tenant_id) if user else None
+    tenant_slug = tenant.slug if tenant else None
+    public_identity = _public_search_identity(db)  # Capability metadata stays in one RLS-scoped catalog tenant.
+    text_value = payload.get("text")
+    if not isinstance(text_value, str) or not 1 <= len(text_value.strip()) <= 500:
+        raise HTTPException(422, "پیام باید بین ۱ تا ۵۰۰ نویسه باشد")
+    conversation = None
+    ownership = None
+    if payload.get("conversation_id"):
+        try:
+            claims = jwt.decode(payload["conversation_id"], JWT_SECRET, algorithms=["HS256"], audience="assistant-conversation", issuer=JWT_ISSUER, options={"require":["exp","sub","conversation_id"]})
+            conversation = str(uuid.UUID(claims["conversation_id"]))
+            if claims["sub"] not in {owner, "guest"}: raise ValueError("owner")
+        except (jwt.PyJWTError, ValueError, TypeError, KeyError):
+            raise HTTPException(403, "این گفت‌وگو در دسترس این حساب نیست؛ گفت‌وگوی تازه‌ای شروع کنید")
+        ownership = db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id == public_identity.tenant_id, operational_models.IdempotencyKey.scope == "assistant.conversation.owner", operational_models.IdempotencyKey.key == conversation).with_for_update())
+        if ownership is None or ownership.request_hash not in {_secure_hash(owner), _secure_hash("guest")}:
+            raise HTTPException(403, "این گفت‌وگو در دسترس این حساب نیست")
+        if ownership.request_hash != _secure_hash("guest") and claims["sub"] == "guest":
+            raise HTTPException(403, "برای ادامهٔ گفت‌وگو به حساب قبلی وارد شوید")
+    corr = str(uuid.uuid4())
     headers = {"X-Correlation-ID": corr}
-    if authorization:
-        headers["Authorization"] = authorization
+    if authorization: headers["Authorization"] = authorization
+    upstream = {"conversation_id": conversation, "text": text_value.strip(), "public": user is None, "tenant_ref": tenant_slug}
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
-            resp = await client.post(f"{_ASSISTANT_SERVICE_URL}/v1/conversation/message", json=payload, headers=headers)
+            resp = await client.post(f"{_ASSISTANT_SERVICE_URL}/v1/conversation/message", json=upstream, headers=headers)
     except httpx.HTTPError:
-        raise HTTPException(status_code=503, detail={"code": "ASSISTANT_SERVICE_UNAVAILABLE", "correlation_id": corr})
+        raise HTTPException(503, "دستیار فعلاً پاسخ نمی‌دهد؛ دوباره تلاش کنید یا از پشتیبانی کمک بگیرید")
+    if resp.status_code != 200:
+        raise HTTPException(503 if resp.status_code >= 500 else 422, "پاسخ دستیار دریافت نشد؛ پیام را بررسی و دوباره تلاش کنید")
     try:
         content = resp.json()
-    except Exception:
-        content = {"detail": resp.text[:500]}
-    return JSONResponse(status_code=resp.status_code, content=content)
+        returned_id = str(uuid.UUID(content["conversation_id"]))
+        if conversation and returned_id != conversation: raise ValueError("conversation changed")
+    except (ValueError, TypeError, KeyError):
+        raise HTTPException(502, "پاسخ دستیار معتبر نیست")
+    if ownership is None:
+        # Anonymous scope uses the dedicated public catalog tenant, never a private fallback.
+        ownership = operational_models.IdempotencyKey(tenant_id=public_identity.tenant_id, scope="assistant.conversation.owner", key=returned_id, request_hash=_secure_hash(owner), response_json="{}")
+        db.add(ownership)
+    elif user and ownership.request_hash == _secure_hash("guest"):
+        ownership.request_hash = _secure_hash(owner)
+    now = datetime.now(timezone.utc)
+    content["conversation_id"] = jwt.encode({"iss":JWT_ISSUER,"aud":"assistant-conversation","sub":owner,"conversation_id":returned_id,"iat":now,"exp":now+timedelta(days=7)}, JWT_SECRET, algorithm="HS256")
+    db.commit()
+    return JSONResponse(content=content, headers={"Cache-Control":"no-store"})
 
 
 @app.get("/search/recent")
@@ -3432,7 +3459,10 @@ def create_support_case(data: SupportCaseIn, user: User = Depends(current_user),
     prior = db.scalar(select(operational_models.SupportCase).where(operational_models.SupportCase.tenant_id == user.tenant_id, operational_models.SupportCase.command_id == idempotency_key))
     if prior:
         if prior.user_id != user.id or prior.reservation_id != data.reservation_id or prior.trip_id != data.trip_id or prior.subject != data.subject.strip(): raise HTTPException(status_code=409, detail="کلید تکرار برای پرونده دیگری استفاده شده است")
-        messages = db.scalars(select(operational_models.SupportThreadMessage).where(operational_models.SupportThreadMessage.tenant_id == user.tenant_id, operational_models.SupportThreadMessage.case_id == prior.id).order_by(operational_models.SupportThreadMessage.created_at)).all(); return _case_output(prior, messages)
+        messages = db.scalars(select(operational_models.SupportThreadMessage).where(operational_models.SupportThreadMessage.tenant_id == user.tenant_id, operational_models.SupportThreadMessage.case_id == prior.id).order_by(operational_models.SupportThreadMessage.created_at)).all()
+        if not messages or messages[0].body != data.body.strip() or prior.priority != data.priority or prior.case_type != data.case_type or prior.severity != data.severity:
+            raise HTTPException(409, "محتوای درخواست با پروندهٔ قبلی یکسان نیست؛ درخواست را بررسی کنید")
+        return _case_output(prior, messages)
     sla_minutes = {"CRITICAL": 240, "HIGH": 1440, "MEDIUM": 4320, "LOW": 10080}[data.severity]
     now = datetime.now(timezone.utc)
     row = operational_models.SupportCase(tenant_id=user.tenant_id, user_id=user.id, reservation_id=data.reservation_id, trip_id=data.trip_id, subject=data.subject.strip(), priority=data.priority, case_type=data.case_type, severity=data.severity, sla_due_at=now + timedelta(minutes=sla_minutes), audit_trail_json=json.dumps([{"event": "opened", "actor_id": user.id, "at": now.isoformat()}]), command_id=idempotency_key)

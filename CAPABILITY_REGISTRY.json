@@ -170,11 +170,11 @@
       "evidence": "docs/recovery/2026-09-27-implementation-evidence.json"
     },
     "ai_travel_assistant": {
-      "status": "NOT_STARTED",
-      "reason": "0 backend routes matching assistant; /assistant returns HTTP 200 but renders a Persian 404/not-found marker in the HTML",
-      "blocker": null,
-      "last_verified_at": "2026-08-24",
-      "evidence": "backend route grep; curl http://95.38.184.209/assistant"
+      "status": "READY_BLOCKED_EXTERNAL",
+      "reason": "Existing deterministic assistant/search/commerce services connected; owner-bound conversations, verified tenant search, approval/idempotent hold and real checkout handoff passed isolated desktop/mobile E2E. No LLM or financial-action promises.",
+      "blocker": "Real sellable supplier inventory and live OTP/payment prerequisites only; internal acceptance PASS.",
+      "last_verified_at": "2026-09-28T14:48:12.926504+00:00",
+      "evidence": "docs/recovery/2026-09-28-independent-closure.json"
     },
     "maps_places": {
       "status": "READY_BLOCKED_EXTERNAL",
