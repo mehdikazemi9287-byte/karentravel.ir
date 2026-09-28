@@ -1,0 +1,10 @@
+{
+  "commit": "72536d619907e77fdd3d1d6b7821dfcbb1c1c294",
+  "image": "sha256:513d5edd2436f76dd878b723380532d60bf330b0ff7b4f5460976b6549200c60",
+  "rollback": [
+    "karenseir-api-1-pre-inquiry-72536d6",
+    "karenseir-worker-1-pre-inquiry-72536d6"
+  ],
+  "migration": false,
+  "health": true
+}

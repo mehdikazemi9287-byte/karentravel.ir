@@ -1,0 +1,16 @@
+{
+  "pass": true,
+  "qa": false,
+  "checks": [
+    {
+      "width": 1440,
+      "loginContext": true,
+      "publicSubmission": false
+    },
+    {
+      "width": 390,
+      "loginContext": true,
+      "publicSubmission": false
+    }
+  ]
+}

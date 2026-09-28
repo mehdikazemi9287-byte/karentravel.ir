@@ -1,3 +1,8 @@
+## Current autonomous visible-product checkpoint — 2026-09-28
+Source HEAD: 72536d6 (plus pending documentation evidence only). Public frontend: 7258e1f / sha256:02afc993b963; API/worker: 72536d6 / sha256:513d5edd2436; search: 32f2a68 / sha256:a0b0f86c7fa0. These are intentional per-component releases; frontend unchanged by backend-only follow-up. DB migration remains 20260928_34. Rollbacks: frontend pre-visible-slice5d-final, API/worker pre-inquiry-72536d6; all earlier backups preserved. Source user file backend/debug_voucher.py remains untracked and excluded.
+Completed slices: home, flight, stay, tour/rail, restaurant, pool, attraction, event/venue inquiry. Public anonymous and isolated authenticated QA evidence: docs/recovery/2026-09-28-visible-marketplace.md and evidence/visible-slice*. Supplier/OTP/payment live sale NOT proven. No real SMS/payment/credit operations. Latest support inquiry contract+retry tests 2 PASS; event booking and inquiry→BackOffice reply→customer browser PASS at 1440/390. Four external dependencies unchanged.
+Next exact action: customer account support cards have no case navigation and raw statuses. Complete scoped case detail and customer reply on existing tables, targeted QA + release. Do not repeat deployment forensics or prior suites. Historical checkpoints below are retained; they are not current deployment truth.
+
 # KarenSeir Checkpoint
 
 

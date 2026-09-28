@@ -1,0 +1,24 @@
+{
+  "pass": true,
+  "qa": true,
+  "checks": [
+    {
+      "width": 1440,
+      "productContext": true,
+      "databaseCase": true,
+      "replaySameId": true,
+      "opsReplyVisible": true,
+      "noReservation": true,
+      "pageErrors": 0
+    },
+    {
+      "width": 390,
+      "productContext": true,
+      "databaseCase": true,
+      "replaySameId": false,
+      "opsReplyVisible": true,
+      "noReservation": true,
+      "pageErrors": 0
+    }
+  ]
+}

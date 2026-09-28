@@ -134,3 +134,5 @@ Explicit remaining gaps: supplier media/gallery contract and host UI editing, co
 
 - Slice 5c deployed df44f9e: attraction dated discovery and API-supplied age/entry conditions; isolated booking and public anonymous 1440/390 PASS. Pool shared form regression PASS. No claim of live availability.
 - Next: venue inquiry modes show contact-only despite existing general support-case API. Connect human inquiry with honest non-reservation status and durable retry; no new financial policy or migration.
+
+- Slice 5d published: event entry and prebooking human inquiry; actual QA support cases/replies, replay ownership and public login handoff verified. This is human inquiry, not supplier RFQ/hold/confirmed booking. Customer support card navigation remains an internal gap.

@@ -239,6 +239,13 @@
       "blocker": "Production migration approval needed for this increment; remaining internal implementation gaps are not external blockers.",
       "last_verified_at": "2026-09-28",
       "evidence": "docs/recovery/2026-09-28-enterprise-source-checkpoint.md"
+    },
+    "visible_leisure_journeys": {
+      "status": "PARTIAL",
+      "reason": "Restaurant/pool/attraction/event discovery and scoped detail-to-booking QA verified; public anonymous criteria/login/recovery verified. Supplier inventory, OTP and live payment not proven. Human inquiry is a support case, not confirmed booking.",
+      "blocker": "Real supplier inventory, OTP and payment external; customer support case navigation remains internal.",
+      "last_verified_at": "2026-09-28",
+      "evidence": "docs/recovery/2026-09-28-visible-marketplace.md; docs/recovery/evidence/visible-slice5d"
     }
   }
 }
