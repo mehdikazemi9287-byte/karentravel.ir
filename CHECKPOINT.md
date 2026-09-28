@@ -1,3 +1,6 @@
+## Latest runtime checkpoint — Slice 9 / 2026-09-28
+Web b901e02/facb9dc89b6e; API/worker e295c0c/a4e0c852533c; search32f2a68/schema34 unchanged. QA/provider-clock and public login/back1440/390 PASS. Rollback pre-visible-slice9-times retained. Next exact action: durable Ops human reply + customer storage-failure guard. No real SMS/payment/migration.
+
 ## Latest runtime checkpoint — Slice 8 / 2026-09-28
 Web/API/worker e295c0c; images b79c77046942 / a4e0c852533c. Search 32f2a68, schema34 unchanged. QA notification journey and public login 1440/390 PASS; rollback pre-visible-slice8-final / pre-notification-e295c0c retained. Next: readable supplied transport times and scoped offer login styling. No SMS/payment/migration. Older checkpoints below superseded.
 

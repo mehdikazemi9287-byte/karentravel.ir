@@ -145,3 +145,5 @@ Explicit remaining gaps: supplier media/gallery contract and host UI editing, co
 - Next: human support response → in-app notification → case deep link. Existing outbox record alone does not prove an inbox notification. External channels must remain untouched.
 
 - Slice 8: support reply in-app notice + read persistence + case deep link released; QA desktop/mobile PASS, public login PASS. No external delivery. Human reply endpoint retry idempotency remains internal.
+
+- Slice 9: supplied transport times, offer login back context and latest50 notification wording released. QA/public scoped browser PASS. Next internal gap: durable Ops reply; customer reply storage must fail closed.

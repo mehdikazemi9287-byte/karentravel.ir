@@ -1,0 +1,9 @@
+{
+  "slice": "slice9-times",
+  "image": "sha256:facb9dc89b6e020242e524ee8f64d2d5e35e920a9a40e683ab37b1f4182baf3d",
+  "fingerprint": "b901e0265edcafe9891335d4e7eeff8d008ac51a",
+  "public_product_marker": true,
+  "rollback": "karenseir-frontend-1-pre-visible-slice9-times",
+  "api_unchanged": true,
+  "migration": false
+}

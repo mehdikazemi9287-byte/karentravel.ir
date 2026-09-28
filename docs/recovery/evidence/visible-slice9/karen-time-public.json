@@ -1,0 +1,24 @@
+{
+  "pass": true,
+  "qa": false,
+  "checks": [
+    {
+      "width": 1440,
+      "loginContext": true,
+      "backLinkClicked": true,
+      "providerClockPreserved": false,
+      "notificationLimitDisclosure": false,
+      "pageErrors": 0,
+      "productionMutation": false
+    },
+    {
+      "width": 390,
+      "loginContext": true,
+      "backLinkClicked": true,
+      "providerClockPreserved": false,
+      "notificationLimitDisclosure": false,
+      "pageErrors": 0,
+      "productionMutation": false
+    }
+  ]
+}
