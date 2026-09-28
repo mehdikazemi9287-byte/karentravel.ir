@@ -2664,6 +2664,9 @@ def orchestrate_booking(data: OrchestrationBookingIn, user: User = Depends(curre
         stored = json.loads(prior.response_json)
         if stored.get("price_check_id") != data.price_check_id:
             raise HTTPException(status_code=409, detail="کلید تکرار برای درخواست دیگری استفاده شده است")
+        owner = db.scalar(select(operational_models.PriceCheck.user_id).where(operational_models.PriceCheck.id == data.price_check_id, operational_models.PriceCheck.tenant_id == user.tenant_id))
+        if owner != user.id:
+            raise HTTPException(status_code=404, detail="درخواست رزرو در دسترس نیست")
         return stored
     check = db.scalar(select(operational_models.PriceCheck).where(operational_models.PriceCheck.id == data.price_check_id, operational_models.PriceCheck.tenant_id == user.tenant_id, operational_models.PriceCheck.user_id == user.id).with_for_update())
     now = datetime.now(timezone.utc)
@@ -2914,7 +2917,8 @@ def experience_product_detail(product_id: str, date: Optional[str] = None, user:
             day = datetime.fromisoformat(date).date()
         except ValueError:
             raise HTTPException(422, "تاریخ معتبر نیست")
-        query = query.where(func.date(operational_models.LeisureSession.starts_at) == day)
+        start = datetime.combine(day, datetime.min.time(), tzinfo=timezone(timedelta(hours=3, minutes=30))).astimezone(timezone.utc)
+        query = query.where(operational_models.LeisureSession.starts_at >= start, operational_models.LeisureSession.starts_at < start + timedelta(days=1))
     sessions = db.scalars(query.order_by(operational_models.LeisureSession.starts_at)).all()
     ticket_types = db.scalars(select(operational_models.LeisureTicketType).where(operational_models.LeisureTicketType.tenant_id == user.tenant_id, operational_models.LeisureTicketType.experience_product_id == product.id, operational_models.LeisureTicketType.active.is_(True))).all()
     return {"place": _leisure_place_output(place) if place else None, "product": _leisure_product_output(product), "sessions": [_leisure_session_output(s) for s in sessions], "ticket_types": [_leisure_ticket_type_output(t) for t in ticket_types]}

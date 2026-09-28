@@ -1,5 +1,6 @@
-import { Suspense } from 'react';
-import { Shell } from '../page';
-import { UnifiedSearchView } from '../../components/operational/UnifiedSearchView';
+import {Suspense} from 'react';
+import {JourneyShell} from '../../components/journey/JourneyShell';
+import {UnifiedSearchView} from '../../components/operational/UnifiedSearchView';
+import {DiningSearch} from '../../components/marketplace/DiningSearch';
 export const metadata={title:'رستوران و کافه | کارن‌سیر'};
-export default function RestaurantsPage(){return <Shell><div className="ref-container" style={{paddingTop:24}}><h1>رستوران و کافه</h1><p>رزرو میز و مشاهده رستوران و کافه‌های معتبر هر مقصد.</p></div><Suspense fallback={null}><UnifiedSearchView defaultVertical="restaurant"/></Suspense></Shell>}
+export default function Page(){return <JourneyShell><main className="journey-main dining-marketplace"><span className="eyebrow">غذا و همراهی در مقصد</span><h1>رستوران و برنامه‌های پذیرایی</h1><p>خدمات ثبت‌شده و زمان‌های پذیرش مقصد را بررسی کن. جزئیات برنامه، شرایط ورود و مبلغ هر انتخاب پیش از رزرو نمایش داده می‌شوند.</p><Suspense fallback={<p role="status">آماده‌سازی جست‌وجو…</p>}><DiningSearch/><UnifiedSearchView embedded defaultVertical="restaurant"/></Suspense></main></JourneyShell>}

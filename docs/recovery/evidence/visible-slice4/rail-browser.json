@@ -1,0 +1,25 @@
+{
+  "pass": true,
+  "checks": [
+    {
+      "width": 1440,
+      "search": true,
+      "railFacts": true,
+      "detail": true,
+      "twoSeatsRecheck": true,
+      "checkoutTravellers": true,
+      "pageErrors": 0,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "search": true,
+      "railFacts": true,
+      "detail": true,
+      "twoSeatsRecheck": true,
+      "checkoutTravellers": true,
+      "pageErrors": 0,
+      "overflow": false
+    }
+  ]
+}

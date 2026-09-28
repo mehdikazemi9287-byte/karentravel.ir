@@ -1,0 +1,10 @@
+{
+  "commit": "b70db19d7b374d7c1241140d292b2903cf7045cf",
+  "image": "sha256:b3b755f9a9085d6dfa1abbebdfb89732c2c3f4ff359c0756d65e3fc1d9bc1c03",
+  "rollback": [
+    "karenseir-api-1-pre-tour-b70db19",
+    "karenseir-worker-1-pre-tour-b70db19"
+  ],
+  "migration": false,
+  "health": true
+}

@@ -1,0 +1,35 @@
+{
+  "pass": true,
+  "checks": [
+    {
+      "width": 1440,
+      "qa": true,
+      "correctVertical": true,
+      "dateFilter": true,
+      "sessionHandoff": true,
+      "loginDeepLink": true,
+      "quantityRefresh": true,
+      "bookingReplay": true,
+      "checkoutTravellers": true,
+      "pageErrors": 0,
+      "overflow": false,
+      "consoleErrors": [
+        "Failed to load resource: net::ERR_FAILED"
+      ]
+    },
+    {
+      "width": 390,
+      "qa": true,
+      "correctVertical": true,
+      "dateFilter": true,
+      "sessionHandoff": true,
+      "loginDeepLink": true,
+      "quantityRefresh": true,
+      "bookingReplay": false,
+      "checkoutTravellers": true,
+      "pageErrors": 0,
+      "overflow": false,
+      "consoleErrors": []
+    }
+  ]
+}

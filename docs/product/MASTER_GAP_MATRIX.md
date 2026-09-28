@@ -119,3 +119,9 @@ Accommodation | category → login → detail → quote → checkout | dates and
 Mobile search | filters | horizontally clipped controls replaced by wrapping grid | all filters visible without horizontal discovery | implemented | unchanged | unchanged | approved identity | build + targeted flight recovery regression pending | none | P0 | verify new grid
 
 Explicit remaining gaps: supplier media/gallery contract and host UI editing, complete advanced flight fare/party contract, multi-city fulfillment, wider tour/leisure/trip journeys. These are not declared complete or external solely because they remain unreviewed.
+
+## Published deltas through Slice 4
+- Slice 2 flight: public empty recovery verified; real booking still supplier/OTP/payment gated. QA facts/recheck/checkout passed.
+- Slice 3 stay: hotel entry and catalog context deployed 3f0a33a; public and isolated QA verification recorded. Gallery/host metadata contract remains open, not falsely external.
+- Slice 4 tour/rail: deployed b70db19; scoped date/capacity/deadline filter and durable tour retry command; browser evidence in recovery/visible-slice4. No claim of live supplier issuance.
+- Next P0: leisure search edit service options omit current restaurant category; product login loses deep link; result-selected session not carried to PDP. Restaurant copy promises table reservation while current supported product is a scheduled admission/package. Fix truthful workflow and continuity before additional vertical expansion.

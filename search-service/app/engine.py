@@ -149,9 +149,14 @@ def assemble(req, pools: dict[str, list[dict]], provider_meta: list[dict], elaps
                 attrs=row["attributes"]
                 if req.origin and normalize_text(req.origin)!=normalize_text(str(attrs.get("origin",""))):continue
                 if (req.filters or {}).get("depart") and str(attrs.get("departure_time",""))[:10]!=(req.filters or {})["depart"]:continue
-            if vertical in {"event_hall","pool_sport","attraction"} and (row.get("attributes") or {}).get("leisure_product_id"):
+            if vertical in {"restaurant","event_hall","pool_sport","attraction"} and (row.get("attributes") or {}).get("leisure_product_id"):
                 selected=(req.filters or {}).get("depart")
-                if selected and str(row["attributes"].get("session_starts_at",""))[:10]!=selected:continue
+                if selected:
+                    try:
+                        day = aware(datetime.fromisoformat(str(row["attributes"].get("session_starts_at", "")))).astimezone(timezone(timedelta(hours=3, minutes=30))).date().isoformat()
+                    except (ValueError, TypeError):
+                        continue
+                    if day != selected: continue
             if vertical=="handicraft":
                 attrs=row.get("attributes") or {}
                 if attrs.get("delivery_mode")!="pickup" or not all(isinstance(attrs.get(k),str) and attrs[k].strip() for k in ("city","sku","artisan_name","craft_origin","material","pickup_address","pickup_hours","authenticity_terms","care_instructions")):continue

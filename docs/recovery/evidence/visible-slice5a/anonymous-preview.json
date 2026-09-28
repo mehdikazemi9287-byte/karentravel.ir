@@ -1,0 +1,33 @@
+{
+  "pass": true,
+  "checks": [
+    {
+      "width": 1440,
+      "qa": false,
+      "correctVertical": true,
+      "dateFilter": true,
+      "sessionHandoff": false,
+      "loginDeepLink": false,
+      "quantityRefresh": false,
+      "bookingReplay": false,
+      "checkoutTravellers": false,
+      "pageErrors": 0,
+      "overflow": false,
+      "consoleErrors": []
+    },
+    {
+      "width": 390,
+      "qa": false,
+      "correctVertical": true,
+      "dateFilter": true,
+      "sessionHandoff": false,
+      "loginDeepLink": false,
+      "quantityRefresh": false,
+      "bookingReplay": false,
+      "checkoutTravellers": false,
+      "pageErrors": 0,
+      "overflow": false,
+      "consoleErrors": []
+    }
+  ]
+}
