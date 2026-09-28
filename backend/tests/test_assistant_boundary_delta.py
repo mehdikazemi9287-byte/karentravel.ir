@@ -31,3 +31,16 @@ def test_guest_claim_revokes_old_capability_and_invalid_auth_never_forwards(clie
     claim=client.post('/assistant/message',headers=auth(user),json={'text':'ادامه','conversation_id':guest});assert claim.status_code==200 and claim.headers['cache-control']=='no-store'
     assert client.post('/assistant/message',json={'text':'ادامه','conversation_id':guest}).status_code==403
     n=len(upstream);assert client.post('/assistant/message',headers={'Authorization':'Bearer invalid'},json={'text':'سلام'}).status_code==401;assert len(upstream)==n
+
+
+def test_guest_claim_survives_upstream_timeout_without_exposing_private_state(client,upstream,monkeypatch):
+    guest=client.post('/assistant/message',json={'text':'سلام'}).json()['conversation_id'];user=login(client,'employee@aftab.test')
+    original=httpx.AsyncClient.post
+    async def fail(*args,**kwargs):raise httpx.ReadTimeout('isolated timeout')
+    monkeypatch.setattr(httpx.AsyncClient,'post',fail)
+    assert client.post('/assistant/message',headers=auth(user),json={'text':'ادامه','conversation_id':guest}).status_code==503
+    assert client.post('/assistant/message',json={'text':'ادامه','conversation_id':guest}).status_code==403
+    other=login(client,'supplier@aftab.test')
+    assert client.post('/assistant/message',headers=auth(other),json={'text':'ادامه','conversation_id':guest}).status_code==403
+    monkeypatch.setattr(httpx.AsyncClient,'post',original)
+    assert client.post('/assistant/message',headers=auth(user),json={'text':'ادامه','conversation_id':guest}).status_code==200

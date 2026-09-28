@@ -2347,8 +2347,14 @@ async def assistant_message_gateway(payload: dict = Body(...), authorization: Op
         ownership = db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id == public_identity.tenant_id, operational_models.IdempotencyKey.scope == "assistant.conversation.owner", operational_models.IdempotencyKey.key == conversation).with_for_update())
         if ownership is None or ownership.request_hash not in {_secure_hash(owner), _secure_hash("guest")}:
             raise HTTPException(403, "این گفت‌وگو در دسترس این حساب نیست")
-        if ownership.request_hash != _secure_hash("guest") and claims["sub"] == "guest":
-            raise HTTPException(403, "برای ادامهٔ گفت‌وگو به حساب قبلی وارد شوید")
+        if user and ownership.request_hash == _secure_hash("guest"):
+            # Claim before any private upstream work: a timeout must not leave private state guest-readable.
+            catalog_tenant_id = public_identity.tenant_id
+            ownership_id = ownership.id
+            ownership.request_hash = _secure_hash(owner)
+            db.commit()
+            set_tenant_context(db, catalog_tenant_id)
+            ownership = db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.id == ownership_id, operational_models.IdempotencyKey.tenant_id == catalog_tenant_id).with_for_update())
     corr = str(uuid.uuid4())
     headers = {"X-Correlation-ID": corr}
     if authorization: headers["Authorization"] = authorization
