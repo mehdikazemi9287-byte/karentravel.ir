@@ -1,0 +1,9 @@
+{
+  "slice": "slice11-rental",
+  "image": "sha256:0a0fb7ccfba71f7fde18b40b124967942b7477c350a3cab79dbc598d6a2fbe1c",
+  "fingerprint": "30ee29677da2b7699310c6873ed0160eaf2a039e",
+  "public_product_marker": true,
+  "rollback": "karenseir-frontend-1-pre-visible-slice11-rental",
+  "api_unchanged": true,
+  "migration": false
+}

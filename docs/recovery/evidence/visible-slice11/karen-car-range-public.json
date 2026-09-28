@@ -1,0 +1,27 @@
+{
+  "pass": true,
+  "checks": [
+    {
+      "width": 1440,
+      "entryReversedBlocked": true,
+      "directInvalidNoResults": true,
+      "returnPreservedOnOneWay": true,
+      "refresh": true,
+      "editRecovery": true,
+      "pageErrors": 0,
+      "overflow": false,
+      "bookingMutation": false
+    },
+    {
+      "width": 390,
+      "entryReversedBlocked": true,
+      "directInvalidNoResults": true,
+      "returnPreservedOnOneWay": true,
+      "refresh": true,
+      "editRecovery": true,
+      "pageErrors": 0,
+      "overflow": false,
+      "bookingMutation": false
+    }
+  ]
+}

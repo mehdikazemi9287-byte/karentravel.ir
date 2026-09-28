@@ -149,3 +149,5 @@ Explicit remaining gaps: supplier media/gallery contract and host UI editing, co
 - Slice 9: supplied transport times, offer login back context and latest50 notification wording released. QA/public scoped browser PASS. Next internal gap: durable Ops reply; customer reply storage must fail closed.
 
 - Slice 10: Ops human reply durable keyed retry/audit and customer storage fail-closed released. QA 1440/390 PASS, public login PASS. No live SMS or payment; older API clients without Idempotency-Key retain previous behavior.
+
+- Slice 11: rental date range validation and return-date continuity released; preview/public1440/390 PASS. Next internal candidate: saved-search criteria omit date/party in persisted payload; verify replay before fixing.

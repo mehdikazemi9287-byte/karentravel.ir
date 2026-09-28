@@ -1,3 +1,6 @@
+## Latest runtime checkpoint — Slice 11 / 2026-09-28
+Web30ee296 /0a0fb7ccfba7; API+workerec49978 /67365993f67b; search32f2a68 /a0b0f86c7fa0; schema34 unchanged. Rental validation/return continuity preview+public1440/390 PASS. Rollback pre-visible-slice11-rental and prior API pre-ops-reply-ec49978 retained. User debug_voucher.py untouched. No migration, real financial/SMS operation. Next exact action: verify saved-search date/party/filter replay using isolated QA, then fix missing persisted criteria. Cumulative scope is not complete.
+
 ## Latest runtime checkpoint — Slice 10 / 2026-09-28
 Web/API/worker ec49978; images d189371d6db1 /67365993f67b. Search32f2a68/schema34 unchanged. QA reply response-loss/replay/storage1440/390 and public BackOffice login PASS. Rollbacks pre-visible-slice10-reply/pre-ops-reply-ec49978 retained. No new migration or real SMS/payment. Next exact action: public car-rental date validation and criteria continuity. Entire cumulative product remains incomplete; see master gap matrix.
 
