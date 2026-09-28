@@ -17,10 +17,10 @@ type Trip = { id: string; title: string; origin?: string | null; destination: st
 type Notice = { id: string; title: string; message: string; deep_link?: string | null; status: string };
 type Offer = { id: string; title: string; amount: number; currency: string; service_type: string; provider_status: string };
 
-export function ErrorState({ status, message }: { status: number; message: string }) {
+export function ErrorState({ status, message, redirect }: { status: number; message: string; redirect?: string }) {
   const pathname=usePathname();
   const title = status === 401 ? 'برای مشاهده این بخش وارد شوید.' : status === 403 ? 'نقش شما به این بخش دسترسی ندارد.' : status === 503 ? 'سرویس موردنیاز فعلاً در دسترس نیست.' : 'دریافت اطلاعات انجام نشد.';
-  return <section role="alert" className="mx-auto my-8 max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 text-center"><h2 className="text-xl font-black">{title}</h2><p className="mt-2 text-sm text-slate-600">{status===401 ? "سفرها و اطلاعات شخصی شما پس از ورود نمایش داده می‌شوند." : "می‌توانید دوباره تلاش کنید یا از پشتیبانی راهنمایی بگیرید."}</p>{status===401&&<Link className="button primary mt-4" href={`/login?redirect=${encodeURIComponent(pathname)}`}>ورود به حساب</Link>}<ContactOptions/></section>;
+  return <section role="alert" className="mx-auto my-8 max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 text-center"><h2 className="text-xl font-black">{title}</h2><p className="mt-2 text-sm text-slate-600">{status===401 ? "سفرها و اطلاعات شخصی شما پس از ورود نمایش داده می‌شوند." : "می‌توانید دوباره تلاش کنید یا از پشتیبانی راهنمایی بگیرید."}</p>{status===401&&<Link className="button primary mt-4" href={`/login?redirect=${encodeURIComponent(redirect||pathname)}`}>ورود به حساب</Link>}<ContactOptions/></section>;
 }
 
 function LoadingState() { return <div role="status" className="mx-auto my-8 max-w-3xl animate-pulse rounded-2xl bg-white p-8 text-center text-slate-600">در حال دریافت اطلاعات معتبر…</div>; }

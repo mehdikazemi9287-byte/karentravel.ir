@@ -57,3 +57,5 @@ Public frontend with isolated authenticated API shows support cards with zero li
 
 ### Slice 7 — generic booking continuity
 Public frontend + scoped QA confirms generic result links omit criteria and detail back link drops search. Generic detail command exists only in memory; inline results generate a fresh command each attempt. Share one account-scoped pending booking record across result/detail surfaces, retaining exact price-check/command through ambiguous response and refresh. Disable new recheck/booking until resolved; backend consumed-price-check/ownership gates unchanged. Carry search context in generic detail links and back link; persist explicitly chosen unit count, without inferring infant fares or group pricing. Normalize scoped leisure/support desktop heading size found during visual review. Frontend-only; no real transaction.
+
+Slice 7 follow-up: preserve explicit offer query through ErrorState login redirect (other callers keep existing default). Invalidated price checks remove previous confirmation/continue action and require recheck. If sessionStorage cannot retain the pending command, do not send a booking mutation; display recovery guidance.
