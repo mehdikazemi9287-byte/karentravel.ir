@@ -10,6 +10,8 @@ def test_customer_case_reply_is_owned_atomic_and_replayable(client):
     c=client.post('/support/cases',headers=h,json={'subject':'Mock reply test','body':'isolated inquiry','case_type':'SERVICE_INQUIRY'}).json();path='/support/cases/'+c['id']
     assert client.get(path,headers=auth(other)).status_code==404
     assert client.get(path,headers=auth(ops)).status_code==200
+    assert client.get(path,headers=auth(ops)).json()['can_reply'] is False
+    assert client.get(path,headers=auth(user)).json()['can_reply'] is True
     reply=path+'/customer-replies';payload={'body':'Mock additional details'}
     assert client.post(reply,headers={**auth(other),'Idempotency-Key':str(uuid.uuid4())},json=payload).status_code==404
     first=client.post(reply,headers=h,json=payload);assert first.status_code==201,first.text

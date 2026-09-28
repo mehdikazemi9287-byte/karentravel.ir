@@ -3571,7 +3571,7 @@ def support_case_detail(case_id: str, user: User = Depends(current_user), db: Se
     row = db.scalar(query)
     if row is None: raise HTTPException(404, "پرونده در این حساب وجود ندارد")
     messages = db.scalars(select(operational_models.SupportThreadMessage).where(operational_models.SupportThreadMessage.tenant_id == user.tenant_id, operational_models.SupportThreadMessage.case_id == row.id).order_by(operational_models.SupportThreadMessage.created_at)).all()
-    return _case_output(row, messages)
+    return {**_case_output(row, messages), "can_reply": row.user_id == user.id and row.status not in ("closed", "resolved")}
 
 
 @app.post("/support/cases/{case_id}/customer-replies", status_code=status.HTTP_201_CREATED)
