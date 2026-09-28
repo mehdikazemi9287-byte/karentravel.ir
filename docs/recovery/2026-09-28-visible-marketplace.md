@@ -46,3 +46,5 @@ Observed search cache backend is Redis: date-filter semantic change also needs c
 
 ### Slice 5a public closure
 Public browser 1440/390 PASS: restaurant category/date/party preserved, honest empty state and login link, no page/console errors or horizontal overflow. Desktop/mobile screenshots visually reviewed. Authenticated session/replay/checkout evidence is isolated QA, not a live sale. Frontend/API remain 9cc109b; search-only cache namespace fix 32f2a68 (v3-leisure-day) is healthy. No Redis deletion. Rollback containers pre-visible-slice5a-final, pre-dining-9cc109b and pre-cache-32f2a68 retained. Evidence: evidence/visible-slice5a/public.json and cache-deploy.json.
+
+Slice 5b QA correction: previous restaurant click-path PASS remains valid, but its visual acceptance missed transparent result CTA. Browser computed white text + rgba(0,0,0,0) proved missing --coral in shared search scope. Fix included before pool release; prior visual PASS must not be interpreted as proving CTA contrast. No production mutation yet for Slice 5b.

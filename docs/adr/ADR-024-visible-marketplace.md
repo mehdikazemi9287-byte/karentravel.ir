@@ -41,3 +41,5 @@ Production search uses Redis (observed). Bump cache-key namespace with the chang
 
 ### Slice 5b — pool/sport entry
 Replace the legacy pool entry with destination/date/party discovery, embedded results and honest session-condition guidance. Reuse existing leisure detail, recheck and booking APIs; no new inventory model or schema. Validate URL party counts to safe form defaults. Isolated QA pool sessions and public anonymous desktop/mobile verification; retain frontend rollback.
+
+Slice 5b visual gate found a shared search CSS defect: `.result-price .button.primary` consumes --coral, but JourneyShell does not define that legacy token. Browser computed background was transparent with white text (clickability tests alone missed it). Define navy/teal search tokens locally, preserving approved layout. Regression asserts computed opaque teal CTA plus desktop/mobile screenshot review; also covers restaurant and flight result contexts without new booking transactions.
