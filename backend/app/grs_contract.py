@@ -23,6 +23,7 @@ Design decisions this module encodes (see GRS_AUDIT_REPORT for full reasoning):
 from __future__ import annotations
 
 import os
+from .config import read_secret
 from dataclasses import dataclass, field
 from typing import Any, Mapping, Optional
 
@@ -74,11 +75,11 @@ class GRSConfig:
         return cls(
             mode=os.getenv("GRS_MODE", "disabled"),
             base_url=os.getenv("GRS_BASE_URL", ""),
-            client_token=os.getenv("GRS_CLIENT_TOKEN", ""),
+            client_token=read_secret("GRS_CLIENT_TOKEN"),
             connect_timeout_seconds=float(os.getenv("GRS_CONNECT_TIMEOUT_SECONDS", "5")),
             read_timeout_seconds=float(os.getenv("GRS_READ_TIMEOUT_SECONDS", "15")),
             money_unit=os.getenv("GRS_MONEY_UNIT", ""),
-            webhook_secret=os.getenv("GRS_WEBHOOK_SECRET", ""),
+            webhook_secret=read_secret("GRS_WEBHOOK_SECRET"),
         )
 
     def validate(self) -> None:

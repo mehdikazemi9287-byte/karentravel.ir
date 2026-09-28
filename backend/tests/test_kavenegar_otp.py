@@ -102,13 +102,13 @@ class _FakeHttpResponse:
 
 
 def test_successful_kavenegar_send(monkeypatch):
-    body = {"return": {"status": 200, "message": "تایید شد"}, "entries": [{"messageid": "msg-1"}]}
+    body = {"return": {"status": 200, "message": "تایید شد"}, "entries": [{"messageid": 123456789}]}
     monkeypatch.setattr("app.kavenegar_adapter.urlopen", lambda *a, **k: _FakeHttpResponse(body))
     provider = KavenegarSmsOtpProvider(api_key="test-key", template="karenseir-otp")
     result = provider.execute("send_otp", {"destination_reference": "09123456789", "code": "123456"}, _ctx())
     assert result["ok"] is True
     assert result["status"] == "sent"
-    assert result["reference"] == "msg-1"
+    assert result["reference"] == "123456789"
 
 
 def test_provider_timeout(monkeypatch):

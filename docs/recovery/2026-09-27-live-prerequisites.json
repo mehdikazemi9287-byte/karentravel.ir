@@ -1,0 +1,34 @@
+{
+  "date": "2026-09-27",
+  "head": "6494d96a822212d3b06c27cdf13579b651cda3da",
+  "domain": "karentravel.ir",
+  "dns": {
+    "resolver_1_1_1_1_A": "SERVFAIL; No Reachable Authority; 46.245.76.14 REFUSED",
+    "resolver_8_8_8_8_NS": "SERVFAIL; authoritative REFUSED",
+    "api_domain_A": "SERVFAIL"
+  },
+  "https_tcp_errno": 111,
+  "otp_account_probe": {
+    "get_http": 404,
+    "post_http": 404,
+    "provider_status": 404,
+    "message": "متد نامشخص است",
+    "sms_sent": false,
+    "delivery_verified": false
+  },
+  "missing_live_settings": [
+    "GRS_CLIENT_TOKEN",
+    "GRS_BASE_URL",
+    "GRS_MONEY_UNIT",
+    "ZARINPAL_MERCHANT_ID",
+    "ZARINPAL_CALLBACK_URL"
+  ],
+  "flight_transport": "disabled; live transport not implemented in provider selection",
+  "public_home_http": 200,
+  "api_ready_http": 200,
+  "source_matches_release_delta": true,
+  "isolated_rollback_boot_http": 200,
+  "runtime_changed": false,
+  "financial_transaction": false,
+  "prior_suites_repeated": false
+}

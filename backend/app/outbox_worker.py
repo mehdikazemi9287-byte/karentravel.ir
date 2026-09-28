@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import json
 import time
 import threading
@@ -107,7 +108,9 @@ def start_status_server() -> ThreadingHTTPServer:
 
 def sweep_reservations_once() -> int:
     with SessionLocal() as db:
-        expired = sweep_expired_reservations(db)
+        cutoff = os.getenv("RESERVATION_REAPER_NOT_BEFORE", "").strip()
+        not_before = datetime.fromisoformat(cutoff) if cutoff else None
+        expired = sweep_expired_reservations(db, not_before=not_before)
     if expired:
         logger.info("reservation_reaper", extra={"expired": len(expired)})
     return len(expired)

@@ -1,6 +1,7 @@
 import { expect, test, type APIRequestContext } from '@playwright/test';
 
-const api = 'http://127.0.0.1:8100';
+const api = process.env.E2E_API_URL || 'http://127.0.0.1:8100';
+const artifactDir = process.env.E2E_ARTIFACT_DIR || 'artifacts';
 
 async function login(request: APIRequestContext, email: string) {
   const response = await request.post(`${api}/auth/dev-login`, { data: { email } });
@@ -16,6 +17,7 @@ async function uiLogin(page: import('@playwright/test').Page, email: string) {
 }
 
 async function createOperationalFixture(request: APIRequestContext, suffix = 'manage', serviceType = 'hotel') {
+  suffix += '-' + Date.now();
   const supplier = await login(request, 'supplier@aftab.test');
   const onboarded = await request.post(`${api}/supplier/onboarding`, { headers: { Authorization: `Bearer ${supplier.access_token}`, 'Idempotency-Key': `e2e-supplier-${suffix}` }, data: { supplier_type: 'hotel', display_name: `تأمین‌کننده E2E ${suffix}` } });
   expect(onboarded.status()).toBe(201);
@@ -69,14 +71,14 @@ test('professional Homepage search interactions reach usable results', async ({ 
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto('/');
   await expect(page.getByRole('region', { name: 'جست‌وجوی یکپارچه سفر' })).not.toContainText(/Mock|نتایج Mock|نمایش آزمایشی/);
-  await page.screenshot({ path: 'artifacts/search-ux/homepage-search-desktop.png', fullPage: true, animations: 'disabled' });
-  await page.getByRole('tab', { name: 'ویلا' }).click();
-  await expect(page.getByRole('tabpanel', { name: 'فرم جست‌وجوی ویلا' })).toBeVisible();
-  await page.screenshot({ path: 'artifacts/search-ux/villa-search-state.png', animations: 'disabled' });
+  await page.screenshot({ path: `${artifactDir}/search-ux/homepage-search-desktop.png`, fullPage: true, animations: 'disabled' });
+  await page.getByRole('tab', { name: 'اقامتگاه' }).click();
+  await expect(page.getByRole('tabpanel', { name: 'فرم جست‌وجوی اقامتگاه' })).toBeVisible();
+  await page.screenshot({ path: `${artifactDir}/search-ux/villa-search-state.png`, animations: 'disabled' });
   await page.getByRole('tab', { name: 'تور' }).click();
   await expect(page.getByRole('tabpanel', { name: 'فرم جست‌وجوی تور' })).toBeVisible();
-  await page.screenshot({ path: 'artifacts/search-ux/tour-search-state.png', animations: 'disabled' });
-  await page.getByRole('tab', { name: 'پرواز' }).click();
+  await page.screenshot({ path: `${artifactDir}/search-ux/tour-search-state.png`, animations: 'disabled' });
+  await page.getByRole('tab', { name: 'پرواز', exact: true }).click();
 
   const origin = page.getByRole('combobox', { name: 'مبدأ' });
   await origin.fill('تهرون');
@@ -84,26 +86,27 @@ test('professional Homepage search interactions reach usable results', async ({ 
   await origin.fill('تهر');
   await expect(page.getByRole('listbox', { name: 'پیشنهادهای مبدأ' })).toBeVisible();
   await expect(page.getByRole('option', { name: /فرودگاه مهرآباد/ })).toBeVisible();
-  await page.screenshot({ path: 'artifacts/search-ux/homepage-autocomplete.png', animations: 'disabled' });
+  await page.screenshot({ path: `${artifactDir}/search-ux/homepage-autocomplete.png`, animations: 'disabled' });
   await page.getByRole('option', { name: /^تهران/ }).click();
   const destination = page.getByRole('combobox', { name: 'مقصد' });
   await destination.fill('شیرا');
   await expect(page.getByRole('listbox', { name: 'پیشنهادهای مقصد' })).toBeVisible();
   await expect(page.getByRole('option', { name: /^شیراز/ })).toBeVisible();
-  await page.screenshot({ path: 'artifacts/search-ux/destination-autocomplete.png', animations: 'disabled' });
+  await page.screenshot({ path: `${artifactDir}/search-ux/destination-autocomplete.png`, animations: 'disabled' });
   await page.getByRole('option', { name: /^شیراز/ }).click();
 
   await page.getByRole('button', { name: /تاریخ سفر/ }).click();
-  await page.getByLabel('تاریخ رفت').fill('2026-09-21');
-  await page.getByLabel('تاریخ برگشت').fill('2026-09-24');
+  await page.getByRole('button', { name: 'ماه بعد', exact: true }).click();
+  await page.locator('.jalali-grid button:enabled').nth(0).click();
+  await page.locator('.jalali-grid button:enabled').nth(2).click();
   await page.getByRole('button', { name: '±۱ روز' }).click();
-  await page.screenshot({ path: 'artifacts/search-ux/date-picker.png', animations: 'disabled' });
+  await page.screenshot({ path: `${artifactDir}/search-ux/date-picker.png`, animations: 'disabled' });
   await page.getByRole('button', { name: 'تأیید تاریخ' }).click();
 
   await page.getByRole('button', { name: /مسافران/ }).click();
   await page.getByRole('button', { name: 'افزایش بزرگسال' }).click();
   await expect(page.getByText('۳', { exact: true })).toBeVisible();
-  await page.screenshot({ path: 'artifacts/search-ux/passenger-picker.png', animations: 'disabled' });
+  await page.screenshot({ path: `${artifactDir}/search-ux/passenger-picker.png`, animations: 'disabled' });
   await page.getByRole('button', { name: 'تأیید مسافران' }).click();
   await page.getByRole('button', { name: 'یک‌طرفه' }).click();
   await expect(page.getByRole('button', { name: 'یک‌طرفه' })).toHaveAttribute('aria-pressed', 'true');
@@ -112,12 +115,12 @@ test('professional Homepage search interactions reach usable results', async ({ 
   await expect(page).toHaveURL(/\/search\/results\?.*vertical=flight/);
   await expect(page.getByRole('heading', { name: /پرواز تهران شیراز/ }).first()).toBeVisible();
   const resultsUrl = page.url();
-  await page.screenshot({ path: 'artifacts/search-ux/search-results-desktop.png', fullPage: true, animations: 'disabled' });
+  await page.screenshot({ path: `${artifactDir}/search-ux/search-results-desktop.png`, fullPage: true, animations: 'disabled' });
 
   await page.getByLabel('مرتب‌سازی نتایج').selectOption('lowest_price');
   await page.getByRole('checkbox', { name: 'فقط قابل استرداد' }).check();
   await page.getByRole('button', { name: 'اعمال فیلتر' }).click();
-  await page.screenshot({ path: 'artifacts/search-ux/filter-panel.png', fullPage: true, animations: 'disabled' });
+  await page.screenshot({ path: `${artifactDir}/search-ux/filter-panel.png`, fullPage: true, animations: 'disabled' });
   await page.getByRole('button', { name: '♡ علاقه‌مندی' }).first().click();
   await expect(page.getByRole('status')).toContainText('در علاقه‌مندی ذخیره شد');
   await page.getByRole('button', { name: '+ افزودن به سفر' }).first().click();
@@ -130,14 +133,14 @@ test('professional Homepage search interactions reach usable results', async ({ 
   await expect(page).toHaveURL(/\/compare\?type=flight&offers=/);
   await expect(page.getByRole('heading', { name: 'تفاوت‌ها را یک‌جا ببینید.' })).toBeVisible();
   await expect(page.locator('.compare-wrap article')).toHaveCount(2);
-  await page.screenshot({ path: 'artifacts/search-ux/comparison.png', fullPage: true, animations: 'disabled' });
+  await page.screenshot({ path: `${artifactDir}/search-ux/comparison.png`, fullPage: true, animations: 'disabled' });
   await page.goto(resultsUrl);
   await expect(page.getByRole('heading', { name: /پرواز تهران شیراز/ }).first()).toBeVisible();
   await page.getByRole('button', { name: 'ویرایش جست‌وجو' }).click();
   await expect(page.getByLabel('ویرایش مقصد')).toBeVisible();
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.screenshot({ path: 'artifacts/search-ux/search-results-mobile.png', fullPage: true, animations: 'disabled' });
+  await page.screenshot({ path: `${artifactDir}/search-ux/search-results-mobile.png`, fullPage: true, animations: 'disabled' });
 });
 
 test('travel commerce rental, tour, visa and cruise states are usable and honest', async ({ page, request }) => {
@@ -162,15 +165,15 @@ test('travel commerce rental, tour, visa and cruise states are usable and honest
   expect(visaApplicationResponse.status()).toBe(201); const visaApplicationId = (await visaApplicationResponse.json()).id;
 
   await uiLogin(page, 'employee@aftab.test');
-  await page.goto('/villas'); await expect(page.getByText('ویلای ساحلی تست مرورگر')).toBeVisible(); await page.screenshot({ path: 'artifacts/travel-commerce/villa-results.png', fullPage: true, animations: 'disabled' });
-  await page.getByText('ویلای ساحلی تست مرورگر').click(); await expect(page.getByText('واحد دربست')).toBeVisible(); await page.screenshot({ path: 'artifacts/travel-commerce/villa-detail.png', fullPage: true, animations: 'disabled' });
-  await page.goto('/tours'); await expect(page.getByText('تور فرهنگی شیراز E2E')).toBeVisible(); await page.screenshot({ path: 'artifacts/travel-commerce/tour-results.png', fullPage: true, animations: 'disabled' });
-  await page.getByText('تور فرهنگی شیراز E2E').click(); await expect(page.getByRole('button', { name: 'بررسی ظرفیت و قیمت' })).toBeVisible(); await page.screenshot({ path: 'artifacts/travel-commerce/tour-detail.png', fullPage: true, animations: 'disabled' });
-  await page.getByRole('button', { name: 'بررسی ظرفیت و قیمت' }).click(); await expect(page.getByRole('status')).toContainText('واچر فقط پس از پرداخت'); await page.screenshot({ path: 'artifacts/travel-commerce/tour-booking.png', fullPage: true, animations: 'disabled' });
-  await page.goto(`/visa/${visaId}`); await expect(page.getByText('صدور، eligibility یا زمان پردازش را تضمین نمی‌کند')).toBeVisible(); await page.screenshot({ path: 'artifacts/travel-commerce/visa-detail.png', fullPage: true, animations: 'disabled' });
-  await page.getByRole('button', { name: 'شروع درخواست و بررسی انسانی' }).click(); await expect(page.getByRole('status')).toContainText('صدور تضمین نمی‌شود'); await page.screenshot({ path: 'artifacts/travel-commerce/visa-application.png', fullPage: true, animations: 'disabled' });
-  await page.goto(`/visa/applications/${visaApplicationId}`); await expect(page.getByRole('heading', { name: 'پرونده ویزا' })).toBeVisible(); await page.getByLabel('نام متقاضی ویزا').fill('مسافر مرورگر'); await page.getByLabel('شماره گذرنامه').fill('P123456789'); await page.getByRole('button', { name: 'افزودن متقاضی' }).click(); await page.getByRole('button', { name: 'ثبت بارگذاری گذرنامه' }).click(); await expect(page.getByText(/passport ·/)).toContainText('uploaded'); await page.screenshot({ path: 'artifacts/travel-commerce/visa-timeline.png', fullPage: true, animations: 'disabled' });
-  await page.goto('/cruises'); await expect(page.getByText('رزرو زنده کروز: مسدود تا اتصال Provider قراردادی')).toBeVisible(); await page.screenshot({ path: 'artifacts/travel-commerce/cruise-state.png', fullPage: true, animations: 'disabled' });
+  await page.goto('/villas'); await expect(page.locator(`a[href="/villas/${propertyId}"]`)).toBeVisible(); await page.screenshot({ path: `${artifactDir}/travel-commerce/villa-results.png`, fullPage: true, animations: 'disabled' });
+  await page.locator(`a[href="/villas/${propertyId}"]`).click(); await expect(page.getByText('واحد دربست')).toBeVisible(); await page.screenshot({ path: `${artifactDir}/travel-commerce/villa-detail.png`, fullPage: true, animations: 'disabled' });
+  await page.goto('/tours'); await expect(page.locator(`a[href="/tours/${tourId}"]`)).toBeVisible(); await page.screenshot({ path: `${artifactDir}/travel-commerce/tour-results.png`, fullPage: true, animations: 'disabled' });
+  await page.locator(`a[href="/tours/${tourId}"]`).click(); await expect(page.getByRole('button', { name: 'بررسی ظرفیت و قیمت' })).toBeVisible(); await page.screenshot({ path: `${artifactDir}/travel-commerce/tour-detail.png`, fullPage: true, animations: 'disabled' });
+  await page.getByRole('button', { name: 'بررسی ظرفیت و قیمت' }).click(); await expect(page.getByRole('status')).toContainText('واچر فقط پس از پرداخت'); await page.screenshot({ path: `${artifactDir}/travel-commerce/tour-booking.png`, fullPage: true, animations: 'disabled' });
+  await page.goto(`/visa/${visaId}`); await expect(page.getByText('صدور، شرایط احراز یا زمان پردازش را تضمین نمی‌کند')).toBeVisible(); await page.screenshot({ path: `${artifactDir}/travel-commerce/visa-detail.png`, fullPage: true, animations: 'disabled' });
+  await page.getByRole('button', { name: 'شروع درخواست و بررسی انسانی' }).click(); await expect(page.getByRole('status')).toContainText('صدور تضمین نمی‌شود'); await page.screenshot({ path: `${artifactDir}/travel-commerce/visa-application.png`, fullPage: true, animations: 'disabled' });
+  await page.goto(`/visa/applications/${visaApplicationId}`); await expect(page.getByRole('heading', { name: 'پرونده ویزا' })).toBeVisible(); await page.getByLabel('نام متقاضی ویزا').fill('مسافر مرورگر'); await page.getByLabel('شماره گذرنامه').fill('P123456789'); await page.getByRole('button', { name: 'افزودن متقاضی' }).click(); await page.getByRole('button', { name: 'ثبت بارگذاری گذرنامه' }).click(); await expect(page.getByText(/passport ·/)).toContainText('uploaded'); await page.screenshot({ path: `${artifactDir}/travel-commerce/visa-timeline.png`, fullPage: true, animations: 'disabled' });
+  await page.goto('/cruises'); await expect(page.getByText('رزرو زنده کروز: مسدود تا اتصال Provider قراردادی')).toBeVisible(); await page.screenshot({ path: `${artifactDir}/travel-commerce/cruise-state.png`, fullPage: true, animations: 'disabled' });
 });
 
 test('approval and tenant dashboard API flow', async ({ request }) => {
@@ -203,7 +206,7 @@ test('connected trips and manage-booking use the authenticated tenant API', asyn
   await uiLogin(page, 'employee@aftab.test');
   await page.getByRole('link', { name: 'سفرهای من' }).click();
   await expect(page.getByText('رزروهای من')).toBeVisible();
-  const manage = page.locator(`a[href="/manage-booking/${reservationId}"]`);
+  const manage = page.locator(`a[href="/manage-booking/${reservationId}"]`).filter({ hasText: 'مدیریت رزرو' });
   await expect(manage).toBeVisible();
   await manage.click();
   await expect(page.getByRole('heading', { name: /مدیریت KS-/ })).toBeVisible();
@@ -250,7 +253,7 @@ test('organization and role panels enforce frontend RBAC states', async ({ page 
 });
 
 test('supplier, agency and backoffice panels read only authorized APIs', async ({ page }) => {
-  for (const [email, link, heading] of [['supplier@aftab.test','تأمین‌کننده','پنل تأمین‌کننده'],['agency@aftab.test','آژانس','پنل آژانس'],['backoffice@aftab.test','عملیات','BackOffice / Admin']] as const) {
+  for (const [email, link, heading] of [['supplier@aftab.test','تأمین‌کننده','پنل تأمین‌کننده'],['agency@aftab.test','آژانس','شبکه زیرآژانس، ساختار کمیسیون و عملیات'],['backoffice@aftab.test','عملیات','BackOffice / Admin']] as const) {
     await uiLogin(page, email);
     await page.getByRole('link', { name: link, exact: true }).click();
     await expect(page.getByRole('heading', { name: heading })).toBeVisible();
@@ -277,6 +280,8 @@ test('customer account connects profile, travellers, wallet, payment and notific
   }
   const gateway = page.getByRole('button', { name: 'اتصال به درگاه' }).first();
   await expect(gateway).toBeVisible();
+  // Mock the unavailable gateway; never initiate a financial transaction.
+  await page.route('**/payments/*/initiate', route => route.fulfill({ status: 503, json: { detail: 'درگاه پرداخت معتبر در دسترس نیست' } }));
   await gateway.click();
   await expect(page.getByRole('status')).toContainText('درگاه پرداخت معتبر در دسترس نیست');
   const smsPreference = page.getByRole('switch', { name: /تغییرات سفر · sms/ });
@@ -294,8 +299,8 @@ test('supplier, agency and backoffice mutations remain role-scoped', async ({ pa
   await expect(page.getByRole('status')).toContainText('تأمین‌کننده ثبت شد');
   await uiLogin(page, 'agency@aftab.test');
   await page.getByRole('link', { name: 'آژانس', exact: true }).click();
-  await page.getByLabel('نام زیرآژانس').fill('زیرآژانس UI');
-  await page.getByRole('button', { name: 'ثبت' }).click();
+  await page.getByPlaceholder('نام زیرآژانس جدید').fill('زیرآژانس UI');
+  await page.getByRole('button', { name: 'ثبت زیرآژانس', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('زیرآژانس ثبت شد');
   await uiLogin(page, 'backoffice@aftab.test');
   await page.getByRole('link', { name: 'عملیات', exact: true }).click();
@@ -309,12 +314,12 @@ test('support case thread keeps customer and human-agent messages distinct', asy
   const reservationId = await createOperationalFixture(request, 'support-thread');
   await uiLogin(page, 'employee@aftab.test');
   await page.getByRole('link', { name: 'سفرهای من' }).click();
-  await page.locator(`a[href="/manage-booking/${reservationId}"]`).click();
+  await page.locator(`a[href="/manage-booking/${reservationId}"]`).filter({ hasText: 'مدیریت رزرو' }).click();
   await page.getByRole('link', { name: 'گفت‌وگو با پشتیبانی انسانی' }).click();
   await page.getByLabel('شرح درخواست').fill('واچر این رزرو نیاز به بررسی انسانی دارد');
   await page.getByRole('button', { name: 'ایجاد پرونده انسانی' }).click();
   await expect(page.getByRole('status')).toContainText('پرونده پشتیبانی انسانی ثبت شد');
-  await expect(page.getByText('مشتری', { exact: true })).toBeVisible();
+  await expect(page.locator('article').filter({ hasText: 'واچر این رزرو نیاز به بررسی انسانی دارد' }).last().getByText('مشتری', { exact: true })).toBeVisible();
 
   await uiLogin(page, 'backoffice@aftab.test');
   await page.getByRole('link', { name: 'عملیات', exact: true }).click();
@@ -356,10 +361,11 @@ test('saved travel, itinerary, destination and map fallback use tenant APIs', as
   await page.getByLabel('عنوان برنامه سفر').fill(`برنامه E2E ${suffix}`);
   await page.getByRole('button', { name: 'ساخت برنامه' }).click();
   await expect(page.getByRole('status')).toContainText('قابل‌ویرایش ساخته شد');
-  await page.getByRole('button', { name: 'افزودن آیتم' }).click();
-  await expect(page.getByText('نیازمند بررسی زنده موجودی')).toBeVisible();
+  const itineraryCard = page.locator('section').filter({ hasText: `برنامه E2E ${suffix}` }).last();
+  await itineraryCard.getByRole('button', { name: 'افزودن آیتم' }).click();
+  await expect(itineraryCard.getByText('نیازمند بررسی زنده موجودی')).toBeVisible();
   await page.goto('/destinations');
-  await page.getByRole('link', { name: /شیراز E2E/ }).click();
+  await page.locator(`a[href="/destinations/shiraz-e2e-${suffix}"]`).click();
   await expect(page.getByText('Offer تازه‌ای برای این مقصد موجود نیست')).toBeVisible();
   await page.goto('/map');
   await expect(page.getByText('در نبود credential نقشه')).toBeVisible();

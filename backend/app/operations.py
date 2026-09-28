@@ -1089,7 +1089,7 @@ def transition_reservation(db: Session, reservation: Reservation, target: str, a
 RESERVATION_HOLD_MINUTES = 30
 
 
-def sweep_expired_reservations(db: Session, *, now: Optional[datetime] = None, hold_minutes: int = RESERVATION_HOLD_MINUTES) -> list[str]:
+def sweep_expired_reservations(db: Session, *, now: Optional[datetime] = None, hold_minutes: int = RESERVATION_HOLD_MINUTES, not_before: Optional[datetime] = None) -> list[str]:
     """Expire reservations abandoned before payment/confirmation and release the
     Offer inventory they held. Intended to run from the worker process (BYPASSRLS
     role) on a periodic cadence, scanning across tenants like the outbox worker
@@ -1100,6 +1100,14 @@ def sweep_expired_reservations(db: Session, *, now: Optional[datetime] = None, h
     stale = db.scalars(select(Reservation).where(Reservation.status.in_(["reserved", "awaiting_payment"]), Reservation.updated_at < cutoff).with_for_update(skip_locked=True)).all()
     expired_ids: list[str] = []
     for reservation in stale:
+        # A worker rollout must not silently expire legacy holds. Payment whose
+        # result is ambiguous also needs reconciliation, never local expiry.
+        if not_before is not None and (reservation.created_at.replace(tzinfo=timezone.utc) if reservation.created_at.tzinfo is None else reservation.created_at) < (not_before.replace(tzinfo=timezone.utc) if not_before.tzinfo is None else not_before):
+            continue
+        payment = db.scalar(select(PaymentIntent.id).where(PaymentIntent.reservation_id == reservation.id, PaymentIntent.tenant_id == reservation.tenant_id, PaymentIntent.status.in_(["initiated", "authorized", "captured", "refunded"])).limit(1))
+        funding = db.scalar(select(FinancialLedgerEntry.id).where(FinancialLedgerEntry.reservation_id == reservation.id, FinancialLedgerEntry.tenant_id == reservation.tenant_id, FinancialLedgerEntry.entry_type.in_(["reserve", "capture"])).limit(1))
+        if payment or funding or reservation.provider_reference:
+            continue
         transition_reservation(db, reservation, "expired", actor_id=None, command_id=f"reaper:{reservation.id}")
         if reservation.status != "expired":
             continue
@@ -1118,6 +1126,15 @@ def sweep_expired_reservations(db: Session, *, now: Optional[datetime] = None, h
                     leisure_session = db.scalar(select(LeisureSession).where(LeisureSession.id == leisure_session_id, LeisureSession.tenant_id == reservation.tenant_id).with_for_update())
                     if leisure_session is not None:
                         leisure_session.capacity_available += check.units
+        if reservation.service_type=="tour":
+            held=db.scalar(select(TourReservation).where(TourReservation.reservation_id==reservation.id,TourReservation.tenant_id==reservation.tenant_id,TourReservation.status=="held").with_for_update())
+            if held:
+                departure=db.scalar(select(TourDeparture).where(TourDeparture.id==held.departure_id,TourDeparture.tenant_id==reservation.tenant_id).with_for_update())
+                if departure:departure.remaining=min(departure.capacity,departure.remaining+held.travellers)
+                held.status="expired"
+        if reservation.service_type=="vacation_rental":
+            held=db.scalar(select(VacationReservation).where(VacationReservation.reservation_id==reservation.id,VacationReservation.tenant_id==reservation.tenant_id,VacationReservation.status=="held").with_for_update())
+            if held:held.status="expired"
         expired_ids.append(reservation.id)
     if expired_ids:
         db.commit()

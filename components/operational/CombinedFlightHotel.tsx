@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { ContactOptions } from '../customer/CustomerHelp';
 import { useAuth } from '../../lib/api/auth-context';
 import { ApiError, newId } from '../../lib/api/karenseir-client';
 
@@ -104,7 +105,7 @@ export function CombinedFlightHotel() {
     } finally { setBusy(false); }
   }
 
-  if (!session) return <div className="container" role="alert"><p className="rounded-2xl bg-rose-50 p-6 text-rose-700">برای مقایسه و رزرو بسته وارد شوید.</p></div>;
+  if (!session) return <div className="container" role="alert"><p className="rounded-2xl bg-rose-50 p-6 text-rose-700">رزرو آنلاین پرواز و هتل به‌صورت یک‌جا هنوز در دسترس نیست. برای راهنمایی انتخاب خدمات تماس بگیرید.</p><h1>پرواز و هتل</h1><Link className="button secondary" href="/services">انتخاب خدمات سفر</Link><ContactOptions/></div>;
 
   const toneClass = { info: 'bg-cyan-50 text-cyan-800', ok: 'bg-emerald-50 text-emerald-800', warn: 'bg-amber-50 text-amber-800', error: 'bg-rose-50 text-rose-700' };
   const legExpired = quote && (quote.legs.flight.expired || quote.legs.hotel.expired || quote.status === 'expired');

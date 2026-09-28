@@ -50,7 +50,7 @@ export function WhiteLabelConfig() {
     } catch (e) { setNotice(msgOf(e)); }
   }
 
-  if (!session) return <div className="container"><div className="page-hero"><span className="eyebrow">White Label</span><h1>پرتال اختصاصی سازمان</h1><p>برای مشاهده یا پیکربندی هویت برند، دامنه و خدمات مجاز، وارد شوید.</p></div></div>;
+  if (!session) return <div className="container"><div className="page-hero"><span className="eyebrow">White Label</span><h1>پرتال اختصاصی سازمان</h1><p>برای مشاهده یا پیکربندی هویت برند، دامنه و خدمات مجاز، وارد شوید.</p><a className="button primary" href="/login?redirect=/white-label">ورود سازمانی</a></div></div>;
   if (err) return <div className="container"><p role="alert" className="rounded-2xl bg-rose-50 p-6 text-rose-700">خطای {err.status}: {err.message}</p></div>;
 
   const services = form.enabled_services || [];

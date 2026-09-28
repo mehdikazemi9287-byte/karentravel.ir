@@ -1,19 +1,20 @@
 'use client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../lib/api/auth-context';
 import { ApiError, newId } from '../../lib/api/karenseir-client';
+import {ContactOptions} from '../customer/CustomerHelp';
 import { Shell } from '../../app/page';
 
 const money = (value: number) => `${value.toLocaleString('fa-IR')} ریال`;
-function failure(error: unknown) { return error instanceof ApiError ? `${error.status}: ${error.message}` : 'خطای پیش‌بینی‌نشده رخ داد.'; }
+function failure(error: unknown) { return error instanceof ApiError&&error.status===409?'قیمت، ظرفیت یا وضعیت این خدمت تغییر کرده است؛ دوباره بررسی کنید.':'دریافت یا ثبت درخواست انجام نشد؛ دوباره تلاش کنید یا با پشتیبانی تماس بگیرید.'; }
 const verticalLabels: Record<string, string> = { restaurant: 'رستوران و کافه', event_hall: 'رویداد و تالار', pool_sport: 'استخر و ورزش', attraction: 'اماکن گردشگری و تفریحی' };
 
 type TicketType = { id: string; code: string; label: string; price: number; currency: string; quota: number | null; active: boolean };
-type SessionRow = { id: string; starts_at: string; ends_at: string; capacity_available: number; status: string };
+type SessionRow = { id: string; starts_at: string; ends_at: string; capacity_available: number; status: string;restrictions?:{entry_rules?:string[]} };
 type Place = { id: string; name: string; city: string; address: string | null };
-type Product = { id: string; title: string; description: string; service_type: string; booking_mode: string };
+type Product = { id: string; title: string; description: string; service_type: string; booking_mode: string;restrictions?:{entry_rules?:string[]} };
 type Detail = { place: Place | null; product: Product; sessions: SessionRow[]; ticket_types: TicketType[] };
 type PriceCheckResult = { id: string; amount: number; currency: string; expires_at: string; ticket_breakdown: Array<{ code: string; label: string; unit_price: number; quantity: number; subtotal: number }> };
 
@@ -26,6 +27,7 @@ export function ExperienceProductView({ productId }: { productId: string }) {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [priceCheck, setPriceCheck] = useState<PriceCheckResult | null>(null);
   const [busy, setBusy] = useState(false);
+  const bookingKey=useRef(newId());
 
   useEffect(() => {
     if (!session) return;
@@ -42,15 +44,15 @@ export function ExperienceProductView({ productId }: { productId: string }) {
     setBusy(true); setNotice('');
     try {
       const result = await api.post<PriceCheckResult>(`/leisure-sessions/${sessionId}/price-check`, { selections, command_id: newId() });
-      setPriceCheck(result);
+      setPriceCheck(result);bookingKey.current=newId();
     } catch (error) { setNotice(failure(error)); } finally { setBusy(false); }
   }
 
   async function confirmReservation() {
-    if (!priceCheck) return;
+    if (!priceCheck||busy) return;
     setBusy(true); setNotice('');
     try {
-      const reservation = await api.post<{ id: string }>('/orchestration/bookings', { price_check_id: priceCheck.id, command_id: newId() });
+      const reservation = await api.post<{ id: string }>('/orchestration/bookings', { price_check_id: priceCheck.id, command_id: bookingKey.current });
       router.push(`/checkout/${reservation.id}`);
     } catch (error) { setNotice(failure(error)); } finally { setBusy(false); }
   }
@@ -60,12 +62,16 @@ export function ExperienceProductView({ productId }: { productId: string }) {
   if (!detail) return <Shell><div className="ref-container" style={{ paddingTop: 24 }}><p className="panel">{notice || 'این خدمت پیدا نشد.'}</p></div></Shell>;
 
   const { place, product, sessions, ticket_types: ticketTypes } = detail;
+  if(['DISCOVERY_ONLY','VENUE_INQUIRY'].includes(product.booking_mode))return <Shell><section className="container customer-page"><h1>{product.title}</h1><p>{product.description}</p><p>این خدمت با استعلام و هماهنگی مسئول رزرو ارائه می‌شود؛ قیمت و ظرفیت نهایی هنوز تأیید نشده است.</p><ContactOptions/></section></Shell>;
+  const entryRules=[product.restrictions?.entry_rules,sessions.find(s=>s.id===sessionId)?.restrictions?.entry_rules].flatMap(v=>Array.isArray(v)?v.filter(x=>typeof x==='string'):[]);
+  const wholeVenue=product.service_type==='event_hall'&&product.booking_mode==='FIXED_PACKAGE';
 
   return <Shell><div className="ref-container" style={{ paddingTop: 24, paddingBottom: 40 }}>
     <span className="eyebrow">{verticalLabels[product.service_type] ?? product.service_type}</span>
     <h1>{product.title}</h1>
     {place && <p>{place.name} · {place.city}{place.address ? ` · ${place.address}` : ''}</p>}
     {product.description && <p>{product.description}</p>}
+    {entryRules.length>0&&<section className="panel"><h2>شرایط پذیرش این انتخاب</h2>{entryRules.map((rule,i)=><p key={i}>{rule}</p>)}</section>}
     {notice && <p role="status" className="results-notice">{notice}</p>}
 
     <section className="panel" style={{ marginTop: 20 }}>
@@ -78,7 +84,7 @@ export function ExperienceProductView({ productId }: { productId: string }) {
     </section>
 
     <section className="panel" style={{ marginTop: 16 }}>
-      <h2>نوع بلیت</h2>
+      <h2>{wholeVenue?'رزرو کل تالار در بازهٔ انتخاب‌شده':'نوع بلیت'}</h2>
       {ticketTypes.length === 0 ? <p>بلیتی برای این خدمت تعریف نشده است.</p> : <div style={{ marginTop: 10 }}>
         {ticketTypes.map(ticketType => <div key={ticketType.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--line)' }}>
           <span><b>{ticketType.label}</b><small style={{ display: 'block', color: 'var(--muted)' }}>{money(ticketType.price)}</small></span>
@@ -93,10 +99,11 @@ export function ExperienceProductView({ productId }: { productId: string }) {
     </section>
 
     {priceCheck && <section className="panel" style={{ marginTop: 16 }}>
-      <h2>جمع‌بندی قیمت</h2>
+      <h2>{wholeVenue?'مبلغ کل رزرو تالار':'جمع‌بندی قیمت'}</h2>
       {priceCheck.ticket_breakdown.map(row => <p key={row.code}>{row.label} × {row.quantity.toLocaleString('fa-IR')} = {money(row.subtotal)}</p>)}
       <p><b>مبلغ نهایی: {money(priceCheck.amount)}</b></p>
       <button className="button primary" disabled={busy} onClick={() => void confirmReservation()}>تأیید و رزرو</button>
     </section>}
+    <ContactOptions/>
   </div></Shell>;
 }

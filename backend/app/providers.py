@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import Any, Mapping, Protocol
 from urllib.parse import parse_qsl, urlencode, urlparse, urlsplit, urlunsplit
 from urllib.request import Request, urlopen
+from .config import read_secret
 
 
 @dataclass(frozen=True)
@@ -241,7 +242,9 @@ return count
                     return self._failure("provider_rate_limited", context, retryable=True)
             except Exception:
                 return self._failure("provider_resilience_unavailable", context, retryable=True)
-        attempts = max(1, self.retry_policy.max_attempts)
+        read_operations = {"search", "verify", "health", "price_check", "check_price", "availability"}
+        safe_retry = operation in read_operations or operation.startswith(("get_", "list_", "search_"))
+        attempts = max(1, self.retry_policy.max_attempts) if safe_retry else 1
         for attempt in range(1, attempts + 1):
             try:
                 future = self._pool.submit(self.adapter.execute, operation, payload, context)
@@ -291,7 +294,7 @@ def validate_provider_modes(environment: str, demo_mode: bool, keys: tuple[str, 
 
 def configured_adapter(key: str) -> IntegrationAdapter:
     if key == "payment" and os.getenv("ZARINPAL_MODE", "disabled") != "disabled":
-        return ZarinPalAdapter(mode=os.getenv("ZARINPAL_MODE", "disabled"), merchant_id=os.getenv("ZARINPAL_MERCHANT_ID", ""), callback_url=os.getenv("ZARINPAL_CALLBACK_URL", ""))
+        return ZarinPalAdapter(mode=os.getenv("ZARINPAL_MODE", "disabled"), merchant_id=read_secret("ZARINPAL_MERCHANT_ID"), callback_url=os.getenv("ZARINPAL_CALLBACK_URL", ""))
     if key == "hotel" and os.getenv("GRS_MODE", "disabled") != "disabled":
         from .grs_contract import GRSConfig
         from .grs_adapter import GRSAdapter
@@ -299,7 +302,7 @@ def configured_adapter(key: str) -> IntegrationAdapter:
     if key == "otp" and os.getenv("KARENSEIR_SMS_PROVIDER", "") == "kavenegar":
         from .kavenegar_adapter import KavenegarSmsOtpProvider
         return KavenegarSmsOtpProvider(
-            api_key=os.getenv("KAVENEGAR_API_KEY", ""),
+            api_key=read_secret("KAVENEGAR_API_KEY"),
             template=os.getenv("KAVENEGAR_OTP_TEMPLATE", ""),
             sender=os.getenv("KAVENEGAR_SENDER", ""),
         )

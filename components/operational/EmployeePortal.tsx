@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { ErrorState } from './ConnectedViews';
 import { useAuth } from '../../lib/api/auth-context';
 import { ApiError } from '../../lib/api/karenseir-client';
 
@@ -41,7 +42,7 @@ export function EmployeePortal() {
     return () => { active = false; };
   }, [load, session]);
 
-  if (!session) return <div className="dashboard container"><div role="alert" className="rounded-2xl bg-rose-50 p-6 text-rose-700">نشست مرورگر موجود نیست.</div></div>;
+  if (!session) return <ErrorState status={401} message="برای ادامه وارد حساب شوید."/>;
   if (error) return <div className="dashboard container"><div role="alert" className="rounded-2xl bg-rose-50 p-6 text-rose-700">خطای {error.status}: {error.message}</div></div>;
   if (!data) return <div className="dashboard container"><div role="status" className="my-8 animate-pulse rounded-2xl bg-white p-8 text-center text-slate-600">در حال دریافت اطلاعات معتبر…</div></div>;
 

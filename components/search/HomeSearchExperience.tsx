@@ -1,5 +1,6 @@
 'use client';
 
+import { ContactOptions } from '../customer/CustomerHelp';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../../lib/api/auth-context';
@@ -210,7 +211,7 @@ export function HomeSearchExperience(){
   return <section ref={searchRef} className="fs" id="search" aria-label="جست‌وجوی یکپارچه سفر" onKeyDown={event=>{if(event.key==='Escape')setPopover(null)}}>
 
     <div className="fs-tabs" role="tablist" aria-label="نوع خدمت">{primaryServices.map((tab,index)=>tab.vertical==='more'?<div className="fs-more" key={tab.name}><button type="button" aria-expanded={moreOpen} onClick={()=>setMoreOpen(value=>!value)} className={moreOpen||moreServices.some(item=>item.vertical===service.vertical)?'is-active':''}><Icon name={tab.icon}/>{tab.name}</button>{moreOpen&&<div className="fs-more-menu" role="menu">{moreServices.map(item=>{const index=services.findIndex(x=>x.vertical===item.vertical);return <button type="button" role="menuitem" onClick={()=>changeService(index)} key={item.vertical}><Icon name={item.icon}/>{item.name}</button>})}</div>}</div>:<button type="button" role="tab" aria-selected={active===services.findIndex(item=>item.vertical===tab.vertical)} aria-controls="service-search-panel" onClick={()=>changeService(services.findIndex(item=>item.vertical===tab.vertical))} className={service.vertical===tab.vertical?'is-active':''} key={tab.name}><Icon name={tab.icon}/>{tab.name}</button>)}</div>
-    {service.vertical==='bus'||service.vertical==='tourist_transportation'||service.vertical==='travel_guide'?<div className="fs-box fs-unavailable" role="status"><b>{service.name}</b><p>این خدمت هنوز به جست‌وجوی عملیاتی متصل نشده است.</p></div>:service.vertical==='package'?<div className="fs-box fs-unavailable" role="status"><b>پرواز + هتل</b><p>زیرساخت ترکیبی پرواز و اقامت هنوز متصل نیست؛ نتیجه یا قیمت ترکیبی نمایش داده نمی‌شود.</p></div>:<form onSubmit={event=>{event.preventDefault();submit()}} className="fs-box" id="service-search-panel" role="tabpanel" aria-label={`فرم جست‌وجوی ${service.name}`}>
+    {service.vertical==='tourist_transportation'||service.vertical==='travel_guide'?<div className="fs-box fs-unavailable"><b>{service.name}</b><p>زمان، ظرفیت و شرایط عرضه‌های ثبت‌شده را در جست‌وجوی این خدمت بررسی کنید.</p><a className="button primary" href={service.vertical==='travel_guide'?'/travel-guides':'/tourist-transport'}>جست‌وجوی {service.name}</a></div>:service.vertical==='bus'?<div className="fs-box fs-unavailable" role="status"><b>{service.name}</b><p>استعلام آنلاین این خدمت هنوز در دسترس نیست. برای بررسی امکان ارائهٔ خدمت تماس بگیرید.</p><ContactOptions/></div>:service.vertical==='package'?<div className="fs-box fs-unavailable" role="status"><b>پرواز + هتل</b><p>رزرو یک‌جای پرواز و هتل هنوز در دسترس نیست. برای راهنمایی برنامه‌ریزی سفر تماس بگیرید.</p><ContactOptions/></div>:<form onSubmit={event=>{event.preventDefault();submit()}} className="fs-box" id="service-search-panel" role="tabpanel" aria-label={`فرم جست‌وجوی ${service.name}`}>
       {service.vertical==='flight'&&<div className="fs-seg" role="group" aria-label="نوع سفر">{([['round_trip','رفت‌وبرگشت'],['one_way','یک‌طرفه'],['multi_city','چندمسیره']] as const).map(([value,label])=><button type="button" aria-pressed={tripType===value} className={tripType===value?'is-active':''} onClick={()=>{if(value==='multi_city'){setTripType(value);router.push('/?vertical=flight&trip_type=multi_city&edit=1')}else setTripType(value)}} key={value}>{label}</button>)}</div>}
       <div className="fs-row">
         <div className={service.origin?'fs-places fs-places--swap':'fs-places'}>
@@ -247,7 +248,7 @@ export function HomeSearchExperience(){
       </div>
     </form>}
     {searchError&&<p className="fs-validation" role="alert">{searchError}</p>}
-    <div className="fs-tools"><span>قیمت و موجودی فقط از Provider معتبر</span><span>استعلام مجدد پیش از خرید</span><button type="button" className="nl-toggle" onClick={()=>setNlOpen(value=>!value)} aria-expanded={nlOpen}><Icon name="chat"/> با زبان خودت بگو</button></div>
+    <div className="fs-tools"><span>قیمت و موجودی نیازمند استعلام</span><span>استعلام مجدد پیش از خرید</span><button type="button" className="nl-toggle" onClick={()=>setNlOpen(value=>!value)} aria-expanded={nlOpen}><Icon name="chat"/> با زبان خودت بگو</button></div>
     {nlOpen&&<div className="nl-panel" aria-label="جست‌وجوی زبان طبیعی">
       <div className="nl-input-row">
         <textarea aria-label="سفرت را با جمله فارسی توصیف کن" placeholder="مثلاً: آخر شهریور برای دو نفر از تهران یه سفر چهار روزه به شیراز می‌خوام" value={nlText} onChange={event=>{setNlText(event.target.value);setNlIntent(null)}} rows={2}/>

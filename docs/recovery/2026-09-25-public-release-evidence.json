@@ -1,0 +1,182 @@
+{
+  "release": {
+    "status": "DEPLOYED_SMOKE_PASS",
+    "new_image": "sha256:afc42e7580e1b9b35190ee8f3e8f6a5aa5598938a79b8bb2947d652eff4d8554",
+    "rollback_container": "karenseir-frontend-pre-closure-20260925",
+    "rollback_image": "sha256:b2fab9f4f9c74c23ea012482b86ee9a30267eb40cb655d16e5bf8ce67fb80a1b",
+    "fingerprint": "6494d96a822212d3b06c27cdf13579b651cda3da-worktree-23748b1d4839",
+    "public_browser_checks": 8,
+    "financial_transaction": false
+  },
+  "meta": {
+    "source_head": "6494d96a822212d3b06c27cdf13579b651cda3da",
+    "worktree_delta_sha256": "23748b1d4839e9ddc55ab1835db6550a718badc511727cdc27a47072df828a47",
+    "application_files": {
+      "app/login/page.tsx": "5f20f9e45f3d2e2a7f035c449b577811e14f9f0f2b6bc1c01c5aa2aca0c0f237",
+      "components/operational/CustomerAccount.tsx": "408180cd013215476fcd5d47cc965fa71f1e84d8d1bde7fa0f76840afd432ffe",
+      "components/operational/EcosystemViews.tsx": "e3dfe0f035c97e2e6a25f0b2f00ea8557dc1167bf5ad13076ad1ba95d11e0c0c",
+      "components/operational/UnifiedSearchView.tsx": "dae62c8d9d2805687f52a23614576309d9cba3f9f5c0fe4ad836b3b724344311"
+    },
+    "git_commit_label": "6494d96a822212d3b06c27cdf13579b651cda3da-worktree-23748b1d4839",
+    "built_at": "2026-09-25T14:26:11.311923+00:00",
+    "site_url": "http://95.38.184.209",
+    "api_url": "http://95.38.184.209:8000",
+    "allow_http_preview": true,
+    "qa_evidence": "docs/recovery/2026-09-25-e2e-evidence.json"
+  },
+  "public_smoke": [
+    {
+      "viewportWidth": 1440,
+      "path": "/",
+      "status": 200,
+      "dir": "rtl",
+      "width": 1440,
+      "fonts": true,
+      "css": 2,
+      "headings": [
+        "سفر رازندگی کن"
+      ],
+      "textLength": 3903,
+      "excerpt": "ک\nکارن‌سیر\nاکوسیستم هوشمند سفر و رفاه\nخدمات\nسفرهای من\nاطراف من\nسازمانی\nپشتیبانی\nورود / ثبت‌نام\nایران را دوباره کشف کن\nسفر را\nزندگی کن\n\nهر مقصد، قصه‌ای تازه است؛",
+      "errors": [],
+      "api": []
+    },
+    {
+      "viewportWidth": 1440,
+      "path": "/register",
+      "status": 200,
+      "dir": "rtl",
+      "width": 1440,
+      "fonts": true,
+      "css": 2,
+      "headings": [
+        "ساخت حساب کاربری جدید."
+      ],
+      "textLength": 719,
+      "excerpt": "ک\nکارن‌سیر\nاکوسیستم هوشمند سفر و رفاه\nخانه\nخدمات سفر\nپیشنهادها\nتجربه مقصد\nسازمانی\nپشتیبانی سفر\nورود / ثبت‌نام\nثبت‌نام\nساخت حساب کاربری جدید.\n\nثبت‌نام Production",
+      "errors": [],
+      "api": []
+    },
+    {
+      "viewportWidth": 1440,
+      "path": "/login",
+      "status": 200,
+      "dir": "rtl",
+      "width": 1440,
+      "fonts": true,
+      "css": 2,
+      "headings": [
+        "با کد یک‌بارمصرف وارد شوید."
+      ],
+      "textLength": 689,
+      "excerpt": "ک\nکارن‌سیر\nاکوسیستم هوشمند سفر و رفاه\nخانه\nخدمات سفر\nپیشنهادها\nتجربه مقصد\nسازمانی\nپشتیبانی سفر\nورود / ثبت‌نام\nورود / ثبت‌نام\nبا کد یک‌بارمصرف وارد شوید.\n\nکد ورو",
+      "errors": [],
+      "api": []
+    },
+    {
+      "viewportWidth": 1440,
+      "path": "/search/results?vertical=flight&origin=تهران&destination=شیراز&adults=1&depart=2026-10-10&trip_type=one_way",
+      "status": 200,
+      "dir": "rtl",
+      "width": 1440,
+      "fonts": true,
+      "css": 2,
+      "headings": [
+        "پرواز از تهران به شیراز"
+      ],
+      "textLength": 743,
+      "excerpt": "عتبر\nپرواز از تهران به شیراز\n\n2026-10-10 · ۱ مسافر · اکونومی\n\nویرایش جست‌وجو\nاخیر\n↺\nشیراز\n\nبرای مشاهده قیمت نهایی، ذخیره و رزرو ، وارد شوید؛ نتایج زیر برای همه قابل مشاهده است.\n\nفیلترها\nپاک‌کردن\nحداکثر قیمت\nفقط قابل استرداد\nحداقل امتیاز\nهمه\n۷+\n۸+\n۹+\nشرکت هواپیمایی\nهمه\nتعداد توقف\nهمه\nبدون توقف\nحداکثر یک توقف\nاعمال فیلتر\n\nفیلتر قیمت، امتیاز، استرداد و تأیید فوری server-side است؛ جزئیات عمودی روی Offerهای برگشتی معتبر اعمال می‌شود.\n\n۰ از ۰ گزینه\nمرتب‌سازی\nپیشنهادی\nکمترین قیمت نهایی\nبهترین ارزش\nبالاترین امتیاز\nمنعطف‌ترین\nارزان‌ترین\nبهترین\nسریع‌ترین\n⌕\nنتیجه‌ای پیدا نشد\n\nProvider زنده در دسترس نیست؛ نتیجه ساختگی نمایش داده نمی‌شود.\n\nتاریخ‌های ±۱ روز را بررسی کنیدبرخی فیلترها را حذف کنیدحذف فیلترها",
+      "errors": [],
+      "api": [
+        {
+          "url": "http://95.38.184.209:8000/search/v3/public",
+          "status": 200
+        }
+      ]
+    },
+    {
+      "viewportWidth": 390,
+      "path": "/",
+      "status": 200,
+      "dir": "rtl",
+      "width": 390,
+      "fonts": true,
+      "css": 2,
+      "headings": [
+        "سفر رازندگی کن"
+      ],
+      "textLength": 3736,
+      "excerpt": "ک\nکارن‌سیر\nورود / ثبت‌نام\nایران را دوباره کشف کن\nسفر را\nزندگی کن\n\nهر مقصد، قصه‌ای تازه است؛ قصه‌ای که با کارن‌سیر از همین‌جا آغاز می‌شود.\n\nیزد\nشهر بادگیرها\nپروا",
+      "errors": [],
+      "api": []
+    },
+    {
+      "viewportWidth": 390,
+      "path": "/register",
+      "status": 200,
+      "dir": "rtl",
+      "width": 390,
+      "fonts": true,
+      "css": 2,
+      "headings": [
+        "ساخت حساب کاربری جدید."
+      ],
+      "textLength": 649,
+      "excerpt": "ک\nکارن‌سیر\nاکوسیستم هوشمند سفر و رفاه\nورود / ثبت‌نام\nثبت‌نام\nساخت حساب کاربری جدید.\n\nثبت‌نام Production فقط از طریق کد پیامکی معتبر انجام می‌شود؛ بدون سرویس پیا",
+      "errors": [],
+      "api": []
+    },
+    {
+      "viewportWidth": 390,
+      "path": "/login",
+      "status": 200,
+      "dir": "rtl",
+      "width": 390,
+      "fonts": true,
+      "css": 2,
+      "headings": [
+        "با کد یک‌بارمصرف وارد شوید."
+      ],
+      "textLength": 619,
+      "excerpt": "ک\nکارن‌سیر\nاکوسیستم هوشمند سفر و رفاه\nورود / ثبت‌نام\nورود / ثبت‌نام\nبا کد یک‌بارمصرف وارد شوید.\n\nکد ورود به شماره همراه شما ارسال می‌شود.\n\n ورود سازمانی\nشماره ه",
+      "errors": [],
+      "api": []
+    },
+    {
+      "viewportWidth": 390,
+      "path": "/search/results?vertical=flight&origin=تهران&destination=شیراز&adults=1&depart=2026-10-10&trip_type=one_way",
+      "status": 200,
+      "dir": "rtl",
+      "width": 390,
+      "fonts": true,
+      "css": 2,
+      "headings": [
+        "پرواز از تهران به شیراز"
+      ],
+      "textLength": 613,
+      "excerpt": "ک\nکارن‌سیر\n←\nنتایج جست‌وجو\nنتایج جست‌وجوی معتبر\nپرواز از تهران به شیراز\n\n2026-10-10 · ۱ مسافر · اکونومی\n\nویرایش جست‌وجو\nاخیر\n↺\nشیراز\n\nبرای مشاهده قیمت نهایی، ذخیره و رزرو ، وارد شوید؛ نتایج زیر برای همه قابل مشاهده است.\n\nحداکثر قیمت\nفقط قابل استرداد\nحداقل امتیاز\nهمه\n۷+\n۸+\n۹+\nشرکت هواپیمایی\nهمه\nتعداد توقف\nهمه\nبدون توقف\nحداکثر یک توقف\nاعمال فیلتر\n۰ از ۰ گزینه\nمرتب‌سازی\nپیشنهادی\nکمترین قیمت نهایی\nبهترین ارزش\nبالاترین امتیاز\nمنعطف‌ترین\nارزان‌ترین\nبهترین\nسریع‌ترین\n⌕\nنتیجه‌ای پیدا نشد\n\nProvider زنده در دسترس نیست؛ نتیجه ساختگی نمایش داده نمی‌شود.\n\nتاریخ‌های ±۱ روز را بررسی کنیدبرخی فیلترها را حذف کنیدحذف فیلترها",
+      "errors": [],
+      "api": [
+        {
+          "url": "http://95.38.184.209:8000/search/v3/public",
+          "status": 200
+        }
+      ]
+    }
+  ],
+  "provider_health": {
+    "otp": "configured_not_verified",
+    "hotel": "disabled/not_connected",
+    "flight": "disabled/not_connected",
+    "payment": "disabled/not_connected"
+  },
+  "https_tcp_443_errno": 111,
+  "active_nginx_server_name": "95.38.184.209",
+  "production_api_ready": {
+    "status": "ready",
+    "database": "ok",
+    "rate_limiter": "distributed",
+    "external_providers": "fail_closed"
+  },
+  "tests_42_and_25_repeated": false
+}

@@ -107,7 +107,7 @@ class OfferPoolProvider:
         return {"provider": self.key, "status": "available" if ok else "unavailable", "offer_count": 0}
 
     def fetch(self, vertical: str, req) -> list[dict]:
-        payload = {"service_type": vertical, "public": req.public}
+        payload = {"service_type": vertical, "public": req.public, "filters":req.filters or {}, "travellers":req.travellers}
         if req.tenant_ref:
             payload["tenant_ref"] = req.tenant_ref
         headers = {"X-Internal-Token": config.INTERNAL_TOKEN, "X-Correlation-ID": req.correlation_id}

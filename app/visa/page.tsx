@@ -1,4 +1,3 @@
-import {JourneyShell} from '../../components/journey/JourneyShell';
-import {VisaList} from '../../components/operational/TravelCommerceViews';
-export const metadata={title:'خدمات ویزا | کارن‌سیر',description:'بررسی منبع‌دار و مدیریت پرونده ویزا بدون تضمین صدور'};
-export default function Page(){return <JourneyShell><main className="journey-main"><VisaList/></main></JourneyShell>}
+import { Shell } from '../page';
+import { ServiceIntro } from '../../components/customer/CustomerHelp';
+export default function Page(){return <Shell><ServiceIntro title="ویزا و مدارک سفر" description="شرایط ویزا به ملیت، مقصد و هدف سفر بستگی دارد. هیچ نتیجه یا زمان صدوری تضمین نمی‌شود."/></Shell>}

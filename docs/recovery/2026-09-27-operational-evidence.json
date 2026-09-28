@@ -1,0 +1,79 @@
+{
+  "recorded_at": "2026-09-27T21:04:44.078043+00:00",
+  "status": "BLOCKED_PREEXISTING_WORKER_SOURCE_DRIFT",
+  "head": "6494d96a822212d3b06c27cdf13579b651cda3da",
+  "production_changed": false,
+  "production_web_fingerprint": "6494d96a822212d3b06c27cdf13579b651cda3da-worktree-b837ab14ea65",
+  "candidate_web_fingerprint": "6494d96a822212d3b06c27cdf13579b651cda3da-worktree-99b41f565788",
+  "worker_drift": {
+    "providers.py": {
+      "source_sha256": "44a66796ae15d41f91cd426a5f06fb1949d20a068b98e683d359ed327b707d72",
+      "head_sha256": "6dd97430e4684ca4fa5832095c78a48f56265594685341d2e204d461e5462f5b",
+      "worker_sha256": "299976d2dbf3a45de89170e33c54c4b20ad52066adf1e177adfb2b69ea3885cc",
+      "api_sha256": "6dd97430e4684ca4fa5832095c78a48f56265594685341d2e204d461e5462f5b",
+      "worker_matches_HEAD": false,
+      "worker_matches_API": false
+    },
+    "outbox_worker.py": {
+      "source_sha256": "6e83d9bccd25d1e1d3addc62b67892df1944760ee805ff8a5aaa2881659b8ecf",
+      "head_sha256": "6e83d9bccd25d1e1d3addc62b67892df1944760ee805ff8a5aaa2881659b8ecf",
+      "worker_sha256": "7a3930cc033b559663be5f96de514b06770fd7896851f094a890cb918f8059ad",
+      "api_sha256": "6e83d9bccd25d1e1d3addc62b67892df1944760ee805ff8a5aaa2881659b8ecf",
+      "worker_matches_HEAD": false,
+      "worker_matches_API": false
+    }
+  },
+  "new_browser_evidence": {
+    "pass": true,
+    "checks": [
+      "expired access token: concurrent account API calls rotate once",
+      "offer → real isolated API/DB reservation → new traveller → policy → funding → invoice → intercepted handoff",
+      "verify-only recovery: captured payment distinguished from unissued booking",
+      "duplicate late NOK callback: safe return, fresh-origin authentication required",
+      "new detail/checkout/payment routes: desktop and mobile rendering"
+    ],
+    "errors": [],
+    "refreshes": 1,
+    "handoffs": 1,
+    "reservation": "df4859b9-717c-48ba-bfbc-3eb40472817a",
+    "paymentPath": "/payments/74425abc-b941-45cc-bfc6-79dc5bf878dc"
+  },
+  "tests": {
+    "otp_affected": 59,
+    "payment_affected": 8,
+    "quote_and_schema_gate": 3,
+    "provider_retry_affected": 53,
+    "grs_stay_affected": 15,
+    "frontend_lint": "PASS",
+    "web_build": "PASS",
+    "api_build": "PASS",
+    "nginx_isolated_syntax": "PASS",
+    "database_revision_readonly": "20260922_33 matches"
+  },
+  "readiness": {
+    "PRODUCTION_READY": "NO",
+    "REAL_BOOKING_READY": "NO",
+    "REAL_PAYMENT_READY": "NO",
+    "REAL_OTP_READY": "NO"
+  },
+  "financial_transaction": false,
+  "real_sms_sent": false,
+  "next_action": "Explicit authorization to reconcile existing worker drift to reviewed source and handle expired holds; then remaining delta QA and atomic reversible promotion of API/worker/Web. Do not overwrite/reset automatically.",
+  "running_images": {
+    "karenseir-api-1": {
+      "image": "sha256:b6f63f188c447abc313fc5ff8b57e6cf65913ffb33cb482a8e00475bfba30798",
+      "name": "karenseir-current-api:closure-975608f",
+      "status": "running"
+    },
+    "karenseir-worker-1": {
+      "image": "sha256:6b2c658e7e5bf854b88db8f7328f8c39c4f932cabc1f29bb6e71462c16403ac9",
+      "name": "karenseir-current-api:search2",
+      "status": "running"
+    },
+    "karenseir-frontend-1": {
+      "image": "sha256:9fcfee1030d377870895d94f233aa48e7534546dda4691c2b128a7f3be82be56",
+      "name": "karenseir-current-web:customer-20260927",
+      "status": "running"
+    }
+  }
+}

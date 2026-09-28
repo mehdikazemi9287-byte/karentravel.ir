@@ -1,6 +1,7 @@
 'use client';
 
-import { FormEvent, useCallback, useEffect, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
+import { ErrorState } from './ConnectedViews';
 import { useAuth } from '../../lib/api/auth-context';
 import { ApiError, newId } from '../../lib/api/karenseir-client';
 
@@ -13,26 +14,26 @@ export function AgencyPortal() {
   const { api, session } = useAuth();
   const [dash, setDash] = useState<Dash | null>(null);
   const [err, setErr] = useState<{ status: number; message: string } | null>(null);
-  const [notice, setNotice] = useState('');
+  const [notice, setNotice] = useState('');const [busy,setBusy]=useState(false);const createKey=useRef(newId());
   const [name, setName] = useState('');
 
   const load = useCallback(async () => {
     try { setDash(await api.get<Dash>('/agency/dashboard')); }
     catch (e) { setErr(e instanceof ApiError ? { status: e.status, message: e.message } : { status: 0, message: msgOf(e) }); }
   }, [api]);
-  useEffect(() => { if (session) load(); }, [session, load]);
+  useEffect(() => {if(!session)return;let active=true;api.get<Dash>('/agency/dashboard').then(value=>{if(active)setDash(value)}).catch(e=>{if(active)setErr(e instanceof ApiError?{status:e.status,message:e.message}:{status:0,message:msgOf(e)})});return()=>{active=false}},[session,api]);
 
   async function mutate(fn: () => Promise<unknown>, ok: string) {
-    setNotice('در حال ثبت امن…');
-    try { await fn(); setNotice(ok); await load(); } catch (e) { setNotice(msgOf(e)); }
+    if(busy)return false;setBusy(true);setNotice('در حال ثبت امن…');
+    try { await fn(); setNotice(ok); await load();return true; } catch (e) { setNotice(msgOf(e));return false; } finally {setBusy(false)}
   }
   async function createSub(e: FormEvent) {
     e.preventDefault();
-    await mutate(() => api.post('/agency/sub-agencies', { display_name: name, markup_bps: 0, commission_bps: 0 }, newId()), 'زیرآژانس ثبت شد.');
-    setName('');
+    const done=await mutate(() => api.post('/agency/sub-agencies', { display_name: name, markup_bps: 0, commission_bps: 0 }, createKey.current), 'زیرآژانس ثبت شد.');
+    if(done){setName('');createKey.current=newId()}
   }
 
-  if (!session) return <div className="dashboard container"><p role="alert" className="rounded-2xl bg-rose-50 p-6 text-rose-700">نشست مرورگر موجود نیست.</p></div>;
+  if (!session) return <ErrorState status={401} message="برای ادامه وارد حساب شوید."/>;
   if (err) return <div className="dashboard container"><p role="alert" className="rounded-2xl bg-rose-50 p-6 text-rose-700">خطای {err.status}: {err.message}</p></div>;
   if (!dash) return <div className="dashboard container"><p role="status" className="my-8 animate-pulse rounded-2xl bg-white p-8 text-center text-slate-600">در حال دریافت اطلاعات معتبر…</p></div>;
 
@@ -59,14 +60,14 @@ export function AgencyPortal() {
         <div className="panel-head"><h3>شبکه زیرآژانس و کمیسیون</h3></div>
         <form onSubmit={createSub} className="mt-3 flex flex-wrap gap-3">
           <input className="min-w-56 flex-1 rounded-xl border p-3" placeholder="نام زیرآژانس جدید" value={name} onChange={e => setName(e.target.value)} required minLength={2} />
-          <button className="button primary">ثبت زیرآژانس</button>
+          <button disabled={busy} className="button primary">ثبت زیرآژانس</button>
         </form>
         {subs.length === 0
           ? <p className="mt-3 text-sm text-slate-600">هنوز زیرآژانسی تعریف نشده است.</p>
           : subs.map(a => <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-slate-50 p-3" key={a.id}>
               <span><b className="block">{a.name}</b>
                 <small className="text-slate-600">markup {bps(a.markup_bps)} · کمیسیون {bps(a.commission_bps)}{a.parent_agency_id ? ' · زیرمجموعه' : ''}</small></span>
-              <button className="button secondary" onClick={() => mutate(() => api.put(`/agency/agencies/${a.id}`, { markup_bps: a.markup_bps + 25 }), 'markup به‌روزرسانی شد.')}>+۲۵ bps markup</button>
+              <button disabled={busy} className="button secondary" onClick={() => mutate(() => api.put(`/agency/agencies/${a.id}`, { markup_bps: a.markup_bps + 25 }), 'markup به‌روزرسانی شد.')}>+۲۵ bps markup</button>
             </div>)}
       </article>
 

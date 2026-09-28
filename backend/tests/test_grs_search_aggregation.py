@@ -44,7 +44,7 @@ SUGGESTION_FIXTURE = [{
         "room_type_id": 1, "room_type_name": "Standard", "room_type_capacity": 2,
         "rate_plans": [{
             "id": 1, "name": "BB", "cancelable": True,
-            "prices": [{"day": "2026-09-15", "inventory": 3, "daily_rate": 2_500_000, "closed": False}],
+            "prices": [{"day": f"2026-09-{day}", "inventory": 3, "daily_rate": 2_500_000, "closed": False} for day in (15,16,17)],
         }],
     }],
 }]
@@ -137,7 +137,7 @@ def test_grs_fixture_success_returns_normalized_offer():
     assert len(offers) == 1
     assert offers[0]["provider"] == "grs"
     assert offers[0]["title"] == "[TEST] هتل شیراز نمونه"
-    assert offers[0]["amount"] == 2_500_000
+    assert offers[0]["amount"] == 7_500_000
     assert offers[0]["currency"] == "IRR"
 
 
@@ -217,7 +217,7 @@ def test_refundable_badge_reflects_rate_plan_cancelable_flag():
         "property_id": 742, "property_name": "[TEST] هتل غیرقابل استرداد",
         "rooms": [{"room_type_id": 4, "room_type_name": "Standard", "rate_plans": [
             {"id": 4, "name": "Non-refundable", "cancelable": False,
-             "prices": [{"day": "2026-09-15", "inventory": 2, "daily_rate": 1_500_000, "closed": False}]},
+             "prices": [{"day": f"2026-09-{day}", "inventory": 2, "daily_rate": 1_500_000, "closed": False} for day in (15,16,17)]},
         ]}],
     }]
     tenant_id, user_id = _make_tenant_with_mapping()
@@ -273,3 +273,23 @@ def test_unmapped_destination_returns_empty_not_a_guess():
                                                check_in="2026-09-15", check_out="2026-09-18", db=db, adapter=adapter)
     assert result == []
     assert adapter._transport.calls == []
+
+
+def test_incomplete_stay_is_not_bookable():
+    import copy
+    fixture=copy.deepcopy(SUGGESTION_FIXTURE)
+    fixture[0]['rooms'][0]['rate_plans'][0]['prices'].pop()
+    tenant_id,_=_make_tenant_with_mapping()
+    adapter=_adapter([GRSTransportResponse(200, {"code":200,"value":fixture}, "application/json")])
+    with SessionLocal() as db:
+        assert _grs_hotel_offers_for_search(tenant_id=tenant_id,query="شیراز",min_price=None,max_price=None,min_review_score=None,refundable=None,instant_booking=None,check_in="2026-09-15",check_out="2026-09-18",db=db,adapter=adapter)==[]
+
+
+def test_toman_stay_converts_to_rial_and_requires_quote():
+    from dataclasses import replace
+    tenant_id,_=_make_tenant_with_mapping()
+    adapter=GRSAdapter(config=replace(ENABLED_CONFIG,money_unit="IRT"),transport=FakeTransport(responses=[GRSTransportResponse(200,{"code":200,"value":SUGGESTION_FIXTURE},"application/json")]))
+    with SessionLocal() as db:
+        offers=_grs_hotel_offers_for_search(tenant_id=tenant_id,query="شیراز",min_price=None,max_price=None,min_review_score=None,refundable=None,instant_booking=None,check_in="2026-09-15",check_out="2026-09-18",db=db,adapter=adapter)
+    assert offers[0]['amount']==75000000 and offers[0]['currency']=='IRR'
+    assert not offers[0]['policy_verified'] and offers[0]['availability_state']=='REQUIRES_RECHECK'

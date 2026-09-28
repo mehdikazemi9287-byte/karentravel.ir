@@ -1,4 +1,4 @@
-import { JourneyShell, MockNotice } from '../../components/journey/JourneyShell';
-import { NearbyExplorer } from '../../components/journey/NearbyExplorer';
-import { mockPlaceProvider } from '../../lib/providers/mock-place-provider';
-export default async function NearbyPage(){const places=await mockPlaceProvider.searchNearby({latitude:29.615,longitude:52.535,radius:5000,sort:'distance'});return <JourneyShell><main className="journey-main nearby-main"><div className="journey-title"><div><span>همراه محلی سفر</span><h1>اطراف من</h1><p>رستوران، دیدنی‌ها و خدمات ضروری را با منبع و رابطه تجاری شفاف ببین.</p></div><MockNotice>نسخه نمایشی — مکان‌ها، فاصله‌ها و مختصات این بخش نمونه‌اند.</MockNotice></div><NearbyExplorer places={places}/></main></JourneyShell>}
+import Link from 'next/link';
+import { Shell } from '../page';
+import { ContactOptions } from '../../components/customer/CustomerHelp';
+export default function NearbyPage(){return <Shell><section className="container customer-page"><span className="eyebrow">شناخت مقصد</span><h1>اطراف من</h1><p>نمایش مکان‌های نزدیک بر اساس موقعیت شما هنوز فعال نیست. هیچ فاصله یا مکان فرضی به عنوان نتیجهٔ جست‌وجو نمایش داده نمی‌شود.</p><div className="panel"><h2>برای برنامه‌ریزی مقصد ادامه دهید</h2><p>راهنمای مقصدها را ببینید یا برای بررسی خدمات محل اقامتتان با پشتیبانی تماس بگیرید.</p><Link className="button secondary" href="/destinations">راهنمای مقصدها</Link><ContactOptions/></div></section></Shell>}

@@ -22,6 +22,7 @@ export class ApiError extends Error {
 
 export class KarenSeirApi {
   private session: AuthSession | null = null;
+  private refreshPending: Promise<void> | null = null;
   private readonly baseUrl: string;
   readonly deviceId: string;
 
@@ -64,6 +65,7 @@ export class KarenSeirApi {
     this.session = null;if(typeof window!=='undefined')sessionStorage.removeItem('karenseir-auth-session');
   }
 
+  async getText(path: string) { return this.request<string>(path, {}, true, true, false, true); }
   async get<T>(path: string) { return this.request<T>(path); }
   async publicGet<T>(path: string) { return this.request<T>(path, {}, false); }
   async publicPost<T>(path: string, body: unknown) { return this.request<T>(path, { method: 'POST', body: JSON.stringify(body) }, false); }
@@ -98,12 +100,19 @@ export class KarenSeirApi {
   }
 
   private async refresh() {
-    if (!this.session) throw new ApiError(401, 'نشست معتبر نیست.');
-    const next = await this.request<AuthSession>('/auth/refresh', { method: 'POST', body: JSON.stringify({ refresh_token: this.session.refresh_token, device_id: this.deviceId }) }, false, false);
-    this.setSession({ ...this.session, ...next });
+    if (this.refreshPending) return this.refreshPending;
+    const current = this.session;
+    if (!current) throw new ApiError(401, 'نشست معتبر نیست.');
+    const pending = (async () => {
+      const next = await this.request<AuthSession>('/auth/refresh', { method: 'POST', body: JSON.stringify({ refresh_token: current.refresh_token, device_id: this.deviceId }) }, false, false);
+      if (this.session?.refresh_token !== current.refresh_token) throw new ApiError(401, 'نشست تغییر کرده است؛ دوباره وارد شوید.');
+      this.setSession({ ...current, ...next });
+    })();
+    this.refreshPending = pending;
+    try { await pending; } finally { if (this.refreshPending === pending) this.refreshPending = null; }
   }
 
-  private async request<T>(path: string, init: RequestInit = {}, authenticated: boolean | 'optional' = true, retry = true, isMultipart = false): Promise<T> {
+  private async request<T>(path: string, init: RequestInit = {}, authenticated: boolean | 'optional' = true, retry = true, isMultipart = false, asText = false): Promise<T> {
     const headers = new Headers(init.headers);
     if (!isMultipart) headers.set('Content-Type', 'application/json');
     headers.set('X-Correlation-ID', newId());
@@ -115,8 +124,9 @@ export class KarenSeirApi {
     }
     const response = await fetch(`${this.baseUrl}${path}`, { ...init, headers });
     if (response.status === 401 && authenticated === true && retry && this.session?.refresh_token) {
-      await this.refresh();
-      return this.request<T>(path, init, true, false, isMultipart);
+      // A delayed 401 may belong to the token another request already refreshed.
+      if (headers.get('Authorization') === `Bearer ${this.session.access_token}`) await this.refresh();
+      return this.request<T>(path, init, true, false, isMultipart, asText);
     }
     if (!response.ok) {
       let message = 'ارتباط با سرویس انجام نشد.';
@@ -125,6 +135,6 @@ export class KarenSeirApi {
       throw new ApiError(response.status, message, detail);
     }
     if (response.status === 204) return undefined as T;
-    return response.json() as Promise<T>;
+    return (asText ? response.text() : response.json()) as Promise<T>;
   }
 }

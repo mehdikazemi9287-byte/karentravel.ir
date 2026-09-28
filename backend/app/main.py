@@ -13,7 +13,7 @@ import uuid
 from types import SimpleNamespace
 from difflib import SequenceMatcher
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Generator, Optional
 from urllib.parse import urlparse
@@ -21,7 +21,7 @@ from urllib.parse import urlparse
 import jwt
 from fastapi import Body, Depends, FastAPI, File, Form, Header, HTTPException, Query, Request, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, PlainTextResponse, Response
+from fastapi.responses import JSONResponse, PlainTextResponse, Response, RedirectResponse
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, Text, func, select, text, update
 from sqlalchemy.exc import IntegrityError
@@ -257,12 +257,14 @@ class VacationPropertyIn(BaseModel):
 class VacationUnitIn(BaseModel):
     title: str = Field(min_length=2, max_length=160); capacity: int = Field(ge=1, le=100); available_units: int = Field(ge=1, le=100); nightly_price: int = Field(gt=0); pricing: dict = Field(default_factory=dict)
 class VacationBookIn(BaseModel):
+    expected_total_amount: Optional[int] = Field(default=None,gt=0)
     check_in: datetime; check_out: datetime; guests: int = Field(ge=1, le=100); command_id: str = Field(min_length=8, max_length=120)
 class TourProductIn(BaseModel):
     supplier_id: str = Field(min_length=36, max_length=36); title: str = Field(min_length=3, max_length=200); slug: str = Field(pattern=r"^[a-z0-9-]{3,180}$"); origin: str = Field(min_length=2, max_length=120); destination: str = Field(min_length=2, max_length=120); tour_type: str = Field(min_length=2, max_length=48); details: dict = Field(default_factory=dict)
 class TourDepartureIn(BaseModel):
     starts_at: datetime; ends_at: datetime; booking_deadline: datetime; capacity: int = Field(ge=1, le=10000); base_price: int = Field(gt=0); pricing: dict = Field(default_factory=dict)
 class TourBookIn(BaseModel):
+    expected_total_amount: Optional[int] = Field(default=None,gt=0)
     travellers: int = Field(ge=1, le=100); room_type: str = Field(default="double", pattern="^(single|double|triple|extra_bed)$"); command_id: str = Field(min_length=8, max_length=120)
 class CruiseSailingIn(BaseModel):
     supplier_id: Optional[str] = Field(default=None, min_length=36, max_length=36); title: str = Field(min_length=3, max_length=200); cruise_line: str = Field(min_length=2, max_length=160); ship: str = Field(min_length=2, max_length=160); departure_port: str = Field(min_length=2, max_length=160); arrival_port: str = Field(min_length=2, max_length=160); starts_at: datetime; nights: int = Field(ge=1, le=365); details: dict = Field(default_factory=dict)
@@ -514,6 +516,8 @@ def validate_production_config() -> None:
         validate_provider_modes(ENVIRONMENT, DEMO_MODE, provider_keys)
         for key in provider_keys:
             configured_adapter(key).validate_configuration()
+        if os.getenv("ZARINPAL_MODE", "disabled") in {"sandbox", "production"} and not _payment_return_origin():
+            raise RuntimeError("PUBLIC_WEB_URL must be an explicit HTTPS origin for payment returns")
         if not REDIS_URL or not rate_limiter.distributed:
             raise RuntimeError("Production REDIS_URL must configure distributed rate limiting")
 
@@ -1132,7 +1136,15 @@ def reservation_price_breakdown(reservation_id: str, user: User = Depends(curren
         raise HTTPException(status_code=404, detail="جزئیات قیمت برای این رزرو ثبت نشده است")
     return {key: getattr(row, key) for key in ("id", "booking_id", "source", "source_contract_id", "supplier_net_rate", "supplier_currency", "exchange_rate", "supplier_net_rate_irr", "platform_markup", "platform_markup_type", "service_fee", "supplier_commission", "agent_commission", "discount_amount", "discount_source", "promo_code", "vat", "airport_tax", "i6_tax", "red_crescent", "other_taxes", "wl_channel_id", "wl_revenue_share", "wl_commission_type", "total_selling_price", "total_cost", "gross_margin", "net_margin", "calculated_at", "calculated_by", "override_reason", "approved_by")}
 
+def _ticket_qr_svg(token:str)->bytes:
+    import io,qrcode,qrcode.image.svg
+    buffer=io.BytesIO();qrcode.make(token,image_factory=qrcode.image.svg.SvgPathImage).save(buffer)
+    return buffer.getvalue()
+
+
 def _voucher_html(*, reservation, booking_item, user, tenant, voucher, tickets) -> str:
+    from html import escape
+    safe=lambda value:escape(str(value),quote=True)
     attrs = {}
     title = reservation.service_type
     supplier_id = None
@@ -1146,26 +1158,36 @@ def _voucher_html(*, reservation, booking_item, user, tenant, voucher, tickets) 
         supplier_id = snap.get("supplier_id")
     status_label = operational_models.TRIP_STATUS_TITLES.get(reservation.status, reservation.status)
     qr_rows = "".join(
-        f'<div class="qr-row"><span>کد ورود</span><strong>{t.qr_token}</strong></div>'
+        f'<div class="qr-ticket"><div class="qr-code">{_ticket_qr_svg(t.qr_token).decode("utf-8")}</div><div class="qr-row"><span>کد پذیرش</span><strong>{safe(t.qr_token)}</strong></div></div>'
         for t in tickets if t.qr_token
     )
     voucher_row = (
-        f'<div class="row"><span>شماره واچر</span><strong>{voucher.id} (نسخه {voucher.revision})</strong></div>'
+        f'<div class="row"><span>شماره واچر</span><strong>{safe(voucher.id)} (نسخه {safe(voucher.revision)})</strong></div>'
         if voucher is not None else ""
     )
     detail_rows = "".join(
-        f'<div class="row"><span>{label}</span><strong>{value}</strong></div>'
+        f'<div class="row"><span>{safe(label)}</span><strong>{safe(value)}</strong></div>'
         for label, value in (
             ("شهر / مقصد", attrs.get("city") or attrs.get("destination")),
-            ("تاریخ شروع", attrs.get("session_starts_at") or attrs.get("check_in")),
-            ("تاریخ پایان", attrs.get("session_ends_at") or attrs.get("check_out")),
+            ("ارائه‌دهنده",attrs.get("transport_operator") or attrs.get("guide_name")),
+            ("محل ملاقات / تحویل",attrs.get("pickup_point") or attrs.get("meeting_point") or attrs.get("pickup_location")),
+            ("محل پایان / بازگشت",attrs.get("dropoff_point") or attrs.get("return_location")),
+            ("کلاس خودرو",attrs.get("vehicle_class")),
+            ("هنرمند / کارگاه",attrs.get("artisan_name")),
+            ("شناسه کالا",attrs.get("sku")),
+            ("جنس",attrs.get("material")),
+            ("نشانی تحویل حضوری",attrs.get("pickup_address")),
+            ("ساعات تحویل",attrs.get("pickup_hours")),
+            ("وضعیت تحویل", "این برگه برای پیگیری تحویل حضوری است؛ صدور آن به معنی تحویل فیزیکی کالا نیست." if reservation.service_type=="handicraft" else None),
+            ("تاریخ شروع", attrs.get("session_starts_at") or attrs.get("check_in") or attrs.get("departure_time") or attrs.get("rental_start")),
+            ("تاریخ پایان", attrs.get("session_ends_at") or attrs.get("check_out") or attrs.get("arrival_time") or attrs.get("rental_end")),
         ) if value
     )
     return f"""<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="utf-8" />
-<title>واچر / بلیت کارن‌سیر — {reservation.booking_reference or reservation.id}</title>
+<title>واچر / بلیت کارن‌سیر — {safe(reservation.booking_reference or reservation.id)}</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;800&display=swap" />
 <style>
   :root{{--ink:#08253d;--ocean:#0e7490;--sun:#f4b942;--mist:#f7fafc;--muted:#617184;--line:#dce6eb;--surface:#fff}}
@@ -1183,7 +1205,8 @@ def _voucher_html(*, reservation, booking_item, user, tenant, voucher, tickets) 
   .row span{{color:var(--muted)}}
   .qr-row{{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:10px 0;font-size:14px}}
   .qr-row span{{color:var(--muted)}}
-  .qr-row strong{{font-family:monospace;letter-spacing:1px}}
+  .qr-row strong{{font-family:monospace;letter-spacing:1px;overflow-wrap:anywhere}}
+  .qr-code svg{{width:200px;height:200px;max-width:100%}}
   .note{{margin-top:20px;background:var(--mist);border-radius:10px;padding:14px;font-size:12px;color:var(--muted)}}
   .footer{{padding:16px 28px;color:var(--muted);font-size:11px;border-top:1px solid var(--line)}}
   @media print{{body{{background:#fff}} .sheet{{box-shadow:none;margin:0}}}}
@@ -1193,13 +1216,13 @@ def _voucher_html(*, reservation, booking_item, user, tenant, voucher, tickets) 
   <div class="sheet">
     <div class="header">
       <div class="brand">کارن‌سیر<small>KarenSeir Travel</small></div>
-      <div class="status-pill">{status_label}</div>
+      <div class="status-pill">{safe(status_label)}</div>
     </div>
     <div class="body">
-      <h1>{title}</h1>
-      <p class="ref">شماره رزرو: {reservation.booking_reference or reservation.id}</p>
-      <div class="row"><span>مسافر / مشتری</span><strong>{user.name}</strong></div>
-      <div class="row"><span>سازمان</span><strong>{tenant.name}</strong></div>
+      <h1>{safe(title)}</h1>
+      <p class="ref">شماره رزرو: {safe(reservation.booking_reference or reservation.id)}</p>
+      <div class="row"><span>مسافر / مشتری</span><strong>{safe(user.name)}</strong></div>
+      <div class="row"><span>سازمان</span><strong>{safe(tenant.name)}</strong></div>
       {detail_rows}
       {voucher_row}
       {qr_rows}
@@ -1223,10 +1246,12 @@ def reservation_voucher(reservation_id: str, user: User = Depends(current_user),
         raise HTTPException(status_code=404, detail="رزرو در این حساب وجود ندارد")
     booking_item = db.scalar(select(operational_models.BookingItem).where(operational_models.BookingItem.reservation_id == reservation.id, operational_models.BookingItem.tenant_id == user.tenant_id))
     voucher = db.scalar(select(operational_models.Voucher).where(operational_models.Voucher.reservation_id == reservation.id, operational_models.Voucher.tenant_id == user.tenant_id).order_by(operational_models.Voucher.revision.desc()))
+    if reservation.status != "issued" or voucher is None or voucher.status != "issued":
+        raise HTTPException(409,"مدارک این رزرو هنوز صادر نشده است")
     tickets = db.scalars(select(operational_models.Ticket).where(operational_models.Ticket.reservation_id == reservation.id, operational_models.Ticket.tenant_id == user.tenant_id, operational_models.Ticket.status == "issued")).all()
     tenant = db.get(Tenant, user.tenant_id)
     html = _voucher_html(reservation=reservation, booking_item=booking_item, user=user, tenant=tenant, voucher=voucher, tickets=tickets)
-    return Response(content=html, media_type="text/html")
+    return Response(content=html, media_type="text/html", headers={"Cache-Control":"no-store","Content-Security-Policy":"default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; frame-ancestors 'none'"})
 
 
 @app.post("/reservations/{reservation_id}/commands")
@@ -1354,6 +1379,17 @@ def approval_decision(approval_id: str, data: ApprovalDecisionIn, user: User = D
     return {"id": workflow.id, "status": workflow.status}
 
 
+def _existing_reservation_payment(db: Session, reservation: operational_models.Reservation, amount: int, currency: str):
+    # Callers hold the reservation row lock, serializing both payment entry points.
+    rows = db.scalars(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.tenant_id == reservation.tenant_id, operational_models.PaymentIntent.reservation_id == reservation.id).order_by(operational_models.PaymentIntent.created_at)).all()
+    if len(rows) > 1: raise HTTPException(409, "این رزرو به بررسی سوابق پرداخت نیاز دارد؛ پرداخت تازه ایجاد نشد")
+    if not rows: return None
+    row = rows[0]
+    if row.user_id != reservation.user_id or row.amount != amount or row.currency != currency:
+        raise HTTPException(409, "مبلغ پرداخت قبلی با مبلغ نهایی همخوان نیست؛ ابتدا وضعیت پرداخت را بررسی کنید")
+    return row
+
+
 @app.post("/reservations/{reservation_id}/payment-intents", status_code=status.HTTP_201_CREATED)
 def create_payment_intent(reservation_id: str, user: User = Depends(current_user), db: Session = Depends(get_db), idempotency_key: str = Header(alias="Idempotency-Key", min_length=8, max_length=120)) -> dict:
     existing = db.scalar(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.tenant_id == user.tenant_id, operational_models.PaymentIntent.command_id == idempotency_key))
@@ -1372,6 +1408,9 @@ def create_payment_intent(reservation_id: str, user: User = Depends(current_user
         amount = 0; currency = "IRR"
     if amount <= 0 or currency != "IRR":
         raise HTTPException(status_code=409, detail="قیمت معتبر و قطعی برای پرداخت موجود نیست")
+    prior = _existing_reservation_payment(db, reservation, amount, currency)
+    if prior: return {"id": prior.id, "status": prior.status, "amount": prior.amount, "currency": prior.currency}
+    if reservation.status not in {"reserved", "pending_approval", "approved"}: raise HTTPException(409, "رزرو در وضعیت قابل پرداخت نیست")
     intent = operational_models.PaymentIntent(tenant_id=user.tenant_id, reservation_id=reservation.id, user_id=user.id, command_id=idempotency_key, amount=amount, currency=currency)
     db.add(intent); db.flush()
     db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="payment", aggregate_id=intent.id, event_type="payment.intent.created", payload_json=json.dumps({"payment_intent_id": intent.id}), correlation_id=str(uuid.uuid4()), idempotency_key=idempotency_key))
@@ -1385,14 +1424,25 @@ def initiate_payment(payment_id: str, user: User = Depends(current_user), db: Se
     intent = db.scalar(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.id == payment_id, operational_models.PaymentIntent.tenant_id == user.tenant_id, operational_models.PaymentIntent.user_id == user.id).with_for_update())
     if intent is None:
         raise HTTPException(status_code=404, detail="درخواست پرداخت وجود ندارد")
+    attempt = db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id == user.tenant_id, operational_models.IdempotencyKey.scope == "payment.initiate", operational_models.IdempotencyKey.key == intent.id))
+    if attempt:
+        cached = json.loads(attempt.response_json or "{}")
+        if intent.status == "initiated" and cached.get("redirect_url"): return cached
+        if intent.status in {"captured", "refunded", "failed"}: return {"id": intent.id, "status": intent.status}
+        raise HTTPException(409, "نتیجهٔ درخواست قبلی درگاه نیازمند بررسی است؛ برای جلوگیری از پرداخت تکراری با پشتیبانی تماس بگیرید")
     if intent.status not in {"created", "failed"}:
         return {"id": intent.id, "status": intent.status}
     from .providers import ADAPTERS, ProviderContext
+    # Disabled/unconfigured providers are rejected before recording an attempt.
+    if ADAPTERS["payment"].health().status not in {"configured_not_verified", "available", "connected", "healthy"}:
+        raise HTTPException(503, "درگاه پرداخت معتبر در دسترس نیست")
+    attempt = operational_models.IdempotencyKey(tenant_id=user.tenant_id, scope="payment.initiate", key=intent.id, request_hash=_secure_hash(f"{intent.id}:{intent.amount}:{intent.currency}"), response_json='{"status":"initiation_pending"}')
+    db.add(attempt); db.commit()  # Durable before network: timeout/crash must not trigger a second initiation.
     try:
         callback_state = jwt.encode({"iss": JWT_ISSUER, "aud": "karenseir-zarinpal-callback", "tenant_id": user.tenant_id, "payment_intent_id": intent.id, "user_id": user.id, "amount": intent.amount, "exp": datetime.now(timezone.utc) + timedelta(minutes=30), "iat": datetime.now(timezone.utc), "jti": str(uuid.uuid4())}, JWT_SECRET, algorithm="HS256")
         result = ADAPTERS["payment"].execute("initiate", {"payment_intent_id": intent.id, "amount": intent.amount, "currency": intent.currency, "callback_state": callback_state}, ProviderContext(tenant_id=user.tenant_id, correlation_id=str(uuid.uuid4()), idempotency_key=intent.command_id))
     except Exception:
-        logging.getLogger("karenseir.payment").exception("payment_provider_unavailable")
+        logging.getLogger("karenseir.payment").warning("payment_provider_unavailable")
         record_business_event("provider", "payment_unavailable")
         raise HTTPException(status_code=503, detail="درگاه پرداخت معتبر در دسترس نیست")
     if not result.get("ok"):
@@ -1405,13 +1455,14 @@ def initiate_payment(payment_id: str, user: User = Depends(current_user), db: Se
     intent.status = "initiated"
     intent.provider_reference = str(result.get("reference", ""))[:160] or None
     intent.provider_authority = str(result.get("authority", result.get("reference", "")))[:160] or None
+    response = {"id": intent.id, "status": intent.status, "redirect_url": redirect_url}
+    attempt.response_json = json.dumps(response)
     db.commit()
     record_business_event("payment", "initiated")
-    return {"id": intent.id, "status": intent.status, "redirect_url": redirect_url}
+    return response
 
 
-@app.get("/payments/zarinpal/callback")
-def zarinpal_callback(state_token: str = Query(alias="state", min_length=20), authority: str = Query(alias="Authority", min_length=36, max_length=36), callback_status: str = Query(alias="Status", pattern="^(OK|NOK)$"), db: Session = Depends(get_db)) -> dict:
+def _verify_zarinpal_callback(state_token: str = Query(alias="state", min_length=20), authority: str = Query(alias="Authority", min_length=36, max_length=36), callback_status: str = Query(alias="Status", pattern="^(OK|NOK)$"), db: Session = Depends(get_db)) -> dict:
     try:
         claims = jwt.decode(state_token, JWT_SECRET, algorithms=["HS256"], audience="karenseir-zarinpal-callback", issuer=JWT_ISSUER, options={"require": ["exp", "iat", "jti", "tenant_id", "payment_intent_id", "user_id", "amount"]})
         tenant_id = int(claims["tenant_id"]); payment_id = str(claims["payment_intent_id"]); user_id = int(claims["user_id"]); claimed_amount = int(claims["amount"])
@@ -1421,13 +1472,13 @@ def zarinpal_callback(state_token: str = Query(alias="state", min_length=20), au
     if intent is None: raise HTTPException(status_code=404, detail="Payment Intent در tenant معتبر وجود ندارد")
     if claimed_amount != intent.amount: raise HTTPException(status_code=409, detail="مبلغ state با Payment Intent تطابق ندارد")
     if intent.provider_authority != authority: raise HTTPException(status_code=409, detail="Authority با Payment Intent تطابق ندارد")
+    if intent.status == "captured" and intent.provider_capture_reference: return {"status": "duplicate", "payment_status": "captured", "ref_id": intent.provider_capture_reference}
     if callback_status != "OK":
         if intent.status == "initiated":
             intent.status = "failed"; db.add(operational_models.OutboxEvent(tenant_id=tenant_id, aggregate_type="payment", aggregate_id=intent.id, event_type="payment.zarinpal.cancelled", payload_json="{}", correlation_id=str(uuid.uuid4()), idempotency_key=f"zarinpal-cancel:{authority}"))
             _record_payment_trip_event(db, tenant_id=tenant_id, intent=intent, event_key=f"payment-failed:{authority}", event_type="payment.failed", title="پرداخت ناموفق بود", message=f"پرداخت رزرو در درگاه لغو یا ناموفق شد.", severity="warning")
             db.commit()
         return {"status": "cancelled", "payment_status": intent.status}
-    if intent.status == "captured" and intent.provider_capture_reference: return {"status": "duplicate", "payment_status": "captured", "ref_id": intent.provider_capture_reference}
     if intent.status != "initiated": raise HTTPException(status_code=409, detail="Payment Intent قابل verify نیست")
     from .providers import ADAPTERS, ProviderContext
     result = ADAPTERS["payment"].execute("verify", {"payment_intent_id": intent.id, "amount": intent.amount, "currency": intent.currency, "authority": authority}, ProviderContext(tenant_id=tenant_id, correlation_id=str(uuid.uuid4()), idempotency_key=f"zarinpal-verify:{authority}"))
@@ -1435,11 +1486,69 @@ def zarinpal_callback(state_token: str = Query(alias="state", min_length=20), au
     ref_id = str(result.get("ref_id", ""))[:160]
     if not ref_id: raise HTTPException(status_code=502, detail="RefID معتبر دریافت نشد")
     event_id = f"zarinpal:{authority}:{ref_id}"; prior = db.scalar(select(operational_models.PaymentEvent).where(operational_models.PaymentEvent.provider_key == "zarinpal", operational_models.PaymentEvent.provider_event_id == event_id))
-    if prior: return {"status": "duplicate", "payment_status": intent.status, "ref_id": ref_id}
+    if prior:
+        if prior.payment_intent_id != intent.id or prior.tenant_id != tenant_id:
+            raise HTTPException(status_code=409, detail="مرجع درگاه قبلاً به پرداخت دیگری متصل شده است")
+        return {"status": "duplicate", "payment_status": intent.status, "ref_id": ref_id}
     intent.status = "captured"; intent.captured_amount = intent.amount; intent.provider_capture_reference = ref_id; intent.provider_reference = ref_id
     db.add(operational_models.PaymentEvent(tenant_id=tenant_id, payment_intent_id=intent.id, provider_key="zarinpal", provider_event_id=event_id, event_type="captured", payload_hash=_secure_hash(f"{authority}:{intent.amount}:{ref_id}"))); db.add(operational_models.OutboxEvent(tenant_id=tenant_id, aggregate_type="payment", aggregate_id=intent.id, event_type="payment.zarinpal.captured", payload_json=json.dumps({"authority": authority, "ref_id": ref_id}), correlation_id=str(uuid.uuid4()), idempotency_key=event_id))
     _record_payment_trip_event(db, tenant_id=tenant_id, intent=intent, event_key=f"payment-captured:{event_id}", event_type="payment.captured", title="پرداخت با موفقیت انجام شد", message=f"مبلغ {intent.amount:,} {intent.currency} با موفقیت پرداخت شد.")
     db.commit(); record_business_event("payment", "captured"); return {"status": "accepted", "payment_status": "captured", "ref_id": ref_id}
+
+
+def _payment_return_origin() -> str:
+    origin = os.getenv("PUBLIC_WEB_URL", "").rstrip("/")
+    parsed = urlparse(origin)
+    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password or parsed.path or parsed.query or parsed.fragment:
+        return ""
+    return origin
+
+
+@app.get("/payments/zarinpal/callback", response_model=None)
+def zarinpal_callback(request: Request, state_token: str = Query(alias="state", min_length=20), authority: str = Query(alias="Authority", min_length=36, max_length=36), callback_status: str = Query(alias="Status", pattern="^(OK|NOK)$"), db: Session = Depends(get_db)):
+    # The return URL never carries payment success, bearer tokens or provider state.
+    # Browser reads authoritative status after its own authentication on the Web.
+    payment_id = None
+    try:
+        claims = jwt.decode(state_token, JWT_SECRET, algorithms=["HS256"], audience="karenseir-zarinpal-callback", issuer=JWT_ISSUER)
+        payment_id = str(uuid.UUID(str(claims["payment_intent_id"])))
+    except (jwt.InvalidTokenError, KeyError, ValueError, TypeError):
+        pass
+    wants_page = "text/html" in request.headers.get("accept", "")
+    origin = _payment_return_origin()
+    try:
+        result = _verify_zarinpal_callback(state_token, authority, callback_status, db)
+    except HTTPException:
+        db.rollback()
+        if wants_page and origin and payment_id:
+            return RedirectResponse(f"{origin}/payments/{payment_id}", status_code=303, headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"})
+        raise
+    if wants_page and origin and payment_id:
+        return RedirectResponse(f"{origin}/payments/{payment_id}", status_code=303, headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"})
+    return result
+
+
+@app.get("/payments/{payment_id}")
+def customer_payment_status(payment_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    intent = db.scalar(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.id == payment_id, operational_models.PaymentIntent.tenant_id == user.tenant_id, operational_models.PaymentIntent.user_id == user.id))
+    if intent is None: raise HTTPException(status_code=404, detail="پرداخت در حساب شما پیدا نشد")
+    reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == intent.reservation_id, operational_models.Reservation.tenant_id == user.tenant_id, operational_models.Reservation.user_id == user.id))
+    if reservation is None: raise HTTPException(status_code=404, detail="رزرو در حساب شما پیدا نشد")
+    voucher = db.scalar(select(operational_models.Voucher).where(operational_models.Voucher.reservation_id == reservation.id, operational_models.Voucher.tenant_id == user.tenant_id, operational_models.Voucher.status == "issued"))
+    return {"id": intent.id, "status": intent.status, "amount": intent.amount, "currency": intent.currency, "captured_amount": intent.captured_amount, "refunded_amount": intent.refunded_amount, "receipt_reference": intent.provider_capture_reference if intent.status in {"captured", "refunded"} else None, "reservation_id": reservation.id, "reservation_status": reservation.status, "booking_reference": reservation.booking_reference, "voucher_available": voucher is not None and reservation.status == "issued"}
+
+
+@app.post("/payments/{payment_id}/verify")
+def recover_payment_verification(payment_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    intent = db.scalar(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.id == payment_id, operational_models.PaymentIntent.tenant_id == user.tenant_id, operational_models.PaymentIntent.user_id == user.id))
+    if intent is None: raise HTTPException(status_code=404, detail="پرداخت در حساب شما پیدا نشد")
+    if intent.status == "captured": return customer_payment_status(payment_id, user, db)
+    if intent.status != "initiated" or not intent.provider_authority: raise HTTPException(status_code=409, detail="این پرداخت در انتظار تأیید درگاه نیست")
+    # Reconciliation checks the known authority and amount; it never initiates a charge.
+    now = datetime.now(timezone.utc)
+    state = jwt.encode({"iss": JWT_ISSUER, "aud": "karenseir-zarinpal-callback", "tenant_id": user.tenant_id, "payment_intent_id": intent.id, "user_id": user.id, "amount": intent.amount, "exp": now+timedelta(minutes=5), "iat": now, "jti": str(uuid.uuid4())}, JWT_SECRET, algorithm="HS256")
+    _verify_zarinpal_callback(state, intent.provider_authority, "OK", db)
+    return customer_payment_status(payment_id, user, db)
 
 
 @app.post("/payments/callback/{provider_key}")
@@ -1535,6 +1644,7 @@ def create_vacation_property(data: VacationPropertyIn, user: User = Depends(requ
 def create_vacation_unit(property_id: str, data: VacationUnitIn, user: User = Depends(require_permission("inventory:manage")), db: Session = Depends(get_db)) -> dict:
     prop = db.scalar(select(operational_models.VacationProperty).where(operational_models.VacationProperty.id == property_id, operational_models.VacationProperty.tenant_id == user.tenant_id))
     if prop is None: raise HTTPException(404, "اقامتگاه وجود ندارد")
+    if prop.supplier_id not in _supplier_scope(db,user):raise HTTPException(403,"این اقامتگاه به تأمین‌کنندهٔ جاری واگذار نشده است")
     row = operational_models.VacationUnit(tenant_id=user.tenant_id, property_id=prop.id, title=data.title, capacity=data.capacity, available_units=data.available_units, nightly_price=data.nightly_price, pricing_json=json.dumps(data.pricing, sort_keys=True)); db.add(row); db.commit(); return {"id": row.id, "property_id": row.property_id, "status": row.status}
 
 
@@ -1554,23 +1664,38 @@ def vacation_rental_detail(property_id: str, user: User = Depends(current_user),
     return {"id": row.id, "title": row.title, "city": row.city, "property_type": row.property_type, "capacity": row.capacity, "bedrooms": row.bedrooms, "details": json.loads(row.details_json), "units": [{"id": u.id, "title": u.title, "capacity": u.capacity, "available_units": u.available_units, "nightly_price": u.nightly_price, "currency": u.currency, "pricing": json.loads(u.pricing_json)} for u in units]}
 
 
+def _vacation_availability(db,user,unit_id,check_in,check_out,guests,exclude=None):
+    check_in,check_out=_aware(check_in),_aware(check_out)
+    if check_out<=check_in or check_in<datetime.now(timezone.utc) or (check_out.date()-check_in.date()).days>365:raise HTTPException(422,"بازه اقامت معتبر نیست؛ حداکثر یک سال قابل بررسی است")
+    unit=db.scalar(select(operational_models.VacationUnit).where(operational_models.VacationUnit.id==unit_id,operational_models.VacationUnit.tenant_id==user.tenant_id,operational_models.VacationUnit.status=="active").with_for_update())
+    if unit is None or guests>unit.capacity:raise HTTPException(409,"واحد یا ظرفیت معتبر نیست")
+    prop=db.scalar(select(operational_models.VacationProperty).where(operational_models.VacationProperty.id==unit.property_id,operational_models.VacationProperty.tenant_id==user.tenant_id,operational_models.VacationProperty.status=="published"))
+    if prop is None or db.scalar(select(operational_models.Supplier.id).where(operational_models.Supplier.id==prop.supplier_id,operational_models.Supplier.tenant_id==user.tenant_id,operational_models.Supplier.status=="active")) is None:raise HTTPException(409,"اقامتگاه یا تأمین‌کننده فعال نیست")
+    q=select(func.count()).select_from(operational_models.VacationReservation).where(operational_models.VacationReservation.tenant_id==user.tenant_id,operational_models.VacationReservation.unit_id==unit.id,operational_models.VacationReservation.status.in_(("held","confirmed")),operational_models.VacationReservation.check_in<check_out,operational_models.VacationReservation.check_out>check_in)
+    if exclude:q=q.where(operational_models.VacationReservation.reservation_id!=exclude)
+    if (db.scalar(q) or 0)>=unit.available_units:raise HTTPException(409,"این بازه دیگر موجود نیست")
+    return unit,prop,_villa_stay_pricing(unit,check_in,check_out)
+
+@app.get("/vacation-units/{unit_id}/quote")
+def quote_vacation(unit_id:str,check_in:datetime,check_out:datetime,guests:int=Query(default=1,ge=1,le=100),user:User=Depends(current_user),db:Session=Depends(get_db))->dict:
+    unit,prop,pricing=_vacation_availability(db,user,unit_id,check_in,check_out,guests)
+    return {**pricing,"unit_id":unit.id,"guests":guests,"policy":json.loads(prop.details_json).get("cancellation_policy",{}),"expires_at":(datetime.now(timezone.utc)+timedelta(minutes=5)).isoformat()}
+
+
 @app.post("/vacation-units/{unit_id}/reservations", status_code=201)
-def book_vacation_unit(unit_id: str, data: VacationBookIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+def book_vacation_unit(unit_id: str, data: VacationBookIn, user: User = Depends(require_permission("reservation:create")), db: Session = Depends(get_db)) -> dict:
     prior = db.scalar(select(operational_models.VacationReservation).where(operational_models.VacationReservation.tenant_id == user.tenant_id, operational_models.VacationReservation.command_id == data.command_id))
     if prior:
-        if prior.unit_id != unit_id: raise HTTPException(409, "کلید تکرار برای رزرو دیگری استفاده شده است")
-        return {"id": prior.id, "status": prior.status, "total_amount": prior.total_amount}
+        if prior.unit_id != unit_id or prior.user_id!=user.id or prior.guests!=data.guests or _aware(prior.check_in)!=_aware(data.check_in) or _aware(prior.check_out)!=_aware(data.check_out): raise HTTPException(409, "کلید تکرار برای رزرو دیگری استفاده شده است")
+        return {"id": prior.id,"reservation_id":prior.reservation_id,"checkout_url":f"/checkout/{prior.reservation_id}", "status": prior.status, "total_amount": prior.total_amount}
     check_in, check_out = _aware(data.check_in), _aware(data.check_out)
-    if check_out <= check_in or check_in < datetime.now(timezone.utc): raise HTTPException(422, "بازه اقامت معتبر نیست")
-    unit = db.scalar(select(operational_models.VacationUnit).where(operational_models.VacationUnit.id == unit_id, operational_models.VacationUnit.tenant_id == user.tenant_id, operational_models.VacationUnit.status == "active").with_for_update())
-    if unit is None or data.guests > unit.capacity: raise HTTPException(409, "واحد یا ظرفیت معتبر نیست")
-    overlaps = db.scalar(select(func.count()).select_from(operational_models.VacationReservation).where(operational_models.VacationReservation.tenant_id == user.tenant_id, operational_models.VacationReservation.unit_id == unit.id, operational_models.VacationReservation.status.in_(("held", "confirmed")), operational_models.VacationReservation.check_in < check_out, operational_models.VacationReservation.check_out > check_in)) or 0
-    if overlaps >= unit.available_units: raise HTTPException(409, "این بازه دیگر موجود نیست")
-    pricing = _villa_stay_pricing(unit, check_in, check_out); nights, total = pricing["nights"], pricing["total_amount"]
-    prop = db.scalar(select(operational_models.VacationProperty).where(operational_models.VacationProperty.id == unit.property_id, operational_models.VacationProperty.tenant_id == user.tenant_id))
+    unit,prop,pricing=_vacation_availability(db,user,unit_id,check_in,check_out,data.guests)
+    nights,total=pricing["nights"],pricing["total_amount"]
+    if data.expected_total_amount is not None and total!=data.expected_total_amount:raise HTTPException(409,{"code":"PRICE_CHANGED","new_price":total})
     prop_details = json.loads(prop.details_json) if prop else {}
     policy = prop_details.get("cancellation_policy") if isinstance(prop_details.get("cancellation_policy"), dict) else {}
-    reservation = operational_models.Reservation(tenant_id=user.tenant_id, user_id=user.id, service_type="vacation_rental", status="reserved", booking_reference=f"KS-VILLA-{uuid.uuid4().hex[:10].upper()}", price_snapshot_json=json.dumps({"total_amount": total, "currency": unit.currency, "nights": nights, "guests": data.guests, "min_stay": pricing["min_stay"], "nightly_breakdown": pricing["nightly_breakdown"]}, sort_keys=True), policy_at_booking_json=json.dumps(policy, sort_keys=True), current_policy_json=json.dumps(policy, sort_keys=True)); db.add(reservation); db.flush(); row = operational_models.VacationReservation(tenant_id=user.tenant_id, unit_id=unit.id, user_id=user.id, reservation_id=reservation.id, check_in=check_in, check_out=check_out, guests=data.guests, total_amount=total, command_id=data.command_id); db.add(row); db.flush(); _commerce_event(db, tenant_id=user.tenant_id, kind="vacation_reservation", aggregate_id=row.id, command_id=data.command_id, payload={"status": row.status, "reservation_id": reservation.id})
+    reservation = operational_models.Reservation(tenant_id=user.tenant_id, user_id=user.id, service_type="vacation_rental", status="reserved", booking_reference=f"KS-VILLA-{uuid.uuid4().hex[:10].upper()}", price_snapshot_json=json.dumps({"total_amount": total, "currency": unit.currency, "nights": nights,"unit_id":unit.id,"units":1, "guests": data.guests, "min_stay": pricing["min_stay"], "nightly_breakdown": pricing["nightly_breakdown"]}, sort_keys=True), policy_at_booking_json=json.dumps(policy, sort_keys=True), current_policy_json=json.dumps(policy, sort_keys=True)); db.add(reservation); db.flush(); row = operational_models.VacationReservation(tenant_id=user.tenant_id, unit_id=unit.id, user_id=user.id, reservation_id=reservation.id, check_in=check_in, check_out=check_out, guests=data.guests, total_amount=total, command_id=data.command_id); db.add(row); db.flush(); _commerce_event(db, tenant_id=user.tenant_id, kind="vacation_reservation", aggregate_id=row.id, command_id=data.command_id, payload={"status": row.status, "reservation_id": reservation.id})
+    db.add(operational_models.BookingItem(tenant_id=user.tenant_id,reservation_id=reservation.id,item_type="vacation_rental",snapshot_json=json.dumps({"title":prop.title+" — "+unit.title,"supplier_id":prop.supplier_id,"fulfillment_mode":"manual_supplier","provider_key":"manual_supplier","attributes":{"city":prop.city,"check_in":check_in.isoformat(),"check_out":check_out.isoformat(),"guests":data.guests}})))
     trip = operational_models.ensure_trip_for_reservation(db, reservation, title=f"سفر به {prop.city}", destination=prop.city, starts_at=check_in, ends_at=check_out)
     operational_models.record_trip_event(db, tenant_id=user.tenant_id, trip_id=trip.id, reservation_id=reservation.id, event_key=f"booking-created:{data.command_id}", event_type="booking.created", source="system", title="رزرو ویلا ثبت شد", message=f"رزرو {reservation.booking_reference} برای {prop.title} در {prop.city} ثبت شد.", deep_link=f"/manage-booking/{reservation.id}")
     db.commit(); return {"id": row.id, "reservation_id": reservation.id, "status": row.status, "total_amount": row.total_amount, "currency": unit.currency, "payment_required": True, "checkout_url": f"/checkout/{reservation.id}", "price_breakdown": pricing["nightly_breakdown"]}
@@ -1588,6 +1713,7 @@ def create_tour(data: TourProductIn, user: User = Depends(require_permission("in
 def create_tour_departure(tour_id: str, data: TourDepartureIn, user: User = Depends(require_permission("inventory:manage")), db: Session = Depends(get_db)) -> dict:
     tour = db.scalar(select(operational_models.TourProduct).where(operational_models.TourProduct.id == tour_id, operational_models.TourProduct.tenant_id == user.tenant_id))
     if tour is None or _aware(data.ends_at) <= _aware(data.starts_at) or _aware(data.booking_deadline) > _aware(data.starts_at): raise HTTPException(422, "تور یا تاریخ حرکت معتبر نیست")
+    if tour.supplier_id not in _supplier_scope(db,user):raise HTTPException(403,"این تور به تأمین‌کنندهٔ جاری واگذار نشده است")
     row = operational_models.TourDeparture(tenant_id=user.tenant_id, tour_id=tour.id, starts_at=data.starts_at, ends_at=data.ends_at, booking_deadline=data.booking_deadline, capacity=data.capacity, remaining=data.capacity, base_price=data.base_price, pricing_json=json.dumps(data.pricing, sort_keys=True)); db.add(row); db.commit(); return {"id": row.id, "remaining": row.remaining, "status": row.status}
 
 
@@ -1607,17 +1733,38 @@ def tour_detail(tour_id: str, user: User = Depends(current_user), db: Session = 
     return {"id": row.id, "title": row.title, "origin": row.origin, "destination": row.destination, "tour_type": row.tour_type, "details": details, "visa_status": details.get("visa_status", "VISA_STATUS_UNKNOWN"), "visa_assistance_available": bool(details.get("visa_assistance_available", False)), "departures": [{"id": d.id, "starts_at": d.starts_at.isoformat(), "ends_at": d.ends_at.isoformat(), "remaining": d.remaining, "base_price": d.base_price, "currency": d.currency, "pricing": json.loads(d.pricing_json)} for d in departures]}
 
 
+def _tour_amount(departure, travellers:int, room_type:str) -> int:
+    surcharge=json.loads(departure.pricing_json).get(f"{room_type}_surcharge",0)
+    if not isinstance(surcharge,int) or isinstance(surcharge,bool) or departure.base_price+surcharge<=0:
+        raise HTTPException(409,"قیمت معتبر این نوع اتاق موجود نیست")
+    return (departure.base_price+surcharge)*travellers
+
+
+@app.get("/tour-departures/{departure_id}/quote")
+def quote_tour(departure_id:str,travellers:int=Query(default=1,ge=1,le=100),room_type:str=Query(default="double",pattern="^(single|double|triple|extra_bed)$"),user:User=Depends(current_user),db:Session=Depends(get_db)) -> dict:
+    departure=db.scalar(select(operational_models.TourDeparture).where(operational_models.TourDeparture.id==departure_id,operational_models.TourDeparture.tenant_id==user.tenant_id))
+    now=datetime.now(timezone.utc)
+    if departure is None or departure.status!="active" or _aware(departure.booking_deadline)<=now or departure.remaining<travellers:raise HTTPException(409,"ظرفیت یا مهلت این حرکت قابل تأیید نیست")
+    tour=db.scalar(select(operational_models.TourProduct).where(operational_models.TourProduct.id==departure.tour_id,operational_models.TourProduct.tenant_id==user.tenant_id,operational_models.TourProduct.status=="published"))
+    if tour is None or db.scalar(select(operational_models.Supplier.id).where(operational_models.Supplier.id==tour.supplier_id,operational_models.Supplier.tenant_id==user.tenant_id,operational_models.Supplier.status=="active")) is None:raise HTTPException(404,"تور در دسترس نیست")
+    return {"departure_id":departure.id,"total_amount":_tour_amount(departure,travellers,room_type),"currency":departure.currency,"travellers":travellers,"room_type":room_type,"policy":json.loads(tour.details_json).get("cancellation_policy",{}),"expires_at":min(_aware(departure.booking_deadline),now+timedelta(minutes=5)).isoformat()}
+
+
 @app.post("/tour-departures/{departure_id}/reservations", status_code=201)
-def book_tour(departure_id: str, data: TourBookIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+def book_tour(departure_id: str, data: TourBookIn, user: User = Depends(require_permission("reservation:create")), db: Session = Depends(get_db)) -> dict:
     prior = db.scalar(select(operational_models.TourReservation).where(operational_models.TourReservation.tenant_id == user.tenant_id, operational_models.TourReservation.command_id == data.command_id))
     if prior:
-        if prior.departure_id != departure_id: raise HTTPException(409, "کلید تکرار برای رزرو دیگری استفاده شده است")
-        return {"id": prior.id, "status": prior.status, "total_amount": prior.total_amount}
+        if prior.departure_id != departure_id or prior.user_id!=user.id or prior.travellers!=data.travellers or prior.room_type!=data.room_type: raise HTTPException(409, "کلید تکرار برای رزرو دیگری استفاده شده است")
+        return {"id": prior.id, "reservation_id":prior.reservation_id,"checkout_url":f"/checkout/{prior.reservation_id}","status": prior.status, "total_amount": prior.total_amount}
     departure = db.scalar(select(operational_models.TourDeparture).where(operational_models.TourDeparture.id == departure_id, operational_models.TourDeparture.tenant_id == user.tenant_id).with_for_update())
     now = datetime.now(timezone.utc)
     if departure is None or departure.status != "active" or _aware(departure.booking_deadline) <= now or departure.remaining < data.travellers: raise HTTPException(409, "ظرفیت یا مهلت رزرو تور معتبر نیست")
-    pricing = json.loads(departure.pricing_json); surcharge = int(pricing.get(f"{data.room_type}_surcharge", 0)); total = (departure.base_price + surcharge) * data.travellers
-    tour = db.scalar(select(operational_models.TourProduct).where(operational_models.TourProduct.id == departure.tour_id, operational_models.TourProduct.tenant_id == user.tenant_id)); details = json.loads(tour.details_json) if tour else {}; policy = details.get("cancellation_policy") if isinstance(details.get("cancellation_policy"), dict) else {}; reservation = operational_models.Reservation(tenant_id=user.tenant_id, user_id=user.id, service_type="tour", status="reserved", booking_reference=f"KS-TOUR-{uuid.uuid4().hex[:10].upper()}", price_snapshot_json=json.dumps({"total_amount": total, "currency": departure.currency, "travellers": data.travellers, "room_type": data.room_type, "departure_id": departure.id, "visa_status": details.get("visa_status", "VISA_STATUS_UNKNOWN")}, sort_keys=True), policy_at_booking_json=json.dumps(policy, sort_keys=True), current_policy_json=json.dumps(policy, sort_keys=True)); db.add(reservation); db.flush(); departure.remaining -= data.travellers; row = operational_models.TourReservation(tenant_id=user.tenant_id, departure_id=departure.id, user_id=user.id, reservation_id=reservation.id, travellers=data.travellers, room_type=data.room_type, total_amount=total, command_id=data.command_id); db.add(row); db.flush(); _commerce_event(db, tenant_id=user.tenant_id, kind="tour_reservation", aggregate_id=row.id, command_id=data.command_id, payload={"status": row.status, "remaining": departure.remaining, "reservation_id": reservation.id, "visa_status": details.get("visa_status", "VISA_STATUS_UNKNOWN")})
+    total=_tour_amount(departure,data.travellers,data.room_type)
+    if data.expected_total_amount is not None and total!=data.expected_total_amount:raise HTTPException(409,{"code":"PRICE_CHANGED","new_price":total})
+    tour = db.scalar(select(operational_models.TourProduct).where(operational_models.TourProduct.id == departure.tour_id, operational_models.TourProduct.tenant_id == user.tenant_id))
+    if tour is None or tour.status!="published" or db.scalar(select(operational_models.Supplier.id).where(operational_models.Supplier.id==tour.supplier_id,operational_models.Supplier.tenant_id==user.tenant_id,operational_models.Supplier.status=="active")) is None:raise HTTPException(409,"تور یا تأمین‌کننده فعال نیست")
+    details = json.loads(tour.details_json); policy = details.get("cancellation_policy") if isinstance(details.get("cancellation_policy"), dict) else {}; reservation = operational_models.Reservation(tenant_id=user.tenant_id, user_id=user.id, service_type="tour", status="reserved", booking_reference=f"KS-TOUR-{uuid.uuid4().hex[:10].upper()}", price_snapshot_json=json.dumps({"total_amount": total, "currency": departure.currency, "travellers": data.travellers, "units":data.travellers,"room_type": data.room_type, "departure_id": departure.id, "visa_status": details.get("visa_status", "VISA_STATUS_UNKNOWN")}, sort_keys=True), policy_at_booking_json=json.dumps(policy, sort_keys=True), current_policy_json=json.dumps(policy, sort_keys=True)); db.add(reservation); db.flush(); departure.remaining -= data.travellers; row = operational_models.TourReservation(tenant_id=user.tenant_id, departure_id=departure.id, user_id=user.id, reservation_id=reservation.id, travellers=data.travellers, room_type=data.room_type, total_amount=total, command_id=data.command_id); db.add(row); db.flush(); _commerce_event(db, tenant_id=user.tenant_id, kind="tour_reservation", aggregate_id=row.id, command_id=data.command_id, payload={"status": row.status, "remaining": departure.remaining, "reservation_id": reservation.id, "visa_status": details.get("visa_status", "VISA_STATUS_UNKNOWN")})
+    db.add(operational_models.BookingItem(tenant_id=user.tenant_id,reservation_id=reservation.id,item_type="tour",snapshot_json=json.dumps({"title":tour.title,"supplier_id":tour.supplier_id,"fulfillment_mode":"manual_supplier","provider_key":"manual_supplier","attributes":{"origin":tour.origin,"destination":tour.destination,"departure_time":_aware(departure.starts_at).isoformat(),"arrival_time":_aware(departure.ends_at).isoformat(),"travellers":data.travellers,"room_type":data.room_type}})))
     tour_title = tour.title if tour else "تور"; tour_destination = tour.destination if tour else ""
     trip = operational_models.ensure_trip_for_reservation(db, reservation, title=tour_title, destination=tour_destination, origin=(tour.origin if tour else None), starts_at=departure.starts_at, ends_at=departure.ends_at)
     operational_models.record_trip_event(db, tenant_id=user.tenant_id, trip_id=trip.id, reservation_id=reservation.id, event_key=f"booking-created:{data.command_id}", event_type="booking.created", source="system", title="رزرو تور ثبت شد", message=f"رزرو {reservation.booking_reference} برای {tour_title} ثبت شد.", deep_link=f"/manage-booking/{reservation.id}")
@@ -1696,13 +1843,73 @@ def visa_application_detail(application_id: str, user: User = Depends(current_us
     return {"id": row.id, "status": row.status, "purpose": row.purpose, "travel_at": row.travel_at.isoformat(), "guarantee": False, "trip_id": row.trip_id, "tour_reservation_id": row.tour_reservation_id, "applicants": [{"id": a.id, "full_name": a.full_name, "passport_country": a.passport_country} for a in applicants], "documents": [{"id": d.id, "document_type": d.document_type, "status": d.status, "review_note": d.review_note} for d in documents], "timeline": [{"event_type": e.event_type, "source_type": e.source_type, "message": e.message, "created_at": e.created_at.isoformat()} for e in timeline]}
 
 
+def _validate_train_schedule(attributes: dict) -> datetime:
+    for key in ("origin", "destination", "rail_operator", "train_number", "seat_class"):
+        if not isinstance(attributes.get(key),str) or not attributes[key].strip():
+            raise HTTPException(409, "مشخصات معتبر مسیر و قطار لازم است")
+    try:
+        departure=datetime.fromisoformat(str(attributes.get("departure_time", "")))
+    except ValueError:
+        raise HTTPException(409,"زمان حرکت قطار معتبر نیست")
+    if departure.tzinfo is None or departure<=datetime.now(timezone.utc) or attributes['origin'].strip()==attributes['destination'].strip():
+        raise HTTPException(409,"مسیر یا زمان حرکت قطار قابل رزرو نیست")
+    return departure
+
+
+def _validate_handicraft_contract(attributes:dict)->None:
+    for key in ("city","sku","artisan_name","craft_origin","material","pickup_address","pickup_hours","authenticity_terms","care_instructions"):
+        if not isinstance(attributes.get(key),str) or not attributes[key].strip():raise HTTPException(409,"مشخصات کالا و شرایط تحویل حضوری کامل نیست")
+    if attributes.get("delivery_mode")!="pickup":raise HTTPException(409,"این مسیر فقط برای تحویل حضوری کالا است")
+
+
+def _validate_transport_contract(attributes:dict)->datetime:
+    for key in ("origin","destination","transport_operator","vehicle_class","pickup_point","dropoff_point","luggage_terms","accessibility_terms"):
+        if not isinstance(attributes.get(key),str) or not attributes[key].strip():raise HTTPException(409,"مشخصات مسیر، خودرو و شرایط حمل کامل نیست")
+    try:
+        seats=int(attributes.get("seats_per_vehicle",0));start=datetime.fromisoformat(str(attributes.get("departure_time","")));end=datetime.fromisoformat(str(attributes.get("arrival_time","")))
+    except (ValueError,TypeError):raise HTTPException(409,"زمان یا ظرفیت خودرو معتبر نیست")
+    if not 1<=seats<=20 or start.tzinfo is None or end.tzinfo is None or start<=datetime.now(timezone.utc) or end<=start or attributes["pickup_point"].strip()==attributes["dropoff_point"].strip():raise HTTPException(409,"مسیر، زمان یا ظرفیت خودرو قابل رزرو نیست")
+    return start
+
+
+def _validate_guide_contract(attributes:dict)->datetime:
+    for key in ("city","guide_name","languages","meeting_point","inclusions","exclusions"):
+        if not isinstance(attributes.get(key),str) or not attributes[key].strip():raise HTTPException(409,"مشخصات و حدود خدمت راهنما کامل نیست")
+    try:
+        size=int(attributes.get("group_capacity",0));start=datetime.fromisoformat(str(attributes.get("departure_time","")));end=datetime.fromisoformat(str(attributes.get("arrival_time","")))
+    except (ValueError,TypeError):raise HTTPException(409,"زمان یا ظرفیت گروه معتبر نیست")
+    if not 1<=size<=20 or start.tzinfo is None or end.tzinfo is None or start<=datetime.now(timezone.utc) or end<=start:raise HTTPException(409,"زمان یا ظرفیت گروه قابل رزرو نیست")
+    return start
+
+
+def _validate_car_allotment(attributes:dict) -> datetime:
+    for key in ("city","vehicle_class","pickup_location","return_location","deposit_terms","license_terms","insurance_terms","mileage_terms"):
+        if not isinstance(attributes.get(key),str) or not attributes[key].strip():raise HTTPException(409,"مشخصات خودرو، تحویل و شرایط قرارداد کامل نیست")
+    try:
+        start=datetime.fromisoformat(str(attributes.get("rental_start","")));end=datetime.fromisoformat(str(attributes.get("rental_end","")))
+    except ValueError:raise HTTPException(409,"زمان تحویل و بازگشت خودرو معتبر نیست")
+    if start.tzinfo is None or end.tzinfo is None or start<=datetime.now(timezone.utc) or end<=start or end-start>timedelta(days=365):raise HTTPException(409,"بازهٔ اجاره قابل رزرو نیست")
+    return start
+
+
 @app.post("/supplier/offers", status_code=status.HTTP_201_CREATED)
-def create_supplier_offer(data: SupplierOfferIn, user: User = Depends(require_permission("inventory:manage")), db: Session = Depends(get_db)) -> dict:
+def create_supplier_offer(data: SupplierOfferIn, user: User = Depends(require_permission("inventory:manage")), db: Session = Depends(get_db), idempotency_key: Optional[str] = Header(default=None,alias="Idempotency-Key",min_length=8,max_length=120)) -> dict:
     if data.supplier_id not in _supplier_scope(db, user):
         raise HTTPException(status_code=403, detail="این تأمین‌کننده به کاربر جاری واگذار نشده است")
     supplier = db.scalar(select(operational_models.Supplier).where(operational_models.Supplier.id == data.supplier_id, operational_models.Supplier.tenant_id == user.tenant_id).with_for_update())
     if supplier is None or supplier.status != "active":
         raise HTTPException(status_code=409, detail="تأمین‌کننده فعال و احرازشده نیست")
+    request_hash=_secure_hash(str(user.id)+json.dumps(data.model_dump(),sort_keys=True))
+    if idempotency_key:
+        prior=db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id==user.tenant_id,operational_models.IdempotencyKey.scope=="offer.create",operational_models.IdempotencyKey.key==idempotency_key))
+        if prior:
+            if prior.request_hash!=request_hash:raise HTTPException(409,"شناسهٔ درخواست برای اطلاعات دیگری استفاده شده است")
+            return json.loads(prior.response_json)
+    if data.service_type == "train":_validate_train_schedule(data.attributes)
+    if data.service_type == "car_rental":_validate_car_allotment(data.attributes)
+    if data.service_type == "travel_guide":_validate_guide_contract(data.attributes)
+    if data.service_type == "tourist_transportation":_validate_transport_contract(data.attributes)
+    if data.service_type == "handicraft":_validate_handicraft_contract(data.attributes)
     if data.service_type == "package" and (not isinstance(data.attributes.get("items"), list) or len(data.attributes["items"]) < 2):
         raise HTTPException(status_code=422, detail="پکیج باید حداقل دو جزء معتبر داشته باشد")
     if data.policy.get("verified") is not True or not data.policy.get("source") or not data.policy.get("verified_at"):
@@ -1710,8 +1917,9 @@ def create_supplier_offer(data: SupplierOfferIn, user: User = Depends(require_pe
     offer = operational_models.Offer(tenant_id=user.tenant_id, supplier_id=supplier.id, service_type=data.service_type, title=data.title, amount=data.amount, available_units=data.available_units, valid_until=datetime.now(timezone.utc) + timedelta(minutes=data.valid_minutes), policy_json=json.dumps(data.policy, sort_keys=True), attributes_json=json.dumps(data.attributes, sort_keys=True), fulfillment_mode=data.fulfillment_mode, provider_key=data.provider_key)
     db.add(offer); db.flush()
     db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="offer", aggregate_id=offer.id, event_type="offer.published", payload_json=json.dumps({"offer_id": offer.id, "service_type": offer.service_type}), correlation_id=str(uuid.uuid4()), idempotency_key=f"offer:{offer.id}"))
-    db.commit()
-    return {"id": offer.id, "service_type": offer.service_type, "status": offer.status, "available_units": offer.available_units}
+    result={"id":offer.id,"service_type":offer.service_type,"status":offer.status,"available_units":offer.available_units}
+    if idempotency_key:db.add(operational_models.IdempotencyKey(tenant_id=user.tenant_id,scope="offer.create",key=idempotency_key,request_hash=request_hash,response_json=json.dumps(result)))
+    db.commit();return result
 
 
 @app.post("/supplier/onboarding", status_code=status.HTTP_201_CREATED)
@@ -1846,30 +2054,11 @@ def public_search_autocomplete(q: str) -> dict:
 
 
 def _grs_hotel_offers_for_search(*, tenant_id: int, query: str, min_price: Optional[int], max_price: Optional[int], min_review_score: Optional[float], refundable: Optional[bool], instant_booking: Optional[bool], check_in: Optional[str], check_out: Optional[str], travellers: int = 1, db: Session, adapter=None) -> list[dict]:
-    """GRS-sourced hotel offers normalized into the exact search_offers() result
-    shape - Manual/Existing providers are never touched by this function. Never
-    raises and never blocks the rest of Search: any disablement, missing
-    location mapping, missing dates, failure or timeout is a partial provider
-    failure (empty list + a recorded business event), never a Search-wide error.
-    Returns [] immediately when GRS is disabled (today's only real state in
-    every environment) - this is the zero-cost, zero-behavior-change path.
-
-    Known, deliberate limitation: the current internal Search contract
-    (UnifiedSearchIn/OfferSearchIn) does not yet collect check_in/check_out
-    end-to-end from the frontend (the frontend already has depart/return in the
-    UI, but does not send them as `filters.check_in`/`filters.check_out` yet -
-    a separate, frontend-side change this phase's UI-freeze constraint
-    explicitly forbids making). Without dates, GRS's mandatory check_in/
-    check_out requirement cannot be honestly satisfied, so this returns []
-    rather than guessing a date range.
+    """Read-only supplier suggestions; incomplete stays and unknown currency fail closed.
+    Search is not a supplier quote or hold. Booking needs a verified contract.
     """
     from .providers import configured_mode
-    if adapter is None and configured_mode("hotel") == "disabled":
-        # Zero-cost real-world path: GRS is disabled everywhere today, so this
-        # returns before touching ADAPTERS/DB/config at all. When a test
-        # explicitly injects an adapter, that adapter's own mode/validate_
-        # configuration() is the source of truth instead (GRSAdapter.execute()
-        # already fails closed on disabled/misconfigured on its own).
+    if adapter is None and configured_mode("hotel") == "disabled" and os.getenv("GRS_MODE", "disabled") == "disabled":
         return []
     if not check_in or not check_out:
         return []
@@ -1882,9 +2071,15 @@ def _grs_hotel_offers_for_search(*, tenant_id: int, query: str, min_price: Optio
         # GRSAdapter itself; test path: whatever was injected) rather than a
         # fresh GRSConfig.from_env() here, which would ignore an injected
         # test adapter's config entirely and always see the disabled default.
-        config = getattr(resolved_adapter, "_config", None) or GRSConfig.from_env()
+        config = getattr(getattr(resolved_adapter, "adapter", resolved_adapter), "_config", None) or GRSConfig.from_env()
         if not config.can_accept_bookable_prices():
             return []
+        arrival = date.fromisoformat(check_in)
+        departure = date.fromisoformat(check_out)
+        nights = (departure - arrival).days
+        if not 1 <= nights <= 90:
+            return []
+        stay_days = {(arrival + timedelta(days=n)).isoformat() for n in range(nights)}
         normalized_query = _normalize_search_text(query)
         candidates = db.scalars(select(operational_models.ProviderLocationMapping).where(operational_models.ProviderLocationMapping.tenant_id == tenant_id, operational_models.ProviderLocationMapping.provider_key == "grs")).all()
         mapping = next((item for item in candidates if _normalize_search_text(item.provider_name) == normalized_query), None)
@@ -1912,13 +2107,16 @@ def _grs_hotel_offers_for_search(*, tenant_id: int, query: str, min_price: Optio
             property_name = str(suggestion.get("property_name", ""))
             for room in suggestion.get("rooms", []) or []:
                 for rate_plan in room.get("rate_plans", []) or []:
-                    price = next((p for p in (rate_plan.get("prices") or []) if not p.get("closed") and int(p.get("inventory", 0) or 0) > 0), None)
-                    if price is None:
+                    prices = [p for p in (rate_plan.get("prices") or []) if p.get("day") in stay_days]
+                    if len(prices) != nights or {p.get("day") for p in prices} != stay_days:
                         continue
-                    amount = int(price.get("daily_rate", price.get("grs_rate", 0)) or 0)
-                    if amount <= 0:
+                    if any(p.get("closed") or int(p.get("inventory", 0) or 0) <= 0 for p in prices):
                         continue
-                    entity_id = f"grs:{property_id}:{room.get('room_type_id')}:{rate_plan.get('id')}"
+                    rates = [int(p.get("daily_rate", p.get("grs_rate", 0)) or 0) for p in prices]
+                    if any(rate <= 0 for rate in rates):
+                        continue
+                    amount = sum(rates) * (10 if config.money_unit == "IRT" else 1)
+                    entity_id = f"grs:{property_id}:{room.get('room_type_id')}:{rate_plan.get('id')}:{check_in}:{check_out}"
                     cancelable = bool(rate_plan.get("cancelable"))
                     normalized.append({
                         "id": entity_id, "offer_id": entity_id, "entity_id": entity_id,
@@ -1928,13 +2126,13 @@ def _grs_hotel_offers_for_search(*, tenant_id: int, query: str, min_price: Optio
                         "availability_checked_at": now.isoformat(), "price_checked_at": now.isoformat(),
                         "freshness_ttl_seconds": 300, "freshness": "live", "freshness_state": "LIVE",
                         "amount": amount, "base_price": amount, "taxes": 0, "fees": 0, "discounts": 0,
-                        "total_amount": amount, "final_price": amount, "currency": config.money_unit,
-                        "available": True, "availability_state": "CONFIRMED", "inventory_status": "available",
-                        "available_units": int(price.get("inventory", 0) or 0),
-                        "cancellation_policy": {"refundable": cancelable}, "policy_verified": True,
+                        "total_amount": amount, "final_price": amount, "currency": "IRR",
+                        "available": True, "availability_state": "REQUIRES_RECHECK", "inventory_status": "requires_recheck",
+                        "available_units": min(int(p["inventory"]) for p in prices),
+                        "cancellation_policy": {"refundable": cancelable}, "policy_verified": False,
                         "quality_score": None, "review_score": None, "location": {},
-                        "attributes": {"room_type_name": room.get("room_type_name", ""), "rate_plan_name": rate_plan.get("name", ""), "grs_property_id": property_id},
-                        "valid_until": (now + timedelta(hours=1)).isoformat(),
+                        "attributes": {"room_type": room.get("room_type_name", ""), "rate_plan_name": rate_plan.get("name", ""), "grs_property_id": property_id, "check_in": check_in, "check_out": check_out, "nights": nights, "quote_required": True},
+                        "valid_until": (now + timedelta(seconds=300)).isoformat(),
                         "ranking_breakdown": {}, "ranking_score": 0.0, "ranking_explanation": [],
                     })
         filtered: list[dict] = []
@@ -2021,6 +2219,8 @@ _SEARCH_SERVICE_URL = os.getenv("SEARCH_SERVICE_URL", "http://karenseir-search:8
 
 
 class _OfferPoolIn(BaseModel):
+    filters: dict = Field(default_factory=dict)
+    travellers: int = Field(default=1,ge=1,le=100)
     service_type: str = Field(pattern=ECOSYSTEM_SERVICE_PATTERN)
     public: bool = True
     tenant_ref: Optional[str] = Field(default=None, max_length=120)
@@ -2057,6 +2257,23 @@ def internal_search_offer_pool(data: _OfferPoolIn, x_internal_token: str = Heade
         "created_at": _aware(r.created_at).isoformat() if r.created_at else None,
         "updated_at": _aware(r.updated_at).isoformat() if r.updated_at else None,
     } for r in rows]
+    if data.service_type=="tour":
+        pairs=db.execute(select(operational_models.TourProduct,operational_models.TourDeparture).join(operational_models.TourDeparture,operational_models.TourDeparture.tour_id==operational_models.TourProduct.id).join(operational_models.Supplier,operational_models.Supplier.id==operational_models.TourProduct.supplier_id).where(operational_models.TourProduct.tenant_id==tenant_id,operational_models.TourDeparture.tenant_id==tenant_id,operational_models.Supplier.tenant_id==tenant_id,operational_models.Supplier.status=="active",operational_models.TourProduct.status=="published",operational_models.TourDeparture.status=="active",operational_models.TourDeparture.booking_deadline>now,operational_models.TourDeparture.remaining>0)).all()
+        for tour,departure in pairs:
+            try:amount=_tour_amount(departure,1,"double")
+            except HTTPException:continue
+            offers.append({"id":"tour:"+departure.id,"service_type":"tour","title":tour.title,"amount":amount,"currency":departure.currency,"available_units":departure.remaining,"provider_key":"manual_supplier","fulfillment_mode":"manual_supplier","attributes":{"tour_product_id":tour.id,"tour_departure_id":departure.id,"origin":tour.origin,"destination":tour.destination,"departure_time":_aware(departure.starts_at).isoformat(),"arrival_time":_aware(departure.ends_at).isoformat()},"policy":json.loads(tour.details_json).get("cancellation_policy",{}),"valid_until":_aware(departure.booking_deadline).isoformat(),"updated_at":_aware(departure.updated_at).isoformat()})
+    if data.service_type=="vacation_rental":
+        from types import SimpleNamespace
+        try:
+            check_in=datetime.fromisoformat(str(data.filters.get("check_in",""))+"T12:00:00+00:00")
+            check_out=datetime.fromisoformat(str(data.filters.get("check_out",""))+"T12:00:00+00:00")
+        except ValueError:return {"service_type":data.service_type,"public":data.public,"offers":offers}
+        units=db.scalars(select(operational_models.VacationUnit).where(operational_models.VacationUnit.tenant_id==tenant_id,operational_models.VacationUnit.status=="active")).all()
+        for item in units:
+            try:unit,prop,pricing=_vacation_availability(db,SimpleNamespace(tenant_id=tenant_id),item.id,check_in,check_out,data.travellers)
+            except HTTPException:continue
+            offers.append({"id":"vacation:"+unit.id,"service_type":"vacation_rental","title":prop.title+" — "+unit.title,"amount":pricing["total_amount"],"currency":unit.currency,"available_units":1,"provider_key":"manual_supplier","fulfillment_mode":"manual_supplier","attributes":{"vacation_property_id":prop.id,"vacation_unit_id":unit.id,"city":prop.city,"capacity":unit.capacity,"check_in":check_in.date().isoformat(),"check_out":check_out.date().isoformat(),"nights":pricing["nights"]},"policy":json.loads(prop.details_json).get("cancellation_policy",{}),"valid_until":(now+timedelta(minutes=5)).isoformat(),"updated_at":now.isoformat()})
     return {"service_type": data.service_type, "public": data.public, "offers": offers}
 
 
@@ -2286,6 +2503,16 @@ def budget_trips(data: BudgetTripIn, user: User = Depends(current_user), db: Ses
     return {"budget": data.budget, "categories": {"cheapest": cheapest, "best_value": value, "best_quality": quality, "ai_recommended": None}, "bookable_only_with_live_inventory": True, "ai_status": "not_configured"}
 
 
+@app.get("/offers/{offer_id}")
+def offer_detail(offer_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    offer = db.scalar(select(operational_models.Offer).where(operational_models.Offer.id == offer_id, operational_models.Offer.tenant_id == user.tenant_id))
+    if offer is None: raise HTTPException(status_code=404, detail="این گزینه در دسترس نیست")
+    attrs = json.loads(offer.attributes_json)
+    amount = max(0, offer.amount + int(attrs.get("taxes", 0) or 0) + int(attrs.get("fees", 0) or 0) - int(attrs.get("discounts", 0) or 0))
+    safe_attributes = {key: attrs[key] for key in ("city", "description", "origin", "destination", "departure_time", "arrival_time", "airline", "baggage", "room_type", "amenities", "stars", "breakfast", "rail_operator", "train_number", "seat_class", "vehicle_class", "pickup_location", "return_location", "rental_start", "rental_end", "deposit_terms", "license_terms", "insurance_terms", "mileage_terms", "guide_name", "languages", "meeting_point", "group_capacity", "inclusions", "exclusions", "transport_operator", "seats_per_vehicle", "pickup_point", "dropoff_point", "luggage_terms", "accessibility_terms", "sku", "artisan_name", "craft_origin", "material", "pickup_address", "pickup_hours", "authenticity_terms", "care_instructions", "delivery_mode") if key in attrs}
+    return {"booking_detail_url":("/experience-products/"+str(attrs["leisure_product_id"])) if attrs.get("leisure_product_id") else None,"id": offer.id, "title": offer.title, "service_type": offer.service_type, "amount": amount, "currency": offer.currency, "policy": json.loads(offer.policy_json), "attributes": safe_attributes, "valid_until": offer.valid_until.isoformat(), "provider_required": offer.fulfillment_mode == "provider", "available": offer.status == "active" and offer.available_units > 0 and _aware(offer.valid_until) > datetime.now(timezone.utc), "max_units": offer.available_units}
+
+
 @app.post("/offers/{offer_id}/price-check", status_code=status.HTTP_201_CREATED)
 def price_check(offer_id: str, data: PriceCheckIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
     existing = db.scalar(select(operational_models.PriceCheck).where(operational_models.PriceCheck.tenant_id == user.tenant_id, operational_models.PriceCheck.command_id == data.command_id))
@@ -2297,12 +2524,24 @@ def price_check(offer_id: str, data: PriceCheckIn, user: User = Depends(current_
     now = datetime.now(timezone.utc)
     if offer is None or offer.status != "active" or _aware(offer.valid_until) <= now or offer.available_units < data.units:
         raise HTTPException(status_code=409, detail="Offer قابل قیمت‌سنجی نیست")
+    if offer.fulfillment_mode == "provider":
+        raise HTTPException(status_code=503, detail={"code": "PROVIDER_QUOTE_REQUIRED", "message": "قیمت و موجودی باید از مسیر تأییدشدهٔ تأمین‌کننده بررسی شود"})
+    if json.loads(offer.attributes_json).get("leisure_product_id"):raise HTTPException(409,"نوع بلیت و سانس را از صفحهٔ جزئیات خدمت انتخاب کنید")
+    if offer.service_type == "train":_validate_train_schedule(json.loads(offer.attributes_json))
+    if offer.service_type == "car_rental":_validate_car_allotment(json.loads(offer.attributes_json))
+    if offer.service_type == "travel_guide":_validate_guide_contract(json.loads(offer.attributes_json))
+    if offer.service_type == "tourist_transportation":_validate_transport_contract(json.loads(offer.attributes_json))
+    if offer.service_type == "handicraft":_validate_handicraft_contract(json.loads(offer.attributes_json))
     attributes = json.loads(offer.attributes_json); final_unit_price = max(0, offer.amount + int(attributes.get("taxes", 0) or 0) + int(attributes.get("fees", 0) or 0) - int(attributes.get("discounts", 0) or 0)); final_total = final_unit_price * data.units
     if data.expected_final_price is not None and data.expected_final_price != final_total:
         raise HTTPException(status_code=409, detail={"code": "PRICE_CHANGED", "old_price": data.expected_final_price, "new_price": final_total, "delta": final_total - data.expected_final_price, "checked_at": now.isoformat()})
     snapshot = {"offer_id": offer.id, "service_type": offer.service_type, "supplier_id": offer.supplier_id, "title": offer.title, "unit_amount": final_unit_price, "units": data.units, "total_amount": final_total, "currency": offer.currency, "policy": json.loads(offer.policy_json), "attributes": attributes, "provider_key": offer.provider_key, "fulfillment_mode": offer.fulfillment_mode, "checked_at": now.isoformat(), "availability_state": "CONFIRMED", "price_state": "RECHECKED"}
     encoded = json.dumps(snapshot, sort_keys=True, separators=(",", ":"))
     expires_at = min(_aware(offer.valid_until), now + timedelta(minutes=10))
+    if offer.service_type == "train":expires_at=min(expires_at,_validate_train_schedule(attributes))
+    if offer.service_type == "car_rental":expires_at=min(expires_at,_validate_car_allotment(attributes))
+    if offer.service_type == "travel_guide":expires_at=min(expires_at,_validate_guide_contract(attributes))
+    if offer.service_type == "tourist_transportation":expires_at=min(expires_at,_validate_transport_contract(attributes))
     row = operational_models.PriceCheck(tenant_id=user.tenant_id, offer_id=offer.id, user_id=user.id, command_id=data.command_id, amount=snapshot["total_amount"], currency=offer.currency, units=data.units, snapshot_json=encoded, snapshot_hash=_secure_hash(encoded), expires_at=expires_at)
     db.add(row); db.commit()
     return {"id": row.id, "offer_id": row.offer_id, "amount": row.amount, "currency": row.currency, "expires_at": row.expires_at.isoformat()}
@@ -2323,9 +2562,12 @@ def orchestrate_booking(data: OrchestrationBookingIn, user: User = Depends(curre
     offer = db.scalar(select(operational_models.Offer).where(operational_models.Offer.id == check.offer_id, operational_models.Offer.tenant_id == user.tenant_id).with_for_update())
     if offer is None or offer.available_units < check.units or offer.status != "active":
         raise HTTPException(status_code=409, detail="موجودی Offer کافی نیست")
+    if offer.fulfillment_mode == "provider":
+        raise HTTPException(status_code=503, detail={"code": "PROVIDER_HOLD_REQUIRED", "message": "رزرو تأمین‌کننده هنوز تأیید نشده است"})
     snapshot = json.loads(check.snapshot_json)
     if not hmac.compare_digest(check.snapshot_hash, _secure_hash(check.snapshot_json)):
         raise HTTPException(status_code=409, detail="Price Check integrity نامعتبر است")
+    if snapshot.get("leisure_session_id"):_check_ticket_quotas(db,user.tenant_id,offer.id,snapshot.get("ticket_breakdown",[]))
     reference = "KS-" + secrets.token_hex(8).upper()
     licensed_entity_id, sales_channel_id = _resolve_transaction_provenance(db, user, data.licensed_entity_id, data.sales_channel_id)
     reservation = operational_models.Reservation(tenant_id=user.tenant_id, user_id=user.id, licensed_entity_id=licensed_entity_id, sales_channel_id=sales_channel_id, service_type=snapshot["service_type"], status="reserved", booking_reference=reference, price_check_id=check.id, price_snapshot_json=json.dumps({"total_amount": check.amount, "currency": check.currency, "units": check.units, "checked_at": snapshot["checked_at"]}, sort_keys=True), policy_at_booking_json=json.dumps(snapshot["policy"], sort_keys=True), current_policy_json=json.dumps(snapshot["policy"], sort_keys=True))
@@ -2362,10 +2604,10 @@ def orchestrate_booking(data: OrchestrationBookingIn, user: User = Depends(curre
     leisure_session_id = attrs.get("leisure_session_id")
     if leisure_session_id:
         leisure_session = db.scalar(select(operational_models.LeisureSession).where(operational_models.LeisureSession.id == leisure_session_id, operational_models.LeisureSession.tenant_id == user.tenant_id).with_for_update())
-        if leisure_session is None or leisure_session.capacity_available < check.units:
+        if leisure_session is None or leisure_session.status!="active" or _aware(leisure_session.ends_at)<=now or (leisure_session.sales_end_at and _aware(leisure_session.sales_end_at)<=now) or leisure_session.capacity_available < check.units:
             raise HTTPException(status_code=409, detail="ظرفیت این جلسه کافی نیست")
         leisure_session.capacity_available -= check.units
-    trip = operational_models.ensure_trip_for_reservation(db, reservation, title=snapshot["title"], destination=attrs.get("city") or attrs.get("destination") or snapshot["title"])
+    trip = operational_models.ensure_trip_for_reservation(db, reservation, title=snapshot["title"], origin=attrs.get("origin") if snapshot["service_type"]=="tourist_transportation" else None, destination=attrs.get("city") or attrs.get("destination") or snapshot["title"],starts_at=datetime.fromisoformat(attrs.get("rental_start") or attrs["departure_time"]) if snapshot["service_type"] in {"car_rental","travel_guide","tourist_transportation"} else None,ends_at=datetime.fromisoformat(attrs.get("rental_end") or attrs["arrival_time"]) if snapshot["service_type"] in {"car_rental","travel_guide","tourist_transportation"} else None)
     operational_models.record_trip_event(db, tenant_id=user.tenant_id, trip_id=trip.id, reservation_id=reservation.id, event_key=f"booking-created:{data.command_id}", event_type="booking.created", source="system", title="رزرو ثبت شد", message=f"رزرو {reservation.booking_reference} برای {snapshot['title']} ثبت شد.", deep_link=f"/manage-booking/{reservation.id}")
     response = {**_reservation_output(reservation), "price_check_id": check.id}
     db.add(operational_models.IdempotencyKey(tenant_id=user.tenant_id, scope="orchestration.booking", key=data.command_id, request_hash=_secure_hash(data.price_check_id), response_json=json.dumps(response)))
@@ -2379,6 +2621,9 @@ def fulfill_reservation(reservation_id: str, data: FulfillmentIn, user: User = D
     reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == reservation_id, operational_models.Reservation.tenant_id == user.tenant_id).with_for_update())
     if reservation is None:
         raise HTTPException(status_code=404, detail="رزرو در این tenant وجود ندارد")
+    owned_item=db.scalar(select(operational_models.BookingItem).where(operational_models.BookingItem.reservation_id==reservation.id,operational_models.BookingItem.tenant_id==user.tenant_id))
+    if user.role=="supplier" and (owned_item is None or json.loads(owned_item.snapshot_json).get("supplier_id") not in _supplier_scope(db,user)):
+        raise HTTPException(403,"این رزرو به تأمین‌کنندهٔ جاری واگذار نشده است")
     existing_voucher = db.scalar(select(operational_models.Voucher).where(operational_models.Voucher.tenant_id == user.tenant_id, operational_models.Voucher.reservation_id == reservation.id))
     if reservation.status == "issued" and existing_voucher:
         existing_ticket = db.scalar(select(operational_models.Ticket).where(operational_models.Ticket.tenant_id == user.tenant_id, operational_models.Ticket.reservation_id == reservation.id, operational_models.Ticket.qr_token.isnot(None)))
@@ -2442,7 +2687,7 @@ def _sync_leisure_session_offer(db: Session, *, tenant_id: int, product: "operat
     sessions of the same product share entity_id so search groups them."""
     ticket_types = db.scalars(select(operational_models.LeisureTicketType).where(operational_models.LeisureTicketType.tenant_id == tenant_id, operational_models.LeisureTicketType.experience_product_id == product.id, operational_models.LeisureTicketType.active.is_(True))).all()
     now = datetime.now(timezone.utc)
-    sellable = session.status == "active" and session.capacity_available > 0 and _aware(session.ends_at) > now and (session.sales_start_at is None or _aware(session.sales_start_at) <= now) and (session.sales_end_at is None or _aware(session.sales_end_at) > now)
+    sellable = product.booking_mode not in ("DISCOVERY_ONLY","VENUE_INQUIRY") and session.status == "active" and session.capacity_available > 0 and _aware(session.ends_at) > now and (session.sales_start_at is None or _aware(session.sales_start_at) <= now) and (session.sales_end_at is None or _aware(session.sales_end_at) > now)
     from_price = min((t.price for t in ticket_types), default=0)
     attrs = {"entity_id": f"leisure-product:{product.id}", "leisure_place_id": place.id, "leisure_product_id": product.id, "leisure_session_id": session.id, "place_type": place.place_type, "booking_mode": product.booking_mode, "subtype": product.subtype, "city": place.city, "address": place.address, "latitude": float(place.latitude) if place.latitude is not None else None, "longitude": float(place.longitude) if place.longitude is not None else None, "session_starts_at": session.starts_at.isoformat(), "session_ends_at": session.ends_at.isoformat(), "ticket_types": [_leisure_ticket_type_output(t) for t in ticket_types], "amenities": json.loads(place.amenities_json), "observed_at": now.isoformat()}
     policy = json.loads(product.cancellation_policy_json or "{}")
@@ -2501,6 +2746,7 @@ def place_detail(place_id: str, user: User = Depends(current_user), db: Session 
 def create_experience_product(place_id: str, data: ExperienceProductIn, user: User = Depends(require_permission("inventory:manage")), db: Session = Depends(get_db)) -> dict:
     place = db.scalar(select(operational_models.Place).where(operational_models.Place.id == place_id, operational_models.Place.tenant_id == user.tenant_id))
     if place is None: raise HTTPException(404, "مکان در این tenant وجود ندارد")
+    if place.supplier_id not in _supplier_scope(db,user):raise HTTPException(403,"این محل به تأمین‌کنندهٔ جاری واگذار نشده است")
     row = operational_models.ExperienceProduct(tenant_id=user.tenant_id, place_id=place.id, supplier_id=place.supplier_id, service_type=data.service_type, subtype=data.subtype, title=data.title, description=data.description, duration_minutes=data.duration_minutes, booking_mode=data.booking_mode, cancellation_policy_json=json.dumps(data.cancellation_policy, sort_keys=True), restrictions_json=json.dumps(data.restrictions, sort_keys=True), status="published")
     db.add(row); db.commit()
     return _leisure_product_output(row)
@@ -2510,6 +2756,7 @@ def create_experience_product(place_id: str, data: ExperienceProductIn, user: Us
 def create_leisure_ticket_type(product_id: str, data: LeisureTicketTypeIn, user: User = Depends(require_permission("inventory:manage")), db: Session = Depends(get_db)) -> dict:
     product = db.scalar(select(operational_models.ExperienceProduct).where(operational_models.ExperienceProduct.id == product_id, operational_models.ExperienceProduct.tenant_id == user.tenant_id))
     if product is None: raise HTTPException(404, "محصول در این tenant وجود ندارد")
+    if product.supplier_id not in _supplier_scope(db,user):raise HTTPException(403,"این محصول به تأمین‌کنندهٔ جاری واگذار نشده است")
     if data.min_age is not None and data.max_age is not None and data.min_age > data.max_age: raise HTTPException(422, "بازه سنی معتبر نیست")
     row = operational_models.LeisureTicketType(tenant_id=user.tenant_id, experience_product_id=product.id, code=data.code, label=data.label, price=data.price, currency=data.currency, quota=data.quota, min_age=data.min_age, max_age=data.max_age, restrictions_json=json.dumps(data.restrictions, sort_keys=True), active=data.active)
     db.add(row); db.flush()
@@ -2524,8 +2771,15 @@ def create_leisure_ticket_type(product_id: str, data: LeisureTicketTypeIn, user:
 def create_leisure_session(product_id: str, data: LeisureSessionIn, user: User = Depends(require_permission("inventory:manage")), db: Session = Depends(get_db)) -> dict:
     product = db.scalar(select(operational_models.ExperienceProduct).where(operational_models.ExperienceProduct.id == product_id, operational_models.ExperienceProduct.tenant_id == user.tenant_id))
     if product is None: raise HTTPException(404, "محصول در این tenant وجود ندارد")
+    if product.supplier_id not in _supplier_scope(db,user):raise HTTPException(403,"این محصول به تأمین‌کنندهٔ جاری واگذار نشده است")
     if _aware(data.ends_at) <= _aware(data.starts_at): raise HTTPException(422, "بازه زمانی جلسه معتبر نیست")
     place = db.scalar(select(operational_models.Place).where(operational_models.Place.id == product.place_id, operational_models.Place.tenant_id == user.tenant_id))
+    if product.service_type=="event_hall":
+        db.scalar(select(operational_models.Place).where(operational_models.Place.id==place.id,operational_models.Place.tenant_id==user.tenant_id).with_for_update())
+        if product.booking_mode=="FIXED_PACKAGE" and data.capacity_total!=1:raise HTTPException(422,"رزرو کل تالار در هر بازه فقط یک ظرفیت دارد")
+        overlap=select(operational_models.LeisureSession.id).join(operational_models.ExperienceProduct,operational_models.ExperienceProduct.id==operational_models.LeisureSession.experience_product_id).where(operational_models.ExperienceProduct.tenant_id==user.tenant_id,operational_models.LeisureSession.tenant_id==user.tenant_id,operational_models.ExperienceProduct.place_id==place.id,operational_models.LeisureSession.status=="active",operational_models.LeisureSession.starts_at<data.ends_at,operational_models.LeisureSession.ends_at>data.starts_at)
+        if product.booking_mode!="FIXED_PACKAGE":overlap=overlap.where(operational_models.ExperienceProduct.booking_mode=="FIXED_PACKAGE")
+        if db.scalar(overlap.limit(1)):raise HTTPException(409,"این تالار در بازهٔ انتخاب‌شده تخصیص دیگری دارد")
     row = operational_models.LeisureSession(tenant_id=user.tenant_id, experience_product_id=product.id, starts_at=data.starts_at, ends_at=data.ends_at, sales_start_at=data.sales_start_at, sales_end_at=data.sales_end_at, capacity_total=data.capacity_total, capacity_available=data.capacity_total, restrictions_json=json.dumps(data.restrictions, sort_keys=True))
     db.add(row); db.flush()
     _sync_leisure_session_offer(db, tenant_id=user.tenant_id, product=product, place=place, session=row)
@@ -2539,7 +2793,7 @@ def experience_product_detail(product_id: str, date: Optional[str] = None, user:
     if product is None: raise HTTPException(404, "محصول وجود ندارد")
     place = db.scalar(select(operational_models.Place).where(operational_models.Place.id == product.place_id, operational_models.Place.tenant_id == user.tenant_id))
     now = datetime.now(timezone.utc)
-    query = select(operational_models.LeisureSession).where(operational_models.LeisureSession.tenant_id == user.tenant_id, operational_models.LeisureSession.experience_product_id == product.id, operational_models.LeisureSession.status == "active", operational_models.LeisureSession.ends_at > now)
+    query = select(operational_models.LeisureSession).where(operational_models.LeisureSession.tenant_id == user.tenant_id, operational_models.LeisureSession.experience_product_id == product.id, operational_models.LeisureSession.status == "active", operational_models.LeisureSession.capacity_available > 0, operational_models.LeisureSession.ends_at > now)
     if date:
         try:
             day = datetime.fromisoformat(date).date()
@@ -2551,14 +2805,32 @@ def experience_product_detail(product_id: str, date: Optional[str] = None, user:
     return {"place": _leisure_place_output(place) if place else None, "product": _leisure_product_output(product), "sessions": [_leisure_session_output(s) for s in sessions], "ticket_types": [_leisure_ticket_type_output(t) for t in ticket_types]}
 
 
+def _entry_requirements(product,session):
+    rules=[]
+    for record in [product,session]:
+        values=json.loads(record.restrictions_json or "{}").get("entry_rules",[])
+        if isinstance(values,list):rules.extend(x for x in values if isinstance(x,str) and x.strip())
+    return list(dict.fromkeys(rules))
+
+
+def _check_ticket_quotas(db,tenant_id,offer_id,selections):
+    snapshots=db.scalars(select(operational_models.PriceCheck.snapshot_json).join(operational_models.Reservation,operational_models.Reservation.price_check_id==operational_models.PriceCheck.id).where(operational_models.Reservation.tenant_id==tenant_id,operational_models.PriceCheck.tenant_id==tenant_id,operational_models.PriceCheck.offer_id==offer_id,operational_models.Reservation.status.notin_(("cancelled","expired","failed")))).all()
+    used={}
+    for snapshot in snapshots:
+        for selection in json.loads(snapshot).get("ticket_breakdown",[]):used[selection["ticket_type_id"]]=used.get(selection["ticket_type_id"],0)+selection["quantity"]
+    for selection in selections:
+        ticket=db.scalar(select(operational_models.LeisureTicketType).where(operational_models.LeisureTicketType.id==selection["ticket_type_id"],operational_models.LeisureTicketType.tenant_id==tenant_id))
+        if ticket is None or not ticket.active or (ticket.quota is not None and used.get(ticket.id,0)+selection["quantity"]>ticket.quota):raise HTTPException(409,"سهمیهٔ این نوع بلیت کافی نیست")
+
+
 @app.post("/leisure-sessions/{session_id}/price-check", status_code=201)
-def leisure_session_price_check(session_id: str, data: LeisureSessionPriceCheckIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+def leisure_session_price_check(session_id: str, data: LeisureSessionPriceCheckIn, user: User = Depends(require_permission("reservation:create")), db: Session = Depends(get_db)) -> dict:
     existing = db.scalar(select(operational_models.PriceCheck).where(operational_models.PriceCheck.tenant_id == user.tenant_id, operational_models.PriceCheck.command_id == data.command_id))
     if existing:
         snapshot = json.loads(existing.snapshot_json)
-        if snapshot.get("leisure_session_id") != session_id:
+        if snapshot.get("leisure_session_id") != session_id or existing.user_id!=user.id or sorted((x["ticket_type_id"],x["quantity"]) for x in snapshot.get("ticket_breakdown",[]))!=sorted((x.ticket_type_id,x.quantity) for x in data.selections) or (snapshot.get("attributes") or {}).get("organization_id")!=data.organization_id:
             raise HTTPException(409, "کلید تکرار برای درخواست دیگری استفاده شده است")
-        return {"id": existing.id, "offer_id": existing.offer_id, "amount": existing.amount, "currency": existing.currency, "expires_at": existing.expires_at.isoformat(), "ticket_breakdown": snapshot.get("ticket_breakdown", [])}
+        return {"id": existing.id, "offer_id": existing.offer_id, "amount": existing.amount, "currency": existing.currency, "expires_at": _aware(existing.expires_at).isoformat(), "ticket_breakdown": snapshot.get("ticket_breakdown", [])}
     session = db.scalar(select(operational_models.LeisureSession).where(operational_models.LeisureSession.id == session_id, operational_models.LeisureSession.tenant_id == user.tenant_id, operational_models.LeisureSession.status == "active").with_for_update())
     now = datetime.now(timezone.utc)
     if session is None or _aware(session.ends_at) <= now: raise HTTPException(409, "جلسه معتبر نیست")
@@ -2566,6 +2838,7 @@ def leisure_session_price_check(session_id: str, data: LeisureSessionPriceCheckI
     if session.sales_end_at is not None and _aware(session.sales_end_at) <= now: raise HTTPException(409, "فروش این جلسه به پایان رسیده است")
     product = db.scalar(select(operational_models.ExperienceProduct).where(operational_models.ExperienceProduct.id == session.experience_product_id, operational_models.ExperienceProduct.tenant_id == user.tenant_id))
     if product is None or product.status != "published": raise HTTPException(409, "محصول معتبر نیست")
+    if product.booking_mode in ("DISCOVERY_ONLY","VENUE_INQUIRY"):raise HTTPException(409,"این خدمت به استعلام و تأیید مسئول رزرو نیاز دارد")
     place = db.scalar(select(operational_models.Place).where(operational_models.Place.id == product.place_id, operational_models.Place.tenant_id == user.tenant_id))
     if session.offer_id is None: raise HTTPException(409, "این جلسه هنوز قابل فروش نیست")
     offer = db.scalar(select(operational_models.Offer).where(operational_models.Offer.id == session.offer_id, operational_models.Offer.tenant_id == user.tenant_id, operational_models.Offer.status == "active"))
@@ -2575,11 +2848,13 @@ def leisure_session_price_check(session_id: str, data: LeisureSessionPriceCheckI
     for selection in data.selections:
         ticket_type = ticket_type_rows.get(selection.ticket_type_id)
         if ticket_type is None: raise HTTPException(422, "نوع بلیت معتبر نیست")
+        if ticket_type.currency!=offer.currency:raise HTTPException(409,"ارز انواع بلیت یکسان نیست")
         if ticket_type.code in seen_codes: raise HTTPException(422, "هر نوع بلیت فقط یک‌بار در انتخاب مجاز است")
         seen_codes.add(ticket_type.code)
         if ticket_type.quota is not None and selection.quantity > ticket_type.quota: raise HTTPException(409, "سهمیه این نوع بلیت کافی نیست")
         total_units += selection.quantity; base_amount += ticket_type.price * selection.quantity
         breakdown.append({"ticket_type_id": ticket_type.id, "code": ticket_type.code, "label": ticket_type.label, "unit_price": ticket_type.price, "quantity": selection.quantity, "subtotal": ticket_type.price * selection.quantity})
+    _check_ticket_quotas(db,user.tenant_id,offer.id,breakdown)
     if total_units == 0: raise HTTPException(422, "حداقل یک بلیت باید انتخاب شود")
     if total_units > session.capacity_available: raise HTTPException(409, "ظرفیت این جلسه کافی نیست")
     organization_id = data.organization_id
@@ -2589,13 +2864,13 @@ def leisure_session_price_check(session_id: str, data: LeisureSessionPriceCheckI
     final_amount, applied_rule = _apply_leisure_pricing_rule(db, tenant_id=user.tenant_id, service_type=product.service_type, organization_id=organization_id, base_amount=base_amount)
     attrs = json.loads(offer.attributes_json)
     snapshot_attrs = {**attrs, "leisure_session_id": session.id, "leisure_product_id": product.id, "ticket_breakdown": breakdown, "organization_id": organization_id, "applied_pricing_rule": applied_rule}
-    snapshot = {"offer_id": offer.id, "service_type": product.service_type, "supplier_id": product.supplier_id, "title": f"{product.title} · {place.city if place else ''}", "unit_amount": None, "units": total_units, "total_amount": final_amount, "currency": offer.currency, "policy": json.loads(product.cancellation_policy_json or "{}"), "attributes": snapshot_attrs, "provider_key": offer.provider_key, "fulfillment_mode": offer.fulfillment_mode, "checked_at": now.isoformat(), "availability_state": "CONFIRMED", "price_state": "RECHECKED", "leisure_session_id": session.id, "ticket_breakdown": breakdown}
+    snapshot = {"offer_id": offer.id, "service_type": product.service_type, "supplier_id": product.supplier_id, "title": f"{product.title} · {place.city if place else ''}", "unit_amount": None, "units": total_units, "total_amount": final_amount, "currency": offer.currency, "policy": {**json.loads(product.cancellation_policy_json or "{}"),"entry_requirements":_entry_requirements(product,session)}, "attributes": snapshot_attrs, "provider_key": offer.provider_key, "fulfillment_mode": offer.fulfillment_mode, "checked_at": now.isoformat(), "availability_state": "CONFIRMED", "price_state": "RECHECKED", "leisure_session_id": session.id, "ticket_breakdown": breakdown}
     encoded = json.dumps(snapshot, sort_keys=True)
-    expires_at = now + timedelta(minutes=10)
+    expires_at = min(now + timedelta(minutes=10),_aware(session.ends_at))
     if session.sales_end_at is not None: expires_at = min(expires_at, _aware(session.sales_end_at))
     row = operational_models.PriceCheck(tenant_id=user.tenant_id, offer_id=offer.id, user_id=user.id, command_id=data.command_id, amount=final_amount, currency=offer.currency, units=total_units, snapshot_json=encoded, snapshot_hash=_secure_hash(encoded), expires_at=expires_at)
     db.add(row); db.commit()
-    return {"id": row.id, "offer_id": row.offer_id, "amount": row.amount, "currency": row.currency, "expires_at": row.expires_at.isoformat(), "ticket_breakdown": breakdown, "applied_pricing_rule": applied_rule}
+    return {"id": row.id, "offer_id": row.offer_id, "amount": row.amount, "currency": row.currency, "expires_at": _aware(row.expires_at).isoformat(), "ticket_breakdown": breakdown, "applied_pricing_rule": applied_rule}
 
 
 @app.get("/reservations/{reservation_id}/admission-tickets")
@@ -2606,10 +2881,24 @@ def list_admission_tickets(reservation_id: str, user: User = Depends(current_use
     return {"items": [{"id": r.id, "status": r.status, "qr_token": r.qr_token, "redeemed_at": r.redeemed_at.isoformat() if r.redeemed_at else None} for r in rows]}
 
 
+def _admission_supplier_guard(db,user,ticket):
+    if user.role!="supplier":return
+    supplier_id=db.scalar(select(operational_models.ExperienceProduct.supplier_id).join(operational_models.LeisureSession,operational_models.LeisureSession.experience_product_id==operational_models.ExperienceProduct.id).where(operational_models.LeisureSession.id==ticket.leisure_session_id,operational_models.LeisureSession.tenant_id==user.tenant_id,operational_models.ExperienceProduct.tenant_id==user.tenant_id))
+    if supplier_id not in _supplier_scope(db,user):raise HTTPException(403,"این بلیت متعلق به محل تحت اختیار شما نیست")
+
+@app.get("/reservations/{reservation_id}/admission-tickets/{ticket_id}/qr")
+def admission_qr(reservation_id:str,ticket_id:str,user:User=Depends(current_user),db:Session=Depends(get_db))->Response:
+    reservation=db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id==reservation_id,operational_models.Reservation.tenant_id==user.tenant_id,operational_models.Reservation.user_id==user.id,operational_models.Reservation.status=="issued"))
+    ticket=db.scalar(select(operational_models.Ticket).where(operational_models.Ticket.id==ticket_id,operational_models.Ticket.reservation_id==reservation_id,operational_models.Ticket.tenant_id==user.tenant_id,operational_models.Ticket.status=="issued")) if reservation else None
+    if ticket is None or not ticket.qr_token:raise HTTPException(404,"بلیت صادرشده در این حساب وجود ندارد")
+    return Response(_ticket_qr_svg(ticket.qr_token),media_type="image/svg+xml",headers={"Cache-Control":"no-store","Content-Security-Policy":"default-src 'none'; sandbox"})
+
+
 @app.get("/admission-tickets/validate")
 def validate_admission_ticket(qr_token: str = Query(min_length=16, max_length=64), user: User = Depends(require_permission("reservation:fulfill")), db: Session = Depends(get_db)) -> dict:
     ticket = db.scalar(select(operational_models.Ticket).where(operational_models.Ticket.tenant_id == user.tenant_id, operational_models.Ticket.qr_token == qr_token))
     if ticket is None: raise HTTPException(404, "بلیت معتبر نیست")
+    _admission_supplier_guard(db,user,ticket)
     reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == ticket.reservation_id, operational_models.Reservation.tenant_id == user.tenant_id))
     session = db.scalar(select(operational_models.LeisureSession).where(operational_models.LeisureSession.id == ticket.leisure_session_id, operational_models.LeisureSession.tenant_id == user.tenant_id)) if ticket.leisure_session_id else None
     now = datetime.now(timezone.utc)
@@ -2621,6 +2910,7 @@ def validate_admission_ticket(qr_token: str = Query(min_length=16, max_length=64
 def redeem_admission_ticket(data: AdmissionTicketRedeemIn, user: User = Depends(require_permission("reservation:fulfill")), db: Session = Depends(get_db)) -> dict:
     ticket = db.scalar(select(operational_models.Ticket).where(operational_models.Ticket.tenant_id == user.tenant_id, operational_models.Ticket.qr_token == data.qr_token).with_for_update())
     if ticket is None: raise HTTPException(404, "بلیت معتبر نیست")
+    _admission_supplier_guard(db,user,ticket)
     if ticket.status == "used":
         raise HTTPException(409, detail={"code": "ALREADY_REDEEMED", "redeemed_at": ticket.redeemed_at.isoformat() if ticket.redeemed_at else None, "redeemed_by": ticket.redeemed_by})
     if ticket.status in ("cancelled", "expired"):
@@ -2635,6 +2925,8 @@ def redeem_admission_ticket(data: AdmissionTicketRedeemIn, user: User = Depends(
             ticket.status = "expired"; db.commit()
             raise HTTPException(409, detail={"code": "TICKET_EXPIRED"})
     ticket.status = "used"; ticket.redeemed_at = now; ticket.redeemed_by = user.id
+    db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id,aggregate_type="admission_ticket",aggregate_id=ticket.id,event_type="admission_ticket.redeemed",payload_json=json.dumps({"reservation_id":reservation.id,"actor_id":user.id,"from":"issued","to":"used"}),correlation_id=str(uuid.uuid4()),idempotency_key="admission-redeemed:"+ticket.id))
+    if reservation.trip_id:operational_models.record_trip_event(db,tenant_id=user.tenant_id,trip_id=reservation.trip_id,reservation_id=reservation.id,event_key="admission-redeemed:"+ticket.id,event_type="admission.redeemed",source="human_agent",title="پذیرش خدمت ثبت شد",message="بلیت این رزرو توسط مسئول پذیرش استفاده شد.",deep_link="/manage-booking/"+reservation.id)
     db.commit()
     return {"id": ticket.id, "status": ticket.status, "redeemed_at": ticket.redeemed_at.isoformat(), "redeemed_by": ticket.redeemed_by}
 
@@ -2673,8 +2965,12 @@ def reissue_voucher(reservation_id: str, data: VoucherReissueIn, user: User = De
 
 @app.post("/organizations/{organization_id}/departments", status_code=status.HTTP_201_CREATED)
 def create_department(organization_id: str, data: OrganizationDimensionIn, user: User = Depends(require_permission("member:manage")), db: Session = Depends(get_db)) -> dict:
-    organization = db.scalar(select(operational_models.Organization).where(operational_models.Organization.id == organization_id, operational_models.Organization.tenant_id == user.tenant_id))
+    organization = db.scalar(select(operational_models.Organization).where(operational_models.Organization.id == organization_id, operational_models.Organization.tenant_id == user.tenant_id).with_for_update())
     if organization is None: raise HTTPException(status_code=404, detail="سازمان وجود ندارد")
+    existing=db.scalar(select(operational_models.Department).where(operational_models.Department.tenant_id==user.tenant_id,operational_models.Department.organization_id==organization.id,operational_models.Department.code==data.code))
+    if existing:
+        if existing.name!=data.name:raise HTTPException(409,"این کد قبلاً با اطلاعات متفاوت ثبت شده است")
+        return {"id":existing.id,"name":existing.name,"code":existing.code}
     row = operational_models.Department(tenant_id=user.tenant_id, organization_id=organization.id, name=data.name, code=data.code)
     db.add(row); db.commit()
     return {"id": row.id, "name": row.name, "code": row.code}
@@ -2682,8 +2978,12 @@ def create_department(organization_id: str, data: OrganizationDimensionIn, user:
 
 @app.post("/organizations/{organization_id}/cost-centers", status_code=status.HTTP_201_CREATED)
 def create_cost_center(organization_id: str, data: OrganizationDimensionIn, user: User = Depends(require_permission("member:manage")), db: Session = Depends(get_db)) -> dict:
-    organization = db.scalar(select(operational_models.Organization).where(operational_models.Organization.id == organization_id, operational_models.Organization.tenant_id == user.tenant_id))
+    organization = db.scalar(select(operational_models.Organization).where(operational_models.Organization.id == organization_id, operational_models.Organization.tenant_id == user.tenant_id).with_for_update())
     if organization is None: raise HTTPException(status_code=404, detail="سازمان وجود ندارد")
+    existing=db.scalar(select(operational_models.CostCenter).where(operational_models.CostCenter.tenant_id==user.tenant_id,operational_models.CostCenter.organization_id==organization.id,operational_models.CostCenter.code==data.code))
+    if existing:
+        if existing.name!=data.name or existing.budget_amount!=(data.budget_amount or 0):raise HTTPException(409,"این کد قبلاً با اطلاعات متفاوت ثبت شده است")
+        return {"id":existing.id,"name":existing.name,"code":existing.code,"budget_amount":existing.budget_amount}
     row = operational_models.CostCenter(tenant_id=user.tenant_id, organization_id=organization.id, name=data.name, code=data.code, budget_amount=data.budget_amount or 0)
     db.add(row); db.commit()
     return {"id": row.id, "name": row.name, "code": row.code, "budget_amount": row.budget_amount}
@@ -2860,12 +3160,23 @@ async def notification_receipt(channel: str, request: Request, x_notification_si
 
 
 @app.post("/agency/sub-agencies", status_code=status.HTTP_201_CREATED)
-def create_sub_agency(data: AgencyIn, user: User = Depends(require_permission("agency:manage")), db: Session = Depends(get_db)) -> dict:
+def create_sub_agency(data: AgencyIn, user: User = Depends(require_permission("agency:manage")), db: Session = Depends(get_db), idempotency_key: Optional[str] = Header(default=None, alias="Idempotency-Key", min_length=8,max_length=120)) -> dict:
+    key=idempotency_key or str(uuid.uuid4())
+    db.scalar(select(User).where(User.id==user.id,User.tenant_id==user.tenant_id).with_for_update())
+    request_hash=_secure_hash(str(user.id)+json.dumps(data.model_dump(),sort_keys=True))
+    prior=db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id==user.tenant_id,operational_models.IdempotencyKey.scope=="agency.create",operational_models.IdempotencyKey.key==key))
+    if prior:
+        if prior.request_hash!=request_hash:raise HTTPException(409,"شناسهٔ درخواست برای اطلاعات دیگری استفاده شده است")
+        return json.loads(prior.response_json)
+
     if data.parent_agency_id:
         parent = db.scalar(select(operational_models.Agency).where(operational_models.Agency.id == data.parent_agency_id, operational_models.Agency.tenant_id == user.tenant_id))
         if parent is None: raise HTTPException(status_code=404, detail="آژانس مادر وجود ندارد")
     row = operational_models.Agency(tenant_id=user.tenant_id, display_name=data.display_name, status="active", parent_agency_id=data.parent_agency_id, markup_bps=data.markup_bps, commission_bps=data.commission_bps)
-    db.add(row); db.commit(); return {"id": row.id, "display_name": row.display_name, "parent_agency_id": row.parent_agency_id, "markup_bps": row.markup_bps, "commission_bps": row.commission_bps}
+    db.add(row);db.flush()
+    result={"id":row.id,"display_name":row.display_name,"parent_agency_id":row.parent_agency_id,"markup_bps":row.markup_bps,"commission_bps":row.commission_bps}
+    db.add(operational_models.IdempotencyKey(tenant_id=user.tenant_id,scope="agency.create",key=key,request_hash=request_hash,response_json=json.dumps(result)))
+    db.commit();return result
 
 
 @app.get("/supplier/dashboard")
@@ -3540,6 +3851,13 @@ def advance_checkout(checkout_id: str, step: str, data: CheckoutStepIn, user: Us
     if row.stage != expected[step]: raise HTTPException(status_code=409, detail=f"مرحله جاری checkout برابر {row.stage} است")
     state = json.loads(row.state_json)
     if step == "traveller":
+        if reservation.service_type=="handicraft" and len(set(data.traveller_ids))!=1:raise HTTPException(422,"برای تحویل حضوری دقیقاً یک گیرنده انتخاب کنید")
+        if reservation.service_type in {"train","tour"} and len(set(data.traveller_ids))!=int(json.loads(reservation.price_snapshot_json).get("units",json.loads(reservation.price_snapshot_json).get("travellers",1))):
+            raise HTTPException(422,"برای هر صندلی رزروشده یک مسافر مجزا انتخاب کنید")
+        if reservation.service_type in {"travel_guide","tourist_transportation"}:
+            item=db.scalar(select(operational_models.BookingItem).where(operational_models.BookingItem.reservation_id==reservation.id,operational_models.BookingItem.tenant_id==user.tenant_id));attrs=json.loads(item.snapshot_json).get("attributes",{}) if item else {}
+            capacity=int(attrs.get("group_capacity" if reservation.service_type=="travel_guide" else "seats_per_vehicle",0))*int(json.loads(reservation.price_snapshot_json).get("units",1))
+            if len(set(data.traveller_ids))>capacity:raise HTTPException(422,"تعداد مسافران از ظرفیت این خدمت بیشتر است")
         if not data.traveller_ids: raise HTTPException(status_code=422, detail="حداقل یک مسافر معتبر لازم است")
         travellers = db.scalars(select(operational_models.Traveller).where(operational_models.Traveller.tenant_id == user.tenant_id, operational_models.Traveller.user_id == user.id, operational_models.Traveller.id.in_(data.traveller_ids))).all()
         if len(travellers) != len(set(data.traveller_ids)): raise HTTPException(status_code=404, detail="یک یا چند مسافر در این حساب وجود ندارد")
@@ -3550,9 +3868,41 @@ def advance_checkout(checkout_id: str, step: str, data: CheckoutStepIn, user: Us
         if row.price_snapshot_hash != _secure_hash(reservation.price_snapshot_json): raise HTTPException(status_code=409, detail="قیمت رزرو تغییر کرده و checkout باید از نو آغاز شود")
         item = db.scalar(select(operational_models.BookingItem).where(operational_models.BookingItem.tenant_id == user.tenant_id, operational_models.BookingItem.reservation_id == reservation.id)); snapshot = json.loads(item.snapshot_json) if item else {}; offer_id = snapshot.get("offer_id"); offer = db.scalar(select(operational_models.Offer).where(operational_models.Offer.id == offer_id, operational_models.Offer.tenant_id == user.tenant_id).with_for_update()) if offer_id else None
         price = json.loads(reservation.price_snapshot_json); units = int(price.get("units", 1)); total = int(price.get("total_amount", 0))
-        if offer is None or offer.status != "active" or _aware(offer.valid_until) <= datetime.now(timezone.utc): raise HTTPException(status_code=409, detail="موجودی یا Offer تازه در دسترس نیست")
-        if offer.amount * units != total: raise HTTPException(status_code=409, detail="قیمت stale یا دستکاری‌شده است")
-        state["recheck"] = {"checked_at": datetime.now(timezone.utc).isoformat(), "total_amount": total, "currency": price.get("currency", "IRR"), "offer_id": offer.id}; row.stage = "recheck"
+        if (snapshot.get("attributes") or {}).get("leisure_session_id"):
+            attrs=snapshot["attributes"]
+            leisure=db.scalar(select(operational_models.LeisureSession).where(operational_models.LeisureSession.id==attrs["leisure_session_id"],operational_models.LeisureSession.tenant_id==user.tenant_id).with_for_update())
+            now=datetime.now(timezone.utc)
+            if leisure is None or leisure.status!="active" or _aware(leisure.ends_at)<=now or (leisure.sales_end_at and _aware(leisure.sales_end_at)<=now):raise HTTPException(409,"سانس قابل تأیید نیست")
+            product=db.scalar(select(operational_models.ExperienceProduct).where(operational_models.ExperienceProduct.id==leisure.experience_product_id,operational_models.ExperienceProduct.tenant_id==user.tenant_id,operational_models.ExperienceProduct.status=="published"))
+            if product is None or db.scalar(select(operational_models.Supplier.id).where(operational_models.Supplier.id==product.supplier_id,operational_models.Supplier.tenant_id==user.tenant_id,operational_models.Supplier.status=="active")) is None:raise HTTPException(409,"خدمت یا تأمین‌کننده فعال نیست")
+            base,count=0,0
+            for selection in attrs.get("ticket_breakdown",[]):
+                ticket=db.scalar(select(operational_models.LeisureTicketType).where(operational_models.LeisureTicketType.id==selection["ticket_type_id"],operational_models.LeisureTicketType.tenant_id==user.tenant_id,operational_models.LeisureTicketType.experience_product_id==product.id,operational_models.LeisureTicketType.active.is_(True)))
+                if ticket is None or ticket.currency!=price.get("currency"):raise HTTPException(409,"نوع بلیت یا ارز آن قابل تأیید نیست")
+                base+=ticket.price*selection["quantity"];count+=selection["quantity"]
+            current_amount,_=_apply_leisure_pricing_rule(db,tenant_id=user.tenant_id,service_type=product.service_type,organization_id=attrs.get("organization_id"),base_amount=base)
+            if count!=units or current_amount!=total:raise HTTPException(409,"قیمت یا انتخاب بلیت تغییر کرده است؛ استعلام جدید لازم است")
+        elif reservation.service_type=="vacation_rental" and price.get("unit_id"):
+            held=db.scalar(select(operational_models.VacationReservation).where(operational_models.VacationReservation.reservation_id==reservation.id,operational_models.VacationReservation.tenant_id==user.tenant_id).with_for_update())
+            if held is None or held.status!="held":raise HTTPException(409,"نگه‌داشت اقامت معتبر نیست")
+            unit,prop,pricing=_vacation_availability(db,user,held.unit_id,held.check_in,held.check_out,held.guests,reservation.id)
+            if pricing["total_amount"]!=total:raise HTTPException(409,"قیمت اقامت تغییر کرده است؛ استعلام جدید لازم است")
+        elif reservation.service_type=="tour" and price.get("departure_id"):
+            held=db.scalar(select(operational_models.TourReservation).where(operational_models.TourReservation.reservation_id==reservation.id,operational_models.TourReservation.tenant_id==user.tenant_id).with_for_update())
+            departure=db.scalar(select(operational_models.TourDeparture).where(operational_models.TourDeparture.id==price["departure_id"],operational_models.TourDeparture.tenant_id==user.tenant_id).with_for_update())
+            if held is None or held.status!="held" or departure is None or departure.status!="active" or _aware(departure.booking_deadline)<=datetime.now(timezone.utc):raise HTTPException(409,"نگه‌داشت ظرفیت تور معتبر نیست")
+            if _tour_amount(departure,held.travellers,held.room_type)!=total:raise HTTPException(409,"قیمت تور تغییر کرده است؛ استعلام جدید لازم است")
+        else:
+            if offer is None or offer.status != "active" or _aware(offer.valid_until) <= datetime.now(timezone.utc): raise HTTPException(status_code=409, detail="موجودی یا Offer تازه در دسترس نیست")
+            recheck_attrs = json.loads(offer.attributes_json)
+            if offer.service_type=="train":_validate_train_schedule(recheck_attrs)
+            if offer.service_type=="car_rental":_validate_car_allotment(recheck_attrs)
+            if offer.service_type=="travel_guide":_validate_guide_contract(recheck_attrs)
+            if offer.service_type=="tourist_transportation":_validate_transport_contract(recheck_attrs)
+            if offer.service_type=="handicraft":_validate_handicraft_contract(recheck_attrs)
+            recheck_total = max(0, offer.amount + int(recheck_attrs.get("taxes", 0) or 0) + int(recheck_attrs.get("fees", 0) or 0) - int(recheck_attrs.get("discounts", 0) or 0)) * units
+            if recheck_total != total: raise HTTPException(status_code=409, detail="قیمت stale یا دستکاری‌شده است")
+        state["recheck"] = {"checked_at": datetime.now(timezone.utc).isoformat(), "total_amount": total, "currency": price.get("currency", "IRR"), "offer_id": offer.id if offer else None}; row.stage = "recheck"
     elif step == "policy":
         if data.acknowledged is not True: raise HTTPException(status_code=422, detail="تأیید صریح policy الزامی است")
         if row.policy_snapshot_hash != _secure_hash(reservation.policy_at_booking_json): raise HTTPException(status_code=409, detail="Policy رزرو تغییر کرده است")
@@ -3580,7 +3930,11 @@ def advance_checkout(checkout_id: str, step: str, data: CheckoutStepIn, user: Us
         payable = int(state.get("funding", {}).get("payable_amount", 0))
         if payable <= 0: row.stage = "awaiting_fulfillment"
         else:
-            intent = operational_models.PaymentIntent(tenant_id=user.tenant_id, reservation_id=reservation.id, user_id=user.id, command_id=f"checkout:{data.command_id}"[:120], amount=payable, currency="IRR"); db.add(intent); db.flush(); row.payment_intent_id = intent.id; row.stage = "awaiting_payment"; db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="payment", aggregate_id=intent.id, event_type="payment.intent.created", payload_json=json.dumps({"checkout_id": row.id}), correlation_id=str(uuid.uuid4()), idempotency_key=intent.command_id))
+            intent = _existing_reservation_payment(db, reservation, payable, "IRR")
+            if intent is None:
+                intent = operational_models.PaymentIntent(tenant_id=user.tenant_id, reservation_id=reservation.id, user_id=user.id, command_id=f"checkout:{data.command_id}"[:120], amount=payable, currency="IRR"); db.add(intent); db.flush()
+                db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="payment", aggregate_id=intent.id, event_type="payment.intent.created", payload_json=json.dumps({"checkout_id": row.id}), correlation_id=str(uuid.uuid4()), idempotency_key=intent.command_id))
+            row.payment_intent_id = intent.id; row.stage = "awaiting_fulfillment" if intent.status == "captured" else "awaiting_payment"
     else:
         intent = db.scalar(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.id == row.payment_intent_id, operational_models.PaymentIntent.tenant_id == user.tenant_id, operational_models.PaymentIntent.user_id == user.id)) if row.payment_intent_id else None
         if intent is None or intent.status != "captured" or intent.captured_amount != intent.amount: raise HTTPException(status_code=409, detail="پرداخت server-verified و کامل وجود ندارد")
@@ -4126,3 +4480,88 @@ def bus_search(data: BusSearchIn, user: User = Depends(current_user), db: Sessio
         "availability_recheck_required_before_checkout": True,
         "booking_path": "POST /offers/{offer_id}/price-check then POST /orchestration/bookings",
     }
+
+class TripChangeNoticeIn(BaseModel):
+    command_id: str = Field(min_length=8,max_length=80)
+    kind: str = Field(pattern="^(flight|hotel|reservation)$")
+    before: str = Field(min_length=3,max_length=1000)
+    after: str = Field(min_length=3,max_length=1000)
+    reason: str = Field(min_length=3,max_length=500)
+    source_reference: str = Field(min_length=3,max_length=200)
+
+
+@app.get("/backoffice/trips")
+def operations_trips(user: User = Depends(require_permission("trip:event:create")), db: Session = Depends(get_db)) -> list[dict]:
+    rows=db.scalars(select(operational_models.Trip).where(operational_models.Trip.tenant_id==user.tenant_id).order_by(operational_models.Trip.created_at.desc()).limit(100)).all()
+    return [{"id":r.id,"title":r.title,"destination":r.destination,"status":r.status,"customer_id":r.user_id} for r in rows]
+
+
+@app.get("/backoffice/trips/{trip_id}/changes")
+def operations_trip_changes(trip_id: str,user: User = Depends(require_permission("trip:event:create")),db: Session = Depends(get_db)) -> list[dict]:
+    trip=db.scalar(select(operational_models.Trip).where(operational_models.Trip.id==trip_id,operational_models.Trip.tenant_id==user.tenant_id))
+    if trip is None:raise HTTPException(404,"سفر در این مجموعه وجود ندارد")
+    rows=db.scalars(select(operational_models.OutboxEvent).where(operational_models.OutboxEvent.tenant_id==user.tenant_id,operational_models.OutboxEvent.aggregate_id==trip.id,operational_models.OutboxEvent.event_type=="trip.change.recorded").order_by(operational_models.OutboxEvent.created_at.desc()).limit(100)).all()
+    return [{"id":r.id,"created_at":r.created_at.isoformat(),**json.loads(r.payload_json)} for r in rows]
+
+
+@app.post("/backoffice/trips/{trip_id}/changes",status_code=201)
+def record_operations_trip_change(trip_id:str,data:TripChangeNoticeIn,user:User=Depends(require_permission("trip:event:create")),db:Session=Depends(get_db)) -> dict:
+    trip=db.scalar(select(operational_models.Trip).where(operational_models.Trip.id==trip_id,operational_models.Trip.tenant_id==user.tenant_id).with_for_update())
+    if trip is None:raise HTTPException(404,"سفر در این مجموعه وجود ندارد")
+    payload=data.model_dump(exclude={"command_id"});payload={k:v.strip() for k,v in payload.items()}
+    if any(len(v)<3 for k,v in payload.items() if k!='kind') or payload['before']==payload['after']:raise HTTPException(422,"مقدار قبلی و جدید و مرجع تغییر را دقیق وارد کنید")
+    key="ops-change:"+data.command_id
+    prior=db.scalar(select(operational_models.OutboxEvent).where(operational_models.OutboxEvent.tenant_id==user.tenant_id,operational_models.OutboxEvent.idempotency_key==key+":audit"))
+    if prior:
+        stored=json.loads(prior.payload_json)
+        if prior.aggregate_id!=trip.id or any(stored.get(k)!=v for k,v in payload.items()):raise HTTPException(409,"این شناسه برای تغییر دیگری استفاده شده است")
+        return {"id":prior.id,"trip_id":trip.id,"status":"recorded","event_id":stored["event_id"]}
+    titles={"flight":"تغییر اعلام‌شدهٔ پرواز","hotel":"تغییر اعلام‌شدهٔ اقامت","reservation":"تغییر اعلام‌شدهٔ رزرو"}
+    event=operational_models.ingest_trip_event(db,operational_models.TripEventRecord(tenant_id=user.tenant_id,trip_id=trip.id,event_key=key,event_type=data.kind+".changed",source="human_agent",title=titles[data.kind],message=f"قبلی: {payload['before']}\nجدید: {payload['after']}\nدلیل: {payload['reason']}",severity="warning",visibility="customer",requires_action=False,deep_link=f"/trips/{trip.id}"))
+    audit=operational_models.OutboxEvent(tenant_id=user.tenant_id,aggregate_type="trip",aggregate_id=trip.id,event_type="trip.change.recorded",idempotency_key=key+":audit",correlation_id=str(uuid.uuid4()),payload_json=json.dumps({**payload,"actor_id":user.id,"event_id":event.id,"customer_id":trip.user_id},ensure_ascii=False))
+    db.add(audit);db.commit()
+    return {"id":audit.id,"trip_id":trip.id,"status":"recorded","event_id":event.id}
+
+@app.get("/backoffice/records/{section}")
+def operations_records(section:str,offset:int=Query(default=0,ge=0,le=100000),limit:int=Query(default=30,ge=1,le=100),user:User=Depends(require_permission("backoffice:read")),db:Session=Depends(get_db)) -> dict:
+    # Explicit projections only: credentials, provider payloads and personal
+    # document contents can never leak through a generic model serializer.
+    catalogue={
+        "customers":(User,[("id","شناسه"),("name","نام"),("role","نقش")]),
+        "bookings":(operational_models.Reservation,[("booking_reference","شماره رزرو"),("service_type","خدمت"),("status","وضعیت"),("user_id","مشتری")]),
+        "trips":(operational_models.Trip,[("title","سفر"),("destination","مقصد"),("status","وضعیت"),("user_id","مشتری")]),
+        "payments":(operational_models.PaymentIntent,[("reservation_id","رزرو"),("amount","مبلغ"),("currency","واحد پول"),("status","وضعیت"),("captured_amount","ثبت‌شده"),("refunded_amount","بازپرداخت‌شده")]),
+        "refunds":(operational_models.RefundRecord,[("payment_intent_id","پرداخت"),("amount","مبلغ"),("status","وضعیت")]),
+        "suppliers":(operational_models.Supplier,[("display_name","تأمین‌کننده"),("supplier_type","نوع"),("status","وضعیت")]),
+        "support":(operational_models.SupportCase,[("subject","موضوع"),("status","وضعیت"),("priority","اولویت"),("assigned_to_user_id","کارشناس")]),
+        "changes":(operational_models.TripEventRecord,[("trip_id","سفر"),("title","موضوع"),("message","شرح"),("source","منبع")]),
+        "notifications":(operational_models.NotificationRecord,[("user_id","مشتری"),("title","موضوع"),("message","متن"),("status","وضعیت")]),
+        "audit":(operational_models.OutboxEvent,[("event_type","عملیات"),("aggregate_type","موضوع"),("aggregate_id","شناسه موضوع"),("status","وضعیت پردازش")]),
+    }
+    if section not in catalogue:raise HTTPException(404,"بخش موجود نیست")
+    model,columns=catalogue[section];conditions=[model.tenant_id==user.tenant_id]
+    if section=='customers':conditions.append(User.role.in_(['customer','employee']))
+    if section=='changes':conditions.append(operational_models.TripEventRecord.source=='human_agent')
+    if section=='audit':conditions.append(operational_models.OutboxEvent.aggregate_type.in_(['trip','reservation','supplier','support_case']))
+    order=getattr(model,'created_at',model.id)
+    rows=db.scalars(select(model).where(*conditions).order_by(order.desc(),model.id.desc()).offset(offset).limit(limit+1)).all()
+    def serialize(row):
+        out={"id":str(row.id)}
+        for key,_ in columns:
+            value=getattr(row,key);out[key]=value.isoformat() if isinstance(value,datetime) else value
+        if hasattr(row,'created_at'):out['created_at']=row.created_at.isoformat()
+        return out
+    return {"section":section,"columns":[{"key":k,"label":l} for k,l in columns],"items":[serialize(r) for r in rows[:limit]],"offset":offset,"limit":limit,"has_more":len(rows)>limit}
+
+
+@app.get("/supplier/reservations/ready")
+def supplier_ready_reservations(user:User=Depends(require_permission("inventory:manage")),db:Session=Depends(get_db)) -> list[dict]:
+    supplier_ids=set(_supplier_scope(db,user))
+    pairs=db.execute(select(operational_models.Reservation,operational_models.BookingItem).join(operational_models.BookingItem,operational_models.BookingItem.reservation_id==operational_models.Reservation.id).where(operational_models.Reservation.tenant_id==user.tenant_id,operational_models.BookingItem.tenant_id==user.tenant_id,operational_models.Reservation.status.in_(["reserved","awaiting_payment","confirmed"])).order_by(operational_models.Reservation.created_at.desc()).limit(200)).all()
+    out=[]
+    for reservation,item in pairs:
+        snapshot=json.loads(item.snapshot_json)
+        if snapshot.get("supplier_id") not in supplier_ids or snapshot.get("fulfillment_mode")!="manual_supplier":continue
+        payment=db.scalar(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.tenant_id==user.tenant_id,operational_models.PaymentIntent.reservation_id==reservation.id,operational_models.PaymentIntent.status=="captured",operational_models.PaymentIntent.captured_amount>0))
+        if payment:out.append({"id":reservation.id,"booking_reference":reservation.booking_reference,"title":snapshot.get("title",reservation.service_type),"service_type":reservation.service_type,"status":reservation.status})
+    return out

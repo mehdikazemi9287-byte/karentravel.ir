@@ -24,6 +24,7 @@ def test_voucher_document_contains_reference_customer_and_qr(client):
     assert current_name in html  # whatever this seeded user's name currently is -- other tests may rename it
     qr_token = fulfilled["admission_ticket"]["qr_token"]
     assert qr_token in html
+    assert "<svg" in html and "<path" in html
 
 
 def test_voucher_document_denied_for_other_customers_reservation(client):

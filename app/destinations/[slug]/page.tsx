@@ -1,5 +1,7 @@
-import { JourneyShell } from '../../../components/journey/JourneyShell';
+import Link from 'next/link';
+import Image from 'next/image';
+import { Shell } from '../../page';
+import { destinationGuides } from '../../../lib/customer-catalog';
+import { ContactOptions } from '../../../components/customer/CustomerHelp';
 import { DestinationDetailView } from '../../../components/operational/EcosystemViews';
-import type { Metadata } from 'next';
-export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{const {slug}=await params;const label=decodeURIComponent(slug).replace(/-/g,' ');return {title:`سفر به ${label}`,description:`راهنمای مقصد، موقعیت و خدمات سفر ${label} در کارن‌سیر`,alternates:{canonical:`/destinations/${slug}`},openGraph:{title:`سفر به ${label} | کارن‌سیر`,description:'اقامت، حمل‌ونقل، تجربه و خدمات تازه مقصد',url:`/destinations/${slug}`,type:'website'}}}
-export default async function DestinationPage({params}:{params:Promise<{slug:string}>}){const {slug}=await params;return <JourneyShell><main className="journey-main"><DestinationDetailView slug={slug}/></main></JourneyShell>}
+export default async function DestinationPage({params}:{params:Promise<{slug:string}>}){const {slug}=await params;const d=destinationGuides.find(x=>x.slug===slug);if(!d)return <Shell><section className="container customer-page"><h1>راهنمای مقصد</h1><DestinationDetailView slug={slug}/><Link className="button secondary" href="/destinations">همه مقصدها</Link><ContactOptions/></section></Shell>;return <Shell><section className="container customer-page"><Link href="/destinations">مقصدها ←</Link><h1>سفر به {d.name}</h1><p>{d.caption}</p><Image className="customer-guide-image" src={d.image} width={1200} height={650} alt={d.name}/><article className="panel"><h2>برای برنامه‌ریزی سفر</h2><p>{d.description}</p><p>این صفحه راهنمای مقصد است. قیمت، ظرفیت و شرایط خدمات باید جداگانه استعلام شود.</p><div className="customer-actions"><Link className="button secondary" href={'/search/results?vertical=hotel&destination='+encodeURIComponent(d.name)}>بررسی اقامت در {d.name}</Link><Link className="button secondary" href="/services">خدمات سفر</Link></div><ContactOptions/></article></section></Shell>}

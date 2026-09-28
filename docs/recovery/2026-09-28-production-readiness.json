@@ -1,0 +1,157 @@
+{
+  "baseline_release": "6494d96a822212d3b06c27cdf13579b651cda3da-worktree-b96351d5981f",
+  "probe": {
+    "karenseir-api-1": {
+      "health": "healthy",
+      "image": "sha256:4547d376fa00ec2f643093e228d8dbecf437018198eea6bfd4ba4f440db41d1c"
+    },
+    "modes": {
+      "ENVIRONMENT": "production",
+      "DEMO_MODE": "unset",
+      "ZARINPAL_MODE": "unset",
+      "GRS_MODE": "unset",
+      "FLIGHT_PROVIDER_MODE": "unset",
+      "TRAIN_PROVIDER_MODE": "unset",
+      "KARENSEIR_SMS_PROVIDER": "kavenegar"
+    },
+    "configured": {
+      "GRS_CLIENT_TOKEN": false,
+      "GRS_BASE_URL": false,
+      "GRS_MONEY_UNIT": false,
+      "ZARINPAL_MERCHANT_ID": false,
+      "ZARINPAL_CALLBACK_URL": false,
+      "KAVENEGAR_API_KEY": true,
+      "KAVENEGAR_OTP_TEMPLATE": true
+    },
+    "karenseir-worker-1": {
+      "health": "healthy",
+      "image": "sha256:4547d376fa00ec2f643093e228d8dbecf437018198eea6bfd4ba4f440db41d1c"
+    },
+    "karenseir-frontend-1": {
+      "health": "healthy",
+      "image": "sha256:9c4fe279547b1dcfd6ca17bf8a5915f99182b562c2e1ec41ecdaed5c102fcd01"
+    },
+    "karenseir-search": {
+      "health": "healthy",
+      "image": "sha256:1a8f947d45778f57d3730e830eedf82a2dcfb4b99a251c4e197b1790d1137191"
+    },
+    "fingerprint": "6494d96a822212d3b06c27cdf13579b651cda3da-worktree-b96351d5981f",
+    "source_matches_release": true,
+    "tcp443": 111,
+    "dns": {
+      "karentravel.ir/A": ";; ->>HEADER<<- opcode: QUERY, status: SERVFAIL, id: 26984\n; EDE: 22 (No Reachable Authority): (at delegation karentravel.ir.)\n; EDE: 23 (Network Error): (46.245.76.14:53 returned REFUSED for karentravel.ir A)",
+      "karentravel.ir/NS": ";; ->>HEADER<<- opcode: QUERY, status: SERVFAIL, id: 47310\n; EDE: 23 (Network Error): ([91.107.249.244] rcode=REFUSED for karentravel.ir/ns)\n; EDE: 23 (Network Error): ([65.109.187.137] rcode=REFUSED for karentravel.ir/ns)\n; EDE: 23 (Network Error): ([91.207.205.42] rcode=REFUSED for karentravel.ir/ns)\n; EDE: 23 (Network Error): ([46.245.76.14] rcode=REFUSED for karentravel.ir/ns)\n; EDE: 22 (No Reachable Authority): (At delegation karentravel.ir for karentravel.ir/ns)",
+      "api.karentravel.ir/A": ";; ->>HEADER<<- opcode: QUERY, status: SERVFAIL, id: 21018\n; EDE: 22 (No Reachable Authority): (at delegation karentravel.ir.)\n; EDE: 23 (Network Error): (46.245.76.14:53 returned REFUSED for api.karentravel.ir A)"
+    }
+  },
+  "payment_tests": {
+    "passed": 8,
+    "new": 4,
+    "affected_callback_regression": 4,
+    "network": "none",
+    "media": "/tmp/media"
+  },
+  "payment_browser": {
+    "pass": true,
+    "checks": [
+      {
+        "width": 1440,
+        "pass": true,
+        "title": "Mock QA Handicraft 1790591787650",
+        "reservation": "41eba3a8-3bcf-4591-b1b5-7c008da6bc39",
+        "interceptedPayment": true,
+        "voucher": true,
+        "myTrips": true
+      },
+      {
+        "width": 390,
+        "pass": true,
+        "title": "Mock QA Handicraft 1790591798770",
+        "reservation": "861d8df6-bdf1-4d70-bb8b-a19e27b40787",
+        "interceptedPayment": true,
+        "voucher": true,
+        "myTrips": true
+      }
+    ]
+  },
+  "security_smoke": {
+    "pass": true,
+    "scope": "changed files and deployed static assets vs configured secret literals; recent API log; anonymous auth/role/internal guards",
+    "secret_matches": 0,
+    "files_scanned": 139,
+    "public_guards": {
+      "/auth/dev-login": 404,
+      "/me/trips": 401,
+      "/backoffice/records/payments": 401,
+      "/internal/search/offer-pool": 401
+    },
+    "https": "BLOCKED",
+    "full_penetration_test": false
+  },
+  "real_financial_transaction": false,
+  "sms_sent": false,
+  "real_golden_path_executed": false,
+  "supplier_inventory": [
+    {
+      "adapter": "GRS hotel",
+      "status": "IMPLEMENTED-BUT-NO-CREDENTIAL",
+      "limit": "Transport/search implementation; live booking wire contract and integration remain unverified/missing"
+    },
+    {
+      "adapter": "flight/train/bus external",
+      "status": "MISSING",
+      "limit": "Fail-closed ports; generic sandbox is not a live transport"
+    },
+    {
+      "adapter": "karenseir_supplier_pool",
+      "status": "CONNECTED",
+      "limit": "Internal DB only; not proof of real contracted sellable inventory"
+    },
+    {
+      "adapter": "manual tour/accommodation/car/restaurant/venue/sport/attraction/guide/transport/handicraft",
+      "status": "CONNECTED",
+      "limit": "Internal supplier workflow only; real allocations/fulfillment contract required"
+    },
+    {
+      "adapter": "generic mock modes",
+      "status": "MOCK",
+      "limit": "DisabledMockAdapter fails closed, not a successful simulated supplier"
+    }
+  ],
+  "deployment": {
+    "deployed": true,
+    "fingerprint": "6494d96a822212d3b06c27cdf13579b651cda3da-worktree-b96351d5981f",
+    "rollback_containers": [
+      "karenseir-worker-1-pre-readiness-20260928",
+      "karenseir-api-1-pre-readiness-20260928"
+    ],
+    "api_image": "sha256:8c4e91fb32f2000a78a23bc92f79947ace607726cb8067a6000bc08c4291c772",
+    "web_unchanged": true,
+    "search_unchanged": true,
+    "worker_changed": true,
+    "legacy_holds_excluded": true,
+    "migration_executed": false,
+    "financial_transaction": false
+  },
+  "final_health": {
+    "karenseir-api-1": {
+      "health": "healthy",
+      "image": "sha256:8c4e91fb32f2000a78a23bc92f79947ace607726cb8067a6000bc08c4291c772"
+    },
+    "karenseir-worker-1": {
+      "health": "healthy",
+      "image": "sha256:8c4e91fb32f2000a78a23bc92f79947ace607726cb8067a6000bc08c4291c772"
+    },
+    "karenseir-frontend-1": {
+      "health": "healthy",
+      "image": "sha256:9c4fe279547b1dcfd6ca17bf8a5915f99182b562c2e1ec41ecdaed5c102fcd01"
+    },
+    "karenseir-search": {
+      "health": "healthy",
+      "image": "sha256:1a8f947d45778f57d3730e830eedf82a2dcfb4b99a251c4e197b1790d1137191"
+    }
+  },
+  "result": "EXTERNAL_BLOCKED",
+  "at": "2026-09-28T10:40:49.269734+00:00",
+  "rollback": "READY"
+}

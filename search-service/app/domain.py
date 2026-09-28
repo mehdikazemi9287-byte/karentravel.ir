@@ -8,7 +8,7 @@ from typing import Any, Optional
 # ---- request ----
 ALLOWED_VERTICALS = frozenset({
     "flight", "hotel", "train", "bus", "tour", "package", "accommodation",
-    "vacation_rental", "cruise", "visa", "car_rental",
+    "vacation_rental", "cruise", "visa", "car_rental", "restaurant", "event_hall", "pool_sport", "attraction", "travel_guide", "tourist_transportation", "handicraft",
 })
 ALLOWED_SORTS = frozenset({
     "recommended", "lowest_price", "cheapest", "highest_rated",

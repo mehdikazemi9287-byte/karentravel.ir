@@ -1,0 +1,735 @@
+{
+  "at": "2026-09-27T23:36:20.926730+00:00",
+  "head": "6494d96a822212d3b06c27cdf13579b651cda3da",
+  "production": {
+    "deployed": true,
+    "fingerprint": "6494d96a822212d3b06c27cdf13579b651cda3da-worktree-b96351d5981f",
+    "rollback_containers": [
+      "karenseir-api-1-pre-stage7-handicraft",
+      "karenseir-search-pre-stage7-handicraft",
+      "karenseir-worker-1-pre-stage7-handicraft",
+      "karenseir-frontend-1-pre-stage7-handicraft"
+    ],
+    "worker_changed": true,
+    "legacy_holds_excluded": true,
+    "migration_executed": false,
+    "financial_transaction": false
+  },
+  "new_e2e": {
+    "stage1-result": {
+      "pass": true,
+      "results": [
+        {
+          "width": 1440,
+          "pass": true,
+          "route": "/checkout/e2e674aa-7e0a-4344-937e-5d35a5e5b235",
+          "errors": []
+        },
+        {
+          "width": 390,
+          "pass": true,
+          "route": "/checkout/8ae9b1a2-4684-4152-8680-28f4be120c1e",
+          "errors": []
+        }
+      ]
+    },
+    "stage23-result": {
+      "pass": true,
+      "checks": [
+        {
+          "width": 1440,
+          "pass": true,
+          "initiates": 0
+        },
+        {
+          "width": 390,
+          "pass": true,
+          "initiates": 0
+        }
+      ]
+    },
+    "stage4-result": {
+      "pass": true,
+      "checks": [
+        {
+          "width": 1440,
+          "pass": true,
+          "trip": "6d710d37-0124-42af-a6f7-7e2447f2f3dc",
+          "customerVisible": true
+        },
+        {
+          "width": 390,
+          "pass": true,
+          "trip": "6d710d37-0124-42af-a6f7-7e2447f2f3dc",
+          "customerVisible": true
+        }
+      ]
+    },
+    "stage5-result": {
+      "pass": true,
+      "checks": [
+        {
+          "width": 1440,
+          "pass": true,
+          "tabs": 10
+        },
+        {
+          "width": 390,
+          "pass": true,
+          "tabs": 10
+        }
+      ]
+    },
+    "stage6-result": {
+      "pass": true,
+      "checks": [
+        {
+          "width": 1440,
+          "pass": true,
+          "organization": "Mock QA unit 1440 1790545136551",
+          "agency": "Mock QA agency 1790545137865",
+          "supplierToCustomerBooking": true
+        },
+        {
+          "width": 390,
+          "pass": true,
+          "organization": "Mock QA unit 390 1790545142034",
+          "agency": "Mock QA agency 1790545143228",
+          "supplierToCustomerBooking": true
+        }
+      ]
+    },
+    "agency-load-result": {
+      "pass": true
+    }
+  },
+  "current_stage": "Credential-independent implementation released and verified",
+  "next_exact_action": "External inputs listed in final-closure.md; no repeat of passed suites",
+  "constraints": [
+    "No real financial transaction or SMS",
+    "No production fixtures",
+    "No migration executed",
+    "Preserve backend/debug_voucher.py",
+    "Use prior 42/25 baseline; targeted deltas only",
+    "Keep all rollback containers",
+    "Worker legacy hold cutoff established at stage23 and must be preserved across releases"
+  ],
+  "train_candidates": {
+    "api": "karenseir-current-api:stage7-train-20260927",
+    "search": "karenseir-search:stage7-train-20260927",
+    "web": "karenseir-current-web:stage7-train-20260927",
+    "context": "/tmp/karen-operational-stage7-train-r-20260927"
+  },
+  "scripts": {
+    "deploy_template": "/tmp/karen-stage6-deploy.py",
+    "public_verify": "/tmp/karen-operational-e2e/public-delta.cjs",
+    "qa_api": "karenseir-operational-qa-api",
+    "qa_data": "/tmp/karen-operational-e2e",
+    "qa_api_port": 18082,
+    "qa_network": "karenseir-operational-qa"
+  },
+  "tour_browser": {
+    "pass": true,
+    "checks": [
+      {
+        "width": 1440,
+        "pass": true,
+        "title": "Mock QA Tour 84902f",
+        "reservation": "80d9f1cc-1068-40fe-8db4-0f8a5ff5573a",
+        "interceptedPayment": true,
+        "voucher": true,
+        "myTrips": true
+      },
+      {
+        "width": 390,
+        "pass": true,
+        "title": "Mock QA Tour 84902f",
+        "reservation": "d6b06556-0218-44c8-a67b-14825f42dc8a",
+        "interceptedPayment": true,
+        "voucher": true,
+        "myTrips": true
+      }
+    ]
+  },
+  "tour_public": {
+    "pass": true,
+    "rows": [
+      {
+        "width": 1440,
+        "path": "/tours",
+        "pass": true
+      },
+      {
+        "width": 1440,
+        "path": "/supplier/fulfillment",
+        "pass": true
+      },
+      {
+        "width": 1440,
+        "path": "/manage-booking/00000000-0000-4000-8000-000000000000",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/tours",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/supplier/fulfillment",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/manage-booking/00000000-0000-4000-8000-000000000000",
+        "pass": true
+      }
+    ]
+  },
+  "tour_tests": "4 passed: tour checkout/ownership and affected voucher document; no real payment",
+  "accommodation_browser": {
+    "pass": true,
+    "checks": [
+      {
+        "width": 1440,
+        "pass": true,
+        "title": "Mock QA Villa fc6360 — Mock QA Unit",
+        "reservation": "9390a58e-0033-4620-abf9-ab16888de198",
+        "interceptedPayment": true,
+        "voucher": true,
+        "myTrips": true
+      },
+      {
+        "width": 390,
+        "pass": true,
+        "title": "Mock QA Villa fc6360 — Mock QA Unit",
+        "reservation": "8b7e051f-bbf4-46c7-8ed2-2c4e3341ba3f",
+        "interceptedPayment": true,
+        "voucher": true,
+        "myTrips": true
+      }
+    ]
+  },
+  "accommodation_public": {
+    "pass": true,
+    "rows": [
+      {
+        "width": 1440,
+        "path": "/villas",
+        "pass": true
+      },
+      {
+        "width": 1440,
+        "path": "/villas/00000000-0000-4000-8000-000000000000",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/villas",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/villas/00000000-0000-4000-8000-000000000000",
+        "pass": true
+      }
+    ]
+  },
+  "car_browser": {
+    "pass": true,
+    "checks": [
+      {
+        "width": 1440,
+        "pass": true,
+        "title": "Mock QA Car 1790548375511",
+        "reservation": "e93c55c3-6813-416c-bcef-a6e0bba0b9f5",
+        "interceptedPayment": true,
+        "voucher": true,
+        "myTrips": true
+      },
+      {
+        "width": 390,
+        "pass": true,
+        "title": "Mock QA Car 1790548385563",
+        "reservation": "9f3e9b49-f1f6-43b0-b1ee-5fb5479bc00d",
+        "interceptedPayment": true,
+        "voucher": true,
+        "myTrips": true
+      }
+    ]
+  },
+  "car_public": {
+    "pass": true,
+    "rows": [
+      {
+        "width": 1440,
+        "path": "/car-rental",
+        "pass": true
+      },
+      {
+        "width": 1440,
+        "path": "/supplier/car-rental/new",
+        "pass": true
+      },
+      {
+        "width": 1440,
+        "path": "/services",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/car-rental",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/supplier/car-rental/new",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/services",
+        "pass": true
+      }
+    ]
+  },
+  "restaurant_tests": "1 focused end-to-end API test passed; QR dependency qrcode 8.2 built; no production migration or financial test.",
+  "restaurant_browser": {
+    "pass": true,
+    "checks": [
+      {
+        "width": 1440,
+        "pass": true,
+        "title": "Mock QA Dining c6d9f4",
+        "reservation": "70b57d84-fbb7-483d-8de8-3eb522eb12de",
+        "interceptedPayment": true,
+        "voucher": true,
+        "myTrips": true,
+        "qrRendered": true,
+        "admissionCodeEntry": true,
+        "cameraScanTested": false
+      },
+      {
+        "width": 390,
+        "pass": true,
+        "title": "Mock QA Dining c6d9f4",
+        "reservation": "d5497b87-7356-4bae-959c-cfd2f119de36",
+        "interceptedPayment": true,
+        "voucher": true,
+        "myTrips": true,
+        "qrRendered": true,
+        "admissionCodeEntry": true,
+        "cameraScanTested": false
+      }
+    ]
+  },
+  "restaurant_public": {
+    "pass": true,
+    "rows": [
+      {
+        "width": 1440,
+        "path": "/restaurants",
+        "pass": true
+      },
+      {
+        "width": 1440,
+        "path": "/supplier/admission",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/restaurants",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/supplier/admission",
+        "pass": true
+      }
+    ]
+  },
+  "venue_browser": {
+    "pass": true,
+    "checks": [
+      {
+        "width": 1440,
+        "pass": true,
+        "title": "Mock QA Hall 67402a",
+        "reservation": "df679785-19aa-476a-a21f-2b8caee823a6",
+        "interceptedPayment": true,
+        "voucher": true,
+        "myTrips": true,
+        "qrRendered": true,
+        "admissionCodeEntry": true,
+        "cameraScanTested": false
+      },
+      {
+        "width": 390,
+        "pass": true,
+        "title": "Mock QA Hall 67402a",
+        "reservation": "1cb4798e-a513-4a89-b707-fc76ff122b24",
+        "interceptedPayment": true,
+        "voucher": true,
+        "myTrips": true,
+        "qrRendered": true,
+        "admissionCodeEntry": true,
+        "cameraScanTested": false
+      }
+    ]
+  },
+  "venue_public": {
+    "pass": true,
+    "rows": [
+      {
+        "width": 1440,
+        "path": "/events-venues",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/events-venues",
+        "pass": true
+      }
+    ]
+  },
+  "sport_browser": {
+    "pass": true,
+    "checks": [
+      {
+        "width": 1440,
+        "pass": true,
+        "title": "Mock QA Sport 325573",
+        "reservation": "50acc4d8-ff94-4493-b9a7-a64b3cbcc95c",
+        "interceptedPayment": true,
+        "voucher": true,
+        "myTrips": true,
+        "qrRendered": true,
+        "admissionCodeEntry": true,
+        "cameraScanTested": false
+      },
+      {
+        "width": 390,
+        "pass": true,
+        "title": "Mock QA Sport 325573",
+        "reservation": "00d32ad1-7009-4689-8611-a5fe1a8c1fd4",
+        "interceptedPayment": true,
+        "voucher": true,
+        "myTrips": true,
+        "qrRendered": true,
+        "admissionCodeEntry": true,
+        "cameraScanTested": false
+      }
+    ]
+  },
+  "sport_public": {
+    "pass": true,
+    "rows": [
+      {
+        "width": 1440,
+        "path": "/pools-sports",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/pools-sports",
+        "pass": true
+      }
+    ]
+  },
+  "attraction_browser": {
+    "pass": true,
+    "checks": [
+      {
+        "width": 1440,
+        "pass": true,
+        "title": "Mock QA Attraction 459cad",
+        "reservation": "6229b233-922b-417f-9518-2fd6fb8002d2",
+        "interceptedPayment": true,
+        "voucher": true,
+        "myTrips": true,
+        "qrRendered": true,
+        "admissionCodeEntry": true,
+        "cameraScanTested": false
+      },
+      {
+        "width": 390,
+        "pass": true,
+        "title": "Mock QA Attraction 459cad",
+        "reservation": "651f637b-1f83-423d-b488-ddc6c3d2f5f2",
+        "interceptedPayment": true,
+        "voucher": true,
+        "myTrips": true,
+        "qrRendered": true,
+        "admissionCodeEntry": true,
+        "cameraScanTested": false
+      }
+    ]
+  },
+  "attraction_public": {
+    "pass": true,
+    "rows": [
+      {
+        "width": 1440,
+        "path": "/attractions",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/attractions",
+        "pass": true
+      }
+    ]
+  },
+  "guide_browser": {
+    "pass": true,
+    "checks": [
+      {
+        "width": 1440,
+        "pass": true,
+        "title": "Mock QA Guide 1790550761342",
+        "reservation": "4a55ce41-dbd4-4eae-b2c7-f3145bd34cd3",
+        "interceptedPayment": true,
+        "voucher": true,
+        "myTrips": true
+      },
+      {
+        "width": 390,
+        "pass": true,
+        "title": "Mock QA Guide 1790550772014",
+        "reservation": "16754488-9ce3-4c4d-a2b5-ea0fbddb92bc",
+        "interceptedPayment": true,
+        "voucher": true,
+        "myTrips": true
+      }
+    ]
+  },
+  "guide_public": {
+    "pass": true,
+    "rows": [
+      {
+        "width": 1440,
+        "path": "/travel-guides",
+        "pass": true
+      },
+      {
+        "width": 1440,
+        "path": "/supplier/guides/new",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/travel-guides",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/supplier/guides/new",
+        "pass": true
+      }
+    ]
+  },
+  "transport_browser": {
+    "pass": true,
+    "checks": [
+      {
+        "width": 1440,
+        "pass": true,
+        "title": "Mock QA Transport 1790551238102",
+        "reservation": "7fda5ba8-a163-4c5f-bcaf-79f63d7e606f",
+        "interceptedPayment": true,
+        "voucher": true,
+        "myTrips": true
+      },
+      {
+        "width": 390,
+        "pass": true,
+        "title": "Mock QA Transport 1790551249163",
+        "reservation": "1670f045-b4d4-4a1b-9b75-dcc6183bab66",
+        "interceptedPayment": true,
+        "voucher": true,
+        "myTrips": true
+      }
+    ]
+  },
+  "transport_public": {
+    "pass": true,
+    "rows": [
+      {
+        "width": 1440,
+        "path": "/tourist-transport",
+        "pass": true
+      },
+      {
+        "width": 1440,
+        "path": "/supplier/transport/new",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/tourist-transport",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/supplier/transport/new",
+        "pass": true
+      }
+    ]
+  },
+  "handicraft_browser": {
+    "pass": true,
+    "checks": [
+      {
+        "width": 1440,
+        "pass": true,
+        "title": "Mock QA Handicraft 1790551902821",
+        "reservation": "9f0ad6ef-6cc3-4f26-975d-b8f720471b3f",
+        "interceptedPayment": true,
+        "voucher": true,
+        "myTrips": true
+      },
+      {
+        "width": 390,
+        "pass": true,
+        "title": "Mock QA Handicraft 1790551914473",
+        "reservation": "552214ee-02d3-4c00-8b0e-cac4fbd5a257",
+        "interceptedPayment": true,
+        "voucher": true,
+        "myTrips": true
+      }
+    ]
+  },
+  "home_handoff_browser": {
+    "pass": true,
+    "rows": [
+      {
+        "width": 1440,
+        "path": "/tourist-transport",
+        "pass": true
+      },
+      {
+        "width": 1440,
+        "path": "/travel-guides",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/tourist-transport",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/travel-guides",
+        "pass": true
+      }
+    ]
+  },
+  "handicraft_tests": {
+    "api": "1 passed",
+    "search": "1 passed",
+    "storage": "isolated /tmp only",
+    "payment": "intercepted gateway.invalid only"
+  },
+  "handicraft_public": {
+    "pass": true,
+    "rows": [
+      {
+        "width": 1440,
+        "path": "/handicrafts",
+        "pass": true
+      },
+      {
+        "width": 1440,
+        "path": "/supplier/handicrafts/new",
+        "pass": true
+      },
+      {
+        "width": 1440,
+        "path": "/services",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/handicrafts",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/supplier/handicrafts/new",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/services",
+        "pass": true
+      }
+    ]
+  },
+  "home_handoff_public": {
+    "pass": true,
+    "rows": [
+      {
+        "width": 1440,
+        "path": "/tourist-transport",
+        "pass": true
+      },
+      {
+        "width": 1440,
+        "path": "/travel-guides",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/tourist-transport",
+        "pass": true
+      },
+      {
+        "width": 390,
+        "path": "/travel-guides",
+        "pass": true
+      }
+    ]
+  },
+  "final_health": {
+    "pass": true,
+    "states": {
+      "karenseir-api-1": {
+        "running": true,
+        "health": "healthy",
+        "image": "sha256:4547d376fa00ec2f643093e228d8dbecf437018198eea6bfd4ba4f440db41d1c"
+      },
+      "karenseir-worker-1": {
+        "running": true,
+        "health": "healthy",
+        "image": "sha256:4547d376fa00ec2f643093e228d8dbecf437018198eea6bfd4ba4f440db41d1c"
+      },
+      "karenseir-frontend-1": {
+        "running": true,
+        "health": "healthy",
+        "image": "sha256:9c4fe279547b1dcfd6ca17bf8a5915f99182b562c2e1ec41ecdaed5c102fcd01"
+      },
+      "karenseir-search": {
+        "running": true,
+        "health": "healthy",
+        "image": "sha256:1a8f947d45778f57d3730e830eedf82a2dcfb4b99a251c4e197b1790d1137191"
+      }
+    },
+    "rollback_retained": [
+      "karenseir-api-1-pre-stage7-handicraft",
+      "karenseir-search-pre-stage7-handicraft",
+      "karenseir-worker-1-pre-stage7-handicraft",
+      "karenseir-frontend-1-pre-stage7-handicraft"
+    ],
+    "fingerprint": "6494d96a822212d3b06c27cdf13579b651cda3da-worktree-b96351d5981f",
+    "rollback_executed": false
+  },
+  "closure_report": "docs/recovery/2026-09-27-final-closure.md",
+  "readiness": {
+    "internal_acceptance_verified": true,
+    "public_browsing": true,
+    "real_sales_ready": false,
+    "https_ready": false,
+    "live_payment_verified": false,
+    "otp_delivery_verified": false
+  }
+}

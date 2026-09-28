@@ -1,0 +1,734 @@
+{
+  "release": {
+    "status": "DEPLOYED_CUSTOMER_QA_PASS",
+    "image": "sha256:9fcfee1030d377870895d94f233aa48e7534546dda4691c2b128a7f3be82be56",
+    "fingerprint": "6494d96a822212d3b06c27cdf13579b651cda3da-worktree-b837ab14ea65",
+    "rollback_container": "karenseir-frontend-pre-customer-20260927",
+    "rollback_image": "sha256:afc42e7580e1b9b35190ee8f3e8f6a5aa5598938a79b8bb2947d652eff4d8554",
+    "public_checks": 67,
+    "preview_delta_checks": 33,
+    "financial_transaction": false,
+    "sms_sent": false
+  },
+  "source": {
+    "source_head": "6494d96a822212d3b06c27cdf13579b651cda3da",
+    "application_files": {
+      "app/account/page.tsx": "db93e1e42dae090d63921d5202e42d83c674d9d3231de726cbcf8fdd12fa59bd",
+      "app/booking/confirmation/page.tsx": "5dc9d5498dfec7198cca8e5c353fafa7421dc3ca91da100f4d7244460ab19788",
+      "app/contact/page.tsx": "527afe8312fc1e0a202628555ab5b947b3a60add30f01990ff6200827fded0dc",
+      "app/cruises/page.tsx": "d44f065b219ea440a181d00828dcd0a730fc598debc66a6002c4b05e4db62ee2",
+      "app/destinations/[slug]/page.tsx": "79b22b3748d5839b2771912b05fdac18f077d1536834b20a400f5b55caf8fcd6",
+      "app/destinations/page.tsx": "f0b39e165357484434654730d8678d7971c67d82862cd9863e81c703a71a6c58",
+      "app/experiences/page.tsx": "3f42eb88989c0d3352710410084a99b8dd62138077b6f5219240b5d9455e745c",
+      "app/flights/page.tsx": "66ac106f7b89e1828932e74205457db096fa1a5f1688a31107e15f46eaee5a07",
+      "app/globals.css": "fedb11e0de26f5ce7874d157631a276e3489cef75849b2625a123712e46475f1",
+      "app/itineraries/page.tsx": "e4e06b66265e0d764f0286a813255e2161cdca76349747658486e95bbefcd4c6",
+      "app/login/page.tsx": "ea6c2e23def312cd12458471f4f70acf7d25fd161c7bc17ae38b0c1280bdbce3",
+      "app/manage-booking/[bookingId]/page.tsx": "7e834ddce702c84e2629fddfa05c907fa48ffad49b6ffe25ab537b979c82fe4a",
+      "app/nearby/page.tsx": "515ea02773dd89ca6e9f86ecf7357392da1e56017fb404f89bd15a40ee9873bf",
+      "app/page.tsx": "f85ebedf32a0fe272b9412061c997a00764a589a150d4f5ecde4e89230c78eea",
+      "app/privacy/page.tsx": "3a079fa1e665fcbd1dfd560036f866e92710aa85e42b827cc5bd9f8e33795bba",
+      "app/register/page.tsx": "39267d01ced66cb2ccd3d2f0be0bb807ae63d232a06133684d1359f0e718d286",
+      "app/services/page.tsx": "4ebaceac7da1971f09254ad5e388a9c6547fb4242a2ffd2e1c2a0d4de5aff343",
+      "app/terms/page.tsx": "ba1e6bcdff810cd71c548e7a0fad004e98e1ea33e30f9048f8c996adaab3143f",
+      "app/tours/page.tsx": "c271b684fade9fd6bdb487144df5766e5b4167b4c0f6bf03d355fa4ef1e2bb0d",
+      "app/trips/[id]/page.tsx": "045da3b21f483e10c7060b72bd83c42425a1d56fa76575c0a8e73d2a3e2bf102",
+      "app/villas/page.tsx": "6b974afa8af26c53dd66648850c940b6bbc29df49593a99933d5b4fa66f52e22",
+      "app/visa/page.tsx": "f7e3c4cef6acf5ec6c832cff0d2a7c98bbc07e8d32116dfd328da6e80c288d87",
+      "components/customer/CustomerHelp.tsx": "b0bcaa910394add38319748f370908f278a3a2aa920c26efc7dd3da7b4623527",
+      "components/journey/JourneyShell.tsx": "9d9ffea261c69bb77a69a59f0df76408da2e82670d54be683c1340f650dc9bd8",
+      "components/journey/SupportDock.tsx": "424c8e8925753b458411576b277af694f2d18b2193142a062e62a55a4762d114",
+      "components/operational/AgencyPortal.tsx": "4c55f79a82a4c5c8bcfbf92292c1074f2d41d6fbd5f361a1e4f68061f31cfd3d",
+      "components/operational/CombinedFlightHotel.tsx": "35c755debd058b0a714b66692854efa9cde21f3ab37ce728bf27421719249a80",
+      "components/operational/ConnectedViews.tsx": "23c780333addd2bcc699af5052da1a624d5066fb1978134c631002724cb814f4",
+      "components/operational/CustomerAccount.tsx": "57d4a0a9c17d0d59ab9515319abd001e05c786c897c725f4b61dd2d26a7e8dab",
+      "components/operational/EcosystemViews.tsx": "99891061cd1f552895d0a125a3d0b9249ad984c88f2281060ae8f9bcdf039a45",
+      "components/operational/EmployeePortal.tsx": "847b36195849569ea25ee4097321ddf943652f5262a7cf119c47f755b9bbc0d7",
+      "components/operational/UnifiedSearchView.tsx": "04efedeab399fe027bcc28773388b42eec437090f4cecad8395243da3975b13c",
+      "components/operational/WhiteLabelConfig.tsx": "6d2954344f0e832853784227adff4a60940463571edfd345597ceba52798cfd7",
+      "components/search/HomeSearchExperience.tsx": "dda2656c57935b3a5e1675a99ca396f5ed70eb2b3d717351dd21f49002082745",
+      "lib/customer-catalog.ts": "dbb4439135643d4330e79e8dcc10baa5e6f90c4d5d8ec4673e1787346da5d6a4",
+      "lib/site-contact.ts": "043ff5612f451c50d8cf0f87a5d39a4133c33fa4116b5ae0cb763bdcd97f4281"
+    },
+    "git_commit_label": "6494d96a822212d3b06c27cdf13579b651cda3da-worktree-b837ab14ea65",
+    "built_at": "2026-09-27T19:51:19.288551+00:00",
+    "api_url": "http://95.38.184.209:8000",
+    "site_url": "http://95.38.184.209"
+  },
+  "public_review": [
+    {
+      "path": "/",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/booking/confirmation",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/search/results?vertical=hotel&destination=شیراز",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/search/results?vertical=flight&origin=تهران&destination=شیراز",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/trips",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/nearby",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/organization",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/support",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/login",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/support?channel=expert",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/services",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/services?group=0",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/services?group=1",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/services?group=2",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/services?group=3",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/services?group=4",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/services?group=5",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/destinations",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/destinations/qeshm",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/destinations/shiraz",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/destinations/yazd",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/destinations/masuleh",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/assistant",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/compare",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/experiences",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/restaurants",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/events-venues",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/pools-sports",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/attractions",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/white-label",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/integrations",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/contact",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/hotels",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/terms",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/privacy",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/account",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/login?redirect=%2Ftrips",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/login?redirect=%2Forganization",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/register",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/visa",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/contact?subject=before-travel",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/flights",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/contact?subject=transport",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/villas",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/tours",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/contact?subject=travel-essentials",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/search/results?vertical=hotel&destination=%D9%82%D8%B4%D9%85",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/search/results?vertical=hotel&destination=%D8%B4%DB%8C%D8%B1%D8%A7%D8%B2",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/search/results?vertical=hotel&destination=%DB%8C%D8%B2%D8%AF",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/search/results?vertical=hotel&destination=%D9%85%D8%A7%D8%B3%D9%88%D9%84%D9%87",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/compare/package",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/login?redirect=%2Fcompare",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/itineraries",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/login?redirect=/white-label",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/login?redirect=/account",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/register?redirect=%2Ftrips",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/register?redirect=%2Forganization",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/register?redirect=%2Fcompare",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/register?redirect=%2Fwhite-label",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/register?redirect=%2Faccount",
+      "viewport": 1440,
+      "http_status": 200,
+      "document_width": 1440,
+      "page_errors": []
+    },
+    {
+      "path": "/",
+      "viewport": 390,
+      "http_status": 200,
+      "document_width": 390,
+      "page_errors": []
+    },
+    {
+      "path": "/services",
+      "viewport": 390,
+      "http_status": 200,
+      "document_width": 390,
+      "page_errors": []
+    },
+    {
+      "path": "/support",
+      "viewport": 390,
+      "http_status": 200,
+      "document_width": 390,
+      "page_errors": []
+    },
+    {
+      "path": "/contact",
+      "viewport": 390,
+      "http_status": 200,
+      "document_width": 390,
+      "page_errors": []
+    },
+    {
+      "path": "/hotels",
+      "viewport": 390,
+      "http_status": 200,
+      "document_width": 390,
+      "page_errors": []
+    },
+    {
+      "path": "/login",
+      "viewport": 390,
+      "http_status": 200,
+      "document_width": 390,
+      "page_errors": []
+    },
+    {
+      "path": "/search/results?vertical=hotel&destination=شیراز",
+      "viewport": 390,
+      "http_status": 200,
+      "document_width": 390,
+      "page_errors": []
+    }
+  ],
+  "interactions": {
+    "checks": [
+      {
+        "path": "/",
+        "pass": true
+      },
+      {
+        "path": "/support",
+        "pass": true
+      },
+      {
+        "path": "/login",
+        "pass": true
+      },
+      {
+        "path": "/register",
+        "pass": true
+      },
+      {
+        "path": "/account",
+        "pass": true
+      },
+      {
+        "path": "/itineraries",
+        "pass": true
+      },
+      {
+        "path": "/employee",
+        "pass": true
+      },
+      {
+        "path": "/agency",
+        "pass": true
+      },
+      {
+        "path": "/white-label",
+        "pass": true
+      },
+      {
+        "path": "/search/results?vertical=hotel&destination=شیراز",
+        "pass": true
+      },
+      {
+        "tab": "پرواز",
+        "pass": true
+      },
+      {
+        "tab": "هتل",
+        "pass": true
+      },
+      {
+        "tab": "پرواز + هتل",
+        "pass": true
+      },
+      {
+        "tab": "قطار",
+        "pass": true
+      },
+      {
+        "tab": "اتوبوس",
+        "pass": true
+      },
+      {
+        "tab": "تور",
+        "pass": true
+      },
+      {
+        "tab": "اقامتگاه",
+        "pass": true
+      },
+      {
+        "tab": "خودرو",
+        "pass": true
+      },
+      {
+        "tab": "کروز",
+        "pass": true
+      },
+      {
+        "tab": "ویزا",
+        "pass": true
+      },
+      {
+        "tab": "ترانسفر",
+        "pass": true
+      },
+      {
+        "tab": "راهنمای گردشگری",
+        "pass": true
+      },
+      {
+        "action": "hotel search -> honest unavailable -> verified support",
+        "pass": true
+      },
+      {
+        "path": "/login",
+        "action": "Persian digit normalization and invalid phone blocked without send",
+        "pass": true
+      },
+      {
+        "path": "/register",
+        "action": "Persian digit normalization and invalid phone blocked without send",
+        "pass": true
+      },
+      {
+        "path": "/",
+        "width": 1440,
+        "pass": true
+      },
+      {
+        "path": "/support",
+        "width": 1440,
+        "pass": true
+      },
+      {
+        "path": "/contact",
+        "width": 1440,
+        "pass": true
+      },
+      {
+        "path": "/login",
+        "width": 1440,
+        "pass": true
+      },
+      {
+        "path": "/",
+        "width": 390,
+        "pass": true
+      },
+      {
+        "path": "/support",
+        "width": 390,
+        "pass": true
+      },
+      {
+        "path": "/contact",
+        "width": 390,
+        "pass": true
+      },
+      {
+        "path": "/login",
+        "width": 390,
+        "pass": true
+      }
+    ],
+    "errors": []
+  },
+  "visual_delta": {
+    "pass": true,
+    "bg": "rgb(42, 21, 48)",
+    "color": "rgb(255, 255, 255)",
+    "width": 390
+  },
+  "lint": {
+    "files": 35,
+    "new_findings": 0,
+    "existing_findings": [
+      {
+        "file": "app/page.tsx",
+        "rule": "react-hooks/set-state-in-effect",
+        "severity": 2
+      },
+      {
+        "file": "app/page.tsx",
+        "rule": "react-hooks/set-state-in-effect",
+        "severity": 2
+      },
+      {
+        "file": "components/operational/AgencyPortal.tsx",
+        "rule": "react-hooks/set-state-in-effect",
+        "severity": 2
+      },
+      {
+        "file": "components/operational/CombinedFlightHotel.tsx",
+        "rule": "react-hooks/set-state-in-effect",
+        "severity": 2
+      },
+      {
+        "file": "components/operational/ConnectedViews.tsx",
+        "rule": "react-hooks/set-state-in-effect",
+        "severity": 2
+      },
+      {
+        "file": "components/operational/ConnectedViews.tsx",
+        "rule": "react-hooks/set-state-in-effect",
+        "severity": 2
+      },
+      {
+        "file": "components/operational/ConnectedViews.tsx",
+        "rule": "@next/next/no-img-element",
+        "severity": 1
+      },
+      {
+        "file": "components/operational/WhiteLabelConfig.tsx",
+        "rule": "react-hooks/set-state-in-effect",
+        "severity": 2
+      }
+    ]
+  },
+  "external_evidence": "2026-09-27-live-prerequisites.md",
+  "limits": [
+    "Live authenticated customer account/OTP delivery not certified: external OTP prerequisite remains.",
+    "No real booking, payment or SMS sent.",
+    "Public website is HTTP by IP; domain DNS/HTTPS remains externally blocked."
+  ]
+}

@@ -145,6 +145,54 @@ def assemble(req, pools: dict[str, list[dict]], provider_meta: list[dict], elaps
     for vertical, rows in pools.items():
         norm = []
         for row in rows:
+            if vertical=="tour" and (row.get("attributes") or {}).get("tour_product_id"):
+                attrs=row["attributes"]
+                if req.origin and normalize_text(req.origin)!=normalize_text(str(attrs.get("origin",""))):continue
+                if (req.filters or {}).get("depart") and str(attrs.get("departure_time",""))[:10]!=(req.filters or {})["depart"]:continue
+            if vertical in {"event_hall","pool_sport","attraction"} and (row.get("attributes") or {}).get("leisure_product_id"):
+                selected=(req.filters or {}).get("depart")
+                if selected and str(row["attributes"].get("session_starts_at",""))[:10]!=selected:continue
+            if vertical=="handicraft":
+                attrs=row.get("attributes") or {}
+                if attrs.get("delivery_mode")!="pickup" or not all(isinstance(attrs.get(k),str) and attrs[k].strip() for k in ("city","sku","artisan_name","craft_origin","material","pickup_address","pickup_hours","authenticity_terms","care_instructions")):continue
+                if req.destination and normalize_text(req.destination)!=normalize_text(attrs["city"]):continue
+            if vertical=="tourist_transportation":
+                attrs=row.get("attributes") or {}
+                try:
+                    start=datetime.fromisoformat(str(attrs.get("departure_time","")));end=datetime.fromisoformat(str(attrs.get("arrival_time","")))
+                    if start.tzinfo is None or end.tzinfo is None or start<=datetime.now(timezone.utc) or end<=start or start.date().isoformat()!=(req.filters or {}).get("depart") or req.travellers>int(attrs.get("seats_per_vehicle",0)):continue
+                    if normalize_text(req.origin or "")!=normalize_text(str(attrs.get("origin",""))) or normalize_text(req.destination or "")!=normalize_text(str(attrs.get("destination",""))):continue
+                    if not all(isinstance(attrs.get(k),str) and attrs[k].strip() for k in ("transport_operator","vehicle_class","pickup_point","dropoff_point","luggage_terms","accessibility_terms")):continue
+                except (ValueError,TypeError):continue
+            if vertical=="travel_guide":
+                attrs=row.get("attributes") or {}
+                try:
+                    start=datetime.fromisoformat(str(attrs.get("departure_time","")));end=datetime.fromisoformat(str(attrs.get("arrival_time","")))
+                    if start.tzinfo is None or end.tzinfo is None or start<=datetime.now(timezone.utc) or end<=start or start.date().isoformat()!=(req.filters or {}).get("depart") or req.travellers>int(attrs.get("group_capacity",0)):continue
+                    if not all(isinstance(attrs.get(k),str) and attrs[k].strip() for k in ("city","guide_name","languages","meeting_point","inclusions","exclusions")):continue
+                except (ValueError,TypeError):continue
+            if vertical == "car_rental":
+                attrs=row.get("attributes") or {}
+                try:
+                    start=datetime.fromisoformat(str(attrs.get("rental_start","")));end=datetime.fromisoformat(str(attrs.get("rental_end","")))
+                    if start.tzinfo is None or end.tzinfo is None or start<=datetime.now(timezone.utc) or end<=start:continue
+                    if not all(isinstance(attrs.get(k),str) and attrs[k].strip() for k in ("city","vehicle_class","pickup_location","return_location","deposit_terms","license_terms","insurance_terms","mileage_terms")):continue
+                    if start.date().isoformat()!=(req.filters or {}).get("depart") or end.date().isoformat()!=(req.filters or {}).get("return"):continue
+                except ValueError:continue
+            if vertical == "train":
+                attrs = row.get("attributes") or {}
+                try:
+                    departure = datetime.fromisoformat(str(attrs.get("departure_time", "")))
+                except ValueError:
+                    continue
+                if departure.tzinfo is None or departure <= now:
+                    continue
+                if not req.origin or normalize_text(req.origin) != normalize_text(str(attrs.get("origin", ""))):
+                    continue
+                if not req.destination or normalize_text(req.destination) != normalize_text(str(attrs.get("destination", ""))):
+                    continue
+                if (req.filters or {}).get("depart") != departure.date().isoformat():
+                    continue
             if safe_filters.get("min_price") is not None and _f(row.get("amount")) < safe_filters["min_price"]:
                 continue
             if safe_filters.get("max_price") is not None and _f(row.get("amount")) > safe_filters["max_price"]:

@@ -175,7 +175,16 @@ class GRSHttpTransport:
         data = json.dumps(dict(json_body)).encode("utf-8") if json_body is not None else None
         request = urllib.request.Request(url, data=data, headers=headers, method=method)
         connect_timeout, read_timeout = timeout
-        with urllib.request.urlopen(request, timeout=connect_timeout + read_timeout) as response:  # noqa: S310
+        class NoRedirect(urllib.request.HTTPRedirectHandler):
+            def redirect_request(self, req, fp, code, msg, headers, newurl):
+                return None  # Never forward Client-Token to a redirect destination.
+        from urllib.error import HTTPError
+        opener = urllib.request.build_opener(NoRedirect())
+        try:
+            response = opener.open(request, timeout=connect_timeout + read_timeout)
+        except HTTPError as exc:
+            response = exc  # Preserve 401/403/429 taxonomy instead of generic unavailable.
+        with response:
             raw = response.read()
             content_type = response.headers.get("Content-Type", "")
             body = None
@@ -183,8 +192,9 @@ class GRSHttpTransport:
                 try:
                     body = json.loads(raw.decode("utf-8"))
                 except (json.JSONDecodeError, UnicodeDecodeError):
-                    body = None
-            return GRSTransportResponse(status_code=response.status, json_body=body, content_type=content_type)
+                    pass
+            return GRSTransportResponse(status_code=response.code, json_body=body, content_type=content_type)
+
 
 
 # ---------------------------------------------------------------------------

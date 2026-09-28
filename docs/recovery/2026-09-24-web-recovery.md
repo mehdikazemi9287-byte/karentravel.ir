@@ -35,3 +35,15 @@ Final document QA: checked source HEAD, image identities, test counts, browser r
 
 Artifacts: `docs/recovery/2026-09-24-preview-smoke.json`; build/test logs remain in `/tmp/karen-recovery-*.log`. Preview remains available only on `127.0.0.1:3310`.
 Next exact action after explicit approval: replace only `karenseir-frontend-1` with the verified image, preserve the original container as above, run the same public-origin desktop/mobile browser smoke without interception, and roll back on failure.
+
+## Approved production deployment — completed
+The user explicitly approved this exact frontend replacement after the earlier automatic rejection. The approval block above is resolved.
+- Deployed the existing verified `karenseir-current-web:recovery-975608f-http` image without rebuilding.
+- Environment, port bindings and network membership match the prior container; original retained stopped as `karenseir-frontend-pre-recovery-20260924`.
+- Web healthy. Twelve public browser checks passed at 1440/390 widths: `/`, `/login`, `/register`, `/search/results`, `/trips`, `/assistant`. CSS/JS loaded without asset or runtime exceptions; RTL, fonts and horizontal bounds passed. Production desktop/mobile screenshots visually checked.
+- Public CSP no longer upgrades assets to unavailable HTTPS or points to localhost. Browser Search calls reached `http://95.38.184.209:8000/search/v3/public` with HTTP 200.
+- Assistant gateway forwarded an empty validation probe and returned expected HTTP 422; no conversational or booking action requested.
+- API, Worker and Assistant remain healthy. No DB, migrations, Worker privileges, reaper, payment, secrets, other projects or GitHub reconciliation changes.
+- Rollback was not needed. Original image/container remain available; rollback would restore the known pre-recovery CSP defect.
+- Targeted recovery QA PASS; no remaining P0 detected within frontend recovery scope. This is not a new full authenticated purchase verification.
+- Detailed browser evidence: `/tmp/karen-production-smoke.json`; production screenshots: `/tmp/karen-production-1440.jpg`, `/tmp/karen-production-390.jpg`.
