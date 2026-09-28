@@ -153,5 +153,8 @@
   },
   "result": "EXTERNAL_BLOCKED",
   "at": "2026-09-28T10:40:49.269734+00:00",
-  "rollback": "READY"
+  "rollback": "READY",
+  "implementation_commit": "dd1c5692ea66b23d74f7d25190206d3e6d3d79f1",
+  "baseline_web_fingerprint_retained": "6494d96a822212d3b06c27cdf13579b651cda3da-worktree-b96351d5981f",
+  "commit_note": "Commit records the source corresponding to the retained web/search content plus deployed API/worker readiness delta; historical image labels intentionally unchanged."
 }

@@ -54,3 +54,5 @@ Security scope: configured secret literals absent from pending source files, dep
 Final state: **EXTERNAL_BLOCKED**.
 
 Deployment: API/worker image `sha256:8c4e91fb32f2000a78a23bc92f79947ace607726cb8067a6000bc08c4291c772`; web fingerprint remains `b96351d5981f`, search image unchanged. Four services healthy; API source hash matches runtime. Both pre-readiness containers and all original pre-handicraft rollback containers/images verified present. No rollback executed, no DB migration.
+
+Implementation commit: `dd1c5692ea66b23d74f7d25190206d3e6d3d79f1`. All validated accumulated changes committed; user-owned `backend/debug_voucher.py` preserved untracked. Historical Web image label remains the verified baseline, not an unreported application mismatch. Recovery metadata added in the following documentation commit.
