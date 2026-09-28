@@ -56,7 +56,7 @@ export function ExperienceProductView({ productId }: { productId: string }) {
   if (!detail) return <Shell><div className="journey-main leisure-product" style={{ paddingTop: 24 }}>{pendingNotice}<p className="panel">{notice || 'این خدمت پیدا نشد.'}</p></div></Shell>;
 
   const { place, product, sessions, ticket_types: ticketTypes } = detail;
-  if(['DISCOVERY_ONLY','VENUE_INQUIRY'].includes(product.booking_mode))return <Shell><section className="container customer-page"><h1>{product.title}</h1><p>{product.description}</p><p>این خدمت با استعلام و هماهنگی مسئول رزرو ارائه می‌شود؛ قیمت و ظرفیت نهایی هنوز تأیید نشده است.</p><ContactOptions/></section></Shell>;
+  if(['DISCOVERY_ONLY','VENUE_INQUIRY'].includes(product.booking_mode))return <Shell><section className="container customer-page"><h1>{product.title}</h1><p>{product.description}</p><p>این خدمت با استعلام و هماهنگی مسئول رزرو ارائه می‌شود؛ قیمت و ظرفیت نهایی هنوز تأیید نشده است.</p><Link className="button primary" href={"/support?"+new URLSearchParams({inquiry:product.service_type,product:product.id,date:day})}>ثبت درخواست بررسی این خدمت</Link><ContactOptions/></section></Shell>;
   const entryRules=[product.restrictions?.entry_rules,sessions.find(s=>s.id===sessionId)?.restrictions?.entry_rules].flatMap(v=>Array.isArray(v)?v.filter(x=>typeof x==='string'):[]);
   const wholeVenue=product.service_type==='event_hall'&&product.booking_mode==='FIXED_PACKAGE';
 

@@ -46,3 +46,6 @@ Slice 5b visual gate found a shared search CSS defect: `.result-price .button.pr
 
 ### Slice 5c — attraction entry and ticket conditions
 Observed public desktop/mobile attraction route has duplicate h1 and no dedicated search form. Reuse pool discovery form with an explicit service configuration; keep pool route and labels unchanged. Display only API-supplied ticket minimum/maximum ages and entry_rules beside each ticket. These are conditions, not a new age-verification promise. No new API/schema/provider behavior. Verify isolated attraction session-to-booking and pool form regression, then public anonymous journey.
+
+### Slice 5d — event discovery and human inquiry
+Public event route has duplicate headings and no inquiry handoff. Add event discovery on shared form and an explicit human inquiry path using existing support/cases API, not a new RFQ/booking model. Product-specific inquiry loads scoped product facts first. Customer receives a support case ID and real messages; no price, capacity, hold or response-time promise. Persist exact pending payload/command per account/service/product for ambiguous response retry. BackOffice already consumes the same cases. All submissions/replies in verification use isolated QA; no production SMS/payment.

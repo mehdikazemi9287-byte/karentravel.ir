@@ -131,3 +131,6 @@ Explicit remaining gaps: supplier media/gallery contract and host UI editing, co
 
 - Slice 5b deployed 280c5bb: pool/sport entry + shared result CTA contrast. Public and isolated QA desktop/mobile PASS; external inventory still blocked. Prior restaurant visual acceptance corrected: clickable CTA had missing background token, now fixed.
 - Attraction public baseline at 1440/390: two h1 headings and no standalone destination/date/party form; existing edit category is correct. Ticket age/restriction fields exist in API but are not displayed on PDP.
+
+- Slice 5c deployed df44f9e: attraction dated discovery and API-supplied age/entry conditions; isolated booking and public anonymous 1440/390 PASS. Pool shared form regression PASS. No claim of live availability.
+- Next: venue inquiry modes show contact-only despite existing general support-case API. Connect human inquiry with honest non-reservation status and durable retry; no new financial policy or migration.
