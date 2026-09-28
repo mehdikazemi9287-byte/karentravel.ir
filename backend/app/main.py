@@ -3547,7 +3547,9 @@ def support_cases(user: User = Depends(current_user), db: Session = Depends(get_
 
 @app.post("/support/cases", status_code=status.HTTP_201_CREATED)
 def create_support_case(data: SupportCaseIn, user: User = Depends(current_user), db: Session = Depends(get_db), idempotency_key: str = Header(alias="Idempotency-Key", min_length=8, max_length=120)) -> dict:
-    _owned_support_scope(db, user, data.reservation_id, data.trip_id)
+    # Pre-booking inquiries are owned by the authenticated customer, without a booking.
+    if not (data.case_type == "SERVICE_INQUIRY" and data.reservation_id is None and data.trip_id is None):
+        _owned_support_scope(db, user, data.reservation_id, data.trip_id)
     prior = db.scalar(select(operational_models.SupportCase).where(operational_models.SupportCase.tenant_id == user.tenant_id, operational_models.SupportCase.command_id == idempotency_key))
     if prior:
         if prior.user_id != user.id or prior.reservation_id != data.reservation_id or prior.trip_id != data.trip_id or prior.subject != data.subject.strip(): raise HTTPException(status_code=409, detail="کلید تکرار برای پرونده دیگری استفاده شده است")

@@ -49,3 +49,5 @@ Observed public desktop/mobile attraction route has duplicate h1 and no dedicate
 
 ### Slice 5d — event discovery and human inquiry
 Public event route has duplicate headings and no inquiry handoff. Add event discovery on shared form and an explicit human inquiry path using existing support/cases API, not a new RFQ/booking model. Product-specific inquiry loads scoped product facts first. Customer receives a support case ID and real messages; no price, capacity, hold or response-time promise. Persist exact pending payload/command per account/service/product for ambiguous response retry. BackOffice already consumes the same cases. All submissions/replies in verification use isolated QA; no production SMS/payment.
+
+QA contract correction: support fields are nullable, but _owned_support_scope requires exactly one trip/reservation. Permit only SERVICE_INQUIRY with both absent; all supplied references still undergo unchanged ownership checks, all ordinary cases still require one anchor. Existing authenticated user ownership, replay payload matching and scoped case listing remain enforced. No schema change. Targeted contract test required before API/worker release.
