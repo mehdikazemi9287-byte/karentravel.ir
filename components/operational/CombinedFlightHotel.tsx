@@ -1,12 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import {HotelStayEditor,initialHotelRooms,hotelSelectionIssue} from './HotelStaySelection';
 import Link from 'next/link';
 import { ContactOptions } from '../customer/CustomerHelp';
 import { useAuth } from '../../lib/api/auth-context';
 import { ApiError, newId } from '../../lib/api/karenseir-client';
 
-type SearchOffer = { id: string; title: string; amount: number; currency: string; service_type: string };
+type SearchOffer = { attributes?:Record<string,unknown>; id: string; title: string; amount: number; currency: string; service_type: string };
 type Leg = { offer_id: string; price_check_id: string; amount: number; expires_at: string; expired: boolean };
 type Quote = {
   id: string; status: string; stored_status: string; currency: string;
@@ -36,6 +37,11 @@ export function CombinedFlightHotel() {
   const [flightId, setFlightId] = useState('');
   const [hotelId, setHotelId] = useState('');
   const [passengers, setPassengers] = useState(1);
+  const [roomCount,setRoomCount]=useState(1),[arrival,setArrival]=useState(''),[departure,setDeparture]=useState('');
+  const [rooms,setRooms]=useState(()=>initialHotelRooms(1,1));
+  const stay={check_in:arrival,check_out:departure,rooms};
+  const stayIssue=hotelSelectionIssue(stay,passengers,0);
+  useEffect(()=>{setRooms(initialHotelRooms(roomCount,passengers));setQuote(null)},[roomCount,passengers]);
   const [quote, setQuote] = useState<Quote | null>(null);
   const [notice, setNotice] = useState<{ tone: 'info' | 'warn' | 'error' | 'ok'; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -57,13 +63,13 @@ export function CombinedFlightHotel() {
   const hotel = useMemo(() => hotels.find(o => o.id === hotelId), [hotels, hotelId]);
 
   async function getQuote(reprice = false) {
-    if (!flightId || !hotelId) return;
+    if (!flightId || !hotelId || stayIssue) return;
     setBusy(true); setBooked(null);
     setNotice({ tone: 'info', text: reprice ? 'در حال قیمت‌گیری مجدد…' : 'در حال دریافت کوت ترکیبی…' });
     try {
       const q = await api.post<Quote>('/combined/flight-hotel/quote', {
         flight_offer_id: flightId, hotel_offer_id: hotelId,
-        flight_units: passengers, hotel_units: passengers,
+        flight_units: passengers, hotel_units: roomCount, hotel_stay:stay,
         itinerary: { passengers }, command_id: newId(),
       });
       setQuote(q);
@@ -128,10 +134,16 @@ export function CombinedFlightHotel() {
             {hotels.map(o => <option key={o.id} value={o.id}>{o.title} — {fa(o.amount, o.currency)}</option>)}
           </select></label>
       </div>
-      <label className="mt-4 block font-bold">تعداد مسافر / اتاق
+      <label className="mt-4 block font-bold">تعداد مسافر بزرگسال
         <input type="number" min={1} max={9} value={passengers} className="mt-2 block w-32 rounded-xl border p-2"
           onChange={e => { setPassengers(Math.max(1, Math.min(9, Number(e.target.value) || 1))); setQuote(null); }} /></label>
-      <button disabled={busy || !flightId || !hotelId} className="button primary mt-4" onClick={() => getQuote(false)}>دریافت کوت ترکیبی</button>
+      <label>تعداد اتاق<input type="number" min={1} max={9} value={roomCount} onChange={e=>setRoomCount(Math.max(1,Math.min(9,Number(e.target.value)||1)))}/></label>
+      <label>ورود هتل<input type="date" value={arrival} onChange={e=>{setArrival(e.target.value);setQuote(null)}}/></label>
+      <label>خروج هتل<input type="date" value={departure} onChange={e=>{setDeparture(e.target.value);setQuote(null)}}/></label>
+      <HotelStayEditor stay={stay} rate={hotel?.attributes?.hotel_rate} disabled={busy} onChange={value=>{setRooms(value);setQuote(null)}}/>
+      {stayIssue&&<p role="alert">{stayIssue}</p>}
+      <p>این ترکیب فعلاً نرخ بزرگسال را می‌پذیرد؛ برای کودک یا نوزاد، خدمات را جداگانه و با نرخ تأییدشده انتخاب کنید.</p>
+      <button disabled={busy || !flightId || !hotelId || !!stayIssue} className="button primary mt-4" onClick={() => getQuote(false)}>دریافت کوت ترکیبی</button>
     </section>
 
     {notice && <p role="status" className={`mb-4 rounded-xl p-4 text-sm ${toneClass[notice.tone]}`}>{notice.text}</p>}

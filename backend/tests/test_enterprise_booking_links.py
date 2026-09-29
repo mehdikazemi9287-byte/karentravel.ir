@@ -1,3 +1,4 @@
+from test_checkout_reviews_zarinpal import hotel_terms
 from datetime import datetime,timedelta,timezone
 from uuid import uuid4
 import json
@@ -17,7 +18,7 @@ def test_approved_request_to_owned_booking_tracking(client):
     assert client.put('/enterprise/organizations/'+oid+'/policy',headers=auth(admin),json=policy).status_code==200
     data={'command_id':str(uuid4()),'use_case':'team_retreat','title':'Mock QA tracking','purpose':'QA only','origin':'Tehran','destination':'Shiraz','starts_at':(datetime.now(timezone.utc)+timedelta(days=10)).isoformat(),'ends_at':(datetime.now(timezone.utc)+timedelta(days=12)).isoformat(),'headcount':1,'services':['hotel'],'budget_amount':5000000}
     request=client.post('/enterprise/organizations/'+oid+'/requests',headers=auth(employee),json=data).json();rid=request['id'];path='/enterprise/requests/'+rid
-    check=client.post('/offers/'+offer['id']+'/price-check',headers=auth(employee),json={'units':1,'command_id':str(uuid4())}).json()
+    check=client.post('/offers/'+offer['id']+'/price-check',headers=auth(employee),json={'hotel_stay':hotel_terms()[1],'units':1,'command_id':str(uuid4())}).json()
     booking=client.post('/orchestration/bookings',headers=auth(employee),json={'price_check_id':check['id'],'command_id':str(uuid4())}).json();res=booking['id']
     body={'reservation_id':res,'command_id':str(uuid4())}
     assert client.post(path+'/bookings',headers=auth(employee),json=body).status_code==409

@@ -1,3 +1,4 @@
+from test_checkout_reviews_zarinpal import hotel_terms
 import json
 from datetime import datetime, timedelta, timezone
 
@@ -34,7 +35,7 @@ def policy():
 
 @pytest.mark.parametrize("service_type,attributes", [
     ("flight", {"origin": "THR", "destination": "SYZ", "baggage": "20kg"}),
-    ("hotel", {"city": "Shiraz", "amenities": ["breakfast"]}),
+    ("hotel", {"city": "Shiraz", "amenities": ["breakfast"], **hotel_terms()[0]}),
     ("tour", {"destination": "Yazd", "duration_days": 3}),
     ("package", {"items": [{"type": "flight"}, {"type": "hotel"}]}),
 ])
@@ -47,7 +48,7 @@ def test_offer_price_check_booking_payment_fulfillment_and_voucher(client, servi
     offer_id = offer_response.json()["id"]
     search = client.post("/search/offers", headers=auth(employee["access_token"]), json={"service_type": service_type})
     assert search.status_code == 200 and any(row["id"] == offer_id for row in search.json())
-    checked = client.post(f"/offers/{offer_id}/price-check", headers=auth(employee["access_token"]), json={"units": 1, "command_id": f"price-check-{service_type}"})
+    checked = client.post(f"/offers/{offer_id}/price-check", headers=auth(employee["access_token"]), json={**({"hotel_stay": hotel_terms()[1]} if service_type == "hotel" else {}), "units": 1, "command_id": f"price-check-{service_type}"})
     assert checked.status_code == 201 and checked.json()["amount"] == 1_000_000
     booking_payload = {"price_check_id": checked.json()["id"], "command_id": f"booking-command-{service_type}"}
     booked = client.post("/orchestration/bookings", headers=auth(employee["access_token"]), json=booking_payload)
@@ -66,6 +67,10 @@ def test_offer_price_check_booking_payment_fulfillment_and_voucher(client, servi
         intent = db.get(PaymentIntent, payment.json()["id"])
         intent.status = "captured"; intent.captured_amount = intent.amount
         db.commit()
+    if service_type == "hotel":
+        ready = client.get("/supplier/reservations/ready", headers=auth(supplier_session["access_token"]))
+        assert next(row for row in ready.json() if row["id"] == reservation_id)["hotel_stay"] == hotel_terms()[1]
+        assert client.get("/supplier/reservations/ready", headers=auth(employee["access_token"])).status_code == 403
     fulfilled = client.post(f"/reservations/{reservation_id}/fulfill", headers=auth(supplier_session["access_token"]), json={"command_id": f"fulfill-{service_type}", "provider_reference": f"supplier-ref-{service_type}", "document_reference": f"document://voucher/{service_type}"})
     assert fulfilled.status_code == 200
     assert fulfilled.json()["reservation"]["status"] == "issued"

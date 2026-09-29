@@ -30,6 +30,7 @@ from sqlalchemy.orm import Mapped, Session, mapped_column
 from .accommodation import PROPERTY_TYPES, StayRates, nightly_rate, stay_price
 from .config import read_secret
 from .database import Base, DATABASE_URL, SessionLocal, engine, set_tenant_context
+from .hotel_stay import HotelStay, validate_hotel_stay, validate_hotel_rate
 from . import operations as operational_models  # register additive operational tables
 from .observability import configure_logging, prometheus_metrics, record_business_event, record_request
 from .rate_limit import InMemoryRateLimiter, RedisRateLimiter, fingerprint
@@ -307,6 +308,7 @@ class FlightPartyIn(BaseModel):
     infants: int = Field(default=0, ge=0, le=20)
 
 class PriceCheckIn(BaseModel):
+    hotel_stay: Optional[HotelStay] = None
     train_party: Optional[FlightPartyIn] = None
     flight_party: Optional[FlightPartyIn] = None
     units: int = Field(ge=1, le=20)
@@ -1180,6 +1182,12 @@ def _voucher_html(*, reservation, booking_item, user, tenant, voucher, tickets) 
             ("تاریخ پایان", attrs.get("session_ends_at") or attrs.get("check_out") or attrs.get("arrival_time") or attrs.get("rental_end")),
         ) if value
     )
+    hotel_stay = json.loads(reservation.price_snapshot_json or "{}").get("hotel_stay")
+    if hotel_stay:
+        detail_rows += f'<div class="row"><span>اقامت هتل</span><strong>{safe(hotel_stay["check_in"])} تا {safe(hotel_stay["check_out"])}</strong></div>'
+        for index, room in enumerate(hotel_stay["rooms"], 1):
+            ages = "، ".join(str(age) for age in room["children_ages"])
+            detail_rows += f'<div class="row"><span>اتاق {index}</span><strong>{safe(room["adults"])} بزرگسال؛ سن کودکان: {safe(ages) if ages else "بدون کودک"}</strong></div>'
     return f"""<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
@@ -2135,6 +2143,7 @@ def create_supplier_offer(data: SupplierOfferIn, user: User = Depends(require_pe
         if prior:
             if prior.request_hash!=request_hash:raise HTTPException(409,"شناسهٔ درخواست برای اطلاعات دیگری استفاده شده است")
             return json.loads(prior.response_json)
+    if data.service_type == "hotel" and "hotel_rate" in data.attributes:validate_hotel_rate(data.attributes)
     if data.service_type == "train":_validate_train_schedule(data.attributes)
     if data.service_type == "car_rental":_validate_car_allotment(data.attributes)
     if data.service_type == "travel_guide":_validate_guide_contract(data.attributes)
@@ -2770,7 +2779,7 @@ def offer_detail(offer_id: str, user: User = Depends(current_user), db: Session 
     if offer is None: raise HTTPException(status_code=404, detail="این گزینه در دسترس نیست")
     attrs = json.loads(offer.attributes_json)
     amount = max(0, offer.amount + int(attrs.get("taxes", 0) or 0) + int(attrs.get("fees", 0) or 0) - int(attrs.get("discounts", 0) or 0))
-    safe_attributes = {key: attrs[key] for key in ("city", "description", "origin", "destination", "departure_time", "arrival_time", "airline", "flight_number", "duration", "stops", "cabin", "cabin_class", "fare_type", "fare_class", "fare_rules", "supplier_name", "provider_name", "baggage", "room_type", "amenities", "stars", "breakfast", "rail_operator", "train_number", "seat_class", "vehicle_class", "pickup_location", "return_location", "rental_start", "rental_end", "deposit_terms", "license_terms", "insurance_terms", "mileage_terms", "guide_name", "languages", "meeting_point", "group_capacity", "inclusions", "exclusions", "transport_operator", "seats_per_vehicle", "pickup_point", "dropoff_point", "luggage_terms", "accessibility_terms", "sku", "artisan_name", "craft_origin", "material", "pickup_address", "pickup_hours", "authenticity_terms", "care_instructions", "delivery_mode") if key in attrs}
+    safe_attributes = {key: attrs[key] for key in ("hotel_rate", "city", "description", "origin", "destination", "departure_time", "arrival_time", "airline", "flight_number", "duration", "stops", "cabin", "cabin_class", "fare_type", "fare_class", "fare_rules", "supplier_name", "provider_name", "baggage", "room_type", "amenities", "stars", "breakfast", "rail_operator", "train_number", "seat_class", "vehicle_class", "pickup_location", "return_location", "rental_start", "rental_end", "deposit_terms", "license_terms", "insurance_terms", "mileage_terms", "guide_name", "languages", "meeting_point", "group_capacity", "inclusions", "exclusions", "transport_operator", "seats_per_vehicle", "pickup_point", "dropoff_point", "luggage_terms", "accessibility_terms", "sku", "artisan_name", "craft_origin", "material", "pickup_address", "pickup_hours", "authenticity_terms", "care_instructions", "delivery_mode") if key in attrs}
     return {"booking_detail_url":("/experience-products/"+str(attrs["leisure_product_id"])) if attrs.get("leisure_product_id") else None,"id": offer.id, "title": offer.title, "service_type": offer.service_type, "amount": amount, "currency": offer.currency, "policy": json.loads(offer.policy_json), "attributes": safe_attributes, "valid_until": offer.valid_until.isoformat(), "provider_required": offer.fulfillment_mode == "provider", "available": offer.status == "active" and offer.available_units > 0 and _aware(offer.valid_until) > datetime.now(timezone.utc), "max_units": offer.available_units}
 
 
@@ -2784,10 +2793,12 @@ def price_check(offer_id: str, data: PriceCheckIn, user: User = Depends(current_
     existing = db.scalar(select(operational_models.PriceCheck).where(operational_models.PriceCheck.tenant_id == user.tenant_id, operational_models.PriceCheck.command_id == data.command_id))
     if existing:
         if existing.user_id != user.id: raise HTTPException(404, "استعلام در این حساب وجود ندارد")
-        if existing.offer_id != offer_id or existing.units != data.units:
+        if existing.offer_id != offer_id or existing.units != data.units or json.loads(existing.snapshot_json).get("hotel_stay") != (data.hotel_stay.model_dump(mode="json") if data.hotel_stay else None):
             raise HTTPException(status_code=409, detail="کلید تکرار برای درخواست دیگری استفاده شده است")
         return {"id": existing.id, "offer_id": existing.offer_id, "amount": existing.amount, "currency": existing.currency, "expires_at": existing.expires_at.isoformat()}
     offer = db.scalar(select(operational_models.Offer).where(operational_models.Offer.id == offer_id, operational_models.Offer.tenant_id == user.tenant_id).with_for_update())
+    if db.scalar(select(operational_models.PriceCheck.id).where(operational_models.PriceCheck.tenant_id == user.tenant_id, operational_models.PriceCheck.command_id == data.command_id)):
+        return price_check(offer_id, data, user, db)
     now = datetime.now(timezone.utc)
     if offer is None or offer.status != "active" or _aware(offer.valid_until) <= now or offer.available_units < data.units:
         raise HTTPException(status_code=409, detail="Offer قابل قیمت‌سنجی نیست")
@@ -2803,6 +2814,10 @@ def price_check(offer_id: str, data: PriceCheckIn, user: User = Depends(current_
     if data.expected_final_price is not None and data.expected_final_price != final_total:
         raise HTTPException(status_code=409, detail={"code": "PRICE_CHANGED", "old_price": data.expected_final_price, "new_price": final_total, "delta": final_total - data.expected_final_price, "checked_at": now.isoformat()})
     snapshot = {"offer_id": offer.id, "service_type": offer.service_type, "supplier_id": offer.supplier_id, "title": offer.title, "unit_amount": final_unit_price, "units": data.units, "total_amount": final_total, "currency": offer.currency, "policy": json.loads(offer.policy_json), "attributes": attributes, "provider_key": offer.provider_key, "fulfillment_mode": offer.fulfillment_mode, "checked_at": now.isoformat(), "availability_state": "CONFIRMED", "price_state": "RECHECKED"}
+    if offer.service_type == "hotel":
+        snapshot["hotel_stay"] = validate_hotel_stay(attributes, data.hotel_stay, data.units)
+    elif data.hotel_stay is not None:
+        raise HTTPException(422, "اطلاعات اقامت فقط برای هتل پذیرفته می‌شود")
     encoded = json.dumps(snapshot, sort_keys=True, separators=(",", ":"))
     expires_at = min(_aware(offer.valid_until), now + timedelta(minutes=10))
     if offer.service_type == "train":expires_at=min(expires_at,_validate_train_schedule(attributes))
@@ -2810,7 +2825,14 @@ def price_check(offer_id: str, data: PriceCheckIn, user: User = Depends(current_
     if offer.service_type == "travel_guide":expires_at=min(expires_at,_validate_guide_contract(attributes))
     if offer.service_type == "tourist_transportation":expires_at=min(expires_at,_validate_transport_contract(attributes))
     row = operational_models.PriceCheck(tenant_id=user.tenant_id, offer_id=offer.id, user_id=user.id, command_id=data.command_id, amount=snapshot["total_amount"], currency=offer.currency, units=data.units, snapshot_json=encoded, snapshot_hash=_secure_hash(encoded), expires_at=expires_at)
-    db.add(row); db.commit()
+    db.add(row)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        if db.scalar(select(operational_models.PriceCheck.id).where(operational_models.PriceCheck.tenant_id == user.tenant_id, operational_models.PriceCheck.command_id == data.command_id)):
+            return price_check(offer_id, data, user, db)
+        raise
     return {"id": row.id, "offer_id": row.offer_id, "amount": row.amount, "currency": row.currency, "expires_at": row.expires_at.isoformat()}
 
 
@@ -2843,10 +2865,15 @@ def orchestrate_booking(data: OrchestrationBookingIn, user: User = Depends(curre
     snapshot = json.loads(check.snapshot_json)
     if not hmac.compare_digest(check.snapshot_hash, _secure_hash(check.snapshot_json)):
         raise HTTPException(status_code=409, detail="Price Check integrity نامعتبر است")
+    if offer.service_type == "hotel":
+        current_attributes = json.loads(offer.attributes_json)
+        if current_attributes.get("hotel_rate") != snapshot.get("attributes", {}).get("hotel_rate"):
+            raise HTTPException(409, "شرایط اتاق تغییر کرده است؛ دوباره استعلام کنید")
+        validate_hotel_stay(current_attributes, HotelStay.model_validate(snapshot["hotel_stay"]) if snapshot.get("hotel_stay") else None, check.units)
     if snapshot.get("leisure_session_id"):_check_ticket_quotas(db,user.tenant_id,offer.id,snapshot.get("ticket_breakdown",[]))
     reference = "KS-" + secrets.token_hex(8).upper()
     licensed_entity_id, sales_channel_id = _resolve_transaction_provenance(db, user, data.licensed_entity_id, data.sales_channel_id)
-    reservation = operational_models.Reservation(tenant_id=user.tenant_id, user_id=user.id, licensed_entity_id=licensed_entity_id, sales_channel_id=sales_channel_id, service_type=snapshot["service_type"], status="reserved", booking_reference=reference, price_check_id=check.id, price_snapshot_json=json.dumps({"total_amount": check.amount, "currency": check.currency, "units": check.units, "checked_at": snapshot["checked_at"]}, sort_keys=True), policy_at_booking_json=json.dumps(snapshot["policy"], sort_keys=True), current_policy_json=json.dumps(snapshot["policy"], sort_keys=True))
+    reservation = operational_models.Reservation(tenant_id=user.tenant_id, user_id=user.id, licensed_entity_id=licensed_entity_id, sales_channel_id=sales_channel_id, service_type=snapshot["service_type"], status="reserved", booking_reference=reference, price_check_id=check.id, price_snapshot_json=json.dumps({"total_amount": check.amount, "currency": check.currency, "units": check.units, "checked_at": snapshot["checked_at"], **({"hotel_stay": snapshot["hotel_stay"]} if snapshot.get("hotel_stay") else {})}, sort_keys=True), policy_at_booking_json=json.dumps(snapshot["policy"], sort_keys=True), current_policy_json=json.dumps(snapshot["policy"], sort_keys=True))
     db.add(reservation); db.flush()
     # V3.1 PriceBreakdown: persist only values explicitly supplied by the
     # selected rate source; unknown supplier cost/commission stays NULL.
@@ -2874,7 +2901,7 @@ def orchestrate_booking(data: OrchestrationBookingIn, user: User = Depends(curre
         service_fee = None
     total_cost = supplier_net * check.units if supplier_net is not None else None
     db.add(operational_models.PriceBreakdown(tenant_id=user.tenant_id, booking_id=reservation.id, source=source, source_contract_id=source_contract_id, supplier_net_rate=supplier_net, supplier_currency=attrs.get("supplier_currency") or offer.currency if supplier_net is not None else None, supplier_net_rate_irr=total_cost, platform_markup=_int_attr("platform_markup") if "platform_markup" in attrs else None, platform_markup_type=attrs.get("platform_markup_type"), service_fee=service_fee, supplier_commission=_int_attr("supplier_commission") if "supplier_commission" in attrs else None, agent_commission=_int_attr("agent_commission") if "agent_commission" in attrs else None, discount_amount=_int_attr("discount_amount", _int_attr("discounts")), discount_source=str(attrs.get("discount_source") or "NONE"), promo_code=attrs.get("promo_code"), vat=_int_attr("vat"), airport_tax=_int_attr("airport_tax"), i6_tax=_int_attr("i6_tax"), red_crescent=_int_attr("red_crescent"), other_taxes=_int_attr("other_taxes"), wl_channel_id=sales_channel_id, total_selling_price=check.amount, total_cost=total_cost, gross_margin=(check.amount - total_cost) if total_cost is not None else None, net_margin=(check.amount - total_cost - service_fee) if total_cost is not None and service_fee is not None else None))
-    db.add(operational_models.BookingItem(tenant_id=user.tenant_id, reservation_id=reservation.id, item_type=snapshot["service_type"], snapshot_json=json.dumps({"title": snapshot["title"], "attributes": snapshot["attributes"], "supplier_id": snapshot["supplier_id"], "offer_id": offer.id, "provider_key": snapshot["provider_key"], "fulfillment_mode": snapshot["fulfillment_mode"]}, sort_keys=True)))
+    db.add(operational_models.BookingItem(tenant_id=user.tenant_id, reservation_id=reservation.id, item_type=snapshot["service_type"], snapshot_json=json.dumps({"title": snapshot["title"], "attributes": snapshot["attributes"], "supplier_id": snapshot["supplier_id"], "offer_id": offer.id, "provider_key": snapshot["provider_key"], "fulfillment_mode": snapshot["fulfillment_mode"], **({"hotel_stay": snapshot["hotel_stay"]} if snapshot.get("hotel_stay") else {})}, sort_keys=True)))
     db.add(operational_models.BookingStatusHistory(tenant_id=user.tenant_id, reservation_id=reservation.id, from_status=None, to_status="reserved", actor_id=user.id, command_id=data.command_id))
     offer.available_units -= check.units; check.consumed_at = now
     leisure_session_id = attrs.get("leisure_session_id")
@@ -4295,6 +4322,9 @@ def advance_checkout(checkout_id: str, step: str, data: CheckoutStepIn, user: Us
     if row.stage != expected[step]: raise HTTPException(status_code=409, detail=f"مرحله جاری checkout برابر {row.stage} است")
     state = json.loads(row.state_json)
     if step == "traveller":
+        hotel_stay = json.loads(reservation.price_snapshot_json).get("hotel_stay")
+        if hotel_stay and len(set(data.traveller_ids)) != sum(room["adults"] + len(room["children_ages"]) for room in hotel_stay["rooms"]):
+            raise HTTPException(422, "برای هر مهمان اقامت یک مسافر مجزا انتخاب کنید")
         if reservation.service_type=="handicraft" and len(set(data.traveller_ids))!=1:raise HTTPException(422,"برای تحویل حضوری دقیقاً یک گیرنده انتخاب کنید")
         if reservation.service_type in {"flight","train","tour"} and len(set(data.traveller_ids))!=int(json.loads(reservation.price_snapshot_json).get("units",json.loads(reservation.price_snapshot_json).get("travellers",1))):
             raise HTTPException(422,"برای هر صندلی رزروشده یک مسافر مجزا انتخاب کنید")
@@ -4602,6 +4632,7 @@ def public_media_asset(asset_id: str, db: Session = Depends(get_db)) -> Response
 # Independent single-vertical flight/hotel search is untouched.
 # ---------------------------------------------------------------------------
 class CombinedQuoteIn(BaseModel):
+    hotel_stay: Optional[HotelStay] = None
     flight_offer_id: str = Field(min_length=36, max_length=36)
     hotel_offer_id: str = Field(min_length=36, max_length=36)
     flight_units: int = Field(default=1, ge=1, le=9)
@@ -4628,11 +4659,15 @@ def _fh_leg_offer(db: Session, tenant_id: int, offer_id: str, want_type: str, un
         raise HTTPException(status_code=422, detail=f"شناسه {want_type} معتبر نیست")
     if offer.status != "active" or _aware(offer.valid_until) <= now or offer.available_units < units:
         raise HTTPException(status_code=409, detail={"code": "LEG_UNAVAILABLE", "leg": want_type})
+    if offer.fulfillment_mode == "provider":
+        raise HTTPException(503, "رزرو ترکیبی این تأمین‌کننده به اتصال و تأیید واقعی نیاز دارد")
     return offer
 
 
-def _fh_persist_price_check(db: Session, *, tenant_id: int, user_id: int, offer, units: int, command_id: str) -> operational_models.PriceCheck:
+def _fh_persist_price_check(db: Session, *, tenant_id: int, user_id: int, offer, units: int, command_id: str, hotel_stay: Optional[HotelStay] = None) -> operational_models.PriceCheck:
     snap = operational_models.price_offer_snapshot(offer, units)
+    if offer.service_type == "hotel":
+        snap["hotel_stay"] = validate_hotel_stay(json.loads(offer.attributes_json), hotel_stay, units)
     encoded = json.dumps(snap, sort_keys=True, separators=(",", ":"))
     row = operational_models.PriceCheck(
         tenant_id=tenant_id, offer_id=offer.id, user_id=user_id, command_id=command_id,
@@ -4676,6 +4711,11 @@ def combined_flight_hotel_quote(data: CombinedQuoteIn, user: User = Depends(curr
         operational_models.CombinedQuote.command_id == data.command_id,
         operational_models.CombinedQuote.user_id == user.id))
     if prior is not None:
+        old_hotel = db.get(operational_models.PriceCheck, prior.hotel_price_check_id)
+        old_flight = db.get(operational_models.PriceCheck, prior.flight_price_check_id)
+        stay = data.hotel_stay.model_dump(mode="json") if data.hotel_stay else None
+        if prior.hotel_offer_id != data.hotel_offer_id or prior.flight_offer_id != data.flight_offer_id or old_hotel.units != data.hotel_units or old_flight.units != data.flight_units or json.loads(old_hotel.snapshot_json).get("hotel_stay") != stay or json.loads(prior.itinerary_json or "{}") != data.itinerary:
+            raise HTTPException(409, "کلید تکرار برای درخواست دیگری استفاده شده است")
         return _combined_quote_output(prior)
 
     flight_offer = _fh_leg_offer(db, user.tenant_id, data.flight_offer_id, "flight", data.flight_units)
@@ -4684,6 +4724,8 @@ def combined_flight_hotel_quote(data: CombinedQuoteIn, user: User = Depends(curr
         raise HTTPException(status_code=409, detail={"code": "CURRENCY_MISMATCH",
                                                      "flight": flight_offer.currency, "hotel": hotel_offer.currency})
     flight_snap = operational_models.price_offer_snapshot(flight_offer, data.flight_units)
+    if data.hotel_stay and (sum(room.adults for room in data.hotel_stay.rooms) != data.flight_units or any(room.children_ages for room in data.hotel_stay.rooms)):
+        raise HTTPException(422, "مسافران بزرگسال دو خدمت باید یکسان باشند؛ نرخ کودک ترکیبی نیازمند استعلام مستقل است")
     hotel_snap = operational_models.price_offer_snapshot(hotel_offer, data.hotel_units)
     package_total = flight_snap["total_amount"] + hotel_snap["total_amount"]
     if data.expected_package_total is not None and data.expected_package_total != package_total:
@@ -4695,7 +4737,7 @@ def combined_flight_hotel_quote(data: CombinedQuoteIn, user: User = Depends(curr
     flight_check = _fh_persist_price_check(db, tenant_id=user.tenant_id, user_id=user.id, offer=flight_offer,
                                            units=data.flight_units, command_id=f"{data.command_id}::fh-flight")
     hotel_check = _fh_persist_price_check(db, tenant_id=user.tenant_id, user_id=user.id, offer=hotel_offer,
-                                          units=data.hotel_units, command_id=f"{data.command_id}::fh-hotel")
+                                          units=data.hotel_units, command_id=f"{data.command_id}::fh-hotel", hotel_stay=data.hotel_stay)
     fexp = datetime.fromisoformat(flight_snap["expires_at"])
     hexp = datetime.fromisoformat(hotel_snap["expires_at"])
     row = operational_models.CombinedQuote(
@@ -4795,6 +4837,11 @@ def book_combined_flight_hotel(quote_id: str, data: CombinedBookIn, user: User =
     # Re-validate BOTH legs against live inventory before committing anything.
     flight_offer = _fh_leg_offer(db, user.tenant_id, q.flight_offer_id, "flight", flight_check.units, lock=True)
     hotel_offer = _fh_leg_offer(db, user.tenant_id, q.hotel_offer_id, "hotel", hotel_check.units, lock=True)
+    hotel_snapshot = json.loads(hotel_check.snapshot_json)
+    hotel_attributes = json.loads(hotel_offer.attributes_json)
+    if hotel_attributes.get("hotel_rate") != hotel_snapshot.get("attributes", {}).get("hotel_rate"):
+        raise HTTPException(409, "شرایط اتاق تغییر کرده است؛ دوباره استعلام کنید")
+    validate_hotel_stay(hotel_attributes, HotelStay.model_validate(hotel_snapshot["hotel_stay"]) if hotel_snapshot.get("hotel_stay") else None, hotel_check.units)
     # Internal supplier inventory lives in this one DB, so the two decrements +
     # the reservation commit are a genuine all-or-nothing transaction. A failed
     # hotel leg here rolls the flight leg back automatically. When a real
@@ -4810,6 +4857,7 @@ def book_combined_flight_hotel(quote_id: str, data: CombinedBookIn, user: User =
         booking_reference=reference, price_check_id=flight_check.id,
         price_snapshot_json=json.dumps({"total_amount": q.package_total, "currency": q.currency,
                                         "legs": {"flight": q.flight_amount, "hotel": q.hotel_amount},
+                                        "hotel_stay": hotel_snapshot["hotel_stay"],
                                         "checked_at": now.isoformat()}, sort_keys=True),
         policy_at_booking_json=json.dumps({"flight": json.loads(flight_check.snapshot_json).get("policy", {}),
                                            "hotel": json.loads(hotel_check.snapshot_json).get("policy", {})}, sort_keys=True),
@@ -4823,7 +4871,7 @@ def book_combined_flight_hotel(quote_id: str, data: CombinedBookIn, user: User =
             snapshot_json=json.dumps({"leg": leg, "title": snap["title"], "attributes": snap["attributes"],
                                       "supplier_id": snap["supplier_id"], "offer_id": offer.id,
                                       "amount": chk.amount, "units": chk.units,
-                                      "provider_key": snap["provider_key"], "fulfillment_mode": snap["fulfillment_mode"]},
+                                      "provider_key": snap["provider_key"], "fulfillment_mode": snap["fulfillment_mode"], **({"hotel_stay": snap["hotel_stay"]} if snap.get("hotel_stay") else {})},
                                      sort_keys=True)))
         offer.available_units -= chk.units
         chk.consumed_at = now
@@ -5007,7 +5055,7 @@ def supplier_ready_reservations(user:User=Depends(require_permission("inventory:
         snapshot=json.loads(item.snapshot_json)
         if snapshot.get("supplier_id") not in supplier_ids or snapshot.get("fulfillment_mode")!="manual_supplier":continue
         payment=db.scalar(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.tenant_id==user.tenant_id,operational_models.PaymentIntent.reservation_id==reservation.id,operational_models.PaymentIntent.status=="captured",operational_models.PaymentIntent.captured_amount>0))
-        if payment:out.append({"id":reservation.id,"booking_reference":reservation.booking_reference,"title":snapshot.get("title",reservation.service_type),"service_type":reservation.service_type,"status":reservation.status})
+        if payment:out.append({"id":reservation.id,"booking_reference":reservation.booking_reference,"title":snapshot.get("title",reservation.service_type),"service_type":reservation.service_type,"status":reservation.status,"hotel_stay":snapshot.get("hotel_stay")})
     return out
 
 

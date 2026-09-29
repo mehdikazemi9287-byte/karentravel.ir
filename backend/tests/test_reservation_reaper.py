@@ -1,3 +1,4 @@
+from test_checkout_reviews_zarinpal import hotel_terms
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -35,13 +36,13 @@ def _reserve_one_hotel_offer(client):
     offer_response = client.post("/supplier/offers", headers=auth(supplier_session["access_token"]), json={
         "supplier_id": supplier_id, "service_type": "hotel", "title": "offer-reaper", "amount": 1_000_000,
         "available_units": 3, "valid_minutes": 120, "policy": _policy(),
-        "attributes": {"city": "Shiraz"}, "fulfillment_mode": "manual_supplier", "provider_key": "manual_supplier",
+        "attributes": {"city": "Shiraz", **hotel_terms()[0]}, "fulfillment_mode": "manual_supplier", "provider_key": "manual_supplier",
     })
     assert offer_response.status_code == 201
     offer_id = offer_response.json()["id"]
 
     unique = uuid.uuid4().hex[:8]
-    checked = client.post(f"/offers/{offer_id}/price-check", headers=auth(employee["access_token"]), json={"units": 1, "command_id": f"price-check-reaper-{unique}"})
+    checked = client.post(f"/offers/{offer_id}/price-check", headers=auth(employee["access_token"]), json={"hotel_stay": hotel_terms()[1], "units": 1, "command_id": f"price-check-reaper-{unique}"})
     assert checked.status_code == 201
     booking = client.post("/orchestration/bookings", headers=auth(employee["access_token"]), json={"price_check_id": checked.json()["id"], "command_id": f"booking-command-reaper-{unique}"})
     assert booking.status_code == 201

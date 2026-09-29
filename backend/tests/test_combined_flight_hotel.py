@@ -2,6 +2,8 @@
 independent expiry, availability recheck, partial-failure rollback, idempotency,
 tenant isolation. Independent flight/hotel search is untouched (regression)."""
 import uuid
+import json
+from test_checkout_reviews_zarinpal import hotel_terms
 from datetime import datetime, timedelta, timezone
 
 from app.main import SessionLocal
@@ -23,14 +25,15 @@ def _offer(tenant_id, service_type, amount, units=5, minutes=30, supplier_id=Non
             db.add(sup); db.flush(); supplier_id = sup.id
         o = om.Offer(tenant_id=tenant_id, supplier_id=supplier_id, service_type=service_type,
                      title=f"{service_type} test", amount=amount, currency="IRR", available_units=units,
-                     status="active", attributes_json='{"taxes": 0, "fees": 0, "discounts": 0}', policy_json="{}",
+                     status="active", attributes_json=json.dumps(hotel_terms()[0] if service_type == "hotel" else {}), policy_json="{}",
                      valid_until=datetime.now(timezone.utc) + timedelta(minutes=minutes))
         db.add(o); db.commit()
         return o.id
 
 
 def _quote(client, headers, f_id, h_id, **kw):
-    body = {"flight_offer_id": f_id, "hotel_offer_id": h_id, "command_id": f"q-{uuid.uuid4().hex[:16]}", **kw}
+    stay = hotel_terms()[1]; stay["rooms"] *= kw.get("hotel_units", 1)
+    body = {"hotel_stay": stay, "flight_offer_id": f_id, "hotel_offer_id": h_id, "command_id": f"q-{uuid.uuid4().hex[:16]}", **kw}
     return client.post("/combined/flight-hotel/quote", headers=headers, json=body)
 
 

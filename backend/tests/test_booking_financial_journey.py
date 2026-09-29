@@ -1,3 +1,4 @@
+from test_checkout_reviews_zarinpal import hotel_terms
 import hashlib
 import hmac
 import json
@@ -19,6 +20,10 @@ def auth(session): return {"Authorization": f"Bearer {session['access_token']}"}
 
 
 class SuccessfulPaymentAdapter:
+    def health(self):
+        from app.providers import ProviderHealth
+        return ProviderHealth(status="available", mode="test", detail="Isolated test adapter; no financial network")
+
     def execute(self, operation, payload, context):
         return {"ok": True, "status": "accepted", "reference": "sandbox-payment-ref", "redirect_url": "https://sandbox.payment.test/pay/123"}
 
@@ -39,9 +44,9 @@ def reservation_fixture(client, suffix, amount=2_000_000, customer_email="employ
     supplier = login(client, "supplier@aftab.test")
     supplier_row = client.post("/supplier/onboarding", headers={**auth(supplier), "Idempotency-Key": f"fin-supplier-{suffix}"}, json={"supplier_type": "hotel", "display_name": f"Financial journey supplier {suffix}"}).json()
     policy = {"verified": True, "source": "contract:test", "verified_at": datetime.now(timezone.utc).isoformat(), "cancellation": {"refundable": True, "penalty_amount": 0}}
-    offer = client.post("/supplier/offers", headers=auth(supplier), json={"supplier_id": supplier_row["id"], "service_type": "hotel", "title": "هتل سفر مالی", "amount": amount, "available_units": 3, "valid_minutes": 60, "policy": policy, "attributes": {}, "fulfillment_mode": "manual_supplier", "provider_key": "manual_supplier"}).json()
+    offer = client.post("/supplier/offers", headers=auth(supplier), json={"supplier_id": supplier_row["id"], "service_type": "hotel", "title": "هتل سفر مالی", "amount": amount, "available_units": 3, "valid_minutes": 60, "policy": policy, "attributes": hotel_terms()[0], "fulfillment_mode": "manual_supplier", "provider_key": "manual_supplier"}).json()
     employee = login(client, customer_email)
-    checked = client.post(f"/offers/{offer['id']}/price-check", headers=auth(employee), json={"units": 1, "command_id": f"fin-price-{suffix}"}).json()
+    checked = client.post(f"/offers/{offer['id']}/price-check", headers=auth(employee), json={"hotel_stay": hotel_terms()[1], "units": 1, "command_id": f"fin-price-{suffix}"}).json()
     reservation = client.post("/orchestration/bookings", headers=auth(employee), json={"price_check_id": checked["id"], "command_id": f"fin-booking-{suffix}"}).json()
     traveller = client.post("/me/travellers", headers=auth(employee), json={"full_name": "مسافر سفر مالی", "profile_reference": "masked:test"}).json()
     return employee, reservation, traveller

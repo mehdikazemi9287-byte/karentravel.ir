@@ -17,13 +17,21 @@ def login(client, email):
 def auth(session): return {"Authorization": f"Bearer {session['access_token']}"}
 
 
+def hotel_terms(adults=1):
+    start = (datetime.now(timezone.utc) + timedelta(days=30)).date().isoformat()
+    end = (datetime.now(timezone.utc) + timedelta(days=32)).date().isoformat()
+    rate = {"check_in": start, "check_out": end, "room_type": "Mock QA room", "rate_plan": "Mock QA fixed stay", "price_basis": "room_stay", "occupancy": {"adults": adults, "children_ages": []}}
+    return {"hotel_rate": rate}, {"check_in": start, "check_out": end, "rooms": [rate["occupancy"]]}
+
+
 def reservation_fixture(client, suffix):
+    attributes, stay = hotel_terms()
     supplier = login(client, "supplier@aftab.test")
     supplier_row = client.post("/supplier/onboarding", headers={**auth(supplier), "Idempotency-Key": f"checkout-supplier-{suffix}"}, json={"supplier_type": "hotel", "display_name": f"Checkout supplier {suffix}"}).json()
     policy = {"verified": True, "source": "contract:test", "verified_at": datetime.now(timezone.utc).isoformat(), "cancellation": {"refundable": True, "penalty_amount": 0}}
-    offer = client.post("/supplier/offers", headers=auth(supplier), json={"supplier_id": supplier_row["id"], "service_type": "hotel", "title": "هتل Checkout", "amount": 2_000_000, "available_units": 3, "valid_minutes": 60, "policy": policy, "attributes": {}, "fulfillment_mode": "manual_supplier", "provider_key": "manual_supplier"}).json()
+    offer = client.post("/supplier/offers", headers=auth(supplier), json={"supplier_id": supplier_row["id"], "service_type": "hotel", "title": "هتل Checkout", "amount": 2_000_000, "available_units": 3, "valid_minutes": 60, "policy": policy, "attributes": attributes, "fulfillment_mode": "manual_supplier", "provider_key": "manual_supplier"}).json()
     employee = login(client, "employee@aftab.test")
-    checked = client.post(f"/offers/{offer['id']}/price-check", headers=auth(employee), json={"units": 1, "command_id": f"checkout-price-{suffix}"}).json()
+    checked = client.post(f"/offers/{offer['id']}/price-check", headers=auth(employee), json={"units": 1, "hotel_stay": stay, "command_id": f"checkout-price-{suffix}"}).json()
     reservation = client.post("/orchestration/bookings", headers=auth(employee), json={"price_check_id": checked["id"], "command_id": f"checkout-booking-{suffix}"}).json()
     traveller = client.post("/me/travellers", headers=auth(employee), json={"full_name": "مسافر Checkout", "profile_reference": "masked:test"}).json()
     return employee, reservation, traveller, offer
