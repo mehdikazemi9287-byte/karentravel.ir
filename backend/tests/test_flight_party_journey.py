@@ -12,7 +12,7 @@ def test_flight_party_quote_checkout_and_replay_ownership(client):
     body={'units':2,'command_id':key,'flight_party':{'adults':2,'children':0,'infants':0}}
     for party in [{'adults':1},{'adults':2,'children':1},{'adults':2,'infants':1}]:
         assert client.post(path,headers=auth(user),json={**body,'flight_party':party}).status_code==422
-    checked=client.post(path,headers=auth(user),json=body);assert checked.status_code==200,checked.text
+    checked=client.post(path,headers=auth(user),json=body);assert checked.status_code==201,checked.text
     assert checked.json()['amount']==4_000_000
     assert client.post(path,headers=auth(user),json=body).json()['id']==checked.json()['id']
     other=login(client,'supplier@aftab.test')
