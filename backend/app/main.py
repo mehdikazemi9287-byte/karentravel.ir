@@ -281,7 +281,13 @@ class VisaDocumentIn(BaseModel):
     document_type: str = Field(min_length=2, max_length=64); storage_reference: str = Field(min_length=6, max_length=240)
 class VisaDocumentReviewIn(BaseModel):
     status: str = Field(pattern="^(accepted|rejected|needs_replacement)$"); review_note: Optional[str] = Field(default=None, max_length=500)
+class FlightPartyIn(BaseModel):
+    adults: int = Field(ge=1, le=20)
+    children: int = Field(default=0, ge=0, le=20)
+    infants: int = Field(default=0, ge=0, le=20)
+
 class PriceCheckIn(BaseModel):
+    flight_party: Optional[FlightPartyIn] = None
     units: int = Field(ge=1, le=20)
     command_id: str = Field(min_length=8, max_length=120)
     expected_final_price: Optional[int] = Field(default=None, gt=0)
@@ -2634,8 +2640,11 @@ def offer_detail(offer_id: str, user: User = Depends(current_user), db: Session 
 
 @app.post("/offers/{offer_id}/price-check", status_code=status.HTTP_201_CREATED)
 def price_check(offer_id: str, data: PriceCheckIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    if data.flight_party and (data.flight_party.children or data.flight_party.infants or data.flight_party.adults != data.units):
+        raise HTTPException(422, "نرخ کودک و نوزاد یا تعداد متفاوت صندلی نیازمند استعلام مستقل است")
     existing = db.scalar(select(operational_models.PriceCheck).where(operational_models.PriceCheck.tenant_id == user.tenant_id, operational_models.PriceCheck.command_id == data.command_id))
     if existing:
+        if existing.user_id != user.id: raise HTTPException(404, "استعلام در این حساب وجود ندارد")
         if existing.offer_id != offer_id or existing.units != data.units:
             raise HTTPException(status_code=409, detail="کلید تکرار برای درخواست دیگری استفاده شده است")
         return {"id": existing.id, "offer_id": existing.offer_id, "amount": existing.amount, "currency": existing.currency, "expires_at": existing.expires_at.isoformat()}
@@ -4075,7 +4084,7 @@ def advance_checkout(checkout_id: str, step: str, data: CheckoutStepIn, user: Us
     state = json.loads(row.state_json)
     if step == "traveller":
         if reservation.service_type=="handicraft" and len(set(data.traveller_ids))!=1:raise HTTPException(422,"برای تحویل حضوری دقیقاً یک گیرنده انتخاب کنید")
-        if reservation.service_type in {"train","tour"} and len(set(data.traveller_ids))!=int(json.loads(reservation.price_snapshot_json).get("units",json.loads(reservation.price_snapshot_json).get("travellers",1))):
+        if reservation.service_type in {"flight","train","tour"} and len(set(data.traveller_ids))!=int(json.loads(reservation.price_snapshot_json).get("units",json.loads(reservation.price_snapshot_json).get("travellers",1))):
             raise HTTPException(422,"برای هر صندلی رزروشده یک مسافر مجزا انتخاب کنید")
         if reservation.service_type in {"travel_guide","tourist_transportation"}:
             item=db.scalar(select(operational_models.BookingItem).where(operational_models.BookingItem.reservation_id==reservation.id,operational_models.BookingItem.tenant_id==user.tenant_id));attrs=json.loads(item.snapshot_json).get("attributes",{}) if item else {}
