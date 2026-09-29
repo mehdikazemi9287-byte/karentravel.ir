@@ -287,6 +287,7 @@ class FlightPartyIn(BaseModel):
     infants: int = Field(default=0, ge=0, le=20)
 
 class PriceCheckIn(BaseModel):
+    train_party: Optional[FlightPartyIn] = None
     flight_party: Optional[FlightPartyIn] = None
     units: int = Field(ge=1, le=20)
     command_id: str = Field(min_length=8, max_length=120)
@@ -2712,7 +2713,10 @@ def offer_detail(offer_id: str, user: User = Depends(current_user), db: Session 
 
 @app.post("/offers/{offer_id}/price-check", status_code=status.HTTP_201_CREATED)
 def price_check(offer_id: str, data: PriceCheckIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
-    if data.flight_party and (data.flight_party.children or data.flight_party.infants or data.flight_party.adults != data.units):
+    if data.flight_party and data.train_party:
+        raise HTTPException(422, "نوع سفر در استعلام باید مشخص باشد")
+    party = data.flight_party or data.train_party
+    if party and (party.children or party.infants or party.adults != data.units):
         raise HTTPException(422, "نرخ کودک و نوزاد یا تعداد متفاوت صندلی نیازمند استعلام مستقل است")
     existing = db.scalar(select(operational_models.PriceCheck).where(operational_models.PriceCheck.tenant_id == user.tenant_id, operational_models.PriceCheck.command_id == data.command_id))
     if existing:
