@@ -246,6 +246,11 @@
       "blocker": "Real supplier inventory, OTP and payment external. Customer case navigation and in-app reply notifications verified in isolated QA; live authenticated delivery not tested.",
       "last_verified_at": "2026-09-28",
       "evidence": "docs/recovery/2026-09-28-visible-marketplace.md; docs/recovery/evidence/visible-slice5d"
+    },
+    "flight_customer_journey": {
+      "status": "PARTIAL",
+      "reason": "One-way adult manual-supplier internal journey verified through isolated payment/voucher/trips and durable customer after-sales request to Ops review. Public release frontend3eb83aa/API674ebaa verified. Live supplier, actual payment/refund and unsupported fare contracts remain blocked; broader product scope not complete.",
+      "evidence": "docs/recovery/2026-09-28-visible-marketplace.md"
     }
   }
 }
