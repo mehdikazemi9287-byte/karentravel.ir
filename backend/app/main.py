@@ -257,6 +257,25 @@ class BudgetTripIn(BaseModel):
 class VacationPropertyIn(BaseModel):
     booking_mode: str = Field(default="INSTANT_BOOKING", pattern="^(INSTANT_BOOKING|REQUEST_TO_BOOK)$")
     supplier_id: str = Field(min_length=36, max_length=36); title: str = Field(min_length=3, max_length=200); slug: str = Field(pattern=r"^[a-z0-9-]{3,180}$"); city: str = Field(min_length=2, max_length=120); property_type: str = Field(pattern="^(" + "|".join(PROPERTY_TYPES) + ")$"); capacity: int = Field(ge=1, le=100); bedrooms: int = Field(ge=0, le=50); details: dict = Field(default_factory=dict)
+class VacationPhotoIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    url: str = Field(pattern=r"^https://[^/\s]+/", max_length=2000)
+    alt: str = Field(default="", max_length=200)
+class VacationContent(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    description: str = Field(default="", max_length=5000)
+    host_name: str = Field(default="", max_length=200)
+    location_description: str = Field(default="", max_length=2000)
+    house_rules: str = Field(default="", max_length=3000)
+    check_in: str = Field(default="", max_length=120)
+    check_out: str = Field(default="", max_length=120)
+    amenities: list[str] = Field(default_factory=list, max_length=40)
+    photos: list[VacationPhotoIn] = Field(default_factory=list, max_length=12)
+class VacationContentIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    content: VacationContent
+    revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+    command_id: str = Field(min_length=8, max_length=120)
 class VacationUnitIn(BaseModel):
     title: str = Field(min_length=2, max_length=160); capacity: int = Field(ge=1, le=100); available_units: int = Field(ge=1, le=100); nightly_price: int = Field(gt=0); pricing: StayRates = Field(default_factory=StayRates)
 class VacationBookIn(BaseModel):
@@ -1777,6 +1796,49 @@ def book_vacation_unit(unit_id: str, data: VacationBookIn, user: User = Depends(
     trip = operational_models.ensure_trip_for_reservation(db, reservation, title=f"سفر به {prop.city}", destination=prop.city, starts_at=check_in, ends_at=check_out)
     operational_models.record_trip_event(db, tenant_id=user.tenant_id, trip_id=trip.id, reservation_id=reservation.id, event_key=f"booking-created:{data.command_id}", event_type="booking.created", source="system", title="درخواست اقامت ثبت شد" if request_only else "نگه‌داشت اقامت ثبت شد", message=f"درخواست {reservation.booking_reference} برای {prop.title} در {prop.city} ثبت شد.", deep_link=f"/manage-booking/{reservation.id}")
     db.commit(); return {"id": row.id, "reservation_id": reservation.id, "status": row.status, "total_amount": row.total_amount, "currency": unit.currency, "payment_required": not request_only, "checkout_url": f"/manage-booking/{reservation.id}" if request_only else f"/checkout/{reservation.id}", "price_breakdown": pricing["nightly_breakdown"]}
+
+
+def _stay_content(row):
+    details=json.loads(row.details_json or "{}")
+    content={key:(details[key] if isinstance(details.get(key),str) else "") for key in VacationContent.model_fields if key not in ("photos","amenities")}
+    content["amenities"]=[x for x in details.get("amenities",[]) if isinstance(x,str)] if isinstance(details.get("amenities"),list) else []
+    content["photos"]=[{"url":x["url"],"alt":x.get("alt","") if isinstance(x.get("alt",""),str) else ""} for x in details.get("photos",[]) if isinstance(x,dict) and isinstance(x.get("url"),str)] if isinstance(details.get("photos"),list) else []
+    revision=hashlib.sha256(row.details_json.encode()).hexdigest()
+    return {"id":row.id,"title":row.title,"content":content,"revision":revision}
+
+
+@app.get("/supplier/vacation-properties")
+def supplier_vacation_properties(user: User=Depends(require_permission("inventory:manage")),db: Session=Depends(get_db)):
+    rows=db.scalars(select(operational_models.VacationProperty).where(operational_models.VacationProperty.tenant_id==user.tenant_id,operational_models.VacationProperty.supplier_id.in_(_supplier_scope(db,user))).order_by(operational_models.VacationProperty.title)).all()
+    return [_stay_content(row) for row in rows]
+
+
+@app.put("/supplier/vacation-properties/{property_id}/content")
+def update_vacation_content(property_id:str,data:VacationContentIn,user:User=Depends(require_permission("inventory:manage")),db:Session=Depends(get_db)):
+    row=db.scalar(select(operational_models.VacationProperty).where(operational_models.VacationProperty.tenant_id==user.tenant_id,operational_models.VacationProperty.id==property_id).with_for_update())
+    if row is None:raise HTTPException(404,"اقامتگاه پیدا نشد")
+    if row.supplier_id not in _supplier_scope(db,user):raise HTTPException(403,"این اقامتگاه به حساب شما واگذار نشده است")
+    import ipaddress
+    for photo in data.content.photos:
+        parsed=urlparse(photo.url)
+        host=parsed.hostname or ""
+        if parsed.username or parsed.password or host.lower()=='localhost' or host.lower().endswith('.local') or '.' not in host:raise HTTPException(422,"نشانی تصویر باید HTTPS عمومی باشد")
+        try:
+            if not ipaddress.ip_address(host).is_global:raise HTTPException(422,"نشانی داخلی برای تصویر مجاز نیست")
+        except ValueError:pass
+    if any(not item.strip() or len(item)>160 for item in data.content.amenities):raise HTTPException(422,"امکانات باید متن کوتاه و غیرخالی باشند")
+    digest=hashlib.sha256((property_id+data.model_dump_json(exclude={"command_id"})).encode()).hexdigest()
+    prior=db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id==user.tenant_id,operational_models.IdempotencyKey.scope=="vacation.content",operational_models.IdempotencyKey.key==data.command_id))
+    if prior:
+        if prior.request_hash!=digest:raise HTTPException(409,"شناسه درخواست برای محتوای دیگری استفاده شده است")
+        return json.loads(prior.response_json)
+    before=_stay_content(row)
+    if data.revision!=before["revision"]:raise HTTPException(409,"اطلاعات توسط کاربر دیگری تغییر کرده است؛ فهرست را تازه کنید")
+    row.details_json=json.dumps({**json.loads(row.details_json or "{}"),**data.content.model_dump(mode="json")},sort_keys=True)
+    result=_stay_content(row)
+    db.add(operational_models.IdempotencyKey(tenant_id=user.tenant_id,scope="vacation.content",key=data.command_id,request_hash=digest,response_json=json.dumps(result)))
+    _commerce_event(db,tenant_id=user.tenant_id,kind="vacation_content",aggregate_id=row.id,command_id=data.command_id,payload={"actor_id":user.id,"old":before["content"],"new":result["content"]})
+    db.commit();return result
 
 
 @app.get("/supplier/vacation-units")
