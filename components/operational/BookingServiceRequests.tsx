@@ -1,0 +1,21 @@
+'use client';
+import Link from 'next/link';
+import {useEffect,useMemo,useRef,useState} from 'react';
+import {useAuth} from '../../lib/api/auth-context';
+import {ApiError,newId} from '../../lib/api/karenseir-client';
+type Kind='cancel'|'change'|'refund';
+type Row={id:string;request_type:Kind;status:string;created_at:string};
+type Pending={key:string;type:Kind};
+const labels={cancel:'کنسلی',change:'تغییر',refund:'استرداد'};
+export function BookingServiceRequests({reservationId,onUpdated}:{reservationId:string;onUpdated:()=>void}){
+ const{api,session}=useAuth();const owner=useMemo(()=>{try{return JSON.parse(atob(session!.access_token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).sub}catch{return null}},[session]);
+ const[rows,setRows]=useState<Row[]|null>(null),[pending,setPending]=useState<Pending|null>(null),[notice,setNotice]=useState(''),[ready,setReady]=useState(false),[busy,setBusy]=useState(false),sending=useRef(false);
+ const storage='karen-service-request:'+JSON.stringify([session?.user?.tenant,owner,reservationId]);
+ async function load(){try{setRows(await api.get<Row[]>('/reservations/'+reservationId+'/service-requests'))}catch{setNotice('پیگیری درخواست‌ها دریافت نشد؛ دوباره تلاش کنید.')}}
+ useEffect(()=>{let active=true;setRows(null);setPending(null);setReady(false);try{const value=JSON.parse(sessionStorage.getItem(storage)||'null');if(value&&typeof value.key==='string'&&['cancel','change','refund'].includes(value.type))setPending(value)}catch{}api.get<Row[]>('/reservations/'+reservationId+'/service-requests').then(v=>{if(active)setRows(v)}).catch(()=>{if(active)setNotice('پیگیری درخواست‌ها دریافت نشد؛ دوباره تلاش کنید.')});setReady(true);return()=>{active=false}},[api,reservationId,storage]);
+ async function send(command:Pending){if(sending.current||!ready||!owner)return;sending.current=true;setBusy(true);setNotice('');try{sessionStorage.setItem(storage,JSON.stringify(command))}catch{setNotice('امکان نگهداری درخواست فراهم نیست؛ هیچ درخواستی ارسال نشد.');sending.current=false;setBusy(false);return}setPending(command);try{await api.post('/reservations/'+reservationId+'/service-requests',{request_type:command.type,reason:'درخواست ثبت‌شده توسط مسافر'},command.key);sessionStorage.removeItem(storage);setPending(null);setNotice('درخواست شما برای بررسی ثبت شد؛ نتیجهٔ نهایی هنوز تأیید نشده است.');await load();onUpdated()}catch(e){if(e instanceof ApiError&&[403,404,409,422].includes(e.status)){try{sessionStorage.removeItem(storage);setPending(null)}catch{}setNotice('وضعیت درخواست تغییر کرده است؛ فهرست را بررسی کنید یا با پشتیبانی تماس بگیرید.');await load();onUpdated()}else setNotice('پاسخ قطعی دریافت نشد؛ همان درخواست را پیگیری کنید.')}finally{sending.current=false;setBusy(false)}}
+ const outstanding=rows?.some(r=>['submitted','under_review'].includes(r.status));
+ return <section className="mt-4" aria-label="پیگیری درخواست رزرو"><h3>پیگیری درخواست‌های این رزرو</h3>{rows===null?<button className="button secondary" disabled={busy} onClick={()=>void load()}>دریافت درخواست‌ها</button>:rows.length===0?<p>درخواستی ثبت نشده است.</p>:rows.map(r=><article className="my-3 rounded-xl bg-slate-50 p-3" key={r.id}><b>درخواست {labels[r.request_type]} · {({submitted:'ثبت‌شده؛ در انتظار بررسی',under_review:'در حال بررسی',resolved:'رسیدگی‌شده',rejected:'پذیرفته نشده'} as Record<string,string>)[r.status]||'برای اطلاع از نتیجه با پشتیبانی هماهنگ کنید'}</b><p>کد پیگیری: <span dir="ltr">{r.id}</span></p><time dateTime={r.created_at}>{new Date(r.created_at).toLocaleString('fa-IR',{timeZone:'Asia/Tehran'})}</time></article>)}
+ {pending?<button className="button primary" disabled={busy||!ready} onClick={()=>void send(pending)}>پیگیری همان درخواست {labels[pending.type]}</button>:outstanding?<p>درخواست قبلی در حال بررسی است؛ ثبت آن به معنی لغو یا بازپرداخت قطعی نیست.</p>:<div className="mt-4 flex flex-wrap gap-3">{(['change','cancel','refund'] as Kind[]).map(type=><button key={type} className="button secondary" disabled={busy||!ready||rows===null} onClick={()=>void send({type,key:newId()})}>درخواست {labels[type]}</button>)}</div>}
+ {notice&&<p role="status">{notice}</p>}<Link className="text-link block mt-3" href={'/support?booking='+reservationId}>پیگیری با پشتیبانی انسانی</Link></section>;
+}

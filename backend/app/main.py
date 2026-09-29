@@ -1243,16 +1243,27 @@ def reservation_command(reservation_id: str, data: ReservationCommandIn, user: U
     return {"id": reservation.id, "status": reservation.status, "provider_connected": False}
 
 
+@app.get("/reservations/{reservation_id}/service-requests")
+def list_service_requests(reservation_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
+    reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == reservation_id, operational_models.Reservation.tenant_id == user.tenant_id, operational_models.Reservation.user_id == user.id))
+    if reservation is None: raise HTTPException(404, "رزرو در این حساب وجود ندارد")
+    rows = db.scalars(select(operational_models.BookingServiceRequest).where(operational_models.BookingServiceRequest.tenant_id == user.tenant_id, operational_models.BookingServiceRequest.reservation_id == reservation.id).order_by(operational_models.BookingServiceRequest.created_at.desc())).all()
+    return [{"id": r.id, "request_type": r.request_type, "status": r.status, "reason": r.reason, "created_at": r.created_at.isoformat(), "quote": json.loads(r.quote_snapshot_json)} for r in rows]
+
+
 @app.post("/reservations/{reservation_id}/service-requests", status_code=status.HTTP_202_ACCEPTED)
 def create_service_request(reservation_id: str, data: ServiceRequestIn, user: User = Depends(current_user), db: Session = Depends(get_db), idempotency_key: str = Header(alias="Idempotency-Key", min_length=8, max_length=120)) -> dict:
+    reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == reservation_id, operational_models.Reservation.tenant_id == user.tenant_id, operational_models.Reservation.user_id == user.id).with_for_update())
+    if not reservation:
+        raise HTTPException(status_code=404, detail="رزرو در این حساب وجود ندارد")
     prior = db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id == user.tenant_id, operational_models.IdempotencyKey.scope == "manage-booking.request", operational_models.IdempotencyKey.key == idempotency_key))
     if prior and prior.response_json:
         stored = json.loads(prior.response_json)
         if stored.get("reservation_id") != reservation_id or stored.get("request_type") != data.request_type: raise HTTPException(status_code=409, detail="کلید تکرار برای درخواست دیگری استفاده شده است")
+        if prior.request_hash != _secure_hash(f"{reservation.id}:{data.request_type}:{data.reason or ''}"): raise HTTPException(409, "کلید تکرار متعلق به درخواست دیگری است")
         return stored
-    reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == reservation_id, operational_models.Reservation.tenant_id == user.tenant_id, operational_models.Reservation.user_id == user.id).with_for_update())
-    if not reservation:
-        raise HTTPException(status_code=404, detail="رزرو در این حساب وجود ندارد")
+    pending = db.scalar(select(operational_models.BookingServiceRequest.id).where(operational_models.BookingServiceRequest.tenant_id == user.tenant_id, operational_models.BookingServiceRequest.reservation_id == reservation.id, operational_models.BookingServiceRequest.status.in_(["submitted", "under_review"])))
+    if pending: raise HTTPException(409, "درخواست قبلی در حال بررسی است؛ همان درخواست را پیگیری کنید")
     quote = _verified_cancellation_quote(reservation) if data.request_type in {"cancel", "refund"} else None
     quote_payload = quote or {"status": "requires_provider_review"}
     request = operational_models.BookingServiceRequest(tenant_id=user.tenant_id, reservation_id=reservation.id, request_type=data.request_type, status="submitted", quote_snapshot_json=json.dumps(quote_payload, sort_keys=True), reason=data.reason)
@@ -3355,6 +3366,31 @@ def update_agency(agency_id: str, data: AgencyUpdateIn, user: User = Depends(req
     if data.status is not None: row.status = data.status
     db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="agency", aggregate_id=row.id, event_type="agency.updated", payload_json=json.dumps(data.model_dump(exclude_none=True), sort_keys=True), correlation_id=str(uuid.uuid4()), idempotency_key=f"agency-update:{row.id}:{uuid.uuid4()}")); db.commit()
     return {"id": row.id, "name": row.display_name, "status": row.status, "markup_bps": row.markup_bps, "commission_bps": row.commission_bps}
+
+
+@app.get("/backoffice/booking-requests")
+def operations_booking_requests(offset: int = Query(default=0, ge=0), user: User = Depends(require_permission("support:manage")), db: Session = Depends(get_db)) -> dict:
+    rows = db.execute(select(operational_models.BookingServiceRequest, operational_models.Reservation).join(operational_models.Reservation, operational_models.Reservation.id == operational_models.BookingServiceRequest.reservation_id).where(operational_models.BookingServiceRequest.tenant_id == user.tenant_id, operational_models.Reservation.tenant_id == user.tenant_id).order_by(operational_models.BookingServiceRequest.created_at.desc()).offset(offset).limit(51)).all()
+    return {"items": [{"id": r.id, "reservation_id": booking.id, "booking_reference": booking.booking_reference, "request_type": r.request_type, "status": r.status, "created_at": r.created_at.isoformat(), "reason": r.reason, "quote": json.loads(r.quote_snapshot_json)} for r, booking in rows[:50]], "has_more": len(rows) > 50}
+
+
+@app.post("/backoffice/booking-requests/{request_id}/review")
+def begin_booking_request_review(request_id: str, user: User = Depends(require_permission("support:manage")), db: Session = Depends(get_db)) -> dict:
+    row = db.scalar(select(operational_models.BookingServiceRequest).where(operational_models.BookingServiceRequest.id == request_id, operational_models.BookingServiceRequest.tenant_id == user.tenant_id).with_for_update())
+    if row is None: raise HTTPException(404, "درخواست موجود نیست")
+    if row.status == "under_review": return {"id": row.id, "status": row.status}
+    if row.status != "submitted": raise HTTPException(409, "درخواست در وضعیت قابل بررسی نیست")
+    reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == row.reservation_id, operational_models.Reservation.tenant_id == user.tenant_id))
+    if reservation is None: raise HTTPException(404, "رزرو موجود نیست")
+    row.status = "under_review"
+    key = "booking-request-review:" + row.id
+    title = "بررسی درخواست رزرو آغاز شد"
+    message = "کارشناس بررسی درخواست شما را آغاز کرده است؛ لغو یا بازپرداخت هنوز تأیید نشده است."
+    if reservation.trip_id:
+        db.add(operational_models.TripEventRecord(tenant_id=user.tenant_id, trip_id=reservation.trip_id, event_key=key, event_type="service_request.under_review", source="human_agent", title=title, message=message, visibility="customer", requires_action=False, deep_link="/manage-booking/"+reservation.id))
+    db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="reservation", aggregate_id=reservation.id, event_type="service_request.review_started", payload_json=json.dumps({"request_id":row.id,"actor_id":user.id}), correlation_id=str(uuid.uuid4()), idempotency_key=key))
+    db.commit()
+    return {"id": row.id, "status": row.status}
 
 
 @app.get("/backoffice/overview")
