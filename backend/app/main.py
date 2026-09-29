@@ -1861,12 +1861,45 @@ def list_tours(destination: Optional[str] = None, depart: Optional[date] = None,
 def tour_detail(tour_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
     row = db.scalar(select(operational_models.TourProduct).where(operational_models.TourProduct.id == tour_id, operational_models.TourProduct.tenant_id == user.tenant_id, operational_models.TourProduct.status == "published"))
     if row is None: raise HTTPException(404, "تور وجود ندارد")
-    departures = db.scalars(select(operational_models.TourDeparture).where(operational_models.TourDeparture.tour_id == row.id, operational_models.TourDeparture.tenant_id == user.tenant_id, operational_models.TourDeparture.status == "active")).all()
+    departures = db.scalars(select(operational_models.TourDeparture).where(operational_models.TourDeparture.tour_id == row.id, operational_models.TourDeparture.tenant_id == user.tenant_id, operational_models.TourDeparture.status == "active", operational_models.TourDeparture.booking_deadline > datetime.now(timezone.utc), operational_models.TourDeparture.remaining > 0)).all()
     details = json.loads(row.details_json)
-    return {"id": row.id, "title": row.title, "origin": row.origin, "destination": row.destination, "tour_type": row.tour_type, "details": details, "visa_status": details.get("visa_status", "VISA_STATUS_UNKNOWN"), "visa_assistance_available": bool(details.get("visa_assistance_available", False)), "departures": [{"id": d.id, "starts_at": d.starts_at.isoformat(), "ends_at": d.ends_at.isoformat(), "remaining": d.remaining, "base_price": d.base_price, "currency": d.currency, "pricing": json.loads(d.pricing_json)} for d in departures]}
+    return {"id": row.id, "title": row.title, "origin": row.origin, "destination": row.destination, "tour_type": row.tour_type, "details": details, "visa_status": details.get("visa_status", "VISA_STATUS_UNKNOWN"), "visa_assistance_available": bool(details.get("visa_assistance_available", False)), "departures": [{"id": d.id, "starts_at": d.starts_at.isoformat(), "ends_at": d.ends_at.isoformat(), "remaining": d.remaining, "base_price": d.base_price, "currency": d.currency, "pricing": json.loads(d.pricing_json), "available_room_types": _tour_room_types(d)} for d in departures]}
+
+
+def _public_tour_projection(row: dict) -> dict:
+    details = row.get("details") or {}
+    safe = {key: details[key] for key in ("description", "visa_status") if isinstance(details.get(key), str)}
+    for key in ("itinerary", "inclusions", "exclusions", "requirements"):
+        value = details.get(key)
+        if isinstance(value, str): safe[key] = value
+        elif isinstance(value, list): safe[key] = [v if isinstance(v, str) else {"title": v["title"]} for v in value if isinstance(v, str) or (isinstance(v, dict) and isinstance(v.get("title"), str))]
+    result = {key: row[key] for key in ("id", "title", "origin", "destination", "tour_type")}
+    result["details"] = safe
+    result["account_recheck_required"] = True
+    if "departures" in row:
+        result["departures"] = [{key: d[key] for key in ("id", "starts_at", "ends_at")} for d in row["departures"]]
+    return result
+
+
+@app.get("/public/tour-products")
+def public_tour_products(destination: Optional[str] = None, depart: Optional[date] = None, travellers: int = Query(default=1, ge=1, le=100), db: Session = Depends(get_db)) -> list[dict]:
+    identity = _public_search_identity(db)
+    return [_public_tour_projection(r) for r in list_tours(destination, depart, travellers, identity, db)]
+
+
+@app.get("/public/tour-products/{tour_id}")
+def public_tour_product_detail(tour_id: str, db: Session = Depends(get_db)) -> dict:
+    return _public_tour_projection(tour_detail(tour_id, _public_search_identity(db), db))
+
+
+def _tour_room_types(departure) -> list[str]:
+    pricing = json.loads(departure.pricing_json)
+    return [room for room in ("double", "single", "triple", "extra_bed") if (room == "double" or f"{room}_surcharge" in pricing) and isinstance(pricing.get(f"{room}_surcharge", 0), int) and not isinstance(pricing.get(f"{room}_surcharge", 0), bool) and departure.base_price + pricing.get(f"{room}_surcharge", 0) > 0]
 
 
 def _tour_amount(departure, travellers:int, room_type:str) -> int:
+    if room_type not in _tour_room_types(departure):
+        raise HTTPException(409,"نرخ این نوع اتاق توسط برگزارکننده ثبت نشده است")
     surcharge=json.loads(departure.pricing_json).get(f"{room_type}_surcharge",0)
     if not isinstance(surcharge,int) or isinstance(surcharge,bool) or departure.base_price+surcharge<=0:
         raise HTTPException(409,"قیمت معتبر این نوع اتاق موجود نیست")
