@@ -1,0 +1,35 @@
+{
+  "pass": true,
+  "checks": [
+    {
+      "width": 1440,
+      "savedSelection": true,
+      "partyRestored": true,
+      "bookingReplay": true,
+      "isolatedPayment": true,
+      "issuedVoucher": true,
+      "savedReservationTracking": true,
+      "tripTimeline": true,
+      "myTrips": true,
+      "savedItem": "3bb0db05-b5e3-439b-ad5b-6449b242dba8",
+      "reservation": "e03aa272-d502-4758-9e6e-d7c3d5c56730",
+      "realPayment": false,
+      "realSMS": false
+    },
+    {
+      "width": 390,
+      "savedSelection": true,
+      "partyRestored": true,
+      "bookingReplay": true,
+      "isolatedPayment": true,
+      "issuedVoucher": true,
+      "savedReservationTracking": true,
+      "tripTimeline": true,
+      "myTrips": true,
+      "savedItem": "9c6d02b4-d735-48a6-bc5d-53b3314f3200",
+      "reservation": "f7b634dc-be62-4235-b463-b0799a449b0b",
+      "realPayment": false,
+      "realSMS": false
+    }
+  ]
+}

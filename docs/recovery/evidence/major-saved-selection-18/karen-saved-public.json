@@ -1,0 +1,21 @@
+{
+  "pass": true,
+  "checks": [
+    {
+      "width": 1440,
+      "publicLogin": true,
+      "publicFrontendIsolatedSavedTracking": true,
+      "timeline": true,
+      "publicMutation": false,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "publicLogin": true,
+      "publicFrontendIsolatedSavedTracking": true,
+      "timeline": true,
+      "publicMutation": false,
+      "overflow": false
+    }
+  ]
+}

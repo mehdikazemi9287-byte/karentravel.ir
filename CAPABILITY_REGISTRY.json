@@ -261,6 +261,11 @@
       "status": "PARTIAL",
       "reason": "Slice15 web ea0c79b/API551ea0a: full two-adult seat journey including actual home-to-results criteria, lost-response recovery, distinct travellers and isolated payment/voucher/My Trips/customer requests/Ops timeline PASS1440/390. Public frontend verified. Real provider/seat allocation/nonadult fares/payment remain unproven.",
       "evidence": "docs/recovery/2026-09-28-visible-marketplace.md"
+    },
+    "saved_selection_journey": {
+      "status": "PARTIAL",
+      "reason": "Slice18 d2ba674 owned Offer selection→party-preserving recheck→isolated booking/payment/voucher→saved reservation/Trip tracking PASS1440/390. Public frontend verified. No non-Offer selection, atomic basket purchase or merged Trip claim. External actual provider/financial operations remain blocked.",
+      "evidence": "docs/recovery/evidence/major-saved-selection-18"
     }
   }
 }
