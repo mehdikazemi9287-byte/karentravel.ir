@@ -1,0 +1,21 @@
+{
+  "pass": true,
+  "checks": [
+    {
+      "width": 1440,
+      "actualPublicEmpty": true,
+      "publicFrontendIsolatedOwnedContext": true,
+      "usedTicketHidden": true,
+      "publicMutation": false,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "actualPublicEmpty": true,
+      "publicFrontendIsolatedOwnedContext": true,
+      "usedTicketHidden": true,
+      "publicMutation": false,
+      "overflow": false
+    }
+  ]
+}

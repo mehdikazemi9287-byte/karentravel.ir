@@ -1,0 +1,21 @@
+{
+  "pass": true,
+  "checks": [
+    {
+      "width": 1440,
+      "storageFailClosed": true,
+      "expiredQuoteFailClosed": true,
+      "bookingPosts": 0,
+      "qrFailurePreservesContext": true,
+      "qrRetry": true
+    },
+    {
+      "width": 390,
+      "storageFailClosed": true,
+      "expiredQuoteFailClosed": true,
+      "bookingPosts": 0,
+      "qrFailurePreservesContext": true,
+      "qrRetry": true
+    }
+  ]
+}

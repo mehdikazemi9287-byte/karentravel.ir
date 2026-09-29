@@ -1,0 +1,53 @@
+{
+  "pass": true,
+  "checks": [
+    {
+      "width": 1440,
+      "restaurantSession": true,
+      "mixedTicketPricing": true,
+      "bookingReplay": true,
+      "checkout": true,
+      "isolatedPayment": true,
+      "issuedVoucher": true,
+      "groupQrContext": true,
+      "qrActuallyRendered": true,
+      "staffContext": true,
+      "validationEditRaceBlocked": true,
+      "checkedTicketBound": true,
+      "tokenNotInUrl": true,
+      "lostRedemptionResponseRecovered": true,
+      "duplicateAdmissionBlocked": true,
+      "customerUsedStatus": true,
+      "myTrips": true,
+      "singleTimelineEvent": true,
+      "reservation": "a00a20fa-c3f2-42d4-bebe-23fa5a25d2f8",
+      "paymentPath": "/payments/80c361f7-5bea-4c74-8a05-4e8a282046a2",
+      "realPayment": false,
+      "realSMS": false
+    },
+    {
+      "width": 390,
+      "restaurantSession": true,
+      "mixedTicketPricing": true,
+      "bookingReplay": true,
+      "checkout": true,
+      "isolatedPayment": true,
+      "issuedVoucher": true,
+      "groupQrContext": true,
+      "qrActuallyRendered": true,
+      "staffContext": true,
+      "validationEditRaceBlocked": true,
+      "checkedTicketBound": true,
+      "tokenNotInUrl": true,
+      "lostRedemptionResponseRecovered": true,
+      "duplicateAdmissionBlocked": true,
+      "customerUsedStatus": true,
+      "myTrips": true,
+      "singleTimelineEvent": true,
+      "reservation": "a475b472-4112-4a83-a4a3-87f3923763d9",
+      "paymentPath": "/payments/a6a8608b-645c-4e93-a125-01d989e975f4",
+      "realPayment": false,
+      "realSMS": false
+    }
+  ]
+}
