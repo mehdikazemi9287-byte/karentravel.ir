@@ -1,0 +1,29 @@
+{
+  "source_commit": "1e6ee5e",
+  "environment": "SOURCE/PREVIEW only",
+  "sqlite_api": "1 passed",
+  "postgres_api": "1 passed",
+  "migration": "isolated PostgreSQL 34\u219235\u219234\u219235 PASS",
+  "rls": {
+    "enabled": true,
+    "forced": true,
+    "owned_row_visible": true,
+    "foreign_and_unscoped_hidden": true,
+    "tenant_update_rejected": true
+  },
+  "browser_widths": [
+    1440,
+    390
+  ],
+  "production_changed": false,
+  "production_schema": "20260928_34",
+  "production_commit": "d2ba674",
+  "new_financial_effect": false,
+  "real_sms": false,
+  "limitations": [
+    "No production migration or publication",
+    "No new payment; browser uses already-issued isolated reservation from Slice18",
+    "No delegated/group booking or organizational funding authorization",
+    "Full PostgreSQL concurrency stress not performed"
+  ]
+}

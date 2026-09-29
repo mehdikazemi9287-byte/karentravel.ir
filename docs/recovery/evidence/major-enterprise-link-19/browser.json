@@ -1,0 +1,41 @@
+{
+  "pass": true,
+  "checks": [
+    {
+      "width": 1440,
+      "request": true,
+      "approval": true,
+      "searchCriteria": true,
+      "ownedBookingLink": true,
+      "linkResponseLossReplay": true,
+      "existingVoucher": true,
+      "organizationVisibility": true,
+      "managerCannotImpersonateCustomer": true,
+      "singleAudit": true,
+      "tripTimeline": true,
+      "requestId": "78e7d255-50dd-41c9-82d6-db1e1fbc029b",
+      "reservation": "e03aa272-d502-4758-9e6e-d7c3d5c56730",
+      "newPayment": false,
+      "realSMS": false,
+      "productionChanged": false
+    },
+    {
+      "width": 390,
+      "request": true,
+      "approval": true,
+      "searchCriteria": true,
+      "ownedBookingLink": true,
+      "linkResponseLossReplay": true,
+      "existingVoucher": true,
+      "organizationVisibility": true,
+      "managerCannotImpersonateCustomer": true,
+      "singleAudit": true,
+      "tripTimeline": true,
+      "requestId": "16bfb5ba-c1a3-4317-8179-da6c7ddebb27",
+      "reservation": "f7b634dc-be62-4235-b463-b0799a449b0b",
+      "newPayment": false,
+      "realSMS": false,
+      "productionChanged": false
+    }
+  ]
+}

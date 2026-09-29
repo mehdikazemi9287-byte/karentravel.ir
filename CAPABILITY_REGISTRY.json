@@ -266,6 +266,12 @@
       "status": "PARTIAL",
       "reason": "Slice18 d2ba674 owned Offer selection→party-preserving recheck→isolated booking/payment/voucher→saved reservation/Trip tracking PASS1440/390. Public frontend verified. No non-Offer selection, atomic basket purchase or merged Trip claim. External actual provider/financial operations remain blocked.",
       "evidence": "docs/recovery/evidence/major-saved-selection-18"
+    },
+    "enterprise_booking_tracking": {
+      "status": "READY_BLOCKED_APPROVAL",
+      "reason": "SOURCE/PREVIEW1e6ee5e request approval→owned existing booking link→customer voucher/organization status/Trip timeline PASS1440/390. SQLite/PG targeted and migration/RLS PASS. No financial authorization or delegated booking.",
+      "blocker": "Explicit Production migration20260929_35 and release approval required; current public d2ba674/schema34 unchanged.",
+      "evidence": "docs/recovery/2026-09-29-enterprise35-release-approval.md"
     }
   }
 }
