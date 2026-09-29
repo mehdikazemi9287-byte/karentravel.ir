@@ -1,0 +1,149 @@
+{
+  "date": "2026-09-29",
+  "active_product": "hotel",
+  "gaps": [
+    {
+      "id": "HOTEL-CRITERIA",
+      "severity": "P1",
+      "status": "OPEN",
+      "owner": "Backend/Frontend/QA",
+      "effect": "Two-room/dated customer choice silently reduced in quote",
+      "evidence": "docs/recovery/evidence/hotel-phase0-20260929/browser-baseline.json",
+      "acceptance": "Explicit stay/room allocation server validation and same snapshot in quote/booking/document",
+      "next": "Hotel scoped implementation; no production fake fixtures"
+    },
+    {
+      "id": "HOTEL-PROVIDER",
+      "severity": "P1",
+      "status": "BLOCKED",
+      "owner": "Commercial owner / Integration",
+      "effect": "Real sales unverified",
+      "required_input": "Chosen hotel supplier contract/API sandbox credentials through secure configuration, or authorized manual allotment/rate source with owner/validity",
+      "work_done": "Existing GRS and manual Offer boundaries inventoried; no real provider enabled",
+      "acceptance": "Authorized contract Search/Recheck/Booking/Issue/Retrieve evidence",
+      "independent_next": "Hotel internal room/date/price workflow"
+    },
+    {
+      "id": "SCHEMA35-APPROVAL",
+      "severity": "P1",
+      "status": "BLOCKED",
+      "owner": "Project owner / DevOps",
+      "effect": "Existing enterprise candidate remains unpublished",
+      "required_input": "Explicit backup/restore-proof + migration20260929_35 + package1e6ee5e release authorization",
+      "work_done": "Candidate and isolated PG/RLS/browser evidence retained",
+      "acceptance": "Named operation authorized and backup restoration verified before publication",
+      "independent_next": "Hotel SOURCE/PREVIEW"
+    },
+    {
+      "id": "WEBKIT-ENV",
+      "severity": "P2",
+      "status": "BLOCKED",
+      "owner": "QA/DevOps",
+      "effect": "Safari engine coverage absent",
+      "required_input": "Install existing pinned Playwright WebKit browser/dependencies if network/system permissions allow",
+      "acceptance": "Actual WebKit launch and hotel scenario evidence",
+      "independent_next": "Chromium checks"
+    },
+    {
+      "id": "DESIGN-REFERENCE",
+      "severity": "P2",
+      "status": "OPEN",
+      "owner": "Supervisor/design",
+      "effect": "Current screenshot cannot establish approved design",
+      "required_input": "Exact accepted Figma/release artifact if available; do not ask again for already-provided resources",
+      "work_done": "Existing protected visual identity preserved; no redesign proposed",
+      "acceptance": "Document reference precedence",
+      "independent_next": "Reversible hotel journey fixes preserving layout"
+    },
+    {
+      "id": "REG-1",
+      "status": "NOT_TESTED",
+      "severity": "UNASSESSED",
+      "owner": "QA / related product",
+      "area": "Homepage/search appearance",
+      "evidence": "Prior narrow evidence retained; no current broken/fixed claim without relevant check",
+      "next": "Run targeted regression when active product/shared change affects it"
+    },
+    {
+      "id": "REG-2",
+      "status": "NOT_TESTED",
+      "severity": "UNASSESSED",
+      "owner": "QA / related product",
+      "area": "calendar overlay",
+      "evidence": "Prior narrow evidence retained; no current broken/fixed claim without relevant check",
+      "next": "Run targeted regression when active product/shared change affects it"
+    },
+    {
+      "id": "REG-3",
+      "status": "NOT_TESTED",
+      "severity": "UNASSESSED",
+      "owner": "QA / related product",
+      "area": "saved search criteria",
+      "evidence": "Prior narrow evidence retained; no current broken/fixed claim without relevant check",
+      "next": "Run targeted regression when active product/shared change affects it"
+    },
+    {
+      "id": "REG-4",
+      "status": "NOT_TESTED",
+      "severity": "UNASSESSED",
+      "owner": "QA / related product",
+      "area": "multi-city and URL",
+      "evidence": "Prior narrow evidence retained; no current broken/fixed claim without relevant check",
+      "next": "Run targeted regression when active product/shared change affects it"
+    },
+    {
+      "id": "REG-5",
+      "status": "NOT_TESTED",
+      "severity": "UNASSESSED",
+      "owner": "QA / related product",
+      "area": "accommodation filters",
+      "evidence": "Prior narrow evidence retained; no current broken/fixed claim without relevant check",
+      "next": "Run targeted regression when active product/shared change affects it"
+    },
+    {
+      "id": "REG-6",
+      "status": "NOT_TESTED",
+      "severity": "UNASSESSED",
+      "owner": "QA / related product",
+      "area": "flight/train date and time",
+      "evidence": "Prior narrow evidence retained; no current broken/fixed claim without relevant check",
+      "next": "Run targeted regression when active product/shared change affects it"
+    },
+    {
+      "id": "REG-7",
+      "status": "NOT_TESTED",
+      "severity": "UNASSESSED",
+      "owner": "QA / related product",
+      "area": "car rental date range",
+      "evidence": "Prior narrow evidence retained; no current broken/fixed claim without relevant check",
+      "next": "Run targeted regression when active product/shared change affects it"
+    },
+    {
+      "id": "REG-8",
+      "status": "NOT_TESTED",
+      "severity": "UNASSESSED",
+      "owner": "QA / related product",
+      "area": "login/OTP",
+      "evidence": "Prior narrow evidence retained; no current broken/fixed claim without relevant check",
+      "next": "Run targeted regression when active product/shared change affects it"
+    },
+    {
+      "id": "REG-9",
+      "status": "NOT_TESTED",
+      "severity": "UNASSESSED",
+      "owner": "QA / related product",
+      "area": "support case",
+      "evidence": "Prior narrow evidence retained; no current broken/fixed claim without relevant check",
+      "next": "Run targeted regression when active product/shared change affects it"
+    },
+    {
+      "id": "REG-10",
+      "status": "NOT_TESTED",
+      "severity": "UNASSESSED",
+      "owner": "QA / related product",
+      "area": "notifications",
+      "evidence": "Prior narrow evidence retained; no current broken/fixed claim without relevant check",
+      "next": "Run targeted regression when active product/shared change affects it"
+    }
+  ]
+}

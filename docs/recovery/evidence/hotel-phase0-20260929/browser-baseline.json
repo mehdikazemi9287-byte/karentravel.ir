@@ -1,0 +1,21 @@
+{
+  "checks": [
+    {
+      "width": 1440,
+      "searchedRooms": 2,
+      "searchedAdults": 4,
+      "quotedUnits": 1,
+      "datesForwarded": false,
+      "bookingCreated": false
+    },
+    {
+      "width": 390,
+      "searchedRooms": 2,
+      "searchedAdults": 4,
+      "quotedUnits": 1,
+      "datesForwarded": false,
+      "bookingCreated": false
+    }
+  ],
+  "webkitAvailable": false
+}

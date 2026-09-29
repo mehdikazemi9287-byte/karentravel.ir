@@ -1,0 +1,327 @@
+{
+  "schema": "independent product dimensions; conservative whole-product status",
+  "products": [
+    {
+      "product": "hotel",
+      "routes": [
+        "/hotels"
+      ],
+      "owner": "Supervisor/Backend/Frontend/QA",
+      "implementation": "IN_PROGRESS",
+      "integration": "BLOCKED",
+      "release": "BLOCKED",
+      "operation": "NOT_READY",
+      "note": "Product-wide criteria not verified; older narrow releases are retained, not invalidated or promoted to whole-product acceptance.",
+      "next": "2.1 hotel is the only active product"
+    },
+    {
+      "product": "accommodation",
+      "routes": [
+        "/supplier/accommodation",
+        "/villas/[id]",
+        "/villas"
+      ],
+      "owner": "Supervisor/Backend/Frontend/QA",
+      "implementation": "IN_PROGRESS",
+      "integration": "BLOCKED",
+      "release": "BLOCKED",
+      "operation": "NOT_READY",
+      "note": "Product-wide criteria not verified; older narrow releases are retained, not invalidated or promoted to whole-product acceptance.",
+      "next": "queued; preserve existing implementation and requirements"
+    },
+    {
+      "product": "tour",
+      "routes": [
+        "/tours/[id]",
+        "/tours"
+      ],
+      "owner": "Supervisor/Backend/Frontend/QA",
+      "implementation": "IN_PROGRESS",
+      "integration": "BLOCKED",
+      "release": "BLOCKED",
+      "operation": "NOT_READY",
+      "note": "Product-wide criteria not verified; older narrow releases are retained, not invalidated or promoted to whole-product acceptance.",
+      "next": "queued; preserve existing implementation and requirements"
+    },
+    {
+      "product": "flight",
+      "routes": [
+        "/flights"
+      ],
+      "owner": "Supervisor/Backend/Frontend/QA",
+      "implementation": "IN_PROGRESS",
+      "integration": "BLOCKED",
+      "release": "BLOCKED",
+      "operation": "NOT_READY",
+      "note": "Product-wide criteria not verified; older narrow releases are retained, not invalidated or promoted to whole-product acceptance.",
+      "next": "queued; preserve existing implementation and requirements"
+    },
+    {
+      "product": "train",
+      "routes": [
+        "/supplier/train/new"
+      ],
+      "owner": "Supervisor/Backend/Frontend/QA",
+      "implementation": "IN_PROGRESS",
+      "integration": "BLOCKED",
+      "release": "BLOCKED",
+      "operation": "NOT_READY",
+      "note": "Product-wide criteria not verified; older narrow releases are retained, not invalidated or promoted to whole-product acceptance.",
+      "next": "queued; preserve existing implementation and requirements"
+    },
+    {
+      "product": "bus",
+      "routes": [
+        "/?vertical=bus",
+        "/search/results?vertical=bus",
+        "/offers/[offerId]"
+      ],
+      "owner": "Supervisor/Backend/Frontend/QA",
+      "implementation": "IN_PROGRESS",
+      "integration": "UNSELECTED",
+      "release": "BLOCKED",
+      "operation": "NOT_READY",
+      "note": "Bus tab and generic search exist; dedicated terminal/seat-map/ticket end-to-end coverage not established. No contract inferred.",
+      "next": "queued; preserve existing implementation and requirements"
+    },
+    {
+      "product": "car_rental",
+      "routes": [
+        "/car-rental",
+        "/supplier/car-rental/new"
+      ],
+      "owner": "Supervisor/Backend/Frontend/QA",
+      "implementation": "IN_PROGRESS",
+      "integration": "BLOCKED",
+      "release": "BLOCKED",
+      "operation": "NOT_READY",
+      "note": "Product-wide criteria not verified; older narrow releases are retained, not invalidated or promoted to whole-product acceptance.",
+      "next": "queued; preserve existing implementation and requirements"
+    },
+    {
+      "product": "travel_guide",
+      "routes": [
+        "/supplier/guides/new",
+        "/travel-guides"
+      ],
+      "owner": "Supervisor/Backend/Frontend/QA",
+      "implementation": "IN_PROGRESS",
+      "integration": "BLOCKED",
+      "release": "BLOCKED",
+      "operation": "NOT_READY",
+      "note": "Product-wide criteria not verified; older narrow releases are retained, not invalidated or promoted to whole-product acceptance.",
+      "next": "queued; preserve existing implementation and requirements"
+    },
+    {
+      "product": "tourist_transport",
+      "routes": [
+        "/supplier/transport/new",
+        "/tourist-transport"
+      ],
+      "owner": "Supervisor/Backend/Frontend/QA",
+      "implementation": "IN_PROGRESS",
+      "integration": "BLOCKED",
+      "release": "BLOCKED",
+      "operation": "NOT_READY",
+      "note": "Product-wide criteria not verified; older narrow releases are retained, not invalidated or promoted to whole-product acceptance.",
+      "next": "queued; preserve existing implementation and requirements"
+    },
+    {
+      "product": "visa",
+      "routes": [
+        "/visa/[id]",
+        "/visa/applications/[id]",
+        "/visa"
+      ],
+      "owner": "Supervisor/Backend/Frontend/QA",
+      "implementation": "IN_PROGRESS",
+      "integration": "BLOCKED",
+      "release": "BLOCKED",
+      "operation": "NOT_READY",
+      "note": "Product-wide criteria not verified; older narrow releases are retained, not invalidated or promoted to whole-product acceptance.",
+      "next": "queued; preserve existing implementation and requirements"
+    },
+    {
+      "product": "insurance",
+      "routes": [],
+      "owner": "Supervisor/Backend/Frontend/QA",
+      "implementation": "NOT_STARTED",
+      "integration": "UNSELECTED",
+      "release": "NOT_DEPLOYED",
+      "operation": "NOT_READY",
+      "note": "No dedicated frontend route found. bus is in service enum; insurance/CIP absent there. Contract/scope decision pending; not silently excluded.",
+      "next": "queued; preserve existing implementation and requirements"
+    },
+    {
+      "product": "cip",
+      "routes": [],
+      "owner": "Supervisor/Backend/Frontend/QA",
+      "implementation": "NOT_STARTED",
+      "integration": "UNSELECTED",
+      "release": "NOT_DEPLOYED",
+      "operation": "NOT_READY",
+      "note": "No dedicated frontend route found. bus is in service enum; insurance/CIP absent there. Contract/scope decision pending; not silently excluded.",
+      "next": "queued; preserve existing implementation and requirements"
+    },
+    {
+      "product": "experience",
+      "routes": [
+        "/attractions",
+        "/events-venues",
+        "/experience-products/[id]",
+        "/experiences",
+        "/pools-sports",
+        "/restaurants",
+        "/supplier/admission"
+      ],
+      "owner": "Supervisor/Backend/Frontend/QA",
+      "implementation": "IN_PROGRESS",
+      "integration": "BLOCKED",
+      "release": "BLOCKED",
+      "operation": "NOT_READY",
+      "note": "Product-wide criteria not verified; older narrow releases are retained, not invalidated or promoted to whole-product acceptance.",
+      "next": "queued; preserve existing implementation and requirements"
+    },
+    {
+      "product": "handicraft",
+      "routes": [
+        "/handicrafts",
+        "/supplier/handicrafts/new"
+      ],
+      "owner": "Supervisor/Backend/Frontend/QA",
+      "implementation": "IN_PROGRESS",
+      "integration": "BLOCKED",
+      "release": "BLOCKED",
+      "operation": "NOT_READY",
+      "note": "Product-wide criteria not verified; older narrow releases are retained, not invalidated or promoted to whole-product acceptance.",
+      "next": "queued; preserve existing implementation and requirements"
+    },
+    {
+      "product": "cruise",
+      "routes": [
+        "/cruises"
+      ],
+      "owner": "Supervisor/Backend/Frontend/QA",
+      "implementation": "IN_PROGRESS",
+      "integration": "BLOCKED",
+      "release": "BLOCKED",
+      "operation": "NOT_READY",
+      "note": "Product-wide criteria not verified; older narrow releases are retained, not invalidated or promoted to whole-product acceptance.",
+      "next": "queued; preserve existing implementation and requirements"
+    },
+    {
+      "product": "shared",
+      "routes": [
+        "/account",
+        "/admin",
+        "/agency",
+        "/assistant",
+        "/backoffice/booking-requests",
+        "/backoffice",
+        "/backoffice/records",
+        "/backoffice/trips",
+        "/booking/confirmation",
+        "/checkout/[reservationId]",
+        "/compare/package",
+        "/compare",
+        "/contact",
+        "/destinations/[slug]",
+        "/destinations",
+        "/employee",
+        "/finance",
+        "/integrations",
+        "/itineraries",
+        "/login",
+        "/manage-booking/[bookingId]",
+        "/map",
+        "/nearby",
+        "/notifications",
+        "/offers/[offerId]",
+        "/organization",
+        "/organization/requests",
+        "/organization/structure",
+        "/",
+        "/payments/[paymentId]",
+        "/pilot",
+        "/privacy",
+        "/register",
+        "/reviews",
+        "/saved-trips",
+        "/search/results",
+        "/services",
+        "/supplier/fulfillment",
+        "/supplier/offers/new",
+        "/supplier",
+        "/support",
+        "/terms",
+        "/trips/[id]",
+        "/trips",
+        "/white-label"
+      ],
+      "owner": "Supervisor/Backend/Frontend/QA",
+      "implementation": "IN_PROGRESS",
+      "integration": "BLOCKED",
+      "release": "BLOCKED",
+      "operation": "NOT_READY",
+      "note": "Product-wide criteria not verified; older narrow releases are retained, not invalidated or promoted to whole-product acceptance.",
+      "next": "queued; preserve existing implementation and requirements"
+    },
+    {
+      "product": "restaurant",
+      "routes": [
+        "/restaurants",
+        "/experience-products/[id]",
+        "/supplier/admission"
+      ],
+      "owner": "Backend/Frontend/QA",
+      "implementation": "IN_PROGRESS",
+      "integration": "BLOCKED",
+      "release": "BLOCKED",
+      "operation": "NOT_READY",
+      "note": "Independent product acceptance required; prior narrow evidence retained. Not closed by restaurant or generic leisure tests.",
+      "next": "queued after hotel according to latest directive"
+    },
+    {
+      "product": "pool_sport",
+      "routes": [
+        "/pools-sports",
+        "/experience-products/[id]"
+      ],
+      "owner": "Backend/Frontend/QA",
+      "implementation": "IN_PROGRESS",
+      "integration": "BLOCKED",
+      "release": "BLOCKED",
+      "operation": "NOT_READY",
+      "note": "Independent product acceptance required; prior narrow evidence retained. Not closed by restaurant or generic leisure tests.",
+      "next": "queued after hotel according to latest directive"
+    },
+    {
+      "product": "attraction",
+      "routes": [
+        "/attractions",
+        "/experience-products/[id]"
+      ],
+      "owner": "Backend/Frontend/QA",
+      "implementation": "IN_PROGRESS",
+      "integration": "BLOCKED",
+      "release": "BLOCKED",
+      "operation": "NOT_READY",
+      "note": "Independent product acceptance required; prior narrow evidence retained. Not closed by restaurant or generic leisure tests.",
+      "next": "queued after hotel according to latest directive"
+    },
+    {
+      "product": "event_hall",
+      "routes": [
+        "/events-venues",
+        "/experience-products/[id]"
+      ],
+      "owner": "Backend/Frontend/QA",
+      "implementation": "IN_PROGRESS",
+      "integration": "BLOCKED",
+      "release": "BLOCKED",
+      "operation": "NOT_READY",
+      "note": "Independent product acceptance required; prior narrow evidence retained. Not closed by restaurant or generic leisure tests.",
+      "next": "queued after hotel according to latest directive"
+    }
+  ]
+}

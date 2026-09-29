@@ -1,0 +1,146 @@
+{
+  "observed": "2026-09-29",
+  "source": "/home/ubuntu/karenseir-current",
+  "head": "b58b1a7bb1f09ba0d8eaf77ac913268033977c0d",
+  "public": "http://95.38.184.209",
+  "public_commit": "d2ba674be607a5908bac15a46d385a0b63b26b10",
+  "migration": "20260928_34",
+  "pending_candidate": "1e6ee5e / schema35: explicit approval absent; do not deploy",
+  "preserved_untracked": [
+    "backend/debug_voucher.py"
+  ],
+  "runtime": [
+    {
+      "name": "/karenseir-frontend-1",
+      "image": "sha256:d27e90f03dc9f3b9cec15277b76f1651a209d7d62852dc438a79435d99288528",
+      "status": "healthy",
+      "environment_names": [
+        "HOSTNAME",
+        "NEXT_TELEMETRY_DISABLED",
+        "NODE_ENV",
+        "NODE_VERSION",
+        "PATH",
+        "PORT",
+        "YARN_VERSION"
+      ],
+      "mounts": []
+    },
+    {
+      "name": "/karenseir-api-1",
+      "image": "sha256:73dc3430edb6514e48a4550956b76733f25dcfef7ee23642622606b49f0aab9a",
+      "status": "healthy",
+      "environment_names": [
+        "ALLOW_HTTP_ORIGIN_PREVIEW",
+        "ASSISTANT_SERVICE_URL",
+        "CORS_ORIGINS",
+        "DATABASE_URL",
+        "ENVIRONMENT",
+        "GPG_KEY",
+        "JWT_SECRET",
+        "KARENSEIR_SMS_PROVIDER",
+        "KAVENEGAR_API_KEY",
+        "KAVENEGAR_OTP_TEMPLATE",
+        "LANG",
+        "MEDIA_STORAGE_ROOT",
+        "PATH",
+        "PYTHONDONTWRITEBYTECODE",
+        "PYTHONUNBUFFERED",
+        "PYTHON_SHA256",
+        "PYTHON_VERSION",
+        "REDIS_URL",
+        "SEARCH_INTERNAL_TOKEN",
+        "SEARCH_SERVICE_URL"
+      ],
+      "mounts": [
+        {
+          "type": "volume",
+          "destination": "/app/media"
+        }
+      ]
+    },
+    {
+      "name": "/karenseir-worker-1",
+      "image": "sha256:73dc3430edb6514e48a4550956b76733f25dcfef7ee23642622606b49f0aab9a",
+      "status": "healthy",
+      "environment_names": [
+        "DATABASE_URL",
+        "ENVIRONMENT",
+        "GPG_KEY",
+        "LANG",
+        "PATH",
+        "PYTHONDONTWRITEBYTECODE",
+        "PYTHONUNBUFFERED",
+        "PYTHON_SHA256",
+        "PYTHON_VERSION",
+        "REDIS_URL",
+        "RESERVATION_REAPER_NOT_BEFORE"
+      ],
+      "mounts": [
+        {
+          "type": "volume",
+          "destination": "/app/media"
+        }
+      ]
+    },
+    {
+      "name": "/karenseir-search",
+      "image": "sha256:a0b0f86c7fa0323b6276bc306c6c1d36cc78471dd6c3cf0a1c0eea06ff082500",
+      "status": "healthy",
+      "environment_names": [
+        "BUILD_TIMESTAMP",
+        "ENVIRONMENT",
+        "GIT_COMMIT",
+        "GPG_KEY",
+        "LANG",
+        "MONOLITH_BASE_URL",
+        "PATH",
+        "PYTHONDONTWRITEBYTECODE",
+        "PYTHONUNBUFFERED",
+        "PYTHON_SHA256",
+        "PYTHON_VERSION",
+        "SEARCH_INTERNAL_TOKEN",
+        "SEARCH_REDIS_URL",
+        "SEARCH_TELEMETRY_DB_URL"
+      ],
+      "mounts": []
+    },
+    {
+      "name": "/karenseir-assistant",
+      "image": "sha256:c93cca148186d9071fba13ac816b0663e60313825faa1986248b225a1e34d731",
+      "status": "healthy",
+      "environment_names": [
+        "ASSISTANT_DB_URL",
+        "BUILD_TIMESTAMP",
+        "ENVIRONMENT",
+        "GIT_COMMIT",
+        "GPG_KEY",
+        "LANG",
+        "MONOLITH_BASE_URL",
+        "PATH",
+        "PYTHONDONTWRITEBYTECODE",
+        "PYTHONUNBUFFERED",
+        "PYTHON_SHA256",
+        "PYTHON_VERSION",
+        "SEARCH_SERVICE_URL"
+      ],
+      "mounts": []
+    }
+  ],
+  "commands": {
+    "frontend_build": "npm run build (next build --webpack)",
+    "frontend_e2e": "npm run test:e2e / targeted Playwright scripts",
+    "backend": "isolated Docker pytest with temporary media and database"
+  },
+  "design_reference": "User protects original home/search identity. No exact approved Figma/version artifact supplied; current screenshots are observations, not approval. Final visible brand requested: Karen Travel / کارن تراول.",
+  "documents": [
+    "AGENTS.md",
+    "agent-framework/MASTER_RULES.md",
+    "CHECKPOINT.md",
+    "karentravel-master-spec-v3.1-FROZEN.md",
+    "karentravel-master-spec-v3.1-baseline.md"
+  ],
+  "missing": [
+    "START_HERE not found in repository file inventory",
+    "Research appendix not attached; chosen provider documentation not established"
+  ]
+}

@@ -1,0 +1,1362 @@
+{
+  "observed": "2026-09-29",
+  "public_commit": "d2ba674",
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/health",
+      "operation_id": "health_health_get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/system/version",
+      "operation_id": "system_version_system_version_get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/metrics",
+      "operation_id": "metrics_metrics_get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/ready",
+      "operation_id": "readiness_ready_get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/auth/dev-login",
+      "operation_id": "dev_login_auth_dev_login_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/auth/otp/request",
+      "operation_id": "request_otp_auth_otp_request_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/auth/register/request",
+      "operation_id": "register_request_auth_register_request_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/auth/otp/verify",
+      "operation_id": "verify_otp_auth_otp_verify_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/auth/refresh",
+      "operation_id": "refresh_access_auth_refresh_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/auth/logout",
+      "operation_id": "logout_auth_logout_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/hotels",
+      "operation_id": "hotels_hotels_get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/me/dashboard",
+      "operation_id": "dashboard_me_dashboard_get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/bookings",
+      "operation_id": "create_booking_bookings_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/bookings/{booking_id}/approval",
+      "operation_id": "approve_booking_bookings__booking_id__approval_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/integrations",
+      "operation_id": "integrations_integrations_get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/me/reservations",
+      "operation_id": "reservations_me_reservations_get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/me/trips",
+      "operation_id": "my_trips_me_trips_get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/me/notifications",
+      "operation_id": "my_notifications_me_notifications_get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/me/notifications/{notification_id}/read",
+      "operation_id": "read_my_notification_me_notifications__notification_id__read_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/me/notification-channels",
+      "operation_id": "my_notification_channels_me_notification_channels_get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/me/notification-events",
+      "operation_id": "my_notification_events_me_notification_events_get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/admin/notification-templates",
+      "operation_id": "list_notification_templates_admin_notification_templates_get",
+      "security": []
+    },
+    {
+      "method": "PUT",
+      "path": "/admin/notification-templates",
+      "operation_id": "upsert_notification_template_admin_notification_templates_put",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/me/profile",
+      "operation_id": "my_profile_me_profile_get",
+      "security": []
+    },
+    {
+      "method": "PUT",
+      "path": "/me/profile",
+      "operation_id": "update_my_profile_me_profile_put",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/me/travellers",
+      "operation_id": "my_travellers_me_travellers_get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/me/travellers",
+      "operation_id": "create_my_traveller_me_travellers_post",
+      "security": []
+    },
+    {
+      "method": "PUT",
+      "path": "/me/travellers/{traveller_id}",
+      "operation_id": "update_my_traveller_me_travellers__traveller_id__put",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/me/travellers/{traveller_id}/remove",
+      "operation_id": "remove_my_traveller_me_travellers__traveller_id__remove_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/me/wallets",
+      "operation_id": "my_wallets_me_wallets_get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/me/wallets",
+      "operation_id": "create_my_wallet_me_wallets_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/me/payments",
+      "operation_id": "my_payments_me_payments_get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/me/installment-plans",
+      "operation_id": "my_installment_plans_me_installment_plans_get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/me/approval-workflows",
+      "operation_id": "my_approval_workflows_me_approval_workflows_get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/me/organization-credit",
+      "operation_id": "my_organization_credit_me_organization_credit_get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/organizations/{organization_id}/credit-accounts",
+      "operation_id": "create_credit_account_organizations__organization_id__credit_accounts_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/organization-credit/{credit_account_id}/commands",
+      "operation_id": "organization_credit_command_organization_credit__credit_account_id__commands_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/me/support/messages",
+      "operation_id": "create_support_message_me_support_messages_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/reservations/{reservation_id}",
+      "operation_id": "reservation_detail_reservations__reservation_id__get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/reservations/{reservation_id}/price-breakdown",
+      "operation_id": "reservation_price_breakdown_reservations__reservation_id__price_breakdown_get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/reservations/{reservation_id}/voucher",
+      "operation_id": "reservation_voucher_reservations__reservation_id__voucher_get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/reservations/{reservation_id}/commands",
+      "operation_id": "reservation_command_reservations__reservation_id__commands_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/reservations/{reservation_id}/service-requests",
+      "operation_id": "list_service_requests_reservations__reservation_id__service_requests_get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/reservations/{reservation_id}/service-requests",
+      "operation_id": "create_service_request_reservations__reservation_id__service_requests_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/trips/{trip_id}/timeline",
+      "operation_id": "trip_timeline_trips__trip_id__timeline_get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/trips/{trip_id}/events/{event_id}",
+      "operation_id": "trip_event_detail_trips__trip_id__events__event_id__get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/wallets/{wallet_id}",
+      "operation_id": "wallet_detail_wallets__wallet_id__get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/wallets/{wallet_id}/commands",
+      "operation_id": "wallet_command_wallets__wallet_id__commands_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/approvals/{approval_id}/decision",
+      "operation_id": "approval_decision_approvals__approval_id__decision_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/reservations/{reservation_id}/payment-intents",
+      "operation_id": "create_payment_intent_reservations__reservation_id__payment_intents_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/payments/{payment_id}/initiate",
+      "operation_id": "initiate_payment_payments__payment_id__initiate_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/payments/zarinpal/callback",
+      "operation_id": "zarinpal_callback_payments_zarinpal_callback_get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/payments/{payment_id}",
+      "operation_id": "customer_payment_status_payments__payment_id__get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/payments/{payment_id}/verify",
+      "operation_id": "recover_payment_verification_payments__payment_id__verify_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/payments/callback/{provider_key}",
+      "operation_id": "payment_callback_payments_callback__provider_key__post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/payments/{payment_id}/refunds",
+      "operation_id": "request_refund_payments__payment_id__refunds_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/supplier/vacation-properties",
+      "operation_id": "create_vacation_property_supplier_vacation_properties_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/supplier/vacation-properties",
+      "operation_id": "supplier_vacation_properties_supplier_vacation_properties_get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/supplier/vacation-properties/{property_id}/units",
+      "operation_id": "create_vacation_unit_supplier_vacation_properties__property_id__units_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/vacation-rentals",
+      "operation_id": "list_vacation_rentals_vacation_rentals_get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/vacation-rentals/{property_id}",
+      "operation_id": "vacation_rental_detail_vacation_rentals__property_id__get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/public/vacation-rentals",
+      "operation_id": "public_vacation_rentals_public_vacation_rentals_get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/public/vacation-rentals/{property_id}",
+      "operation_id": "public_vacation_rental_detail_public_vacation_rentals__property_id__get",
+      "security": []
+    },
+    {
+      "method": "PUT",
+      "path": "/supplier/vacation-units/{unit_id}/rates",
+      "operation_id": "update_vacation_rates_supplier_vacation_units__unit_id__rates_put",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/vacation-units/{unit_id}/calendar",
+      "operation_id": "vacation_calendar_vacation_units__unit_id__calendar_get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/vacation-units/{unit_id}/quote",
+      "operation_id": "quote_vacation_vacation_units__unit_id__quote_get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/vacation-units/{unit_id}/reservations",
+      "operation_id": "book_vacation_unit_vacation_units__unit_id__reservations_post",
+      "security": []
+    },
+    {
+      "method": "PUT",
+      "path": "/supplier/vacation-properties/{property_id}/content",
+      "operation_id": "update_vacation_content_supplier_vacation_properties__property_id__content_put",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/supplier/vacation-units",
+      "operation_id": "supplier_vacation_units_supplier_vacation_units_get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/supplier/vacation-requests",
+      "operation_id": "supplier_vacation_requests_supplier_vacation_requests_get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/reservations/{reservation_id}/accommodation-decision",
+      "operation_id": "vacation_decision_reservations__reservation_id__accommodation_decision_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/supplier/tours",
+      "operation_id": "create_tour_supplier_tours_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/supplier/tours/{tour_id}/departures",
+      "operation_id": "create_tour_departure_supplier_tours__tour_id__departures_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/tour-products",
+      "operation_id": "list_tours_tour_products_get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/tour-products/{tour_id}",
+      "operation_id": "tour_detail_tour_products__tour_id__get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/public/tour-products",
+      "operation_id": "public_tour_products_public_tour_products_get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/public/tour-products/{tour_id}",
+      "operation_id": "public_tour_product_detail_public_tour_products__tour_id__get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/tour-departures/{departure_id}/quote",
+      "operation_id": "quote_tour_tour_departures__departure_id__quote_get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/tour-departures/{departure_id}/reservations",
+      "operation_id": "book_tour_tour_departures__departure_id__reservations_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/cruises",
+      "operation_id": "list_cruises_cruises_get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/cruises/{sailing_id}/book",
+      "operation_id": "book_cruise_cruises__sailing_id__book_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/backoffice/visa-products",
+      "operation_id": "create_visa_product_backoffice_visa_products_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/visa-products",
+      "operation_id": "list_visa_products_visa_products_get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/visa-products/{product_id}/applications",
+      "operation_id": "start_visa_application_visa_products__product_id__applications_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/visa-applications/{application_id}/applicants",
+      "operation_id": "add_visa_applicant_visa_applications__application_id__applicants_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/visa-applications/{application_id}/documents",
+      "operation_id": "upload_visa_document_visa_applications__application_id__documents_post",
+      "security": []
+    },
+    {
+      "method": "PUT",
+      "path": "/backoffice/visa-documents/{document_id}",
+      "operation_id": "review_visa_document_backoffice_visa_documents__document_id__put",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/visa-applications/{application_id}",
+      "operation_id": "visa_application_detail_visa_applications__application_id__get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/supplier/offers",
+      "operation_id": "create_supplier_offer_supplier_offers_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/supplier/onboarding",
+      "operation_id": "onboard_supplier_supplier_onboarding_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/search/autocomplete",
+      "operation_id": "search_autocomplete_search_autocomplete_get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/search/autocomplete/v3/public",
+      "operation_id": "autocomplete_v3_public_gateway_search_autocomplete_v3_public_get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/search/autocomplete/public",
+      "operation_id": "public_search_autocomplete_search_autocomplete_public_get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/search/offers",
+      "operation_id": "search_offers_search_offers_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/internal/search/offer-pool",
+      "operation_id": "internal_search_offer_pool_internal_search_offer_pool_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/search/v3/public",
+      "operation_id": "search_v3_public_gateway_search_v3_public_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/search/v3",
+      "operation_id": "search_v3_authenticated_gateway_search_v3_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/assistant/message",
+      "operation_id": "assistant_message_gateway_assistant_message_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/search/recent",
+      "operation_id": "recent_searches_search_recent_get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/search/voice/transcribe",
+      "operation_id": "transcribe_voice_search_search_voice_transcribe_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/search/v2",
+      "operation_id": "unified_search_search_v2_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/search/v2/public",
+      "operation_id": "unified_search_public_search_v2_public_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/search/saved",
+      "operation_id": "save_search_search_saved_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/search/saved",
+      "operation_id": "list_saved_searches_search_saved_get",
+      "security": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/search/saved/{saved_search_id}",
+      "operation_id": "delete_saved_search_search_saved__saved_search_id__delete",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/search/budget-trips",
+      "operation_id": "budget_trips_search_budget_trips_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/offers/{offer_id}",
+      "operation_id": "offer_detail_offers__offer_id__get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/offers/{offer_id}/price-check",
+      "operation_id": "price_check_offers__offer_id__price_check_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/orchestration/bookings",
+      "operation_id": "orchestrate_booking_orchestration_bookings_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/reservations/{reservation_id}/fulfill",
+      "operation_id": "fulfill_reservation_reservations__reservation_id__fulfill_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/supplier/places",
+      "operation_id": "create_place_supplier_places_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/places/{place_id}",
+      "operation_id": "place_detail_places__place_id__get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/supplier/places/{place_id}/experience-products",
+      "operation_id": "create_experience_product_supplier_places__place_id__experience_products_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/supplier/experience-products/{product_id}/ticket-types",
+      "operation_id": "create_leisure_ticket_type_supplier_experience_products__product_id__ticket_types_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/supplier/experience-products/{product_id}/sessions",
+      "operation_id": "create_leisure_session_supplier_experience_products__product_id__sessions_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/experience-products/{product_id}",
+      "operation_id": "experience_product_detail_experience_products__product_id__get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/leisure-sessions/{session_id}/price-check",
+      "operation_id": "leisure_session_price_check_leisure_sessions__session_id__price_check_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/reservations/{reservation_id}/admission-tickets",
+      "operation_id": "list_admission_tickets_reservations__reservation_id__admission_tickets_get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/reservations/{reservation_id}/admission-tickets/{ticket_id}/qr",
+      "operation_id": "admission_qr_reservations__reservation_id__admission_tickets__ticket_id__qr_get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/admission-tickets/validate",
+      "operation_id": "validate_admission_ticket_admission_tickets_validate_get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/admission-tickets/validate",
+      "operation_id": "validate_admission_ticket_body_admission_tickets_validate_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/admission-tickets/redeem",
+      "operation_id": "redeem_admission_ticket_admission_tickets_redeem_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/reservations/{reservation_id}/history",
+      "operation_id": "reservation_history_reservations__reservation_id__history_get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/reservations/{reservation_id}/cancellation-quote",
+      "operation_id": "cancellation_quote_reservations__reservation_id__cancellation_quote_get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/reservations/{reservation_id}/voucher/reissue",
+      "operation_id": "reissue_voucher_reservations__reservation_id__voucher_reissue_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/organizations/{organization_id}/departments",
+      "operation_id": "create_department_organizations__organization_id__departments_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/organizations/{organization_id}/cost-centers",
+      "operation_id": "create_cost_center_organizations__organization_id__cost_centers_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/organizations/{organization_id}/approval-templates",
+      "operation_id": "create_approval_template_organizations__organization_id__approval_templates_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/organization/overview",
+      "operation_id": "organization_overview_organization_overview_get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/reservations/{reservation_id}/approval-workflows",
+      "operation_id": "start_approval_workflow_reservations__reservation_id__approval_workflows_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/approvals/{approval_id}/escalate",
+      "operation_id": "escalate_approval_approvals__approval_id__escalate_post",
+      "security": []
+    },
+    {
+      "method": "PUT",
+      "path": "/tenant/white-label",
+      "operation_id": "upsert_white_label_tenant_white_label_put",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/tenant/white-label",
+      "operation_id": "get_white_label_tenant_white_label_get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/compare/offers",
+      "operation_id": "compare_offers_compare_offers_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/ai/grounded-context",
+      "operation_id": "ai_grounded_context_ai_grounded_context_get",
+      "security": []
+    },
+    {
+      "method": "PUT",
+      "path": "/me/notification-preferences",
+      "operation_id": "upsert_notification_preference_me_notification_preferences_put",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/me/notification-preferences",
+      "operation_id": "notification_preferences_me_notification_preferences_get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/notification-receipts/{channel}",
+      "operation_id": "notification_receipt_notification_receipts__channel__post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/agency/sub-agencies",
+      "operation_id": "create_sub_agency_agency_sub_agencies_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/supplier/dashboard",
+      "operation_id": "supplier_dashboard_supplier_dashboard_get",
+      "security": []
+    },
+    {
+      "method": "PUT",
+      "path": "/supplier/offers/{offer_id}",
+      "operation_id": "update_supplier_offer_supplier_offers__offer_id__put",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/agency/dashboard",
+      "operation_id": "agency_dashboard_agency_dashboard_get",
+      "security": []
+    },
+    {
+      "method": "PUT",
+      "path": "/agency/agencies/{agency_id}",
+      "operation_id": "update_agency_agency_agencies__agency_id__put",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/backoffice/booking-requests",
+      "operation_id": "operations_booking_requests_backoffice_booking_requests_get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/backoffice/booking-requests/{request_id}/review",
+      "operation_id": "begin_booking_request_review_backoffice_booking_requests__request_id__review_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/backoffice/overview",
+      "operation_id": "backoffice_overview_backoffice_overview_get",
+      "security": []
+    },
+    {
+      "method": "PUT",
+      "path": "/backoffice/suppliers/{supplier_id}/status",
+      "operation_id": "backoffice_supplier_status_backoffice_suppliers__supplier_id__status_put",
+      "security": []
+    },
+    {
+      "method": "PUT",
+      "path": "/backoffice/suppliers/{supplier_id}/lifecycle-status",
+      "operation_id": "backoffice_supplier_lifecycle_status_backoffice_suppliers__supplier_id__lifecycle_status_put",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/finance/reconciliation/match",
+      "operation_id": "match_reconciliation_finance_reconciliation_match_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/finance/reconciliation/{reconciliation_id}/resolve",
+      "operation_id": "resolve_reconciliation_finance_reconciliation__reconciliation_id__resolve_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/finance/reconciliation",
+      "operation_id": "finance_reconciliation_finance_reconciliation_get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/me/invoices",
+      "operation_id": "my_invoices_me_invoices_get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/reservations/{reservation_id}/invoice",
+      "operation_id": "issue_invoice_reservations__reservation_id__invoice_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/support/cases",
+      "operation_id": "support_cases_support_cases_get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/support/cases",
+      "operation_id": "create_support_case_support_cases_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/support/cases/{case_id}",
+      "operation_id": "support_case_detail_support_cases__case_id__get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/support/cases/{case_id}/customer-replies",
+      "operation_id": "customer_support_reply_support_cases__case_id__customer_replies_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/support/cases/{case_id}/human-replies",
+      "operation_id": "human_support_reply_support_cases__case_id__human_replies_post",
+      "security": []
+    },
+    {
+      "method": "PUT",
+      "path": "/support/cases/{case_id}/assignment",
+      "operation_id": "assign_support_case_support_cases__case_id__assignment_put",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/support/cases/{case_id}/resolve",
+      "operation_id": "resolve_support_case_support_cases__case_id__resolve_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/me/installments",
+      "operation_id": "my_installments_me_installments_get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/reservations/{reservation_id}/installments",
+      "operation_id": "request_installment_reservations__reservation_id__installments_post",
+      "security": []
+    },
+    {
+      "method": "PUT",
+      "path": "/finance/installments/{agreement_id}/decision",
+      "operation_id": "installment_decision_finance_installments__agreement_id__decision_put",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/finance/reservations/{reservation_id}/settlements",
+      "operation_id": "post_settlement_finance_reservations__reservation_id__settlements_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/admin/users",
+      "operation_id": "admin_users_admin_users_get",
+      "security": []
+    },
+    {
+      "method": "PUT",
+      "path": "/admin/users/{target_user_id}/role",
+      "operation_id": "change_user_role_admin_users__target_user_id__role_put",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/saved-trips",
+      "operation_id": "create_saved_trip_saved_trips_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/me/saved-trips",
+      "operation_id": "my_saved_trips_me_saved_trips_get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/saved-trips/{trip_id}/items",
+      "operation_id": "add_saved_trip_item_saved_trips__trip_id__items_post",
+      "security": []
+    },
+    {
+      "method": "PUT",
+      "path": "/saved-trips/{trip_id}/items/{item_id}",
+      "operation_id": "move_saved_item_saved_trips__trip_id__items__item_id__put",
+      "security": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/saved-trips/{trip_id}/items/{item_id}",
+      "operation_id": "remove_saved_item_saved_trips__trip_id__items__item_id__delete",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/reviews",
+      "operation_id": "create_review_reviews_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/reviews",
+      "operation_id": "list_reviews_reviews_get",
+      "security": []
+    },
+    {
+      "method": "PUT",
+      "path": "/reviews/{review_id}/moderation",
+      "operation_id": "moderate_review_reviews__review_id__moderation_put",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/reviews/{review_id}/supplier-response",
+      "operation_id": "supplier_review_response_reviews__review_id__supplier_response_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/destinations",
+      "operation_id": "create_destination_destinations_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/destinations",
+      "operation_id": "list_destinations_destinations_get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/destinations/{slug}",
+      "operation_id": "destination_detail_destinations__slug__get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/public/tenants/{tenant_slug}/destinations",
+      "operation_id": "public_destinations_public_tenants__tenant_slug__destinations_get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/public/tenants/{tenant_slug}/destinations/{slug}",
+      "operation_id": "public_destination_detail_public_tenants__tenant_slug__destinations__slug__get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/itineraries",
+      "operation_id": "create_itinerary_itineraries_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/me/itineraries",
+      "operation_id": "my_itineraries_me_itineraries_get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/itineraries/{itinerary_id}/items",
+      "operation_id": "add_itinerary_item_itineraries__itinerary_id__items_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/itineraries/{itinerary_id}/recheck",
+      "operation_id": "recheck_itinerary_itineraries__itinerary_id__recheck_post",
+      "security": []
+    },
+    {
+      "method": "PUT",
+      "path": "/itineraries/{itinerary_id}/items/{item_id}",
+      "operation_id": "update_itinerary_item_itineraries__itinerary_id__items__item_id__put",
+      "security": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/itineraries/{itinerary_id}/items/{item_id}",
+      "operation_id": "remove_itinerary_item_itineraries__itinerary_id__items__item_id__delete",
+      "security": []
+    },
+    {
+      "method": "PUT",
+      "path": "/itineraries/{itinerary_id}",
+      "operation_id": "update_itinerary_itineraries__itinerary_id__put",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/itineraries/{itinerary_id}/duplicate",
+      "operation_id": "duplicate_itinerary_itineraries__itinerary_id__duplicate_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/me/reviews",
+      "operation_id": "my_reviews_me_reviews_get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/reviews/{review_id}/reports",
+      "operation_id": "report_review_reviews__review_id__reports_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/reservations/{reservation_id}/checkout-sessions",
+      "operation_id": "create_checkout_reservations__reservation_id__checkout_sessions_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/checkout-sessions/{checkout_id}",
+      "operation_id": "get_checkout_checkout_sessions__checkout_id__get",
+      "security": []
+    },
+    {
+      "method": "PUT",
+      "path": "/checkout-sessions/{checkout_id}/steps/{step}",
+      "operation_id": "advance_checkout_checkout_sessions__checkout_id__steps__step__put",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/supplier/{supplier_id}/assets",
+      "operation_id": "upload_supplier_asset_supplier__supplier_id__assets_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/supplier/{supplier_id}/assets",
+      "operation_id": "list_supplier_assets_supplier__supplier_id__assets_get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/supplier/assets/{asset_id}/content",
+      "operation_id": "download_supplier_asset_supplier_assets__asset_id__content_get",
+      "security": []
+    },
+    {
+      "method": "PUT",
+      "path": "/supplier/assets/{asset_id}/content",
+      "operation_id": "replace_supplier_asset_supplier_assets__asset_id__content_put",
+      "security": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/supplier/assets/{asset_id}",
+      "operation_id": "delete_supplier_asset_supplier_assets__asset_id__delete",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/media/public/{asset_id}",
+      "operation_id": "public_media_asset_media_public__asset_id__get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/combined/flight-hotel/quote",
+      "operation_id": "combined_flight_hotel_quote_combined_flight_hotel_quote_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/combined/flight-hotel/{quote_id}",
+      "operation_id": "get_combined_flight_hotel_quote_combined_flight_hotel__quote_id__get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/me/combined-quotes",
+      "operation_id": "my_combined_quotes_me_combined_quotes_get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/combined/flight-hotel/{quote_id}/release",
+      "operation_id": "release_combined_flight_hotel_quote_combined_flight_hotel__quote_id__release_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/combined/flight-hotel/{quote_id}/book",
+      "operation_id": "book_combined_flight_hotel_combined_flight_hotel__quote_id__book_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/bus/provider-status",
+      "operation_id": "bus_provider_status_bus_provider_status_get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/bus/search",
+      "operation_id": "bus_search_bus_search_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/backoffice/trips",
+      "operation_id": "operations_trips_backoffice_trips_get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/backoffice/trips/{trip_id}/changes",
+      "operation_id": "operations_trip_changes_backoffice_trips__trip_id__changes_get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/backoffice/trips/{trip_id}/changes",
+      "operation_id": "record_operations_trip_change_backoffice_trips__trip_id__changes_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/backoffice/records/{section}",
+      "operation_id": "operations_records_backoffice_records__section__get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/supplier/reservations/ready",
+      "operation_id": "supplier_ready_reservations_supplier_reservations_ready_get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/enterprise/context",
+      "operation_id": "context_enterprise_context_get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/enterprise/organizations/{org}/members",
+      "operation_id": "members_enterprise_organizations__org__members_get",
+      "security": []
+    },
+    {
+      "method": "PUT",
+      "path": "/enterprise/organizations/{org}/grants",
+      "operation_id": "grants_enterprise_organizations__org__grants_put",
+      "security": []
+    },
+    {
+      "method": "PUT",
+      "path": "/enterprise/organizations/{org}/policy",
+      "operation_id": "policy_enterprise_organizations__org__policy_put",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/enterprise/organizations/{org}/requests",
+      "operation_id": "create_enterprise_organizations__org__requests_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/enterprise/requests",
+      "operation_id": "requests_enterprise_requests_get",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/enterprise/requests/{rid}",
+      "operation_id": "detail_enterprise_requests__rid__get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/enterprise/requests/{rid}/decision",
+      "operation_id": "decision_enterprise_requests__rid__decision_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/enterprise/requests/{rid}/withdraw",
+      "operation_id": "withdraw_enterprise_requests__rid__withdraw_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/enterprise/requests/{rid}/invitations",
+      "operation_id": "invite_enterprise_requests__rid__invitations_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/enterprise/supplier/rfqs",
+      "operation_id": "rfqs_enterprise_supplier_rfqs_get",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/enterprise/requests/{rid}/quotes",
+      "operation_id": "quote_enterprise_requests__rid__quotes_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/enterprise/requests/{rid}/selection",
+      "operation_id": "selection_enterprise_requests__rid__selection_post",
+      "security": []
+    },
+    {
+      "method": "POST",
+      "path": "/enterprise/organizations/{org}/campaigns",
+      "operation_id": "campaign_create_enterprise_organizations__org__campaigns_post",
+      "security": []
+    },
+    {
+      "method": "GET",
+      "path": "/enterprise/organizations/{org}/campaigns",
+      "operation_id": "campaigns_enterprise_organizations__org__campaigns_get",
+      "security": []
+    }
+  ]
+}

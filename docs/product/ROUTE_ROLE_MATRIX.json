@@ -1,0 +1,1601 @@
+{
+  "date": "2026-09-29",
+  "environment": "SOURCE inventory; runtime behavior not inferred",
+  "routes": [
+    {
+      "route": "/account",
+      "dynamic": false,
+      "source": "app/account/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "customer",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/admin",
+      "dynamic": false,
+      "source": "app/admin/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "admin",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/agency",
+      "dynamic": false,
+      "source": "app/agency/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "agency",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/assistant",
+      "dynamic": false,
+      "source": "app/assistant/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/attractions",
+      "dynamic": false,
+      "source": "app/attractions/page.tsx",
+      "product": "experience",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "2/product",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/backoffice/booking-requests",
+      "dynamic": false,
+      "source": "app/backoffice/booking-requests/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "operations",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/backoffice",
+      "dynamic": false,
+      "source": "app/backoffice/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "operations",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/backoffice/records",
+      "dynamic": false,
+      "source": "app/backoffice/records/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "operations",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/backoffice/trips",
+      "dynamic": false,
+      "source": "app/backoffice/trips/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "operations",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/booking/confirmation",
+      "dynamic": false,
+      "source": "app/booking/confirmation/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/car-rental",
+      "dynamic": false,
+      "source": "app/car-rental/page.tsx",
+      "product": "car_rental",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "2/product",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/checkout/[reservationId]",
+      "dynamic": true,
+      "source": "app/checkout/[reservationId]/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "customer",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "owned valid",
+        "foreign owner/tenant denied",
+        "missing/invalid identifier",
+        "expired/cancelled where applicable",
+        "loading/error/retry"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/compare/package",
+      "dynamic": false,
+      "source": "app/compare/package/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/compare",
+      "dynamic": false,
+      "source": "app/compare/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/contact",
+      "dynamic": false,
+      "source": "app/contact/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/cruises",
+      "dynamic": false,
+      "source": "app/cruises/page.tsx",
+      "product": "cruise",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "2/product",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/destinations/[slug]",
+      "dynamic": true,
+      "source": "app/destinations/[slug]/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "owned valid",
+        "foreign owner/tenant denied",
+        "missing/invalid identifier",
+        "expired/cancelled where applicable",
+        "loading/error/retry"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/destinations",
+      "dynamic": false,
+      "source": "app/destinations/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/employee",
+      "dynamic": false,
+      "source": "app/employee/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "employee",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/events-venues",
+      "dynamic": false,
+      "source": "app/events-venues/page.tsx",
+      "product": "experience",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "2/product",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/experience-products/[id]",
+      "dynamic": true,
+      "source": "app/experience-products/[id]/page.tsx",
+      "product": "experience",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "2/product",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "owned valid",
+        "foreign owner/tenant denied",
+        "missing/invalid identifier",
+        "expired/cancelled where applicable",
+        "loading/error/retry"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/experiences",
+      "dynamic": false,
+      "source": "app/experiences/page.tsx",
+      "product": "experience",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "2/product",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/finance",
+      "dynamic": false,
+      "source": "app/finance/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "finance",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/flights",
+      "dynamic": false,
+      "source": "app/flights/page.tsx",
+      "product": "flight",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "2/product",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/handicrafts",
+      "dynamic": false,
+      "source": "app/handicrafts/page.tsx",
+      "product": "handicraft",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "2/product",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/hotels",
+      "dynamic": false,
+      "source": "app/hotels/page.tsx",
+      "product": "hotel",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "2.1",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/integrations",
+      "dynamic": false,
+      "source": "app/integrations/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/itineraries",
+      "dynamic": false,
+      "source": "app/itineraries/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "customer",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/login",
+      "dynamic": false,
+      "source": "app/login/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/manage-booking/[bookingId]",
+      "dynamic": true,
+      "source": "app/manage-booking/[bookingId]/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "customer",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "owned valid",
+        "foreign owner/tenant denied",
+        "missing/invalid identifier",
+        "expired/cancelled where applicable",
+        "loading/error/retry"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/map",
+      "dynamic": false,
+      "source": "app/map/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/nearby",
+      "dynamic": false,
+      "source": "app/nearby/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/notifications",
+      "dynamic": false,
+      "source": "app/notifications/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "customer",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/offers/[offerId]",
+      "dynamic": true,
+      "source": "app/offers/[offerId]/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "owned valid",
+        "foreign owner/tenant denied",
+        "missing/invalid identifier",
+        "expired/cancelled where applicable",
+        "loading/error/retry"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/organization",
+      "dynamic": false,
+      "source": "app/organization/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "organization member/manager",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/organization/requests",
+      "dynamic": false,
+      "source": "app/organization/requests/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "organization member/manager",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/organization/structure",
+      "dynamic": false,
+      "source": "app/organization/structure/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "organization member/manager",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/",
+      "dynamic": false,
+      "source": "app/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/payments/[paymentId]",
+      "dynamic": true,
+      "source": "app/payments/[paymentId]/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "customer",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "owned valid",
+        "foreign owner/tenant denied",
+        "missing/invalid identifier",
+        "expired/cancelled where applicable",
+        "loading/error/retry"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/pilot",
+      "dynamic": false,
+      "source": "app/pilot/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/pools-sports",
+      "dynamic": false,
+      "source": "app/pools-sports/page.tsx",
+      "product": "experience",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "2/product",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/privacy",
+      "dynamic": false,
+      "source": "app/privacy/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/register",
+      "dynamic": false,
+      "source": "app/register/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/restaurants",
+      "dynamic": false,
+      "source": "app/restaurants/page.tsx",
+      "product": "experience",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "2/product",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/reviews",
+      "dynamic": false,
+      "source": "app/reviews/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/saved-trips",
+      "dynamic": false,
+      "source": "app/saved-trips/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "customer",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/search/results",
+      "dynamic": false,
+      "source": "app/search/results/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/services",
+      "dynamic": false,
+      "source": "app/services/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/supplier/accommodation",
+      "dynamic": false,
+      "source": "app/supplier/accommodation/page.tsx",
+      "product": "accommodation",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "supplier",
+      "phase": "2/product",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/supplier/admission",
+      "dynamic": false,
+      "source": "app/supplier/admission/page.tsx",
+      "product": "experience",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "supplier",
+      "phase": "2/product",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/supplier/car-rental/new",
+      "dynamic": false,
+      "source": "app/supplier/car-rental/new/page.tsx",
+      "product": "car_rental",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "supplier",
+      "phase": "2/product",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/supplier/fulfillment",
+      "dynamic": false,
+      "source": "app/supplier/fulfillment/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "supplier",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/supplier/guides/new",
+      "dynamic": false,
+      "source": "app/supplier/guides/new/page.tsx",
+      "product": "travel_guide",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "supplier",
+      "phase": "2/product",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/supplier/handicrafts/new",
+      "dynamic": false,
+      "source": "app/supplier/handicrafts/new/page.tsx",
+      "product": "handicraft",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "supplier",
+      "phase": "2/product",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/supplier/offers/new",
+      "dynamic": false,
+      "source": "app/supplier/offers/new/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "supplier",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/supplier",
+      "dynamic": false,
+      "source": "app/supplier/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "supplier",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/supplier/train/new",
+      "dynamic": false,
+      "source": "app/supplier/train/new/page.tsx",
+      "product": "train",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "supplier",
+      "phase": "2/product",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/supplier/transport/new",
+      "dynamic": false,
+      "source": "app/supplier/transport/new/page.tsx",
+      "product": "tourist_transport",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "supplier",
+      "phase": "2/product",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/support",
+      "dynamic": false,
+      "source": "app/support/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/terms",
+      "dynamic": false,
+      "source": "app/terms/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/tourist-transport",
+      "dynamic": false,
+      "source": "app/tourist-transport/page.tsx",
+      "product": "tourist_transport",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "2/product",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/tours/[id]",
+      "dynamic": true,
+      "source": "app/tours/[id]/page.tsx",
+      "product": "tour",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "2/product",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "owned valid",
+        "foreign owner/tenant denied",
+        "missing/invalid identifier",
+        "expired/cancelled where applicable",
+        "loading/error/retry"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/tours",
+      "dynamic": false,
+      "source": "app/tours/page.tsx",
+      "product": "tour",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "2/product",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/travel-guides",
+      "dynamic": false,
+      "source": "app/travel-guides/page.tsx",
+      "product": "travel_guide",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "2/product",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/trips/[id]",
+      "dynamic": true,
+      "source": "app/trips/[id]/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "customer",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "owned valid",
+        "foreign owner/tenant denied",
+        "missing/invalid identifier",
+        "expired/cancelled where applicable",
+        "loading/error/retry"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/trips",
+      "dynamic": false,
+      "source": "app/trips/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "customer",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/villas/[id]",
+      "dynamic": true,
+      "source": "app/villas/[id]/page.tsx",
+      "product": "accommodation",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "2/product",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "owned valid",
+        "foreign owner/tenant denied",
+        "missing/invalid identifier",
+        "expired/cancelled where applicable",
+        "loading/error/retry"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/villas",
+      "dynamic": false,
+      "source": "app/villas/page.tsx",
+      "product": "accommodation",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "2/product",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/visa/[id]",
+      "dynamic": true,
+      "source": "app/visa/[id]/page.tsx",
+      "product": "visa",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "2/product",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "owned valid",
+        "foreign owner/tenant denied",
+        "missing/invalid identifier",
+        "expired/cancelled where applicable",
+        "loading/error/retry"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/visa/applications/[id]",
+      "dynamic": true,
+      "source": "app/visa/applications/[id]/page.tsx",
+      "product": "visa",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "2/product",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "owned valid",
+        "foreign owner/tenant denied",
+        "missing/invalid identifier",
+        "expired/cancelled where applicable",
+        "loading/error/retry"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/visa",
+      "dynamic": false,
+      "source": "app/visa/page.tsx",
+      "product": "visa",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "2/product",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    },
+    {
+      "route": "/white-label",
+      "dynamic": false,
+      "source": "app/white-label/page.tsx",
+      "product": "shared",
+      "owner": "Frontend/Backend/QA",
+      "role_scope_to_verify": "public/authenticated according to action",
+      "phase": "1/shared",
+      "status": "NOT_TESTED",
+      "evidence": "Source route present; prior narrow evidence retained in MASTER_GAP_MATRIX.md; no whole-route PASS inferred",
+      "required_state_classes": [
+        "normal or real empty",
+        "loading/error/retry",
+        "role denial if private",
+        "keyboard/back/refresh"
+      ],
+      "viewports": [
+        "Chromium desktop 1440",
+        "Chromium mobile 390",
+        "WebKit if available"
+      ]
+    }
+  ]
+}

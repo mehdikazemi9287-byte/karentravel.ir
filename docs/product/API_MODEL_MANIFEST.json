@@ -1,0 +1,2370 @@
+{
+  "date": "2026-09-29",
+  "environment": "SOURCE",
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/enterprise/requests/{rid}/bookings",
+      "source": "backend/app/enterprise.py:136",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/enterprise/requests/{rid}/booking-candidates",
+      "source": "backend/app/enterprise.py:141",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/enterprise/requests/{rid}/bookings",
+      "source": "backend/app/enterprise.py:149",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/enterprise/context",
+      "source": "backend/app/enterprise.py:170",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/enterprise/organizations/{org}/members",
+      "source": "backend/app/enterprise.py:178",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "PUT",
+      "path": "/enterprise/organizations/{org}/grants",
+      "source": "backend/app/enterprise.py:185",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "PUT",
+      "path": "/enterprise/organizations/{org}/policy",
+      "source": "backend/app/enterprise.py:197",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/enterprise/organizations/{org}/requests",
+      "source": "backend/app/enterprise.py:212",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/enterprise/requests",
+      "source": "backend/app/enterprise.py:235",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/enterprise/requests/{rid}",
+      "source": "backend/app/enterprise.py:240",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/enterprise/requests/{rid}/decision",
+      "source": "backend/app/enterprise.py:247",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/enterprise/requests/{rid}/withdraw",
+      "source": "backend/app/enterprise.py:264",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/enterprise/requests/{rid}/invitations",
+      "source": "backend/app/enterprise.py:274",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/enterprise/supplier/rfqs",
+      "source": "backend/app/enterprise.py:286",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/enterprise/requests/{rid}/quotes",
+      "source": "backend/app/enterprise.py:294",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/enterprise/requests/{rid}/selection",
+      "source": "backend/app/enterprise.py:307",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/enterprise/organizations/{org}/campaigns",
+      "source": "backend/app/enterprise.py:327",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/enterprise/organizations/{org}/campaigns",
+      "source": "backend/app/enterprise.py:352",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "source": "backend/app/main.py:574",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/system/version",
+      "source": "backend/app/main.py:576",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/metrics",
+      "source": "backend/app/main.py:581",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/ready",
+      "source": "backend/app/main.py:583",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/dev-login",
+      "source": "backend/app/main.py:593",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/otp/request",
+      "source": "backend/app/main.py:612",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/register/request",
+      "source": "backend/app/main.py:679",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/otp/verify",
+      "source": "backend/app/main.py:743",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/refresh",
+      "source": "backend/app/main.py:780",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/logout",
+      "source": "backend/app/main.py:808",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/hotels",
+      "source": "backend/app/main.py:819",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/me/dashboard",
+      "source": "backend/app/main.py:824",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/bookings",
+      "source": "backend/app/main.py:828",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/bookings/{booking_id}/approval",
+      "source": "backend/app/main.py:863",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/integrations",
+      "source": "backend/app/main.py:871",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/me/reservations",
+      "source": "backend/app/main.py:876",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/me/trips",
+      "source": "backend/app/main.py:882",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/me/notifications",
+      "source": "backend/app/main.py:888",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/me/notifications/{notification_id}/read",
+      "source": "backend/app/main.py:894",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/me/notification-channels",
+      "source": "backend/app/main.py:903",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/me/notification-events",
+      "source": "backend/app/main.py:920",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/notification-templates",
+      "source": "backend/app/main.py:931",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin/notification-templates",
+      "source": "backend/app/main.py:944",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/me/profile",
+      "source": "backend/app/main.py:972",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "PUT",
+      "path": "/me/profile",
+      "source": "backend/app/main.py:978",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/me/travellers",
+      "source": "backend/app/main.py:990",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/me/travellers",
+      "source": "backend/app/main.py:996",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "PUT",
+      "path": "/me/travellers/{traveller_id}",
+      "source": "backend/app/main.py:1003",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/me/travellers/{traveller_id}/remove",
+      "source": "backend/app/main.py:1011",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/me/wallets",
+      "source": "backend/app/main.py:1020",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/me/wallets",
+      "source": "backend/app/main.py:1026",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/me/payments",
+      "source": "backend/app/main.py:1039",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/me/installment-plans",
+      "source": "backend/app/main.py:1045",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/me/approval-workflows",
+      "source": "backend/app/main.py:1054",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/me/organization-credit",
+      "source": "backend/app/main.py:1070",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/organizations/{organization_id}/credit-accounts",
+      "source": "backend/app/main.py:1081",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/organization-credit/{credit_account_id}/commands",
+      "source": "backend/app/main.py:1096",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/me/support/messages",
+      "source": "backend/app/main.py:1112",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/reservations/{reservation_id}",
+      "source": "backend/app/main.py:1120",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/reservations/{reservation_id}/price-breakdown",
+      "source": "backend/app/main.py:1127",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/reservations/{reservation_id}/voucher",
+      "source": "backend/app/main.py:1235",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/reservations/{reservation_id}/commands",
+      "source": "backend/app/main.py:1255",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/reservations/{reservation_id}/service-requests",
+      "source": "backend/app/main.py:1268",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/reservations/{reservation_id}/service-requests",
+      "source": "backend/app/main.py:1276",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/trips/{trip_id}/timeline",
+      "source": "backend/app/main.py:1313",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/trips/{trip_id}/events/{event_id}",
+      "source": "backend/app/main.py:1322",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/wallets/{wallet_id}",
+      "source": "backend/app/main.py:1331",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/wallets/{wallet_id}/commands",
+      "source": "backend/app/main.py:1338",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/approvals/{approval_id}/decision",
+      "source": "backend/app/main.py:1348",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/reservations/{reservation_id}/payment-intents",
+      "source": "backend/app/main.py:1402",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/payments/{payment_id}/initiate",
+      "source": "backend/app/main.py:1431",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/payments/zarinpal/callback",
+      "source": "backend/app/main.py:1516",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/payments/{payment_id}",
+      "source": "backend/app/main.py:1540",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/payments/{payment_id}/verify",
+      "source": "backend/app/main.py:1552",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/payments/callback/{provider_key}",
+      "source": "backend/app/main.py:1565",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/payments/{payment_id}/refunds",
+      "source": "backend/app/main.py:1619",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/supplier/vacation-properties",
+      "source": "backend/app/main.py:1646",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/supplier/vacation-properties/{property_id}/units",
+      "source": "backend/app/main.py:1654",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/vacation-rentals",
+      "source": "backend/app/main.py:1663",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/vacation-rentals/{property_id}",
+      "source": "backend/app/main.py:1675",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/public/vacation-rentals",
+      "source": "backend/app/main.py:1699",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/public/vacation-rentals/{property_id}",
+      "source": "backend/app/main.py:1705",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "PUT",
+      "path": "/supplier/vacation-units/{unit_id}/rates",
+      "source": "backend/app/main.py:1736",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/vacation-units/{unit_id}/calendar",
+      "source": "backend/app/main.py:1755",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/vacation-units/{unit_id}/quote",
+      "source": "backend/app/main.py:1775",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/vacation-units/{unit_id}/reservations",
+      "source": "backend/app/main.py:1781",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/supplier/vacation-properties",
+      "source": "backend/app/main.py:1811",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "PUT",
+      "path": "/supplier/vacation-properties/{property_id}/content",
+      "source": "backend/app/main.py:1817",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/supplier/vacation-units",
+      "source": "backend/app/main.py:1845",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/supplier/vacation-requests",
+      "source": "backend/app/main.py:1851",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/reservations/{reservation_id}/accommodation-decision",
+      "source": "backend/app/main.py:1863",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/supplier/tours",
+      "source": "backend/app/main.py:1893",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/supplier/tours/{tour_id}/departures",
+      "source": "backend/app/main.py:1901",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/tour-products",
+      "source": "backend/app/main.py:1909",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/tour-products/{tour_id}",
+      "source": "backend/app/main.py:1925",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/public/tour-products",
+      "source": "backend/app/main.py:1949",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/public/tour-products/{tour_id}",
+      "source": "backend/app/main.py:1955",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/tour-departures/{departure_id}/quote",
+      "source": "backend/app/main.py:1974",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/tour-departures/{departure_id}/reservations",
+      "source": "backend/app/main.py:1984",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/cruises",
+      "source": "backend/app/main.py:2005",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/cruises/{sailing_id}/book",
+      "source": "backend/app/main.py:2011",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/backoffice/visa-products",
+      "source": "backend/app/main.py:2018",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/visa-products",
+      "source": "backend/app/main.py:2023",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/visa-products/{product_id}/applications",
+      "source": "backend/app/main.py:2030",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/visa-applications/{application_id}/applicants",
+      "source": "backend/app/main.py:2046",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/visa-applications/{application_id}/documents",
+      "source": "backend/app/main.py:2053",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "PUT",
+      "path": "/backoffice/visa-documents/{document_id}",
+      "source": "backend/app/main.py:2062",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/visa-applications/{application_id}",
+      "source": "backend/app/main.py:2069",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/supplier/offers",
+      "source": "backend/app/main.py:2126",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/supplier/onboarding",
+      "source": "backend/app/main.py:2156",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/search/autocomplete",
+      "source": "backend/app/main.py:2214",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/search/autocomplete/v3/public",
+      "source": "backend/app/main.py:2242",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/search/autocomplete/public",
+      "source": "backend/app/main.py:2272",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/search/offers",
+      "source": "backend/app/main.py:2388",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/internal/search/offer-pool",
+      "source": "backend/app/main.py:2460",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/search/v3/public",
+      "source": "backend/app/main.py:2534",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/search/v3",
+      "source": "backend/app/main.py:2540",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/assistant/message",
+      "source": "backend/app/main.py:2555",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/search/recent",
+      "source": "backend/app/main.py:2616",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/search/voice/transcribe",
+      "source": "backend/app/main.py:2638",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/search/v2",
+      "source": "backend/app/main.py:2665",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/search/v2/public",
+      "source": "backend/app/main.py:2720",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/search/saved",
+      "source": "backend/app/main.py:2735",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/search/saved",
+      "source": "backend/app/main.py:2747",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "DELETE",
+      "path": "/search/saved/{saved_search_id}",
+      "source": "backend/app/main.py:2753",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/search/budget-trips",
+      "source": "backend/app/main.py:2760",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/offers/{offer_id}",
+      "source": "backend/app/main.py:2768",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/offers/{offer_id}/price-check",
+      "source": "backend/app/main.py:2778",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/orchestration/bookings",
+      "source": "backend/app/main.py:2818",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/reservations/{reservation_id}/fulfill",
+      "source": "backend/app/main.py:2899",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/supplier/places",
+      "source": "backend/app/main.py:3013",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/places/{place_id}",
+      "source": "backend/app/main.py:3023",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/supplier/places/{place_id}/experience-products",
+      "source": "backend/app/main.py:3030",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/supplier/experience-products/{product_id}/ticket-types",
+      "source": "backend/app/main.py:3040",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/supplier/experience-products/{product_id}/sessions",
+      "source": "backend/app/main.py:3055",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/experience-products/{product_id}",
+      "source": "backend/app/main.py:3075",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/leisure-sessions/{session_id}/price-check",
+      "source": "backend/app/main.py:3112",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/reservations/{reservation_id}/admission-tickets",
+      "source": "backend/app/main.py:3178",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/reservations/{reservation_id}/admission-tickets/{ticket_id}/qr",
+      "source": "backend/app/main.py:3191",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/admission-tickets/validate",
+      "source": "backend/app/main.py:3199",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/admission-tickets/validate",
+      "source": "backend/app/main.py:3211",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/admission-tickets/redeem",
+      "source": "backend/app/main.py:3217",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/reservations/{reservation_id}/history",
+      "source": "backend/app/main.py:3244",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/reservations/{reservation_id}/cancellation-quote",
+      "source": "backend/app/main.py:3252",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/reservations/{reservation_id}/voucher/reissue",
+      "source": "backend/app/main.py:3261",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/organizations/{organization_id}/departments",
+      "source": "backend/app/main.py:3276",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/organizations/{organization_id}/cost-centers",
+      "source": "backend/app/main.py:3289",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/organizations/{organization_id}/approval-templates",
+      "source": "backend/app/main.py:3302",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/organization/overview",
+      "source": "backend/app/main.py:3314",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/reservations/{reservation_id}/approval-workflows",
+      "source": "backend/app/main.py:3329",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/approvals/{approval_id}/escalate",
+      "source": "backend/app/main.py:3351",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "PUT",
+      "path": "/tenant/white-label",
+      "source": "backend/app/main.py:3362",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/tenant/white-label",
+      "source": "backend/app/main.py:3384",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/compare/offers",
+      "source": "backend/app/main.py:3391",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/ai/grounded-context",
+      "source": "backend/app/main.py:3418",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "PUT",
+      "path": "/me/notification-preferences",
+      "source": "backend/app/main.py:3437",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/me/notification-preferences",
+      "source": "backend/app/main.py:3446",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/notification-receipts/{channel}",
+      "source": "backend/app/main.py:3452",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/agency/sub-agencies",
+      "source": "backend/app/main.py:3472",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/supplier/dashboard",
+      "source": "backend/app/main.py:3492",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "PUT",
+      "path": "/supplier/offers/{offer_id}",
+      "source": "backend/app/main.py:3501",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/agency/dashboard",
+      "source": "backend/app/main.py:3515",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "PUT",
+      "path": "/agency/agencies/{agency_id}",
+      "source": "backend/app/main.py:3521",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/backoffice/booking-requests",
+      "source": "backend/app/main.py:3533",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/backoffice/booking-requests/{request_id}/review",
+      "source": "backend/app/main.py:3539",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/backoffice/overview",
+      "source": "backend/app/main.py:3558",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "PUT",
+      "path": "/backoffice/suppliers/{supplier_id}/status",
+      "source": "backend/app/main.py:3572",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "PUT",
+      "path": "/backoffice/suppliers/{supplier_id}/lifecycle-status",
+      "source": "backend/app/main.py:3581",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/finance/reconciliation/match",
+      "source": "backend/app/main.py:3611",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/finance/reconciliation/{reconciliation_id}/resolve",
+      "source": "backend/app/main.py:3632",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/finance/reconciliation",
+      "source": "backend/app/main.py:3642",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/me/invoices",
+      "source": "backend/app/main.py:3688",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/reservations/{reservation_id}/invoice",
+      "source": "backend/app/main.py:3733",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/support/cases",
+      "source": "backend/app/main.py:3754",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/support/cases",
+      "source": "backend/app/main.py:3764",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/support/cases/{case_id}",
+      "source": "backend/app/main.py:3783",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/support/cases/{case_id}/customer-replies",
+      "source": "backend/app/main.py:3793",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/support/cases/{case_id}/human-replies",
+      "source": "backend/app/main.py:3818",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "PUT",
+      "path": "/support/cases/{case_id}/assignment",
+      "source": "backend/app/main.py:3843",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/support/cases/{case_id}/resolve",
+      "source": "backend/app/main.py:3853",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/me/installments",
+      "source": "backend/app/main.py:3870",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/reservations/{reservation_id}/installments",
+      "source": "backend/app/main.py:3875",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "PUT",
+      "path": "/finance/installments/{agreement_id}/decision",
+      "source": "backend/app/main.py:3893",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/finance/reservations/{reservation_id}/settlements",
+      "source": "backend/app/main.py:3902",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/admin/users",
+      "source": "backend/app/main.py:3921",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin/users/{target_user_id}/role",
+      "source": "backend/app/main.py:3926",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/saved-trips",
+      "source": "backend/app/main.py:3941",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/me/saved-trips",
+      "source": "backend/app/main.py:3951",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/saved-trips/{trip_id}/items",
+      "source": "backend/app/main.py:3956",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "PUT",
+      "path": "/saved-trips/{trip_id}/items/{item_id}",
+      "source": "backend/app/main.py:4007",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "DELETE",
+      "path": "/saved-trips/{trip_id}/items/{item_id}",
+      "source": "backend/app/main.py:4011",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/reviews",
+      "source": "backend/app/main.py:4019",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "PUT",
+      "path": "/reviews/{review_id}/moderation",
+      "source": "backend/app/main.py:4034",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/reviews/{review_id}/supplier-response",
+      "source": "backend/app/main.py:4041",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/destinations",
+      "source": "backend/app/main.py:4054",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/destinations",
+      "source": "backend/app/main.py:4069",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/destinations/{slug}",
+      "source": "backend/app/main.py:4074",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/public/tenants/{tenant_slug}/destinations",
+      "source": "backend/app/main.py:4087",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/public/tenants/{tenant_slug}/destinations/{slug}",
+      "source": "backend/app/main.py:4092",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/itineraries",
+      "source": "backend/app/main.py:4103",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/me/itineraries",
+      "source": "backend/app/main.py:4113",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/itineraries/{itinerary_id}/items",
+      "source": "backend/app/main.py:4118",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/itineraries/{itinerary_id}/recheck",
+      "source": "backend/app/main.py:4136",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "PUT",
+      "path": "/itineraries/{itinerary_id}/items/{item_id}",
+      "source": "backend/app/main.py:4171",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "PUT",
+      "path": "/itineraries/{itinerary_id}",
+      "source": "backend/app/main.py:4186",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "DELETE",
+      "path": "/itineraries/{itinerary_id}/items/{item_id}",
+      "source": "backend/app/main.py:4198",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/itineraries/{itinerary_id}/duplicate",
+      "source": "backend/app/main.py:4207",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/me/reviews",
+      "source": "backend/app/main.py:4219",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/reviews",
+      "source": "backend/app/main.py:4227",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/reviews/{review_id}/reports",
+      "source": "backend/app/main.py:4236",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/reservations/{reservation_id}/checkout-sessions",
+      "source": "backend/app/main.py:4255",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/checkout-sessions/{checkout_id}",
+      "source": "backend/app/main.py:4278",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "PUT",
+      "path": "/checkout-sessions/{checkout_id}/steps/{step}",
+      "source": "backend/app/main.py:4285",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/supplier/{supplier_id}/assets",
+      "source": "backend/app/main.py:4441",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/supplier/{supplier_id}/assets",
+      "source": "backend/app/main.py:4489",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/supplier/assets/{asset_id}/content",
+      "source": "backend/app/main.py:4507",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "PUT",
+      "path": "/supplier/assets/{asset_id}/content",
+      "source": "backend/app/main.py:4521",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "DELETE",
+      "path": "/supplier/assets/{asset_id}",
+      "source": "backend/app/main.py:4558",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/media/public/{asset_id}",
+      "source": "backend/app/main.py:4577",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/combined/flight-hotel/quote",
+      "source": "backend/app/main.py:4673",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/combined/flight-hotel/{quote_id}",
+      "source": "backend/app/main.py:4720",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/me/combined-quotes",
+      "source": "backend/app/main.py:4731",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/combined/flight-hotel/{quote_id}/release",
+      "source": "backend/app/main.py:4740",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/combined/flight-hotel/{quote_id}/book",
+      "source": "backend/app/main.py:4756",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/bus/provider-status",
+      "source": "backend/app/main.py:4882",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/bus/search",
+      "source": "backend/app/main.py:4897",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/backoffice/trips",
+      "source": "backend/app/main.py:4938",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/backoffice/trips/{trip_id}/changes",
+      "source": "backend/app/main.py:4944",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "POST",
+      "path": "/backoffice/trips/{trip_id}/changes",
+      "source": "backend/app/main.py:4952",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/backoffice/records/{section}",
+      "source": "backend/app/main.py:4970",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    },
+    {
+      "method": "GET",
+      "path": "/supplier/reservations/ready",
+      "source": "backend/app/main.py:5002",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; runtime and permission verification required"
+    }
+  ],
+  "models": [
+    {
+      "table": "enterprise_grants",
+      "model": "EnterpriseGrant",
+      "source": "backend/app/enterprise_models.py"
+    },
+    {
+      "table": "enterprise_policies",
+      "model": "EnterprisePolicy",
+      "source": "backend/app/enterprise_models.py"
+    },
+    {
+      "table": "enterprise_requests",
+      "model": "EnterpriseRequest",
+      "source": "backend/app/enterprise_models.py"
+    },
+    {
+      "table": "enterprise_request_events",
+      "model": "EnterpriseRequestEvent",
+      "source": "backend/app/enterprise_models.py"
+    },
+    {
+      "table": "enterprise_invitations",
+      "model": "EnterpriseInvitation",
+      "source": "backend/app/enterprise_models.py"
+    },
+    {
+      "table": "enterprise_quotes",
+      "model": "EnterpriseQuote",
+      "source": "backend/app/enterprise_models.py"
+    },
+    {
+      "table": "benefit_campaigns",
+      "model": "BenefitCampaign",
+      "source": "backend/app/enterprise_models.py"
+    },
+    {
+      "table": "enterprise_booking_links",
+      "model": "EnterpriseBookingLink",
+      "source": "backend/app/enterprise_models.py"
+    },
+    {
+      "table": "tenants",
+      "model": "Tenant",
+      "source": "backend/app/main.py"
+    },
+    {
+      "table": "users",
+      "model": "User",
+      "source": "backend/app/main.py"
+    },
+    {
+      "table": "hotels",
+      "model": "Hotel",
+      "source": "backend/app/main.py"
+    },
+    {
+      "table": "bookings",
+      "model": "Booking",
+      "source": "backend/app/main.py"
+    },
+    {
+      "table": "ledger_entries",
+      "model": "LedgerEntry",
+      "source": "backend/app/main.py"
+    },
+    {
+      "table": "audit_events",
+      "model": "AuditEvent",
+      "source": "backend/app/main.py"
+    },
+    {
+      "table": "licensed_entities",
+      "model": "LicensedEntity",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "sales_channels",
+      "model": "SalesChannel",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "organizations",
+      "model": "Organization",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "departments",
+      "model": "Department",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "cost_centers",
+      "model": "CostCenter",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "employee_assignments",
+      "model": "EmployeeAssignment",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "user_profiles",
+      "model": "UserProfile",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "role_permissions",
+      "model": "RolePermission",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "refresh_token_sessions",
+      "model": "RefreshTokenSession",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "otp_challenges",
+      "model": "OTPChallenge",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "authentication_states",
+      "model": "AuthenticationState",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "authentication_audits",
+      "model": "AuthenticationAudit",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "memberships",
+      "model": "Membership",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "suppliers",
+      "model": "Supplier",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "supplier_memberships",
+      "model": "SupplierMembership",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "supplier_assets",
+      "model": "SupplierAsset",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "agencies",
+      "model": "Agency",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "white_label_configurations",
+      "model": "WhiteLabelConfiguration",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "provider_contracts",
+      "model": "ProviderContract",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "travel_products",
+      "model": "TravelProduct",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "offers",
+      "model": "Offer",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "price_checks",
+      "model": "PriceCheck",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "price_breakdowns",
+      "model": "PriceBreakdown",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "search_requests",
+      "model": "SearchRequest",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "search_entities",
+      "model": "SearchEntity",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "saved_searches",
+      "model": "SavedSearch",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "saved_trips",
+      "model": "SavedTrip",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "saved_trip_items",
+      "model": "SavedTripItem",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "reviews",
+      "model": "Review",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "review_supplier_responses",
+      "model": "ReviewSupplierResponse",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "review_reports",
+      "model": "ReviewReport",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "destinations",
+      "model": "Destination",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "editable_itineraries",
+      "model": "EditableItinerary",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "editable_itinerary_items",
+      "model": "EditableItineraryItem",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "vacation_properties",
+      "model": "VacationProperty",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "vacation_units",
+      "model": "VacationUnit",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "vacation_reservations",
+      "model": "VacationReservation",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "tour_products",
+      "model": "TourProduct",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "tour_departures",
+      "model": "TourDeparture",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "tour_reservations",
+      "model": "TourReservation",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "cruise_sailings",
+      "model": "CruiseSailing",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "visa_products",
+      "model": "VisaProduct",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "visa_applications",
+      "model": "VisaApplication",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "visa_applicants",
+      "model": "VisaApplicant",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "visa_documents",
+      "model": "VisaDocument",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "visa_timeline_events",
+      "model": "VisaTimelineEvent",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "reservations",
+      "model": "Reservation",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "checkout_sessions",
+      "model": "CheckoutSession",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "booking_status_history",
+      "model": "BookingStatusHistory",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "booking_items",
+      "model": "BookingItem",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "travellers",
+      "model": "Traveller",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "reservation_travellers",
+      "model": "ReservationTraveller",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "tickets",
+      "model": "Ticket",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "vouchers",
+      "model": "Voucher",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "booking_service_requests",
+      "model": "BookingServiceRequest",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "wallets",
+      "model": "Wallet",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "credit_accounts",
+      "model": "CreditAccount",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "installment_plans",
+      "model": "InstallmentPlan",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "installment_agreements",
+      "model": "InstallmentAgreement",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "pricing_rules",
+      "model": "PricingRule",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "settlement_records",
+      "model": "SettlementRecord",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "reconciliation_records",
+      "model": "ReconciliationRecord",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "financial_ledger_entries",
+      "model": "FinancialLedgerEntry",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "payment_intents",
+      "model": "PaymentIntent",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "payment_events",
+      "model": "PaymentEvent",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "refund_records",
+      "model": "RefundRecord",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "invoices",
+      "model": "Invoice",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "approval_workflows",
+      "model": "ApprovalWorkflow",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "approval_templates",
+      "model": "ApprovalTemplate",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "approval_template_steps",
+      "model": "ApprovalTemplateStep",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "approval_instance_steps",
+      "model": "ApprovalInstanceStep",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "trips",
+      "model": "Trip",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "trip_events",
+      "model": "TripEventRecord",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "notifications",
+      "model": "NotificationRecord",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "notification_delivery_attempts",
+      "model": "NotificationDeliveryAttempt",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "notification_preferences",
+      "model": "NotificationPreference",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "support_messages",
+      "model": "SupportMessage",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "support_cases",
+      "model": "SupportCase",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "support_thread_messages",
+      "model": "SupportThreadMessage",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "ai_conversation_references",
+      "model": "AIConversationReference",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "idempotency_keys",
+      "model": "IdempotencyKey",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "outbox_events",
+      "model": "OutboxEvent",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "provider_location_mappings",
+      "model": "ProviderLocationMapping",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "provider_webhook_events",
+      "model": "ProviderWebhookEvent",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "provider_reconciliation_cases",
+      "model": "ProviderReconciliationCase",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "places",
+      "model": "Place",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "experience_products",
+      "model": "ExperienceProduct",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "leisure_sessions",
+      "model": "LeisureSession",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "leisure_ticket_types",
+      "model": "LeisureTicketType",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "notification_templates",
+      "model": "NotificationTemplate",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "notification_events",
+      "model": "NotificationEvent",
+      "source": "backend/app/operations.py"
+    },
+    {
+      "table": "combined_quotes",
+      "model": "CombinedQuote",
+      "source": "backend/app/operations.py"
+    }
+  ]
+}
