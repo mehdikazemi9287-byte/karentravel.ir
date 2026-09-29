@@ -1,0 +1,23 @@
+{
+  "pass": true,
+  "checks": [
+    {
+      "width": 1440,
+      "publicNewOpsRoute": true,
+      "publicFlightEmpty": true,
+      "publicFrontendQaTracking": true,
+      "refundNotExecuted": true,
+      "publicMutation": false,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "publicNewOpsRoute": true,
+      "publicFlightEmpty": true,
+      "publicFrontendQaTracking": true,
+      "refundNotExecuted": true,
+      "publicMutation": false,
+      "overflow": false
+    }
+  ]
+}

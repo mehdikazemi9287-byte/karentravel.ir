@@ -1,0 +1,49 @@
+{
+  "pass": true,
+  "checks": [
+    {
+      "width": 1440,
+      "search": true,
+      "filters": true,
+      "savedCriteria": true,
+      "detailRulesBaggage": true,
+      "twoSeatQuote": true,
+      "bookingReplay": true,
+      "twoTravellers": true,
+      "isolatedPayment": true,
+      "isolatedSupplierVoucher": true,
+      "myTrips": true,
+      "afterSalesRequest": "cancel",
+      "requestReplay": true,
+      "opsReview": true,
+      "timelineReviewEvent": true,
+      "timeline": true,
+      "reservation": "35e4fc39-2d24-4aa7-8b63-1293defe0dd7",
+      "paymentPath": "/payments/6efa321d-0611-4d75-9e57-558555ad6c16",
+      "realPayment": false,
+      "realSMS": false
+    },
+    {
+      "width": 390,
+      "search": true,
+      "filters": true,
+      "savedCriteria": true,
+      "detailRulesBaggage": true,
+      "twoSeatQuote": true,
+      "bookingReplay": true,
+      "twoTravellers": true,
+      "isolatedPayment": true,
+      "isolatedSupplierVoucher": true,
+      "myTrips": true,
+      "afterSalesRequest": "refund",
+      "requestReplay": true,
+      "opsReview": true,
+      "timelineReviewEvent": true,
+      "timeline": true,
+      "reservation": "12b440be-0c90-4a3b-b73f-5a108e21ec43",
+      "paymentPath": "/payments/0810f4c3-ecf2-4878-bcd6-9c0880bdc503",
+      "realPayment": false,
+      "realSMS": false
+    }
+  ]
+}

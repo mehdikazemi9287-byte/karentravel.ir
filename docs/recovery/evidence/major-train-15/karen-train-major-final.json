@@ -1,0 +1,47 @@
+{
+  "pass": true,
+  "checks": [
+    {
+      "width": 1440,
+      "search": true,
+      "railRules": true,
+      "seatAllocationHonest": true,
+      "twoSeatQuote": true,
+      "bookingReplay": true,
+      "twoTravellers": true,
+      "isolatedPayment": true,
+      "isolatedSupplierVoucher": true,
+      "myTrips": true,
+      "afterSalesRequest": "cancel",
+      "requestReplay": true,
+      "opsReview": true,
+      "timelineReviewEvent": true,
+      "timeline": true,
+      "reservation": "f4604d46-7bc3-4f62-b58a-ebdb35374e3e",
+      "paymentPath": "/payments/e707fcec-1260-4115-a3d8-fa015f9616e8",
+      "realPayment": false,
+      "realSMS": false
+    },
+    {
+      "width": 390,
+      "search": true,
+      "railRules": true,
+      "seatAllocationHonest": true,
+      "twoSeatQuote": true,
+      "bookingReplay": true,
+      "twoTravellers": true,
+      "isolatedPayment": true,
+      "isolatedSupplierVoucher": true,
+      "myTrips": true,
+      "afterSalesRequest": "refund",
+      "requestReplay": true,
+      "opsReview": true,
+      "timelineReviewEvent": true,
+      "timeline": true,
+      "reservation": "0ce26d72-e743-4953-b901-c4761051261a",
+      "paymentPath": "/payments/2b79193a-1e12-4a70-ad12-906cf750bc15",
+      "realPayment": false,
+      "realSMS": false
+    }
+  ]
+}

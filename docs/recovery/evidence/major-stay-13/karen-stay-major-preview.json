@@ -1,0 +1,39 @@
+{
+  "pass": true,
+  "checks": [
+    {
+      "width": 1440,
+      "discovery": true,
+      "suppliedGalleryHost": true,
+      "datesGuests": true,
+      "quote": true,
+      "bookingReplay": true,
+      "hostAcceptance": true,
+      "paymentBlockedBeforeHost": true,
+      "isolatedPayment": true,
+      "voucher": true,
+      "myTrips": true,
+      "reservation": "2c173d03-58e0-4da3-9c01-afbc697cbafb",
+      "paymentPath": "/payments/ba53bbd6-74be-46d4-b5c5-d45f9bdc891b",
+      "realPayment": false,
+      "realSMS": false
+    },
+    {
+      "width": 390,
+      "discovery": true,
+      "suppliedGalleryHost": true,
+      "datesGuests": true,
+      "quote": true,
+      "bookingReplay": true,
+      "hostAcceptance": true,
+      "paymentBlockedBeforeHost": true,
+      "isolatedPayment": true,
+      "voucher": true,
+      "myTrips": true,
+      "reservation": "6fc6b7bf-de04-4db3-a5bd-8c2cd5425890",
+      "paymentPath": "/payments/b05d2c6a-c335-41a9-a508-2f5e34d79bb5",
+      "realPayment": false,
+      "realSMS": false
+    }
+  ]
+}

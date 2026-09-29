@@ -1,0 +1,23 @@
+{
+  "pass": true,
+  "checks": [
+    {
+      "width": 1440,
+      "unsupportedChildInfantReturnBlocked": true,
+      "sort": true,
+      "priceChangePartyTotal": true,
+      "inlineTwoSeats": true,
+      "oldQuoteInvalidated": true,
+      "productionMutations": false
+    },
+    {
+      "width": 390,
+      "unsupportedChildInfantReturnBlocked": true,
+      "sort": true,
+      "priceChangePartyTotal": true,
+      "inlineTwoSeats": true,
+      "oldQuoteInvalidated": true,
+      "productionMutations": false
+    }
+  ]
+}

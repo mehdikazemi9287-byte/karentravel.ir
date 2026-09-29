@@ -1,0 +1,47 @@
+{
+  "pass": true,
+  "checks": [
+    {
+      "width": 1440,
+      "discovery": true,
+      "program": true,
+      "configuredRoomPrice": true,
+      "twoTravellerQuote": true,
+      "bookingReplay": true,
+      "twoTravellers": true,
+      "isolatedPayment": true,
+      "isolatedSupplierVoucher": true,
+      "myTrips": true,
+      "afterSalesRequest": "cancel",
+      "requestReplay": true,
+      "opsReview": true,
+      "timelineReviewEvent": true,
+      "timeline": true,
+      "reservation": "be908479-d59e-4570-a1ca-e1785ae8e465",
+      "paymentPath": "/payments/15b07f96-bb84-435a-a8f9-5126ebdc58e9",
+      "realPayment": false,
+      "realSMS": false
+    },
+    {
+      "width": 390,
+      "discovery": true,
+      "program": true,
+      "configuredRoomPrice": true,
+      "twoTravellerQuote": true,
+      "bookingReplay": true,
+      "twoTravellers": true,
+      "isolatedPayment": true,
+      "isolatedSupplierVoucher": true,
+      "myTrips": true,
+      "afterSalesRequest": "refund",
+      "requestReplay": true,
+      "opsReview": true,
+      "timelineReviewEvent": true,
+      "timeline": true,
+      "reservation": "8d51b78f-5e01-4157-b182-3bc6ef60035e",
+      "paymentPath": "/payments/56ac7cf4-f590-4083-bbfb-85625b9883d2",
+      "realPayment": false,
+      "realSMS": false
+    }
+  ]
+}

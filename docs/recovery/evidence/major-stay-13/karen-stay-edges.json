@@ -1,0 +1,23 @@
+{
+  "pass": true,
+  "checks": [
+    {
+      "width": 1440,
+      "anonymousCatalogDetail": true,
+      "privateStayHidden": true,
+      "loginCriteria": true,
+      "expiredQuoteBlocked": true,
+      "storageFailureNoRequest": true,
+      "changedPriceRequiresFreshQuote": true
+    },
+    {
+      "width": 390,
+      "anonymousCatalogDetail": true,
+      "privateStayHidden": true,
+      "loginCriteria": true,
+      "expiredQuoteBlocked": true,
+      "storageFailureNoRequest": true,
+      "changedPriceRequiresFreshQuote": true
+    }
+  ]
+}

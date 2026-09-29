@@ -1,0 +1,23 @@
+{
+  "pass": true,
+  "checks": [
+    {
+      "width": 1440,
+      "publicAnonymousDiscovery": true,
+      "noForcedLogin": true,
+      "publicRecovery": true,
+      "publicFrontendQaDetail": true,
+      "ownedTimelineIssued": true,
+      "productionMutations": false
+    },
+    {
+      "width": 390,
+      "publicAnonymousDiscovery": true,
+      "noForcedLogin": true,
+      "publicRecovery": true,
+      "publicFrontendQaDetail": true,
+      "ownedTimelineIssued": true,
+      "productionMutations": false
+    }
+  ]
+}
