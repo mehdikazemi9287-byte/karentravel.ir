@@ -27,8 +27,21 @@ def test_mixed_restaurant_checkout_qr_ownership_and_single_use(client):
     assert client.get(qr,headers=xh).status_code==404
     assert client.get('/admission-tickets/validate',headers=xh,params={'qr_token':ticket['qr_token']}).status_code==403
     assert client.post('/admission-tickets/redeem',headers=xh,json={'qr_token':ticket['qr_token']}).status_code==403
-    assert client.post('/admission-tickets/redeem',headers=oh,json={'qr_token':ticket['qr_token']}).status_code==200
+    validated=client.post('/admission-tickets/validate',headers=oh,json={'qr_token':ticket['qr_token']})
+    assert validated.status_code==200 and validated.headers['cache-control']=='no-store'
+    context=validated.json()['context'];assert context['scope']=='whole_reservation' and context['product_title']=='Mock QA dining'
+    assert context['place']['name']==place['name'] and sum(i['quantity'] for i in context['items'])==2
+    assert 'qr_token' not in validated.text and 'price' not in str(context)
+    assert client.post('/admission-tickets/validate',headers=xh,json={'qr_token':ticket['qr_token']}).status_code==403
+    assert client.post('/admission-tickets/validate',headers=ch,json={'qr_token':ticket['qr_token']}).status_code==403
+    mismatch=client.post('/admission-tickets/redeem',headers=oh,json={'qr_token':ticket['qr_token'],'expected_ticket_id':str(uuid.uuid4())})
+    assert mismatch.status_code==409 and mismatch.json()['detail']['code']=='TICKET_CHANGED'
+    assert client.post('/admission-tickets/validate',headers=oh,json={'qr_token':ticket['qr_token']}).json()['status']=='issued'
+    owned=client.get('/reservations/'+r['id']+'/admission-tickets',headers=ch).json()
+    assert owned['context']['items']==context['items']
+    assert client.post('/admission-tickets/redeem',headers=oh,json={'qr_token':ticket['qr_token'],'expected_ticket_id':ticket['id']}).status_code==200
     assert client.post('/admission-tickets/redeem',headers=oh,json={'qr_token':ticket['qr_token']}).status_code==409
     assert client.get(qr,headers=ch).status_code==404
     with SessionLocal() as db:
         event=db.scalar(select(m.OutboxEvent).where(m.OutboxEvent.event_type=='admission_ticket.redeemed',m.OutboxEvent.aggregate_id==ticket['id']));assert event and json.loads(event.payload_json)['actor_id']
+        assert len(db.scalars(select(m.OutboxEvent).where(m.OutboxEvent.event_type=='admission_ticket.redeemed',m.OutboxEvent.aggregate_id==ticket['id'])).all())==1

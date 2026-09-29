@@ -241,6 +241,7 @@ class LeisureSessionPriceCheckIn(BaseModel):
     command_id: str = Field(min_length=8, max_length=120)
     organization_id: Optional[str] = Field(default=None, min_length=36, max_length=36)
 class AdmissionTicketRedeemIn(BaseModel):
+    expected_ticket_id: Optional[str] = Field(default=None, min_length=36, max_length=36)
     qr_token: str = Field(min_length=16, max_length=64)
 class SavedSearchIn(BaseModel):
     title: str = Field(min_length=2, max_length=160)
@@ -3086,12 +3087,28 @@ def leisure_session_price_check(session_id: str, data: LeisureSessionPriceCheckI
     return {"id": row.id, "offer_id": row.offer_id, "amount": row.amount, "currency": row.currency, "expires_at": _aware(row.expires_at).isoformat(), "ticket_breakdown": breakdown, "applied_pricing_rule": applied_rule}
 
 
+def _admission_context(db: Session, ticket, reservation) -> dict:
+    session = db.scalar(select(operational_models.LeisureSession).where(operational_models.LeisureSession.id == ticket.leisure_session_id, operational_models.LeisureSession.tenant_id == ticket.tenant_id)) if ticket.leisure_session_id else None
+    product = db.scalar(select(operational_models.ExperienceProduct).where(operational_models.ExperienceProduct.id == session.experience_product_id, operational_models.ExperienceProduct.tenant_id == ticket.tenant_id)) if session else None
+    place = db.scalar(select(operational_models.Place).where(operational_models.Place.id == product.place_id, operational_models.Place.tenant_id == ticket.tenant_id)) if product else None
+    snapshot = {}
+    if reservation:
+        booked_items = db.scalars(select(operational_models.BookingItem).where(operational_models.BookingItem.reservation_id == reservation.id, operational_models.BookingItem.tenant_id == ticket.tenant_id)).all()
+        for booked in booked_items:
+            attributes = json.loads(booked.snapshot_json).get("attributes") or {}
+            if attributes.get("leisure_session_id") == ticket.leisure_session_id:
+                snapshot = attributes
+                break
+    items = [{"label": item.get("label") if isinstance(item.get("label"), str) else None, "quantity": item["quantity"]} for item in snapshot.get("ticket_breakdown", []) if isinstance(item, dict) and isinstance(item.get("quantity"), int) and not isinstance(item["quantity"], bool) and item["quantity"] > 0]
+    return {"scope": "whole_reservation", "booking_reference": reservation.booking_reference if reservation else None, "product_title": product.title if product else None, "place": {"name": place.name, "city": place.city, "address": place.address} if place else None, "session": {"starts_at": _aware(session.starts_at).isoformat(), "ends_at": _aware(session.ends_at).isoformat()} if session else None, "items": items}
+
+
 @app.get("/reservations/{reservation_id}/admission-tickets")
 def list_admission_tickets(reservation_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
     reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == reservation_id, operational_models.Reservation.tenant_id == user.tenant_id, operational_models.Reservation.user_id == user.id))
     if reservation is None: raise HTTPException(404, "رزرو در این حساب وجود ندارد")
     rows = db.scalars(select(operational_models.Ticket).where(operational_models.Ticket.tenant_id == user.tenant_id, operational_models.Ticket.reservation_id == reservation.id, operational_models.Ticket.qr_token.isnot(None))).all()
-    return {"items": [{"id": r.id, "status": r.status, "qr_token": r.qr_token, "redeemed_at": r.redeemed_at.isoformat() if r.redeemed_at else None} for r in rows]}
+    return {"context": _admission_context(db, rows[0], reservation) if rows else None, "items": [{"id": r.id, "status": r.status, "qr_token": r.qr_token, "redeemed_at": r.redeemed_at.isoformat() if r.redeemed_at else None} for r in rows]}
 
 
 def _admission_supplier_guard(db,user,ticket):
@@ -3116,7 +3133,13 @@ def validate_admission_ticket(qr_token: str = Query(min_length=16, max_length=64
     session = db.scalar(select(operational_models.LeisureSession).where(operational_models.LeisureSession.id == ticket.leisure_session_id, operational_models.LeisureSession.tenant_id == user.tenant_id)) if ticket.leisure_session_id else None
     now = datetime.now(timezone.utc)
     expired = session is not None and _aware(session.ends_at) <= now
-    return {"id": ticket.id, "status": ticket.status, "reservation_status": reservation.status if reservation else None, "session": _leisure_session_output(session) if session else None, "redeemable": ticket.status == "issued" and reservation is not None and reservation.status == "issued" and not expired, "redeemed_at": ticket.redeemed_at.isoformat() if ticket.redeemed_at else None}
+    return {"context": _admission_context(db, ticket, reservation), "id": ticket.id, "status": ticket.status, "reservation_status": reservation.status if reservation else None, "session": _leisure_session_output(session) if session else None, "redeemable": ticket.status == "issued" and reservation is not None and reservation.status == "issued" and not expired, "redeemed_at": ticket.redeemed_at.isoformat() if ticket.redeemed_at else None}
+
+
+@app.post("/admission-tickets/validate")
+def validate_admission_ticket_body(data: AdmissionTicketRedeemIn, user: User = Depends(require_permission("reservation:fulfill")), db: Session = Depends(get_db)) -> Response:
+    result = validate_admission_ticket(data.qr_token, user, db)
+    return Response(json.dumps(result, ensure_ascii=False), media_type="application/json", headers={"Cache-Control": "no-store"})
 
 
 @app.post("/admission-tickets/redeem")
@@ -3124,6 +3147,8 @@ def redeem_admission_ticket(data: AdmissionTicketRedeemIn, user: User = Depends(
     ticket = db.scalar(select(operational_models.Ticket).where(operational_models.Ticket.tenant_id == user.tenant_id, operational_models.Ticket.qr_token == data.qr_token).with_for_update())
     if ticket is None: raise HTTPException(404, "بلیت معتبر نیست")
     _admission_supplier_guard(db,user,ticket)
+    if data.expected_ticket_id is not None and ticket.id != data.expected_ticket_id:
+        raise HTTPException(409, detail={"code": "TICKET_CHANGED", "message": "کد بلیت با نتیجهٔ بررسی‌شده یکسان نیست؛ دوباره بررسی کنید"})
     if ticket.status == "used":
         raise HTTPException(409, detail={"code": "ALREADY_REDEEMED", "redeemed_at": ticket.redeemed_at.isoformat() if ticket.redeemed_at else None, "redeemed_by": ticket.redeemed_by})
     if ticket.status in ("cancelled", "expired"):
