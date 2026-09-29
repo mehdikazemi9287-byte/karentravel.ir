@@ -87,10 +87,21 @@ def process_batch(limit: int = 50, *, adapter=None) -> int:
     return processed
 
 
+def reservation_reaper_enabled() -> bool:
+    # The notification worker role deliberately cannot read booking/finance tables.
+    # Running the reaper requires a separately authorized DB execution context.
+    return os.getenv("RESERVATION_REAPER_ENABLED", "0") == "1"
+
+
+def worker_health() -> dict:
+    return {"status": "ok", "service": "karenseir-outbox-worker",
+            "reservation_reaper": "enabled" if reservation_reaper_enabled() else "disabled"}
+
+
 class WorkerStatusHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/health":
-            body = b'{"status":"ok","service":"karenseir-outbox-worker"}\n'; content_type = "application/json"
+            body = (json.dumps(worker_health()) + "\n").encode(); content_type = "application/json"
         elif self.path == "/metrics":
             body = prometheus_metrics().encode("utf-8"); content_type = "text/plain; version=0.0.4"
         else:
@@ -108,6 +119,8 @@ def start_status_server() -> ThreadingHTTPServer:
 
 
 def sweep_reservations_once() -> int:
+    if not reservation_reaper_enabled():
+        return 0
     with SessionLocal() as db:
         cutoff = os.getenv("RESERVATION_REAPER_NOT_BEFORE", "").strip()
         not_before = datetime.fromisoformat(cutoff) if cutoff else None
@@ -129,7 +142,7 @@ def run() -> None:
         # backlog) is plenty for a 30-minute hold window and avoids an
         # extra full table scan on every 5s loop.
         tick += 1
-        if tick % 12 == 0:
+        if tick % 12 == 0 and reservation_reaper_enabled():
             sweep_reservations_once()
         time.sleep(5 if count else 15)
 
