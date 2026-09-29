@@ -251,6 +251,11 @@
       "status": "PARTIAL",
       "reason": "One-way adult manual-supplier internal journey verified through isolated payment/voucher/trips and durable customer after-sales request to Ops review. Public release frontend3eb83aa/API674ebaa verified. Live supplier, actual payment/refund and unsupported fare contracts remain blocked; broader product scope not complete.",
       "evidence": "docs/recovery/2026-09-28-visible-marketplace.md"
+    },
+    "tour_customer_journey": {
+      "status": "PARTIAL",
+      "reason": "Slice14 3874c60: public catalog-only program, explicit room pricing, durable owned booking, two travellers and isolated payment/voucher/trips/after-sales Ops timeline PASS1440/390. Actual public empty recovery verified. Real provider/financial operations and public-catalog selling entitlement not established.",
+      "evidence": "docs/recovery/2026-09-28-visible-marketplace.md"
     }
   }
 }
