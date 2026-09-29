@@ -1,0 +1,17 @@
+{
+  "pass": true,
+  "checks": [
+    {
+      "width": 1440,
+      "storageFailClosed": true,
+      "conflictPreservesDraft": true,
+      "refreshReloadsLatest": true
+    },
+    {
+      "width": 390,
+      "storageFailClosed": true,
+      "conflictPreservesDraft": true,
+      "refreshReloadsLatest": true
+    }
+  ]
+}

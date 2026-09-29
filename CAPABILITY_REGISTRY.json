@@ -214,9 +214,9 @@
     },
     "accommodation_marketplace": {
       "status": "PARTIAL",
-      "reason": "Implemented tenant-scoped category/guest discovery, per-night capacity/calendar, validated fee/rate pricing, request-to-book host approval/rejection/withdrawal, audited supplier rates and shared checkout/issuance/trip. Isolated browser acceptance only, not live sales. Slice13 a9bb68e adds isolated public-catalog read discovery/detail, supplied host/gallery and durable stay request recovery; host→checkout→isolated payment→voucher/trips QA1440/390 PASS. Public empty catalog verified. Host content editing and cross-tenant public selling entitlement remain open.",
+      "reason": "Implemented tenant-scoped category/guest discovery, per-night capacity/calendar, validated fee/rate pricing, request-to-book host approval/rejection/withdrawal, audited supplier rates and shared checkout/issuance/trip. Isolated browser acceptance only, not live sales. Slice13 a9bb68e adds isolated public-catalog read discovery/detail, supplied host/gallery and durable stay request recovery; host→checkout→isolated payment→voucher/trips QA1440/390 PASS. Public empty catalog verified. Slice17 d8d0311 closes assigned-host content editing through customer booking/voucher journey in isolated QA1440/390; conflict and replay verified. New-host onboarding, moderation and cross-tenant public selling entitlement remain open.",
       "blocker": "Internal remaining: public catalog publication/moderation, property media/content completeness and remaining marketplace requirements. External live payment/OTP/DNS stay blocked separately.",
-      "last_verified_at": "2026-09-28",
+      "last_verified_at": "2026-09-29",
       "evidence": [
         "docs/adr/ADR-022-booking-marketplace-closure.md",
         "backend/tests/test_accommodation_marketplace.py",

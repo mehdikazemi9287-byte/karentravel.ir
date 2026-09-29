@@ -1,0 +1,21 @@
+{
+  "pass": true,
+  "checks": [
+    {
+      "width": 1440,
+      "publicAnonymousLogin": true,
+      "publicFrontendIsolatedHostEditor": true,
+      "customerFacts": true,
+      "publicMutation": false,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "publicAnonymousLogin": true,
+      "publicFrontendIsolatedHostEditor": true,
+      "customerFacts": true,
+      "publicMutation": false,
+      "overflow": false
+    }
+  ]
+}
