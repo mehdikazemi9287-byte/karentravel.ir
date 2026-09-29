@@ -312,7 +312,7 @@ class PriceCheckIn(BaseModel):
     units: int = Field(ge=1, le=20)
     command_id: str = Field(min_length=8, max_length=120)
     expected_final_price: Optional[int] = Field(default=None, gt=0)
-class OrchestrationBookingIn(BaseModel): price_check_id: str = Field(min_length=36, max_length=36); command_id: str = Field(min_length=8, max_length=120); licensed_entity_id: Optional[str] = None; sales_channel_id: Optional[str] = None
+class OrchestrationBookingIn(BaseModel): saved_item_id: Optional[str] = Field(default=None,min_length=36,max_length=36); price_check_id: str = Field(min_length=36, max_length=36); command_id: str = Field(min_length=8, max_length=120); licensed_entity_id: Optional[str] = None; sales_channel_id: Optional[str] = None
 class FulfillmentIn(BaseModel): command_id: str = Field(min_length=8, max_length=120); provider_reference: str = Field(min_length=3, max_length=160); document_reference: str = Field(min_length=3, max_length=240)
 class OrganizationDimensionIn(BaseModel): name: str = Field(min_length=2, max_length=160); code: str = Field(min_length=2, max_length=64); budget_amount: Optional[int] = Field(default=None, ge=0)
 class ApprovalTemplateStepIn(BaseModel): required_role: str = Field(pattern="^(backoffice_expert|manager|welfare_manager|finance_operator|organization_admin)$"); sla_minutes: int = Field(ge=5, le=43200)
@@ -364,7 +364,7 @@ class ReconciliationResolveIn(BaseModel): resolution_note: str = Field(min_lengt
 class InstallmentDecisionIn(BaseModel): decision: str = Field(pattern="^(activate|reject)$"); reason: Optional[str] = Field(default=None, max_length=500)
 class AdminRoleIn(BaseModel): role: str = Field(pattern="^(employee|customer|manager|welfare_manager|organization_admin|agency_partner|supplier|backoffice_expert|finance_operator|tenant_admin)$"); reason: str = Field(min_length=3, max_length=500)
 class SavedTripIn(BaseModel): title: str = Field(min_length=2, max_length=160); command_id: str = Field(min_length=8, max_length=120)
-class SavedItemIn(BaseModel): service_type: str = Field(pattern=ECOSYSTEM_SERVICE_PATTERN); source_reference: str = Field(min_length=2, max_length=200); offer_id: Optional[str] = Field(default=None, min_length=36, max_length=36); state: str = Field(default="wishlist", pattern="^(wishlist|basket)$"); command_id: str = Field(min_length=8, max_length=120)
+class SavedItemIn(BaseModel): selection: dict[str,str] = Field(default_factory=dict,max_length=30); service_type: str = Field(pattern=ECOSYSTEM_SERVICE_PATTERN); source_reference: str = Field(min_length=2, max_length=200); offer_id: Optional[str] = Field(default=None, min_length=36, max_length=36); state: str = Field(default="wishlist", pattern="^(wishlist|basket)$"); command_id: str = Field(min_length=8, max_length=120)
 class SavedItemMoveIn(BaseModel): state: str = Field(pattern="^(wishlist|basket)$"); command_id: str = Field(min_length=8, max_length=120)
 class CommandIn(BaseModel): command_id: str = Field(min_length=8, max_length=120)
 class ReviewIn(BaseModel):
@@ -2819,13 +2819,19 @@ def orchestrate_booking(data: OrchestrationBookingIn, user: User = Depends(curre
     prior = db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id == user.tenant_id, operational_models.IdempotencyKey.scope == "orchestration.booking", operational_models.IdempotencyKey.key == data.command_id))
     if prior and prior.response_json:
         stored = json.loads(prior.response_json)
-        if stored.get("price_check_id") != data.price_check_id:
+        if stored.get("price_check_id") != data.price_check_id or stored.get("saved_item_id") != data.saved_item_id:
             raise HTTPException(status_code=409, detail="کلید تکرار برای درخواست دیگری استفاده شده است")
         owner = db.scalar(select(operational_models.PriceCheck.user_id).where(operational_models.PriceCheck.id == data.price_check_id, operational_models.PriceCheck.tenant_id == user.tenant_id))
         if owner != user.id:
             raise HTTPException(status_code=404, detail="درخواست رزرو در دسترس نیست")
         return stored
+    saved_item=None
+    if data.saved_item_id:
+        saved_item=db.scalar(select(operational_models.SavedTripItem).where(operational_models.SavedTripItem.id==data.saved_item_id,operational_models.SavedTripItem.tenant_id==user.tenant_id,operational_models.SavedTripItem.user_id==user.id).with_for_update())
+        if saved_item is None:raise HTTPException(404,"انتخاب ذخیره‌شده در دسترس نیست")
+        if json.loads(saved_item.snapshot_json).get("reservation_id"):raise HTTPException(409,"برای این انتخاب قبلاً رزرو ثبت شده است؛ همان رزرو را پیگیری کنید")
     check = db.scalar(select(operational_models.PriceCheck).where(operational_models.PriceCheck.id == data.price_check_id, operational_models.PriceCheck.tenant_id == user.tenant_id, operational_models.PriceCheck.user_id == user.id).with_for_update())
+    if saved_item is not None and (check is None or saved_item.offer_id!=check.offer_id):raise HTTPException(409,"استعلام به انتخاب ذخیره‌شده مربوط نیست")
     now = datetime.now(timezone.utc)
     if check is None or check.consumed_at is not None or _aware(check.expires_at) <= now:
         raise HTTPException(status_code=409, detail="Price Check معتبر نیست")
@@ -2879,7 +2885,10 @@ def orchestrate_booking(data: OrchestrationBookingIn, user: User = Depends(curre
         leisure_session.capacity_available -= check.units
     trip = operational_models.ensure_trip_for_reservation(db, reservation, title=snapshot["title"], origin=attrs.get("origin") if snapshot["service_type"]=="tourist_transportation" else None, destination=attrs.get("city") or attrs.get("destination") or snapshot["title"],starts_at=datetime.fromisoformat(attrs.get("rental_start") or attrs["departure_time"]) if snapshot["service_type"] in {"car_rental","travel_guide","tourist_transportation"} else None,ends_at=datetime.fromisoformat(attrs.get("rental_end") or attrs["arrival_time"]) if snapshot["service_type"] in {"car_rental","travel_guide","tourist_transportation"} else None)
     operational_models.record_trip_event(db, tenant_id=user.tenant_id, trip_id=trip.id, reservation_id=reservation.id, event_key=f"booking-created:{data.command_id}", event_type="booking.created", source="system", title="رزرو ثبت شد", message=f"رزرو {reservation.booking_reference} برای {snapshot['title']} ثبت شد.", deep_link=f"/manage-booking/{reservation.id}")
-    response = {**_reservation_output(reservation), "price_check_id": check.id}
+    if saved_item is not None:
+        saved_item.snapshot_json=json.dumps({**json.loads(saved_item.snapshot_json),"reservation_id":reservation.id,"trip_id":trip.id},sort_keys=True)
+        db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id,aggregate_type="saved_trip",aggregate_id=saved_item.saved_trip_id,event_type="saved_trip.item.booked",payload_json=json.dumps({"item_id":saved_item.id,"reservation_id":reservation.id,"trip_id":trip.id}),correlation_id=str(uuid.uuid4()),idempotency_key="saved-booking:"+data.command_id))
+    response = {**_reservation_output(reservation), "price_check_id": check.id,"saved_item_id":data.saved_item_id}
     db.add(operational_models.IdempotencyKey(tenant_id=user.tenant_id, scope="orchestration.booking", key=data.command_id, request_hash=_secure_hash(data.price_check_id), response_json=json.dumps(response)))
     db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="reservation", aggregate_id=reservation.id, event_type="reservation.reserved", payload_json=json.dumps({"reservation_id": reservation.id, "offer_id": offer.id}), correlation_id=str(uuid.uuid4()), idempotency_key=data.command_id))
     db.commit(); record_business_event("booking", "reserved")
@@ -3947,9 +3956,16 @@ def my_saved_trips(user: User = Depends(current_user), db: Session = Depends(get
 def add_saved_trip_item(trip_id: str, data: SavedItemIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
     trip = db.scalar(select(operational_models.SavedTrip).where(operational_models.SavedTrip.id == trip_id, operational_models.SavedTrip.tenant_id == user.tenant_id, operational_models.SavedTrip.user_id == user.id).with_for_update())
     if trip is None: raise HTTPException(status_code=404, detail="سفر ذخیره‌شده وجود ندارد")
+    allowed={"vertical","origin","destination","depart","return","trip_type","adults","children","infants","rooms","cabin","sort","refundable","min_review","max_price","airline","max_stops","breakfast","instant"}
+    if any(k not in allowed or len(v)>250 for k,v in data.selection.items()):raise HTTPException(422,"معیار انتخاب معتبر نیست")
+    digest=hashlib.sha256((trip.id+data.model_dump_json(exclude={"command_id"})).encode()).hexdigest()
+    receipt=db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id==user.tenant_id,operational_models.IdempotencyKey.scope=="saved.item.add",operational_models.IdempotencyKey.key==data.command_id))
+    if receipt:
+        if receipt.request_hash!=digest:raise HTTPException(409,"شناسه ذخیره برای انتخاب دیگری استفاده شده است")
+        return _saved_trip_output(db,trip)
     prior = db.scalar(select(operational_models.SavedTripItem).where(operational_models.SavedTripItem.tenant_id == user.tenant_id, operational_models.SavedTripItem.command_id == data.command_id))
     if prior:
-        if prior.saved_trip_id != trip.id or prior.source_reference != data.source_reference or prior.state != data.state: raise HTTPException(status_code=409, detail="کلید تکرار برای آیتم دیگری استفاده شده است")
+        if prior.saved_trip_id != trip.id or prior.source_reference != data.source_reference or prior.state != data.state or prior.offer_id!=data.offer_id or json.loads(prior.snapshot_json).get("selection",{})!=data.selection: raise HTTPException(status_code=409, detail="کلید تکرار برای آیتم دیگری استفاده شده است")
         return _saved_trip_output(db, trip)
     offer = None
     if data.offer_id:
@@ -3958,6 +3974,14 @@ def add_saved_trip_item(trip_id: str, data: SavedItemIn, user: User = Depends(cu
     snapshot = {"authoritative": False, "needs_live_availability_check": True}
     if offer:
         now = datetime.now(timezone.utc); snapshot = {"authoritative": True, "offer_id": offer.id, "provider": offer.provider_key, "amount": offer.amount, "currency": offer.currency, "observed_at": _aware(offer.updated_at).isoformat(), "valid_until": _aware(offer.valid_until).isoformat(), "needs_live_availability_check": _aware(offer.valid_until) <= now}
+    snapshot["selection"]=data.selection
+    snapshot["authoritative"]=False
+    snapshot["needs_live_availability_check"]=True
+    if offer:
+        matches=db.scalars(select(operational_models.SavedTripItem).where(operational_models.SavedTripItem.saved_trip_id==trip.id,operational_models.SavedTripItem.tenant_id==user.tenant_id,operational_models.SavedTripItem.user_id==user.id,operational_models.SavedTripItem.offer_id==offer.id,operational_models.SavedTripItem.state==data.state)).all()
+        if any(json.loads(item.snapshot_json).get("selection",{})==data.selection for item in matches):
+            db.add(operational_models.IdempotencyKey(tenant_id=user.tenant_id,scope="saved.item.add",key=data.command_id,request_hash=digest,response_json="{}"));db.commit();return _saved_trip_output(db,trip)
+    db.add(operational_models.IdempotencyKey(tenant_id=user.tenant_id,scope="saved.item.add",key=data.command_id,request_hash=digest,response_json="{}"))
     position = db.scalar(select(func.coalesce(func.max(operational_models.SavedTripItem.position), 0)).where(operational_models.SavedTripItem.tenant_id == user.tenant_id, operational_models.SavedTripItem.saved_trip_id == trip.id, operational_models.SavedTripItem.state == data.state)) or 0
     item = operational_models.SavedTripItem(tenant_id=user.tenant_id, saved_trip_id=trip.id, user_id=user.id, offer_id=data.offer_id, service_type=data.service_type, source_reference=data.source_reference, state=data.state, position=int(position) + 1, snapshot_json=json.dumps(snapshot, sort_keys=True), command_id=data.command_id); db.add(item); db.flush(); db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="saved_trip", aggregate_id=trip.id, event_type=f"saved_trip.item.{data.state}.added", payload_json=json.dumps({"item_id": item.id, "service_type": item.service_type}), correlation_id=str(uuid.uuid4()), idempotency_key=data.command_id)); db.commit(); return _saved_trip_output(db, trip)
 
