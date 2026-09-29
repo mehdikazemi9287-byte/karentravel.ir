@@ -1658,6 +1658,34 @@ def vacation_rental_detail(property_id: str, user: User = Depends(current_user),
     return {"id": row.id, "title": row.title, "city": row.city, "property_type": row.property_type, "capacity": row.capacity, "bedrooms": row.bedrooms, "details": json.loads(row.details_json), "units": [{"id": u.id, "title": u.title, "capacity": u.capacity, "available_units": u.available_units, "nightly_price": u.nightly_price, "currency": u.currency, "pricing": json.loads(u.pricing_json)} for u in units]}
 
 
+
+def _public_stay_projection(row: dict) -> dict:
+    # Explicit presentation only; never disclose arbitrary supplier/private JSON.
+    details = row.get("details") or {}
+    safe = {key: details[key] for key in ("description", "house_rules", "check_in", "check_out", "booking_mode", "host_name", "location_description") if isinstance(details.get(key), str)}
+    safe["amenities"] = [v for v in details.get("amenities", []) if isinstance(v, str)] if isinstance(details.get("amenities"), list) else []
+    safe["photos"] = [v for v in details.get("photos", []) if isinstance(v, dict) and isinstance(v.get("url"), str) and v["url"].startswith("https://")] if isinstance(details.get("photos"), list) else []
+    safe["photos"] = [{"url": v["url"], "alt": v.get("alt", "") if isinstance(v.get("alt"), str) else ""} for v in safe["photos"]]
+    result = {key: row[key] for key in ("id", "title", "city", "property_type", "capacity", "bedrooms")}
+    result["details"] = safe
+    result["account_recheck_required"] = True
+    if "units" in row:
+        result["units"] = [{key: u[key] for key in ("id", "title", "capacity")} for u in row["units"]]
+    return result
+
+
+@app.get("/public/vacation-rentals")
+def public_vacation_rentals(city: Optional[str] = None, property_type: Optional[str] = None, guests: int = Query(default=1, ge=1, le=100), offset: int = Query(default=0, ge=0), limit: int = Query(default=20, ge=1, le=100), db: Session = Depends(get_db)) -> list[dict]:
+    identity = _public_search_identity(db)
+    return [_public_stay_projection(r) for r in list_vacation_rentals(city, property_type, guests, offset, limit, identity, db)]
+
+
+@app.get("/public/vacation-rentals/{property_id}")
+def public_vacation_rental_detail(property_id: str, db: Session = Depends(get_db)) -> dict:
+    identity = _public_search_identity(db)
+    return _public_stay_projection(vacation_rental_detail(property_id, identity, db))
+
+
 def _vacation_availability(db,user,unit_id,check_in,check_out,guests,exclude=None):
     check_in,check_out=_aware(check_in),_aware(check_out)
     if check_out<=check_in or check_in<datetime.now(timezone.utc) or (check_out.date()-check_in.date()).days>365:raise HTTPException(422,"بازه اقامت معتبر نیست؛ حداکثر یک سال قابل بررسی است")
