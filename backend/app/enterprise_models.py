@@ -75,3 +75,10 @@ class BenefitCampaign(OperationalMixin, Base):
     personalization_json: Mapped[str]=mapped_column(Text)
     valid_from: Mapped[datetime]=mapped_column(DateTime(timezone=True))
     valid_until: Mapped[datetime]=mapped_column(DateTime(timezone=True))
+
+class EnterpriseBookingLink(OperationalMixin, Base):
+    __tablename__='enterprise_booking_links'
+    request_id: Mapped[str]=mapped_column(ForeignKey('enterprise_requests.id'),index=True)
+    reservation_id: Mapped[str]=mapped_column(ForeignKey('reservations.id'),index=True)
+    linked_by: Mapped[int]=mapped_column(ForeignKey('users.id'))
+    __table_args__=(UniqueConstraint('tenant_id','reservation_id',name='uq_enterprise_link_reservation'),)

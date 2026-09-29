@@ -84,6 +84,10 @@ def evaluate(rules,requirements):
     return {'result':'OUT_OF_POLICY' if reasons else 'APPROVAL_REQUIRED' if rules.get('approval_required',True) else 'IN_POLICY','reasons':reasons}
 
 
+class BookingLinkIn(BaseModel):
+    reservation_id:str=Field(min_length=36,max_length=36)
+    command_id:str=Field(min_length=8,max_length=120)
+
 def router(current_user,get_db,User):
     api=APIRouter(prefix='/enterprise',tags=['enterprise'])
     def membership(db,user,org):
@@ -123,6 +127,44 @@ def router(current_user,get_db,User):
         return {'id':row.id,'organization_id':row.organization_id,'requester_id':row.requester_id,'title':row.title,'use_case':row.use_case,'status':row.status,'requirements':json.loads(row.requirements_json),'policy_result':row.policy_result,'policy_reasons':snapshot.get('reasons',[]),'policy_version':snapshot.get('version'),'current_step':row.current_step,'approver_ids':snapshot.get('approver_ids',[]),'selected_quote_id':row.selected_quote_id,'financial_methods_enabled':[],'booking_created':False}
     def supplier_scope(db,user):return set(db.scalars(select(m.SupplierMembership.supplier_id).where(m.SupplierMembership.tenant_id==user.tenant_id,m.SupplierMembership.user_id==user.id)).all())
     def quote_output(q):return {'id':q.id,'supplier_id':q.supplier_id,'revision':q.revision,'amount':q.amount,'currency':q.currency,'terms':q.terms,'valid_until':q.valid_until.isoformat()}
+
+    def booking_rows(db,user,row):
+        pairs=db.execute(select(e.EnterpriseBookingLink,m.Reservation).join(m.Reservation,m.Reservation.id==e.EnterpriseBookingLink.reservation_id).where(e.EnterpriseBookingLink.tenant_id==user.tenant_id,e.EnterpriseBookingLink.request_id==row.id,m.Reservation.tenant_id==user.tenant_id)).all()
+        return [{"id":link.id,"reservation_id":booking.id,"booking_reference":booking.booking_reference,"status":booking.status,"service_type":booking.service_type,"customer_can_open":booking.user_id==user.id,"financial_authorization":False} for link,booking in pairs]
+
+    @api.get('/requests/{rid}/bookings')
+    def request_bookings(rid:str,user=Depends(current_user),db:Session=Depends(get_db)):
+        row=get_request(db,user,rid)
+        return {"items":booking_rows(db,user,row),"can_link":row.requester_id==user.id and row.status=='approved',"requirements":json.loads(row.requirements_json)}
+
+    @api.get('/requests/{rid}/booking-candidates')
+    def booking_candidates(rid:str,user=Depends(current_user),db:Session=Depends(get_db)):
+        row=get_request(db,user,rid)
+        if row.requester_id!=user.id or row.status!='approved':raise HTTPException(403,'فقط درخواست‌کنندهٔ درخواست تأییدشده می‌تواند رزرو خود را انتخاب کند')
+        linked=select(e.EnterpriseBookingLink.reservation_id).where(e.EnterpriseBookingLink.tenant_id==user.tenant_id)
+        bookings=db.scalars(select(m.Reservation).where(m.Reservation.tenant_id==user.tenant_id,m.Reservation.user_id==user.id,m.Reservation.service_type.in_(json.loads(row.requirements_json)['services']),m.Reservation.status.in_(['reserved','pending','confirmed','issued']),m.Reservation.id.not_in(linked)).order_by(m.Reservation.created_at.desc()).limit(100)).all()
+        return [{"id":b.id,"booking_reference":b.booking_reference,"status":b.status,"service_type":b.service_type} for b in bookings]
+
+    @api.post('/requests/{rid}/bookings')
+    def link_booking(rid:str,data:BookingLinkIn,user=Depends(current_user),db:Session=Depends(get_db)):
+        row=get_request(db,user,rid)
+        if row.requester_id!=user.id or not membership(db,user,row.organization_id):raise HTTPException(403,'اتصال رزرو فقط توسط درخواست‌کنندهٔ عضو سازمان انجام می‌شود')
+        body={**data.model_dump(),'request_id':rid,'actor':user.id}
+        prior=replay(db,user,'enterprise.booking.link',body)
+        if prior:return prior
+        if row.status!='approved':raise HTTPException(409,'درخواست هنوز تأیید نشده است')
+        booking=db.scalar(select(m.Reservation).where(m.Reservation.tenant_id==user.tenant_id,m.Reservation.id==data.reservation_id,m.Reservation.user_id==user.id).with_for_update())
+        if booking is None:raise HTTPException(404,'رزرو متعلق به شما در دسترس نیست')
+        existing=db.scalar(select(e.EnterpriseBookingLink).where(e.EnterpriseBookingLink.tenant_id==user.tenant_id,e.EnterpriseBookingLink.reservation_id==booking.id))
+        if existing:
+            if existing.request_id!=rid:raise HTTPException(409,'این رزرو به درخواست دیگری متصل است')
+            result={"items":booking_rows(db,user,row),"financial_authorization":False}
+            db.add(m.IdempotencyKey(tenant_id=user.tenant_id,scope="enterprise.booking.link",key=body["command_id"],request_hash=digest(body),response_json=json.dumps(result)));db.commit();return result
+        if booking.status not in ['reserved','pending','confirmed','issued'] or booking.service_type not in json.loads(row.requirements_json)['services']:raise HTTPException(409,'وضعیت یا نوع خدمت رزرو با این درخواست سازگار نیست')
+        link=e.EnterpriseBookingLink(tenant_id=user.tenant_id,request_id=rid,reservation_id=booking.id,linked_by=user.id);db.add(link);db.flush()
+        trip=m.ensure_trip_for_reservation(db,booking,title=row.title,destination=json.loads(row.requirements_json).get('destination'))
+        m.record_trip_event(db,tenant_id=user.tenant_id,trip_id=trip.id,reservation_id=booking.id,event_key='enterprise-link:'+link.id,event_type='enterprise.request.linked',source='system',title='رزرو به درخواست سازمانی مرتبط شد',message='این ارتباط برای پیگیری است و به معنای تأیید پرداخت سازمان نیست.',deep_link='/organization/requests')
+        return finish(db,user,'enterprise.booking.link',body,{"items":booking_rows(db,user,row),"financial_authorization":False},row.organization_id,'booking.linked',rid,{"reservation_id":booking.id})
 
     @api.get('/context')
     def context(user=Depends(current_user),db:Session=Depends(get_db)):
