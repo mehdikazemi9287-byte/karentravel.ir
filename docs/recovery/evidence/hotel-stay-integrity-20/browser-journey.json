@@ -1,0 +1,35 @@
+{
+  "pass": true,
+  "checks": [
+    {
+      "width": 1440,
+      "searchToRooms": true,
+      "staySnapshot": true,
+      "fourTravellers": true,
+      "lostResponseReplay": true,
+      "testPayment": true,
+      "supplierVisibleStayAndIssuance": true,
+      "issuedVoucherStay": true,
+      "myTrips": true,
+      "backAndRefreshNoNewBooking": true,
+      "realPayment": false,
+      "realSMS": false,
+      "reservation": "11164a56-d70f-4825-96f2-c93d76acdb39"
+    },
+    {
+      "width": 390,
+      "searchToRooms": true,
+      "staySnapshot": true,
+      "fourTravellers": true,
+      "lostResponseReplay": true,
+      "testPayment": true,
+      "supplierVisibleStayAndIssuance": true,
+      "issuedVoucherStay": true,
+      "myTrips": true,
+      "backAndRefreshNoNewBooking": true,
+      "realPayment": false,
+      "realSMS": false,
+      "reservation": "a7ab3f9c-708a-4197-ab75-bb631db4684d"
+    }
+  ]
+}

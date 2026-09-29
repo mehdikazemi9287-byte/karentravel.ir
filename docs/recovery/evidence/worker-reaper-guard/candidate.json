@@ -1,0 +1,13 @@
+{
+  "commit": "4d9f0c394209668ab84a1b7f96d45e700f7c6318",
+  "base_commit": "d2ba674be607a5908bac15a46d385a0b63b26b10",
+  "image": "karenseir-current-api:worker-reaper-guard-4d9f0c3",
+  "image_id": "sha256:405be1f2db7fa6b17e4c8ed0bfa810ebf63044298e211a0fe63a6b585e3ff077",
+  "worker_sha256": "0eee1ae863fe80d21fb8a373c0668d36915a1144ef8413523be71184c30e3d55",
+  "expected_old_image": "sha256:73dc3430edb6514e48a4550956b76733f25dcfef7ee23642622606b49f0aab9a",
+  "target": "karenseir-worker-1",
+  "rollback": "karenseir-worker-1-pre-reaper-guard-4d9f0c3",
+  "migration": false,
+  "production_deployed": false,
+  "release_worktree": "/tmp/karen-worker-guard-release"
+}

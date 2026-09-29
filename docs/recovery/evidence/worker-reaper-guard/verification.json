@@ -1,0 +1,39 @@
+{
+  "production_observation": {
+    "image_commit": "d2ba674",
+    "role": "karenseir_worker",
+    "role_superuser": false,
+    "role_bypassrls": true,
+    "reservations_select": false,
+    "reservations_update": false,
+    "restart_count_observed": 150,
+    "exit_code": 1,
+    "error": "psycopg.errors.InsufficientPrivilege: permission denied for table reservations",
+    "cause": "unconditional sweep_reservations_once every12 ticks conflicts with explicit REVOKE in deploy/provision-worker-role.sql",
+    "sms_mode": "disabled",
+    "push_mode": "disabled"
+  },
+  "candidate_commit": "4d9f0c3",
+  "source_patch_commit": "7e17fe8",
+  "target": "worker only; based on actual live d2ba674, excludes enterprise35 and hotel candidate",
+  "tests": {
+    "worker_and_reaper": "11 PASS on live-base release worktree",
+    "built_image": "file SHA256 and build_info commit matched",
+    "actual_postgres_role": "13 accelerated real DB outbox ticks with reservations/financial privileges denied; reaper off; no external network",
+    "http_health": {
+      "status": "ok",
+      "service": "karenseir-outbox-worker",
+      "reservation_reaper": "disabled"
+    },
+    "promoter": "approval guard before Docker; injected post-promotion health failure restores prior worker; injected pre-rename failure restarts original; unrelated components unchanged (simulated, no production mutation)",
+    "live_read_only_preflight": "PASS: --check-only verifies actual current worker/API and candidate identity/settings; no staging or Production mutation"
+  },
+  "qa_environment_corrections": [
+    "Supplier browser locator adjusted to wrapped select label; no product workaround",
+    "Financial test adapter updated to current health contract",
+    "Built-image test script given PYTHONPATH=/app; no runtime change"
+  ],
+  "production_deployed": false,
+  "migration_or_privilege_change": false,
+  "automatic_hold_expiry": "NOT operationally enabled; requires separately authorized execution context"
+}

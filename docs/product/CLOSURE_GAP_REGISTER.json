@@ -5,12 +5,12 @@
     {
       "id": "HOTEL-CRITERIA",
       "severity": "P1",
-      "status": "OPEN",
+      "status": "SOURCE_VERIFIED_RELEASE_PENDING",
       "owner": "Backend/Frontend/QA",
       "effect": "Two-room/dated customer choice silently reduced in quote",
-      "evidence": "docs/recovery/evidence/hotel-phase0-20260929/browser-baseline.json",
+      "evidence": "docs/recovery/evidence/hotel-stay-integrity-20/verification.json",
       "acceptance": "Explicit stay/room allocation server validation and same snapshot in quote/booking/document",
-      "next": "Hotel scoped implementation; no production fake fixtures"
+      "next": "Preserve candidate71801f8; whole-product coverage remains open"
     },
     {
       "id": "HOTEL-PROVIDER",
@@ -144,6 +144,16 @@
       "area": "notifications",
       "evidence": "Prior narrow evidence retained; no current broken/fixed claim without relevant check",
       "next": "Run targeted regression when active product/shared change affects it"
+    },
+    {
+      "id": "WORKER-REAPER-PRIVILEGE",
+      "severity": "P1",
+      "status": "BLOCKED_APPROVAL",
+      "owner": "Supervisor/DevOps/Security/QA",
+      "effect": "Production outbox worker restarts when unprivileged reaper touches reservations; health between crashes is not operational proof",
+      "required_input": "Explicit worker-only promotion of4d9f0c3; no schema35/grants or real financial/SMS activation",
+      "work_done": "Live-base artifact built;11 tests and13 actual isolated PostgreSQL ticks; HTTPhealth and rollback failure simulations verified",
+      "evidence": "docs/recovery/2026-09-29-worker-reaper-guard-approval.md"
     }
   ]
 }

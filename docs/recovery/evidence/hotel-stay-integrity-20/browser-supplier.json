@@ -1,0 +1,27 @@
+{
+  "pass": true,
+  "checks": [
+    {
+      "width": 1440,
+      "supplierForm": true,
+      "invalidDatesRejected": true,
+      "declaredRatePersisted": true,
+      "detailCriteria": true,
+      "missingAgeBlocked": true,
+      "wrongAgeRejected": true,
+      "matchingChildQuote": true,
+      "bookingCreated": false
+    },
+    {
+      "width": 390,
+      "supplierForm": true,
+      "invalidDatesRejected": true,
+      "declaredRatePersisted": true,
+      "detailCriteria": true,
+      "missingAgeBlocked": true,
+      "wrongAgeRejected": true,
+      "matchingChildQuote": true,
+      "bookingCreated": false
+    }
+  ]
+}

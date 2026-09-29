@@ -1,0 +1,20 @@
+{
+  "source_commit": "71801f8",
+  "environment": "SOURCE/PREVIEW; isolated SQLite/PostgreSQL and intercepted gateway.invalid only",
+  "regressions": "68 passed; one PostgreSQL-only test skipped in SQLite and separately passed on PostgreSQL",
+  "additional_supplier_projection_test": "1 passed after final supplier read projection",
+  "postgres": "duplicate command returns same quote; two independent quotes compete for final two rooms: one201/one409; exactly one reservation and stock0",
+  "browser": "Chromium1440/390: search, rooms, quote, four travellers, lost-response replay, test payment, supplier UI issuance, voucher, My Trips, back/refresh; child-rate supplier form checks",
+  "visual_review": "Desktop detail and mobile before/after detail, issued record and supplier fulfillment inspected; no original Homepage/search redesign",
+  "limitations": [
+    "Whole hotel product remains IN_PROGRESS",
+    "No real supplier/OTP/payment/TLS sale proof",
+    "No room-to-named-traveller mapping proof",
+    "No WebKit/browser physical-device proof",
+    "Combined API contract regression passed; legacy CombinedFlightHotel component is not established as a routed live screen",
+    "No Production deployment or migration"
+  ],
+  "preview_image": "karenseir-current-web:visible-hotel-stay-integrity20-closure",
+  "production_changed": false,
+  "real_financial_or_sms_actions": false
+}

@@ -272,6 +272,16 @@
       "reason": "SOURCE/PREVIEW1e6ee5e request approval→owned existing booking link→customer voucher/organization status/Trip timeline PASS1440/390. SQLite/PG targeted and migration/RLS PASS. No financial authorization or delegated booking.",
       "blocker": "Explicit Production migration20260929_35 and release approval required; current public d2ba674/schema34 unchanged.",
       "evidence": "docs/recovery/2026-09-29-enterprise35-release-approval.md"
+    },
+    "hotel_stay_integrity": {
+      "status": "READY_BLOCKED_APPROVAL",
+      "reason": "Fixed manual stay/room/allocation contract verified SOURCE/PREVIEW; no whole-hotel completion claim. Commit71801f8.",
+      "evidence": "docs/recovery/evidence/hotel-stay-integrity-20/verification.json"
+    },
+    "worker_reaper_boundary": {
+      "status": "READY_BLOCKED_APPROVAL",
+      "reason": "Current d2ba674 worker crashes on explicitly denied reservation access. Live-base worker-only guard4d9f0c3 tested; not deployed. Reaper remains disabled, not declared operational.",
+      "evidence": "docs/recovery/2026-09-29-worker-reaper-guard-approval.md"
     }
   }
 }
