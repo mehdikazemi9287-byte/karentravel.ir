@@ -1,0 +1,32 @@
+{
+  "karenseir-frontend-1": {
+    "Id": "9d45e40841b6c17c9486a70d716e73bb2752f7e64855d426a0304748a8911cf0",
+    "Image": "sha256:d27e90f03dc9f3b9cec15277b76f1651a209d7d62852dc438a79435d99288528",
+    "Created": "2026-09-29T11:56:02.128830217Z",
+    "RestartCount": 0
+  },
+  "karenseir-api-1": {
+    "Id": "5ff41924e4edcc989a6112c4498cdaa1b6478d9fbfd1f67f2c63a4b6fc602884",
+    "Image": "sha256:73dc3430edb6514e48a4550956b76733f25dcfef7ee23642622606b49f0aab9a",
+    "Created": "2026-09-29T11:55:12.985749765Z",
+    "RestartCount": 0
+  },
+  "karenseir-worker-1": {
+    "Id": "d7663454833c4e9e2419ad8d6af5ad750267369981573ee8a101a82833e1c72f",
+    "Image": "sha256:405be1f2db7fa6b17e4c8ed0bfa810ebf63044298e211a0fe63a6b585e3ff077",
+    "Created": "2026-09-30T07:52:01.25851467Z",
+    "RestartCount": 0
+  },
+  "karenseir-db-1": {
+    "Id": "7259fe57afc07d62fbe332b52656416199a065db963b80daebca10c00258f052",
+    "Image": "sha256:44c4ee9810eff91f7eab4d822642e01115b1a9eccce4bcbdde7604752d68eac6",
+    "Created": "2026-08-15T14:00:47.925708292Z",
+    "RestartCount": 0
+  },
+  "next_build_id": "f2RCNeisrtn7IzoGKDsyg",
+  "worker_health": {
+    "status": "ok",
+    "service": "karenseir-outbox-worker",
+    "reservation_reaper": "disabled"
+  }
+}

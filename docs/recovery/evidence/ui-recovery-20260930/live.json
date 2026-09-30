@@ -1,0 +1,2018 @@
+[
+  {
+    "width": 1280,
+    "overflow": false,
+    "wrap": 1200,
+    "hero": 450,
+    "search": 276.6875,
+    "images": [
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "alt": "بادگیرها و معماری یزد؛ یکی از مقصدهای سفر در ایران",
+        "ok": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=3840&q=75",
+        "alt": "شیراز",
+        "ok": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=3840&q=75",
+        "alt": "قشم",
+        "ok": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "alt": "یزد",
+        "ok": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=3840&q=75",
+        "alt": "ماسوله",
+        "ok": true
+      }
+    ],
+    "links": [
+      {
+        "text": "ک\nکارن‌سیر\nسفر، اقامت و تجربه",
+        "href": "/"
+      },
+      {
+        "text": "خدمات سفر",
+        "href": "#marketplace-services"
+      },
+      {
+        "text": "کشف مقصد",
+        "href": "#discover"
+      },
+      {
+        "text": "دستیار هوشمند",
+        "href": "/assistant"
+      },
+      {
+        "text": "سفر سازمانی",
+        "href": "/organization"
+      },
+      {
+        "text": "سفرهای من",
+        "href": "/trips"
+      },
+      {
+        "text": "ورود / ثبت‌نام",
+        "href": "/login"
+      },
+      {
+        "text": "برای سفر بعدی ایده بگیر ←",
+        "href": "#discover"
+      },
+      {
+        "text": "راهنمایی از کارشناس انسانی ←",
+        "href": "/support"
+      },
+      {
+        "text": "همهٔ خدمات ←",
+        "href": "/services"
+      },
+      {
+        "text": "پرواز\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/?vertical=flight#search"
+      },
+      {
+        "text": "هتل\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/?vertical=hotel#search"
+      },
+      {
+        "text": "قطار\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/?vertical=train#search"
+      },
+      {
+        "text": "تور\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/?vertical=tour#search"
+      },
+      {
+        "text": "ویلا و اقامتگاه\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/villas"
+      },
+      {
+        "text": "اجاره خودرو\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/car-rental"
+      },
+      {
+        "text": "رستوران\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/restaurants"
+      },
+      {
+        "text": "تجربه و جاذبه\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/attractions"
+      },
+      {
+        "text": "استخر و ورزش\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/pools-sports"
+      },
+      {
+        "text": "رویداد\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/events-venues"
+      },
+      {
+        "text": "سالن مراسم\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/events-venues"
+      },
+      {
+        "text": "راهنمای سفر\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/travel-guides"
+      },
+      {
+        "text": "حمل‌ونقل گردشگری\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/tourist-transport"
+      },
+      {
+        "text": "صنایع‌دستی\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/handicrafts"
+      },
+      {
+        "text": "برنامه‌ریزی",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%D9%85%20%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87%E2%80%8C%D8%B1%DB%8C%D8%B2%DB%8C%20%DA%A9%D9%86%DB%8C%D9%85"
+      },
+      {
+        "text": "پیدا کردن",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D8%B1%D8%AF%D9%86%20%DA%AF%D8%B2%DB%8C%D9%86%D9%87%E2%80%8C%D9%87%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%85%DA%A9%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85"
+      },
+      {
+        "text": "مقایسه",
+        "href": "/compare"
+      },
+      {
+        "text": "ساخت برنامهٔ سفر",
+        "href": "/itineraries"
+      },
+      {
+        "text": "مدیریت سفر موجود",
+        "href": "/trips"
+      },
+      {
+        "text": "برای آخر هفته شمال کجا بریم؟\n↗",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%B4%D9%85%D8%A7%D9%84%20%DA%A9%D8%AC%D8%A7%20%D8%A8%D8%B1%DB%8C%D9%85%D8%9F"
+      },
+      {
+        "text": "برای ۴ نفر ویلا با استخر پیدا کن\n↗",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%DB%B4%20%D9%86%D9%81%D8%B1%20%D9%88%DB%8C%D9%84%D8%A7%20%D8%A8%D8%A7%20%D8%A7%D8%B3%D8%AA%D8%AE%D8%B1%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D9%86"
+      },
+      {
+        "text": "پرواز صبح تهران مشهد و هتل نزدیک حرم می‌خواهم\n↗",
+        "href": "/assistant?prompt=%D9%BE%D8%B1%D9%88%D8%A7%D8%B2%20%D8%B5%D8%A8%D8%AD%20%D8%AA%D9%87%D8%B1%D8%A7%D9%86%20%D9%85%D8%B4%D9%87%D8%AF%20%D9%88%20%D9%87%D8%AA%D9%84%20%D9%86%D8%B2%D8%AF%DB%8C%DA%A9%20%D8%AD%D8%B1%D9%85%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85"
+      },
+      {
+        "text": "راهنمای مقصدها ←",
+        "href": "/destinations"
+      },
+      {
+        "text": "شیراز\nباغ، شعر و معماری",
+        "href": "/destinations/shiraz"
+      },
+      {
+        "text": "قشم\nساحل و شگفتی‌های جزیره",
+        "href": "/destinations/qeshm"
+      },
+      {
+        "text": "یزد\nکوچه‌های خشتی و بادگیرها",
+        "href": "/destinations/yazd"
+      },
+      {
+        "text": "ماسوله\nخانه‌های پلکانی و طبیعت",
+        "href": "/destinations/masuleh"
+      },
+      {
+        "text": "کشف اقامتگاه‌ها ←",
+        "href": "/villas"
+      },
+      {
+        "text": "هتل",
+        "href": "/?vertical=hotel#search"
+      },
+      {
+        "text": "ویلا ←",
+        "href": "/villas?property_type=villa"
+      },
+      {
+        "text": "آپارتمان ←",
+        "href": "/villas?property_type=apartment"
+      },
+      {
+        "text": "سوئیت ←",
+        "href": "/villas?property_type=suite"
+      },
+      {
+        "text": "بوم‌گردی ←",
+        "href": "/villas?property_type=ecolodge"
+      },
+      {
+        "text": "کلبه ←",
+        "href": "/villas?property_type=cabin"
+      },
+      {
+        "text": "خانهٔ سنتی ←",
+        "href": "/villas?property_type=traditional_house"
+      },
+      {
+        "text": "اقامت استخردار ←",
+        "href": "/villas?property_type=pool_property"
+      },
+      {
+        "text": "کنار جنگل ←",
+        "href": "/villas?property_type=forest"
+      },
+      {
+        "text": "کنار ساحل ←",
+        "href": "/villas?property_type=coastal"
+      },
+      {
+        "text": "سفر کوتاه\nآخر هفته را جور دیگری بگذران\n\nزمان و شهر مبدأ را بگو تا دربارهٔ یک برنامهٔ کوتاه گفت‌وگو کنیم.\n\nشروع برنامه‌ریزی ←",
+        "href": "/assistant?prompt=%DB%8C%DA%A9%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%88%D8%AA%D8%A7%D9%87%20%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%85%D9%86%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87"
+      },
+      {
+        "text": "ایده‌های فصل\nهر فصل، یک حال‌وهوای تازه\n\nدربارهٔ زمان مناسب مقصد، سبک سفر و برنامه‌های فصلی گفت‌وگو کن.\n\nپیدا کردن ایدهٔ سفر ←",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A7%DB%8C%D9%86%20%D9%81%D8%B5%D9%84%20%D9%88%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%A2%D8%A8%E2%80%8C%D9%88%D9%87%D9%88%D8%A7%20%DB%8C%DA%A9%20%D8%A7%DB%8C%D8%AF%D9%87%D9%94%20%D8%B3%D9%81%D8%B1%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87%D8%9B%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%88%20%D8%AA%D8%A7%D8%B1%DB%8C%D8%AE%20%D8%B1%D8%A7%20%D8%A7%D8%B2%20%D9%85%D9%86%20%D8%A8%D9%BE%D8%B1%D8%B3"
+      },
+      {
+        "text": "همراه یک برنامهٔ سفر\nتور و گشت مقصد\n\nمسیر، تاریخ، خدمات و شرایط هر برنامه را پیش از انتخاب بررسی کن.\n\nکشف تورها ←",
+        "href": "/tours"
+      },
+      {
+        "text": "لحظه‌های به‌یادماندنی\nتجربه‌های محلی و تفریح\n\nاز غذا و فرهنگ تا جاذبه‌ها، ورزش و برنامه‌های مقصد.\n\nکشف تجربه‌ها ←",
+        "href": "/experiences"
+      },
+      {
+        "text": "راهکارهای سفر و رفاه سازمانی",
+        "href": "/organization"
+      },
+      {
+        "text": "درخواست سازمانی و استعلام\nورود به فضای درخواست و پیگیری",
+        "href": "/organization/requests"
+      },
+      {
+        "text": "اعتبار و مزایای سفر\nفقط با احراز شرایط و سیاست مصوب؛ اعتبار یا اقساط خودکار فعال نمی‌شود.",
+        "href": "/employee"
+      },
+      {
+        "text": "مرکز کنترل سفرهای من\nرزروها، مدارک، تغییرات و پشتیبانی سفر",
+        "href": "/trips"
+      },
+      {
+        "text": "۰۹۱۹۱۲۵۸۰۰۹",
+        "href": "tel:+989191258009"
+      },
+      {
+        "text": "پیگیری و راهنمایی سفر ←",
+        "href": "/support"
+      },
+      {
+        "text": "تماس با ما",
+        "href": "/contact"
+      },
+      {
+        "text": "پشتیبانی",
+        "href": "/support"
+      },
+      {
+        "text": "همکاری تأمین‌کنندگان",
+        "href": "/integrations"
+      },
+      {
+        "text": "قوانین",
+        "href": "/terms"
+      },
+      {
+        "text": "حریم خصوصی",
+        "href": "/privacy"
+      }
+    ]
+  },
+  {
+    "width": 1440,
+    "overflow": false,
+    "wrap": 1200,
+    "hero": 450,
+    "search": 276.6875,
+    "images": [
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "alt": "بادگیرها و معماری یزد؛ یکی از مقصدهای سفر در ایران",
+        "ok": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=3840&q=75",
+        "alt": "شیراز",
+        "ok": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=3840&q=75",
+        "alt": "قشم",
+        "ok": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "alt": "یزد",
+        "ok": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=3840&q=75",
+        "alt": "ماسوله",
+        "ok": true
+      }
+    ],
+    "links": [
+      {
+        "text": "ک\nکارن‌سیر\nسفر، اقامت و تجربه",
+        "href": "/"
+      },
+      {
+        "text": "خدمات سفر",
+        "href": "#marketplace-services"
+      },
+      {
+        "text": "کشف مقصد",
+        "href": "#discover"
+      },
+      {
+        "text": "دستیار هوشمند",
+        "href": "/assistant"
+      },
+      {
+        "text": "سفر سازمانی",
+        "href": "/organization"
+      },
+      {
+        "text": "سفرهای من",
+        "href": "/trips"
+      },
+      {
+        "text": "ورود / ثبت‌نام",
+        "href": "/login"
+      },
+      {
+        "text": "برای سفر بعدی ایده بگیر ←",
+        "href": "#discover"
+      },
+      {
+        "text": "راهنمایی از کارشناس انسانی ←",
+        "href": "/support"
+      },
+      {
+        "text": "همهٔ خدمات ←",
+        "href": "/services"
+      },
+      {
+        "text": "پرواز\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/?vertical=flight#search"
+      },
+      {
+        "text": "هتل\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/?vertical=hotel#search"
+      },
+      {
+        "text": "قطار\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/?vertical=train#search"
+      },
+      {
+        "text": "تور\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/?vertical=tour#search"
+      },
+      {
+        "text": "ویلا و اقامتگاه\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/villas"
+      },
+      {
+        "text": "اجاره خودرو\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/car-rental"
+      },
+      {
+        "text": "رستوران\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/restaurants"
+      },
+      {
+        "text": "تجربه و جاذبه\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/attractions"
+      },
+      {
+        "text": "استخر و ورزش\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/pools-sports"
+      },
+      {
+        "text": "رویداد\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/events-venues"
+      },
+      {
+        "text": "سالن مراسم\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/events-venues"
+      },
+      {
+        "text": "راهنمای سفر\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/travel-guides"
+      },
+      {
+        "text": "حمل‌ونقل گردشگری\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/tourist-transport"
+      },
+      {
+        "text": "صنایع‌دستی\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/handicrafts"
+      },
+      {
+        "text": "برنامه‌ریزی",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%D9%85%20%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87%E2%80%8C%D8%B1%DB%8C%D8%B2%DB%8C%20%DA%A9%D9%86%DB%8C%D9%85"
+      },
+      {
+        "text": "پیدا کردن",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D8%B1%D8%AF%D9%86%20%DA%AF%D8%B2%DB%8C%D9%86%D9%87%E2%80%8C%D9%87%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%85%DA%A9%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85"
+      },
+      {
+        "text": "مقایسه",
+        "href": "/compare"
+      },
+      {
+        "text": "ساخت برنامهٔ سفر",
+        "href": "/itineraries"
+      },
+      {
+        "text": "مدیریت سفر موجود",
+        "href": "/trips"
+      },
+      {
+        "text": "برای آخر هفته شمال کجا بریم؟\n↗",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%B4%D9%85%D8%A7%D9%84%20%DA%A9%D8%AC%D8%A7%20%D8%A8%D8%B1%DB%8C%D9%85%D8%9F"
+      },
+      {
+        "text": "برای ۴ نفر ویلا با استخر پیدا کن\n↗",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%DB%B4%20%D9%86%D9%81%D8%B1%20%D9%88%DB%8C%D9%84%D8%A7%20%D8%A8%D8%A7%20%D8%A7%D8%B3%D8%AA%D8%AE%D8%B1%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D9%86"
+      },
+      {
+        "text": "پرواز صبح تهران مشهد و هتل نزدیک حرم می‌خواهم\n↗",
+        "href": "/assistant?prompt=%D9%BE%D8%B1%D9%88%D8%A7%D8%B2%20%D8%B5%D8%A8%D8%AD%20%D8%AA%D9%87%D8%B1%D8%A7%D9%86%20%D9%85%D8%B4%D9%87%D8%AF%20%D9%88%20%D9%87%D8%AA%D9%84%20%D9%86%D8%B2%D8%AF%DB%8C%DA%A9%20%D8%AD%D8%B1%D9%85%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85"
+      },
+      {
+        "text": "راهنمای مقصدها ←",
+        "href": "/destinations"
+      },
+      {
+        "text": "شیراز\nباغ، شعر و معماری",
+        "href": "/destinations/shiraz"
+      },
+      {
+        "text": "قشم\nساحل و شگفتی‌های جزیره",
+        "href": "/destinations/qeshm"
+      },
+      {
+        "text": "یزد\nکوچه‌های خشتی و بادگیرها",
+        "href": "/destinations/yazd"
+      },
+      {
+        "text": "ماسوله\nخانه‌های پلکانی و طبیعت",
+        "href": "/destinations/masuleh"
+      },
+      {
+        "text": "کشف اقامتگاه‌ها ←",
+        "href": "/villas"
+      },
+      {
+        "text": "هتل",
+        "href": "/?vertical=hotel#search"
+      },
+      {
+        "text": "ویلا ←",
+        "href": "/villas?property_type=villa"
+      },
+      {
+        "text": "آپارتمان ←",
+        "href": "/villas?property_type=apartment"
+      },
+      {
+        "text": "سوئیت ←",
+        "href": "/villas?property_type=suite"
+      },
+      {
+        "text": "بوم‌گردی ←",
+        "href": "/villas?property_type=ecolodge"
+      },
+      {
+        "text": "کلبه ←",
+        "href": "/villas?property_type=cabin"
+      },
+      {
+        "text": "خانهٔ سنتی ←",
+        "href": "/villas?property_type=traditional_house"
+      },
+      {
+        "text": "اقامت استخردار ←",
+        "href": "/villas?property_type=pool_property"
+      },
+      {
+        "text": "کنار جنگل ←",
+        "href": "/villas?property_type=forest"
+      },
+      {
+        "text": "کنار ساحل ←",
+        "href": "/villas?property_type=coastal"
+      },
+      {
+        "text": "سفر کوتاه\nآخر هفته را جور دیگری بگذران\n\nزمان و شهر مبدأ را بگو تا دربارهٔ یک برنامهٔ کوتاه گفت‌وگو کنیم.\n\nشروع برنامه‌ریزی ←",
+        "href": "/assistant?prompt=%DB%8C%DA%A9%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%88%D8%AA%D8%A7%D9%87%20%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%85%D9%86%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87"
+      },
+      {
+        "text": "ایده‌های فصل\nهر فصل، یک حال‌وهوای تازه\n\nدربارهٔ زمان مناسب مقصد، سبک سفر و برنامه‌های فصلی گفت‌وگو کن.\n\nپیدا کردن ایدهٔ سفر ←",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A7%DB%8C%D9%86%20%D9%81%D8%B5%D9%84%20%D9%88%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%A2%D8%A8%E2%80%8C%D9%88%D9%87%D9%88%D8%A7%20%DB%8C%DA%A9%20%D8%A7%DB%8C%D8%AF%D9%87%D9%94%20%D8%B3%D9%81%D8%B1%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87%D8%9B%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%88%20%D8%AA%D8%A7%D8%B1%DB%8C%D8%AE%20%D8%B1%D8%A7%20%D8%A7%D8%B2%20%D9%85%D9%86%20%D8%A8%D9%BE%D8%B1%D8%B3"
+      },
+      {
+        "text": "همراه یک برنامهٔ سفر\nتور و گشت مقصد\n\nمسیر، تاریخ، خدمات و شرایط هر برنامه را پیش از انتخاب بررسی کن.\n\nکشف تورها ←",
+        "href": "/tours"
+      },
+      {
+        "text": "لحظه‌های به‌یادماندنی\nتجربه‌های محلی و تفریح\n\nاز غذا و فرهنگ تا جاذبه‌ها، ورزش و برنامه‌های مقصد.\n\nکشف تجربه‌ها ←",
+        "href": "/experiences"
+      },
+      {
+        "text": "راهکارهای سفر و رفاه سازمانی",
+        "href": "/organization"
+      },
+      {
+        "text": "درخواست سازمانی و استعلام\nورود به فضای درخواست و پیگیری",
+        "href": "/organization/requests"
+      },
+      {
+        "text": "اعتبار و مزایای سفر\nفقط با احراز شرایط و سیاست مصوب؛ اعتبار یا اقساط خودکار فعال نمی‌شود.",
+        "href": "/employee"
+      },
+      {
+        "text": "مرکز کنترل سفرهای من\nرزروها، مدارک، تغییرات و پشتیبانی سفر",
+        "href": "/trips"
+      },
+      {
+        "text": "۰۹۱۹۱۲۵۸۰۰۹",
+        "href": "tel:+989191258009"
+      },
+      {
+        "text": "پیگیری و راهنمایی سفر ←",
+        "href": "/support"
+      },
+      {
+        "text": "تماس با ما",
+        "href": "/contact"
+      },
+      {
+        "text": "پشتیبانی",
+        "href": "/support"
+      },
+      {
+        "text": "همکاری تأمین‌کنندگان",
+        "href": "/integrations"
+      },
+      {
+        "text": "قوانین",
+        "href": "/terms"
+      },
+      {
+        "text": "حریم خصوصی",
+        "href": "/privacy"
+      }
+    ]
+  },
+  {
+    "width": 1600,
+    "overflow": false,
+    "wrap": 1200,
+    "hero": 450,
+    "search": 276.6875,
+    "images": [
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "alt": "بادگیرها و معماری یزد؛ یکی از مقصدهای سفر در ایران",
+        "ok": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=3840&q=75",
+        "alt": "شیراز",
+        "ok": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=3840&q=75",
+        "alt": "قشم",
+        "ok": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "alt": "یزد",
+        "ok": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=3840&q=75",
+        "alt": "ماسوله",
+        "ok": true
+      }
+    ],
+    "links": [
+      {
+        "text": "ک\nکارن‌سیر\nسفر، اقامت و تجربه",
+        "href": "/"
+      },
+      {
+        "text": "خدمات سفر",
+        "href": "#marketplace-services"
+      },
+      {
+        "text": "کشف مقصد",
+        "href": "#discover"
+      },
+      {
+        "text": "دستیار هوشمند",
+        "href": "/assistant"
+      },
+      {
+        "text": "سفر سازمانی",
+        "href": "/organization"
+      },
+      {
+        "text": "سفرهای من",
+        "href": "/trips"
+      },
+      {
+        "text": "ورود / ثبت‌نام",
+        "href": "/login"
+      },
+      {
+        "text": "برای سفر بعدی ایده بگیر ←",
+        "href": "#discover"
+      },
+      {
+        "text": "راهنمایی از کارشناس انسانی ←",
+        "href": "/support"
+      },
+      {
+        "text": "همهٔ خدمات ←",
+        "href": "/services"
+      },
+      {
+        "text": "پرواز\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/?vertical=flight#search"
+      },
+      {
+        "text": "هتل\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/?vertical=hotel#search"
+      },
+      {
+        "text": "قطار\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/?vertical=train#search"
+      },
+      {
+        "text": "تور\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/?vertical=tour#search"
+      },
+      {
+        "text": "ویلا و اقامتگاه\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/villas"
+      },
+      {
+        "text": "اجاره خودرو\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/car-rental"
+      },
+      {
+        "text": "رستوران\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/restaurants"
+      },
+      {
+        "text": "تجربه و جاذبه\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/attractions"
+      },
+      {
+        "text": "استخر و ورزش\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/pools-sports"
+      },
+      {
+        "text": "رویداد\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/events-venues"
+      },
+      {
+        "text": "سالن مراسم\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/events-venues"
+      },
+      {
+        "text": "راهنمای سفر\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/travel-guides"
+      },
+      {
+        "text": "حمل‌ونقل گردشگری\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/tourist-transport"
+      },
+      {
+        "text": "صنایع‌دستی\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/handicrafts"
+      },
+      {
+        "text": "برنامه‌ریزی",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%D9%85%20%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87%E2%80%8C%D8%B1%DB%8C%D8%B2%DB%8C%20%DA%A9%D9%86%DB%8C%D9%85"
+      },
+      {
+        "text": "پیدا کردن",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D8%B1%D8%AF%D9%86%20%DA%AF%D8%B2%DB%8C%D9%86%D9%87%E2%80%8C%D9%87%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%85%DA%A9%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85"
+      },
+      {
+        "text": "مقایسه",
+        "href": "/compare"
+      },
+      {
+        "text": "ساخت برنامهٔ سفر",
+        "href": "/itineraries"
+      },
+      {
+        "text": "مدیریت سفر موجود",
+        "href": "/trips"
+      },
+      {
+        "text": "برای آخر هفته شمال کجا بریم؟\n↗",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%B4%D9%85%D8%A7%D9%84%20%DA%A9%D8%AC%D8%A7%20%D8%A8%D8%B1%DB%8C%D9%85%D8%9F"
+      },
+      {
+        "text": "برای ۴ نفر ویلا با استخر پیدا کن\n↗",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%DB%B4%20%D9%86%D9%81%D8%B1%20%D9%88%DB%8C%D9%84%D8%A7%20%D8%A8%D8%A7%20%D8%A7%D8%B3%D8%AA%D8%AE%D8%B1%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D9%86"
+      },
+      {
+        "text": "پرواز صبح تهران مشهد و هتل نزدیک حرم می‌خواهم\n↗",
+        "href": "/assistant?prompt=%D9%BE%D8%B1%D9%88%D8%A7%D8%B2%20%D8%B5%D8%A8%D8%AD%20%D8%AA%D9%87%D8%B1%D8%A7%D9%86%20%D9%85%D8%B4%D9%87%D8%AF%20%D9%88%20%D9%87%D8%AA%D9%84%20%D9%86%D8%B2%D8%AF%DB%8C%DA%A9%20%D8%AD%D8%B1%D9%85%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85"
+      },
+      {
+        "text": "راهنمای مقصدها ←",
+        "href": "/destinations"
+      },
+      {
+        "text": "شیراز\nباغ، شعر و معماری",
+        "href": "/destinations/shiraz"
+      },
+      {
+        "text": "قشم\nساحل و شگفتی‌های جزیره",
+        "href": "/destinations/qeshm"
+      },
+      {
+        "text": "یزد\nکوچه‌های خشتی و بادگیرها",
+        "href": "/destinations/yazd"
+      },
+      {
+        "text": "ماسوله\nخانه‌های پلکانی و طبیعت",
+        "href": "/destinations/masuleh"
+      },
+      {
+        "text": "کشف اقامتگاه‌ها ←",
+        "href": "/villas"
+      },
+      {
+        "text": "هتل",
+        "href": "/?vertical=hotel#search"
+      },
+      {
+        "text": "ویلا ←",
+        "href": "/villas?property_type=villa"
+      },
+      {
+        "text": "آپارتمان ←",
+        "href": "/villas?property_type=apartment"
+      },
+      {
+        "text": "سوئیت ←",
+        "href": "/villas?property_type=suite"
+      },
+      {
+        "text": "بوم‌گردی ←",
+        "href": "/villas?property_type=ecolodge"
+      },
+      {
+        "text": "کلبه ←",
+        "href": "/villas?property_type=cabin"
+      },
+      {
+        "text": "خانهٔ سنتی ←",
+        "href": "/villas?property_type=traditional_house"
+      },
+      {
+        "text": "اقامت استخردار ←",
+        "href": "/villas?property_type=pool_property"
+      },
+      {
+        "text": "کنار جنگل ←",
+        "href": "/villas?property_type=forest"
+      },
+      {
+        "text": "کنار ساحل ←",
+        "href": "/villas?property_type=coastal"
+      },
+      {
+        "text": "سفر کوتاه\nآخر هفته را جور دیگری بگذران\n\nزمان و شهر مبدأ را بگو تا دربارهٔ یک برنامهٔ کوتاه گفت‌وگو کنیم.\n\nشروع برنامه‌ریزی ←",
+        "href": "/assistant?prompt=%DB%8C%DA%A9%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%88%D8%AA%D8%A7%D9%87%20%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%85%D9%86%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87"
+      },
+      {
+        "text": "ایده‌های فصل\nهر فصل، یک حال‌وهوای تازه\n\nدربارهٔ زمان مناسب مقصد، سبک سفر و برنامه‌های فصلی گفت‌وگو کن.\n\nپیدا کردن ایدهٔ سفر ←",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A7%DB%8C%D9%86%20%D9%81%D8%B5%D9%84%20%D9%88%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%A2%D8%A8%E2%80%8C%D9%88%D9%87%D9%88%D8%A7%20%DB%8C%DA%A9%20%D8%A7%DB%8C%D8%AF%D9%87%D9%94%20%D8%B3%D9%81%D8%B1%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87%D8%9B%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%88%20%D8%AA%D8%A7%D8%B1%DB%8C%D8%AE%20%D8%B1%D8%A7%20%D8%A7%D8%B2%20%D9%85%D9%86%20%D8%A8%D9%BE%D8%B1%D8%B3"
+      },
+      {
+        "text": "همراه یک برنامهٔ سفر\nتور و گشت مقصد\n\nمسیر، تاریخ، خدمات و شرایط هر برنامه را پیش از انتخاب بررسی کن.\n\nکشف تورها ←",
+        "href": "/tours"
+      },
+      {
+        "text": "لحظه‌های به‌یادماندنی\nتجربه‌های محلی و تفریح\n\nاز غذا و فرهنگ تا جاذبه‌ها، ورزش و برنامه‌های مقصد.\n\nکشف تجربه‌ها ←",
+        "href": "/experiences"
+      },
+      {
+        "text": "راهکارهای سفر و رفاه سازمانی",
+        "href": "/organization"
+      },
+      {
+        "text": "درخواست سازمانی و استعلام\nورود به فضای درخواست و پیگیری",
+        "href": "/organization/requests"
+      },
+      {
+        "text": "اعتبار و مزایای سفر\nفقط با احراز شرایط و سیاست مصوب؛ اعتبار یا اقساط خودکار فعال نمی‌شود.",
+        "href": "/employee"
+      },
+      {
+        "text": "مرکز کنترل سفرهای من\nرزروها، مدارک، تغییرات و پشتیبانی سفر",
+        "href": "/trips"
+      },
+      {
+        "text": "۰۹۱۹۱۲۵۸۰۰۹",
+        "href": "tel:+989191258009"
+      },
+      {
+        "text": "پیگیری و راهنمایی سفر ←",
+        "href": "/support"
+      },
+      {
+        "text": "تماس با ما",
+        "href": "/contact"
+      },
+      {
+        "text": "پشتیبانی",
+        "href": "/support"
+      },
+      {
+        "text": "همکاری تأمین‌کنندگان",
+        "href": "/integrations"
+      },
+      {
+        "text": "قوانین",
+        "href": "/terms"
+      },
+      {
+        "text": "حریم خصوصی",
+        "href": "/privacy"
+      }
+    ]
+  },
+  {
+    "width": 1920,
+    "overflow": false,
+    "wrap": 1200,
+    "hero": 450,
+    "search": 276.6875,
+    "images": [
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "alt": "بادگیرها و معماری یزد؛ یکی از مقصدهای سفر در ایران",
+        "ok": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=3840&q=75",
+        "alt": "شیراز",
+        "ok": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=3840&q=75",
+        "alt": "قشم",
+        "ok": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "alt": "یزد",
+        "ok": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=3840&q=75",
+        "alt": "ماسوله",
+        "ok": true
+      }
+    ],
+    "links": [
+      {
+        "text": "ک\nکارن‌سیر\nسفر، اقامت و تجربه",
+        "href": "/"
+      },
+      {
+        "text": "خدمات سفر",
+        "href": "#marketplace-services"
+      },
+      {
+        "text": "کشف مقصد",
+        "href": "#discover"
+      },
+      {
+        "text": "دستیار هوشمند",
+        "href": "/assistant"
+      },
+      {
+        "text": "سفر سازمانی",
+        "href": "/organization"
+      },
+      {
+        "text": "سفرهای من",
+        "href": "/trips"
+      },
+      {
+        "text": "ورود / ثبت‌نام",
+        "href": "/login"
+      },
+      {
+        "text": "برای سفر بعدی ایده بگیر ←",
+        "href": "#discover"
+      },
+      {
+        "text": "راهنمایی از کارشناس انسانی ←",
+        "href": "/support"
+      },
+      {
+        "text": "همهٔ خدمات ←",
+        "href": "/services"
+      },
+      {
+        "text": "پرواز\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/?vertical=flight#search"
+      },
+      {
+        "text": "هتل\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/?vertical=hotel#search"
+      },
+      {
+        "text": "قطار\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/?vertical=train#search"
+      },
+      {
+        "text": "تور\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/?vertical=tour#search"
+      },
+      {
+        "text": "ویلا و اقامتگاه\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/villas"
+      },
+      {
+        "text": "اجاره خودرو\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/car-rental"
+      },
+      {
+        "text": "رستوران\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/restaurants"
+      },
+      {
+        "text": "تجربه و جاذبه\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/attractions"
+      },
+      {
+        "text": "استخر و ورزش\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/pools-sports"
+      },
+      {
+        "text": "رویداد\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/events-venues"
+      },
+      {
+        "text": "سالن مراسم\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/events-venues"
+      },
+      {
+        "text": "راهنمای سفر\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/travel-guides"
+      },
+      {
+        "text": "حمل‌ونقل گردشگری\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/tourist-transport"
+      },
+      {
+        "text": "صنایع‌دستی\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/handicrafts"
+      },
+      {
+        "text": "برنامه‌ریزی",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%D9%85%20%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87%E2%80%8C%D8%B1%DB%8C%D8%B2%DB%8C%20%DA%A9%D9%86%DB%8C%D9%85"
+      },
+      {
+        "text": "پیدا کردن",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D8%B1%D8%AF%D9%86%20%DA%AF%D8%B2%DB%8C%D9%86%D9%87%E2%80%8C%D9%87%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%85%DA%A9%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85"
+      },
+      {
+        "text": "مقایسه",
+        "href": "/compare"
+      },
+      {
+        "text": "ساخت برنامهٔ سفر",
+        "href": "/itineraries"
+      },
+      {
+        "text": "مدیریت سفر موجود",
+        "href": "/trips"
+      },
+      {
+        "text": "برای آخر هفته شمال کجا بریم؟\n↗",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%B4%D9%85%D8%A7%D9%84%20%DA%A9%D8%AC%D8%A7%20%D8%A8%D8%B1%DB%8C%D9%85%D8%9F"
+      },
+      {
+        "text": "برای ۴ نفر ویلا با استخر پیدا کن\n↗",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%DB%B4%20%D9%86%D9%81%D8%B1%20%D9%88%DB%8C%D9%84%D8%A7%20%D8%A8%D8%A7%20%D8%A7%D8%B3%D8%AA%D8%AE%D8%B1%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D9%86"
+      },
+      {
+        "text": "پرواز صبح تهران مشهد و هتل نزدیک حرم می‌خواهم\n↗",
+        "href": "/assistant?prompt=%D9%BE%D8%B1%D9%88%D8%A7%D8%B2%20%D8%B5%D8%A8%D8%AD%20%D8%AA%D9%87%D8%B1%D8%A7%D9%86%20%D9%85%D8%B4%D9%87%D8%AF%20%D9%88%20%D9%87%D8%AA%D9%84%20%D9%86%D8%B2%D8%AF%DB%8C%DA%A9%20%D8%AD%D8%B1%D9%85%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85"
+      },
+      {
+        "text": "راهنمای مقصدها ←",
+        "href": "/destinations"
+      },
+      {
+        "text": "شیراز\nباغ، شعر و معماری",
+        "href": "/destinations/shiraz"
+      },
+      {
+        "text": "قشم\nساحل و شگفتی‌های جزیره",
+        "href": "/destinations/qeshm"
+      },
+      {
+        "text": "یزد\nکوچه‌های خشتی و بادگیرها",
+        "href": "/destinations/yazd"
+      },
+      {
+        "text": "ماسوله\nخانه‌های پلکانی و طبیعت",
+        "href": "/destinations/masuleh"
+      },
+      {
+        "text": "کشف اقامتگاه‌ها ←",
+        "href": "/villas"
+      },
+      {
+        "text": "هتل",
+        "href": "/?vertical=hotel#search"
+      },
+      {
+        "text": "ویلا ←",
+        "href": "/villas?property_type=villa"
+      },
+      {
+        "text": "آپارتمان ←",
+        "href": "/villas?property_type=apartment"
+      },
+      {
+        "text": "سوئیت ←",
+        "href": "/villas?property_type=suite"
+      },
+      {
+        "text": "بوم‌گردی ←",
+        "href": "/villas?property_type=ecolodge"
+      },
+      {
+        "text": "کلبه ←",
+        "href": "/villas?property_type=cabin"
+      },
+      {
+        "text": "خانهٔ سنتی ←",
+        "href": "/villas?property_type=traditional_house"
+      },
+      {
+        "text": "اقامت استخردار ←",
+        "href": "/villas?property_type=pool_property"
+      },
+      {
+        "text": "کنار جنگل ←",
+        "href": "/villas?property_type=forest"
+      },
+      {
+        "text": "کنار ساحل ←",
+        "href": "/villas?property_type=coastal"
+      },
+      {
+        "text": "سفر کوتاه\nآخر هفته را جور دیگری بگذران\n\nزمان و شهر مبدأ را بگو تا دربارهٔ یک برنامهٔ کوتاه گفت‌وگو کنیم.\n\nشروع برنامه‌ریزی ←",
+        "href": "/assistant?prompt=%DB%8C%DA%A9%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%88%D8%AA%D8%A7%D9%87%20%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%85%D9%86%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87"
+      },
+      {
+        "text": "ایده‌های فصل\nهر فصل، یک حال‌وهوای تازه\n\nدربارهٔ زمان مناسب مقصد، سبک سفر و برنامه‌های فصلی گفت‌وگو کن.\n\nپیدا کردن ایدهٔ سفر ←",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A7%DB%8C%D9%86%20%D9%81%D8%B5%D9%84%20%D9%88%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%A2%D8%A8%E2%80%8C%D9%88%D9%87%D9%88%D8%A7%20%DB%8C%DA%A9%20%D8%A7%DB%8C%D8%AF%D9%87%D9%94%20%D8%B3%D9%81%D8%B1%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87%D8%9B%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%88%20%D8%AA%D8%A7%D8%B1%DB%8C%D8%AE%20%D8%B1%D8%A7%20%D8%A7%D8%B2%20%D9%85%D9%86%20%D8%A8%D9%BE%D8%B1%D8%B3"
+      },
+      {
+        "text": "همراه یک برنامهٔ سفر\nتور و گشت مقصد\n\nمسیر، تاریخ، خدمات و شرایط هر برنامه را پیش از انتخاب بررسی کن.\n\nکشف تورها ←",
+        "href": "/tours"
+      },
+      {
+        "text": "لحظه‌های به‌یادماندنی\nتجربه‌های محلی و تفریح\n\nاز غذا و فرهنگ تا جاذبه‌ها، ورزش و برنامه‌های مقصد.\n\nکشف تجربه‌ها ←",
+        "href": "/experiences"
+      },
+      {
+        "text": "راهکارهای سفر و رفاه سازمانی",
+        "href": "/organization"
+      },
+      {
+        "text": "درخواست سازمانی و استعلام\nورود به فضای درخواست و پیگیری",
+        "href": "/organization/requests"
+      },
+      {
+        "text": "اعتبار و مزایای سفر\nفقط با احراز شرایط و سیاست مصوب؛ اعتبار یا اقساط خودکار فعال نمی‌شود.",
+        "href": "/employee"
+      },
+      {
+        "text": "مرکز کنترل سفرهای من\nرزروها، مدارک، تغییرات و پشتیبانی سفر",
+        "href": "/trips"
+      },
+      {
+        "text": "۰۹۱۹۱۲۵۸۰۰۹",
+        "href": "tel:+989191258009"
+      },
+      {
+        "text": "پیگیری و راهنمایی سفر ←",
+        "href": "/support"
+      },
+      {
+        "text": "تماس با ما",
+        "href": "/contact"
+      },
+      {
+        "text": "پشتیبانی",
+        "href": "/support"
+      },
+      {
+        "text": "همکاری تأمین‌کنندگان",
+        "href": "/integrations"
+      },
+      {
+        "text": "قوانین",
+        "href": "/terms"
+      },
+      {
+        "text": "حریم خصوصی",
+        "href": "/privacy"
+      }
+    ]
+  },
+  {
+    "width": 360,
+    "overflow": false,
+    "wrap": 332,
+    "hero": 335,
+    "search": 636.5625,
+    "images": [
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "alt": "بادگیرها و معماری یزد؛ یکی از مقصدهای سفر در ایران",
+        "ok": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=3840&q=75",
+        "alt": "شیراز",
+        "ok": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=3840&q=75",
+        "alt": "قشم",
+        "ok": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "alt": "یزد",
+        "ok": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=3840&q=75",
+        "alt": "ماسوله",
+        "ok": true
+      }
+    ],
+    "links": [
+      {
+        "text": "ک\nکارن‌سیر\nسفر، اقامت و تجربه",
+        "href": "/"
+      },
+      {
+        "text": "خدمات سفر",
+        "href": "#marketplace-services"
+      },
+      {
+        "text": "کشف مقصد",
+        "href": "#discover"
+      },
+      {
+        "text": "دستیار هوشمند",
+        "href": "/assistant"
+      },
+      {
+        "text": "سفر سازمانی",
+        "href": "/organization"
+      },
+      {
+        "text": "سفرهای من",
+        "href": "/trips"
+      },
+      {
+        "text": "ورود / ثبت‌نام",
+        "href": "/login"
+      },
+      {
+        "text": "برای سفر بعدی ایده بگیر ←",
+        "href": "#discover"
+      },
+      {
+        "text": "راهنمایی از کارشناس انسانی ←",
+        "href": "/support"
+      },
+      {
+        "text": "همهٔ خدمات ←",
+        "href": "/services"
+      },
+      {
+        "text": "پرواز\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/?vertical=flight#search"
+      },
+      {
+        "text": "هتل\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/?vertical=hotel#search"
+      },
+      {
+        "text": "قطار\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/?vertical=train#search"
+      },
+      {
+        "text": "تور\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/?vertical=tour#search"
+      },
+      {
+        "text": "ویلا و اقامتگاه\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/villas"
+      },
+      {
+        "text": "اجاره خودرو\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/car-rental"
+      },
+      {
+        "text": "رستوران\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/restaurants"
+      },
+      {
+        "text": "تجربه و جاذبه\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/attractions"
+      },
+      {
+        "text": "استخر و ورزش\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/pools-sports"
+      },
+      {
+        "text": "رویداد\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/events-venues"
+      },
+      {
+        "text": "سالن مراسم\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/events-venues"
+      },
+      {
+        "text": "راهنمای سفر\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/travel-guides"
+      },
+      {
+        "text": "حمل‌ونقل گردشگری\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/tourist-transport"
+      },
+      {
+        "text": "صنایع‌دستی\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/handicrafts"
+      },
+      {
+        "text": "برنامه‌ریزی",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%D9%85%20%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87%E2%80%8C%D8%B1%DB%8C%D8%B2%DB%8C%20%DA%A9%D9%86%DB%8C%D9%85"
+      },
+      {
+        "text": "پیدا کردن",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D8%B1%D8%AF%D9%86%20%DA%AF%D8%B2%DB%8C%D9%86%D9%87%E2%80%8C%D9%87%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%85%DA%A9%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85"
+      },
+      {
+        "text": "مقایسه",
+        "href": "/compare"
+      },
+      {
+        "text": "ساخت برنامهٔ سفر",
+        "href": "/itineraries"
+      },
+      {
+        "text": "مدیریت سفر موجود",
+        "href": "/trips"
+      },
+      {
+        "text": "برای آخر هفته شمال کجا بریم؟\n↗",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%B4%D9%85%D8%A7%D9%84%20%DA%A9%D8%AC%D8%A7%20%D8%A8%D8%B1%DB%8C%D9%85%D8%9F"
+      },
+      {
+        "text": "برای ۴ نفر ویلا با استخر پیدا کن\n↗",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%DB%B4%20%D9%86%D9%81%D8%B1%20%D9%88%DB%8C%D9%84%D8%A7%20%D8%A8%D8%A7%20%D8%A7%D8%B3%D8%AA%D8%AE%D8%B1%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D9%86"
+      },
+      {
+        "text": "پرواز صبح تهران مشهد و هتل نزدیک حرم می‌خواهم\n↗",
+        "href": "/assistant?prompt=%D9%BE%D8%B1%D9%88%D8%A7%D8%B2%20%D8%B5%D8%A8%D8%AD%20%D8%AA%D9%87%D8%B1%D8%A7%D9%86%20%D9%85%D8%B4%D9%87%D8%AF%20%D9%88%20%D9%87%D8%AA%D9%84%20%D9%86%D8%B2%D8%AF%DB%8C%DA%A9%20%D8%AD%D8%B1%D9%85%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85"
+      },
+      {
+        "text": "راهنمای مقصدها ←",
+        "href": "/destinations"
+      },
+      {
+        "text": "شیراز\nباغ، شعر و معماری",
+        "href": "/destinations/shiraz"
+      },
+      {
+        "text": "قشم\nساحل و شگفتی‌های جزیره",
+        "href": "/destinations/qeshm"
+      },
+      {
+        "text": "یزد\nکوچه‌های خشتی و بادگیرها",
+        "href": "/destinations/yazd"
+      },
+      {
+        "text": "ماسوله\nخانه‌های پلکانی و طبیعت",
+        "href": "/destinations/masuleh"
+      },
+      {
+        "text": "کشف اقامتگاه‌ها ←",
+        "href": "/villas"
+      },
+      {
+        "text": "هتل",
+        "href": "/?vertical=hotel#search"
+      },
+      {
+        "text": "ویلا ←",
+        "href": "/villas?property_type=villa"
+      },
+      {
+        "text": "آپارتمان ←",
+        "href": "/villas?property_type=apartment"
+      },
+      {
+        "text": "سوئیت ←",
+        "href": "/villas?property_type=suite"
+      },
+      {
+        "text": "بوم‌گردی ←",
+        "href": "/villas?property_type=ecolodge"
+      },
+      {
+        "text": "کلبه ←",
+        "href": "/villas?property_type=cabin"
+      },
+      {
+        "text": "خانهٔ سنتی ←",
+        "href": "/villas?property_type=traditional_house"
+      },
+      {
+        "text": "اقامت استخردار ←",
+        "href": "/villas?property_type=pool_property"
+      },
+      {
+        "text": "کنار جنگل ←",
+        "href": "/villas?property_type=forest"
+      },
+      {
+        "text": "کنار ساحل ←",
+        "href": "/villas?property_type=coastal"
+      },
+      {
+        "text": "سفر کوتاه\nآخر هفته را جور دیگری بگذران\n\nزمان و شهر مبدأ را بگو تا دربارهٔ یک برنامهٔ کوتاه گفت‌وگو کنیم.\n\nشروع برنامه‌ریزی ←",
+        "href": "/assistant?prompt=%DB%8C%DA%A9%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%88%D8%AA%D8%A7%D9%87%20%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%85%D9%86%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87"
+      },
+      {
+        "text": "ایده‌های فصل\nهر فصل، یک حال‌وهوای تازه\n\nدربارهٔ زمان مناسب مقصد، سبک سفر و برنامه‌های فصلی گفت‌وگو کن.\n\nپیدا کردن ایدهٔ سفر ←",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A7%DB%8C%D9%86%20%D9%81%D8%B5%D9%84%20%D9%88%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%A2%D8%A8%E2%80%8C%D9%88%D9%87%D9%88%D8%A7%20%DB%8C%DA%A9%20%D8%A7%DB%8C%D8%AF%D9%87%D9%94%20%D8%B3%D9%81%D8%B1%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87%D8%9B%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%88%20%D8%AA%D8%A7%D8%B1%DB%8C%D8%AE%20%D8%B1%D8%A7%20%D8%A7%D8%B2%20%D9%85%D9%86%20%D8%A8%D9%BE%D8%B1%D8%B3"
+      },
+      {
+        "text": "همراه یک برنامهٔ سفر\nتور و گشت مقصد\n\nمسیر، تاریخ، خدمات و شرایط هر برنامه را پیش از انتخاب بررسی کن.\n\nکشف تورها ←",
+        "href": "/tours"
+      },
+      {
+        "text": "لحظه‌های به‌یادماندنی\nتجربه‌های محلی و تفریح\n\nاز غذا و فرهنگ تا جاذبه‌ها، ورزش و برنامه‌های مقصد.\n\nکشف تجربه‌ها ←",
+        "href": "/experiences"
+      },
+      {
+        "text": "راهکارهای سفر و رفاه سازمانی",
+        "href": "/organization"
+      },
+      {
+        "text": "درخواست سازمانی و استعلام\nورود به فضای درخواست و پیگیری",
+        "href": "/organization/requests"
+      },
+      {
+        "text": "اعتبار و مزایای سفر\nفقط با احراز شرایط و سیاست مصوب؛ اعتبار یا اقساط خودکار فعال نمی‌شود.",
+        "href": "/employee"
+      },
+      {
+        "text": "مرکز کنترل سفرهای من\nرزروها، مدارک، تغییرات و پشتیبانی سفر",
+        "href": "/trips"
+      },
+      {
+        "text": "۰۹۱۹۱۲۵۸۰۰۹",
+        "href": "tel:+989191258009"
+      },
+      {
+        "text": "پیگیری و راهنمایی سفر ←",
+        "href": "/support"
+      },
+      {
+        "text": "تماس با ما",
+        "href": "/contact"
+      },
+      {
+        "text": "پشتیبانی",
+        "href": "/support"
+      },
+      {
+        "text": "همکاری تأمین‌کنندگان",
+        "href": "/integrations"
+      },
+      {
+        "text": "قوانین",
+        "href": "/terms"
+      },
+      {
+        "text": "حریم خصوصی",
+        "href": "/privacy"
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "overflow": false,
+    "wrap": 362,
+    "hero": 335,
+    "search": 595.1875,
+    "images": [
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "alt": "بادگیرها و معماری یزد؛ یکی از مقصدهای سفر در ایران",
+        "ok": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=3840&q=75",
+        "alt": "شیراز",
+        "ok": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=3840&q=75",
+        "alt": "قشم",
+        "ok": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "alt": "یزد",
+        "ok": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=3840&q=75",
+        "alt": "ماسوله",
+        "ok": true
+      }
+    ],
+    "links": [
+      {
+        "text": "ک\nکارن‌سیر\nسفر، اقامت و تجربه",
+        "href": "/"
+      },
+      {
+        "text": "خدمات سفر",
+        "href": "#marketplace-services"
+      },
+      {
+        "text": "کشف مقصد",
+        "href": "#discover"
+      },
+      {
+        "text": "دستیار هوشمند",
+        "href": "/assistant"
+      },
+      {
+        "text": "سفر سازمانی",
+        "href": "/organization"
+      },
+      {
+        "text": "سفرهای من",
+        "href": "/trips"
+      },
+      {
+        "text": "ورود / ثبت‌نام",
+        "href": "/login"
+      },
+      {
+        "text": "برای سفر بعدی ایده بگیر ←",
+        "href": "#discover"
+      },
+      {
+        "text": "راهنمایی از کارشناس انسانی ←",
+        "href": "/support"
+      },
+      {
+        "text": "همهٔ خدمات ←",
+        "href": "/services"
+      },
+      {
+        "text": "پرواز\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/?vertical=flight#search"
+      },
+      {
+        "text": "هتل\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/?vertical=hotel#search"
+      },
+      {
+        "text": "قطار\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/?vertical=train#search"
+      },
+      {
+        "text": "تور\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/?vertical=tour#search"
+      },
+      {
+        "text": "ویلا و اقامتگاه\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/villas"
+      },
+      {
+        "text": "اجاره خودرو\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/car-rental"
+      },
+      {
+        "text": "رستوران\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/restaurants"
+      },
+      {
+        "text": "تجربه و جاذبه\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/attractions"
+      },
+      {
+        "text": "استخر و ورزش\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/pools-sports"
+      },
+      {
+        "text": "رویداد\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/events-venues"
+      },
+      {
+        "text": "سالن مراسم\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/events-venues"
+      },
+      {
+        "text": "راهنمای سفر\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/travel-guides"
+      },
+      {
+        "text": "حمل‌ونقل گردشگری\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/tourist-transport"
+      },
+      {
+        "text": "صنایع‌دستی\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/handicrafts"
+      },
+      {
+        "text": "برنامه‌ریزی",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%D9%85%20%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87%E2%80%8C%D8%B1%DB%8C%D8%B2%DB%8C%20%DA%A9%D9%86%DB%8C%D9%85"
+      },
+      {
+        "text": "پیدا کردن",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D8%B1%D8%AF%D9%86%20%DA%AF%D8%B2%DB%8C%D9%86%D9%87%E2%80%8C%D9%87%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%85%DA%A9%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85"
+      },
+      {
+        "text": "مقایسه",
+        "href": "/compare"
+      },
+      {
+        "text": "ساخت برنامهٔ سفر",
+        "href": "/itineraries"
+      },
+      {
+        "text": "مدیریت سفر موجود",
+        "href": "/trips"
+      },
+      {
+        "text": "برای آخر هفته شمال کجا بریم؟\n↗",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%B4%D9%85%D8%A7%D9%84%20%DA%A9%D8%AC%D8%A7%20%D8%A8%D8%B1%DB%8C%D9%85%D8%9F"
+      },
+      {
+        "text": "برای ۴ نفر ویلا با استخر پیدا کن\n↗",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%DB%B4%20%D9%86%D9%81%D8%B1%20%D9%88%DB%8C%D9%84%D8%A7%20%D8%A8%D8%A7%20%D8%A7%D8%B3%D8%AA%D8%AE%D8%B1%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D9%86"
+      },
+      {
+        "text": "پرواز صبح تهران مشهد و هتل نزدیک حرم می‌خواهم\n↗",
+        "href": "/assistant?prompt=%D9%BE%D8%B1%D9%88%D8%A7%D8%B2%20%D8%B5%D8%A8%D8%AD%20%D8%AA%D9%87%D8%B1%D8%A7%D9%86%20%D9%85%D8%B4%D9%87%D8%AF%20%D9%88%20%D9%87%D8%AA%D9%84%20%D9%86%D8%B2%D8%AF%DB%8C%DA%A9%20%D8%AD%D8%B1%D9%85%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85"
+      },
+      {
+        "text": "راهنمای مقصدها ←",
+        "href": "/destinations"
+      },
+      {
+        "text": "شیراز\nباغ، شعر و معماری",
+        "href": "/destinations/shiraz"
+      },
+      {
+        "text": "قشم\nساحل و شگفتی‌های جزیره",
+        "href": "/destinations/qeshm"
+      },
+      {
+        "text": "یزد\nکوچه‌های خشتی و بادگیرها",
+        "href": "/destinations/yazd"
+      },
+      {
+        "text": "ماسوله\nخانه‌های پلکانی و طبیعت",
+        "href": "/destinations/masuleh"
+      },
+      {
+        "text": "کشف اقامتگاه‌ها ←",
+        "href": "/villas"
+      },
+      {
+        "text": "هتل",
+        "href": "/?vertical=hotel#search"
+      },
+      {
+        "text": "ویلا ←",
+        "href": "/villas?property_type=villa"
+      },
+      {
+        "text": "آپارتمان ←",
+        "href": "/villas?property_type=apartment"
+      },
+      {
+        "text": "سوئیت ←",
+        "href": "/villas?property_type=suite"
+      },
+      {
+        "text": "بوم‌گردی ←",
+        "href": "/villas?property_type=ecolodge"
+      },
+      {
+        "text": "کلبه ←",
+        "href": "/villas?property_type=cabin"
+      },
+      {
+        "text": "خانهٔ سنتی ←",
+        "href": "/villas?property_type=traditional_house"
+      },
+      {
+        "text": "اقامت استخردار ←",
+        "href": "/villas?property_type=pool_property"
+      },
+      {
+        "text": "کنار جنگل ←",
+        "href": "/villas?property_type=forest"
+      },
+      {
+        "text": "کنار ساحل ←",
+        "href": "/villas?property_type=coastal"
+      },
+      {
+        "text": "سفر کوتاه\nآخر هفته را جور دیگری بگذران\n\nزمان و شهر مبدأ را بگو تا دربارهٔ یک برنامهٔ کوتاه گفت‌وگو کنیم.\n\nشروع برنامه‌ریزی ←",
+        "href": "/assistant?prompt=%DB%8C%DA%A9%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%88%D8%AA%D8%A7%D9%87%20%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%85%D9%86%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87"
+      },
+      {
+        "text": "ایده‌های فصل\nهر فصل، یک حال‌وهوای تازه\n\nدربارهٔ زمان مناسب مقصد، سبک سفر و برنامه‌های فصلی گفت‌وگو کن.\n\nپیدا کردن ایدهٔ سفر ←",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A7%DB%8C%D9%86%20%D9%81%D8%B5%D9%84%20%D9%88%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%A2%D8%A8%E2%80%8C%D9%88%D9%87%D9%88%D8%A7%20%DB%8C%DA%A9%20%D8%A7%DB%8C%D8%AF%D9%87%D9%94%20%D8%B3%D9%81%D8%B1%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87%D8%9B%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%88%20%D8%AA%D8%A7%D8%B1%DB%8C%D8%AE%20%D8%B1%D8%A7%20%D8%A7%D8%B2%20%D9%85%D9%86%20%D8%A8%D9%BE%D8%B1%D8%B3"
+      },
+      {
+        "text": "همراه یک برنامهٔ سفر\nتور و گشت مقصد\n\nمسیر، تاریخ، خدمات و شرایط هر برنامه را پیش از انتخاب بررسی کن.\n\nکشف تورها ←",
+        "href": "/tours"
+      },
+      {
+        "text": "لحظه‌های به‌یادماندنی\nتجربه‌های محلی و تفریح\n\nاز غذا و فرهنگ تا جاذبه‌ها، ورزش و برنامه‌های مقصد.\n\nکشف تجربه‌ها ←",
+        "href": "/experiences"
+      },
+      {
+        "text": "راهکارهای سفر و رفاه سازمانی",
+        "href": "/organization"
+      },
+      {
+        "text": "درخواست سازمانی و استعلام\nورود به فضای درخواست و پیگیری",
+        "href": "/organization/requests"
+      },
+      {
+        "text": "اعتبار و مزایای سفر\nفقط با احراز شرایط و سیاست مصوب؛ اعتبار یا اقساط خودکار فعال نمی‌شود.",
+        "href": "/employee"
+      },
+      {
+        "text": "مرکز کنترل سفرهای من\nرزروها، مدارک، تغییرات و پشتیبانی سفر",
+        "href": "/trips"
+      },
+      {
+        "text": "۰۹۱۹۱۲۵۸۰۰۹",
+        "href": "tel:+989191258009"
+      },
+      {
+        "text": "پیگیری و راهنمایی سفر ←",
+        "href": "/support"
+      },
+      {
+        "text": "تماس با ما",
+        "href": "/contact"
+      },
+      {
+        "text": "پشتیبانی",
+        "href": "/support"
+      },
+      {
+        "text": "همکاری تأمین‌کنندگان",
+        "href": "/integrations"
+      },
+      {
+        "text": "قوانین",
+        "href": "/terms"
+      },
+      {
+        "text": "حریم خصوصی",
+        "href": "/privacy"
+      }
+    ]
+  },
+  {
+    "width": 430,
+    "overflow": false,
+    "wrap": 402,
+    "hero": 335,
+    "search": 569.1875,
+    "images": [
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "alt": "بادگیرها و معماری یزد؛ یکی از مقصدهای سفر در ایران",
+        "ok": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=3840&q=75",
+        "alt": "شیراز",
+        "ok": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=3840&q=75",
+        "alt": "قشم",
+        "ok": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "alt": "یزد",
+        "ok": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=3840&q=75",
+        "alt": "ماسوله",
+        "ok": true
+      }
+    ],
+    "links": [
+      {
+        "text": "ک\nکارن‌سیر\nسفر، اقامت و تجربه",
+        "href": "/"
+      },
+      {
+        "text": "خدمات سفر",
+        "href": "#marketplace-services"
+      },
+      {
+        "text": "کشف مقصد",
+        "href": "#discover"
+      },
+      {
+        "text": "دستیار هوشمند",
+        "href": "/assistant"
+      },
+      {
+        "text": "سفر سازمانی",
+        "href": "/organization"
+      },
+      {
+        "text": "سفرهای من",
+        "href": "/trips"
+      },
+      {
+        "text": "ورود / ثبت‌نام",
+        "href": "/login"
+      },
+      {
+        "text": "برای سفر بعدی ایده بگیر ←",
+        "href": "#discover"
+      },
+      {
+        "text": "راهنمایی از کارشناس انسانی ←",
+        "href": "/support"
+      },
+      {
+        "text": "همهٔ خدمات ←",
+        "href": "/services"
+      },
+      {
+        "text": "پرواز\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/?vertical=flight#search"
+      },
+      {
+        "text": "هتل\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/?vertical=hotel#search"
+      },
+      {
+        "text": "قطار\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/?vertical=train#search"
+      },
+      {
+        "text": "تور\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/?vertical=tour#search"
+      },
+      {
+        "text": "ویلا و اقامتگاه\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/villas"
+      },
+      {
+        "text": "اجاره خودرو\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/car-rental"
+      },
+      {
+        "text": "رستوران\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/restaurants"
+      },
+      {
+        "text": "تجربه و جاذبه\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/attractions"
+      },
+      {
+        "text": "استخر و ورزش\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/pools-sports"
+      },
+      {
+        "text": "رویداد\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/events-venues"
+      },
+      {
+        "text": "سالن مراسم\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/events-venues"
+      },
+      {
+        "text": "راهنمای سفر\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/travel-guides"
+      },
+      {
+        "text": "حمل‌ونقل گردشگری\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/tourist-transport"
+      },
+      {
+        "text": "صنایع‌دستی\nجست‌وجو و بررسی گزینه‌ها",
+        "href": "/handicrafts"
+      },
+      {
+        "text": "برنامه‌ریزی",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%D9%85%20%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87%E2%80%8C%D8%B1%DB%8C%D8%B2%DB%8C%20%DA%A9%D9%86%DB%8C%D9%85"
+      },
+      {
+        "text": "پیدا کردن",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D8%B1%D8%AF%D9%86%20%DA%AF%D8%B2%DB%8C%D9%86%D9%87%E2%80%8C%D9%87%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%85%DA%A9%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85"
+      },
+      {
+        "text": "مقایسه",
+        "href": "/compare"
+      },
+      {
+        "text": "ساخت برنامهٔ سفر",
+        "href": "/itineraries"
+      },
+      {
+        "text": "مدیریت سفر موجود",
+        "href": "/trips"
+      },
+      {
+        "text": "برای آخر هفته شمال کجا بریم؟\n↗",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%B4%D9%85%D8%A7%D9%84%20%DA%A9%D8%AC%D8%A7%20%D8%A8%D8%B1%DB%8C%D9%85%D8%9F"
+      },
+      {
+        "text": "برای ۴ نفر ویلا با استخر پیدا کن\n↗",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%DB%B4%20%D9%86%D9%81%D8%B1%20%D9%88%DB%8C%D9%84%D8%A7%20%D8%A8%D8%A7%20%D8%A7%D8%B3%D8%AA%D8%AE%D8%B1%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D9%86"
+      },
+      {
+        "text": "پرواز صبح تهران مشهد و هتل نزدیک حرم می‌خواهم\n↗",
+        "href": "/assistant?prompt=%D9%BE%D8%B1%D9%88%D8%A7%D8%B2%20%D8%B5%D8%A8%D8%AD%20%D8%AA%D9%87%D8%B1%D8%A7%D9%86%20%D9%85%D8%B4%D9%87%D8%AF%20%D9%88%20%D9%87%D8%AA%D9%84%20%D9%86%D8%B2%D8%AF%DB%8C%DA%A9%20%D8%AD%D8%B1%D9%85%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85"
+      },
+      {
+        "text": "راهنمای مقصدها ←",
+        "href": "/destinations"
+      },
+      {
+        "text": "شیراز\nباغ، شعر و معماری",
+        "href": "/destinations/shiraz"
+      },
+      {
+        "text": "قشم\nساحل و شگفتی‌های جزیره",
+        "href": "/destinations/qeshm"
+      },
+      {
+        "text": "یزد\nکوچه‌های خشتی و بادگیرها",
+        "href": "/destinations/yazd"
+      },
+      {
+        "text": "ماسوله\nخانه‌های پلکانی و طبیعت",
+        "href": "/destinations/masuleh"
+      },
+      {
+        "text": "کشف اقامتگاه‌ها ←",
+        "href": "/villas"
+      },
+      {
+        "text": "هتل",
+        "href": "/?vertical=hotel#search"
+      },
+      {
+        "text": "ویلا ←",
+        "href": "/villas?property_type=villa"
+      },
+      {
+        "text": "آپارتمان ←",
+        "href": "/villas?property_type=apartment"
+      },
+      {
+        "text": "سوئیت ←",
+        "href": "/villas?property_type=suite"
+      },
+      {
+        "text": "بوم‌گردی ←",
+        "href": "/villas?property_type=ecolodge"
+      },
+      {
+        "text": "کلبه ←",
+        "href": "/villas?property_type=cabin"
+      },
+      {
+        "text": "خانهٔ سنتی ←",
+        "href": "/villas?property_type=traditional_house"
+      },
+      {
+        "text": "اقامت استخردار ←",
+        "href": "/villas?property_type=pool_property"
+      },
+      {
+        "text": "کنار جنگل ←",
+        "href": "/villas?property_type=forest"
+      },
+      {
+        "text": "کنار ساحل ←",
+        "href": "/villas?property_type=coastal"
+      },
+      {
+        "text": "سفر کوتاه\nآخر هفته را جور دیگری بگذران\n\nزمان و شهر مبدأ را بگو تا دربارهٔ یک برنامهٔ کوتاه گفت‌وگو کنیم.\n\nشروع برنامه‌ریزی ←",
+        "href": "/assistant?prompt=%DB%8C%DA%A9%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%88%D8%AA%D8%A7%D9%87%20%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%85%D9%86%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87"
+      },
+      {
+        "text": "ایده‌های فصل\nهر فصل، یک حال‌وهوای تازه\n\nدربارهٔ زمان مناسب مقصد، سبک سفر و برنامه‌های فصلی گفت‌وگو کن.\n\nپیدا کردن ایدهٔ سفر ←",
+        "href": "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A7%DB%8C%D9%86%20%D9%81%D8%B5%D9%84%20%D9%88%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%A2%D8%A8%E2%80%8C%D9%88%D9%87%D9%88%D8%A7%20%DB%8C%DA%A9%20%D8%A7%DB%8C%D8%AF%D9%87%D9%94%20%D8%B3%D9%81%D8%B1%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87%D8%9B%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%88%20%D8%AA%D8%A7%D8%B1%DB%8C%D8%AE%20%D8%B1%D8%A7%20%D8%A7%D8%B2%20%D9%85%D9%86%20%D8%A8%D9%BE%D8%B1%D8%B3"
+      },
+      {
+        "text": "همراه یک برنامهٔ سفر\nتور و گشت مقصد\n\nمسیر، تاریخ، خدمات و شرایط هر برنامه را پیش از انتخاب بررسی کن.\n\nکشف تورها ←",
+        "href": "/tours"
+      },
+      {
+        "text": "لحظه‌های به‌یادماندنی\nتجربه‌های محلی و تفریح\n\nاز غذا و فرهنگ تا جاذبه‌ها، ورزش و برنامه‌های مقصد.\n\nکشف تجربه‌ها ←",
+        "href": "/experiences"
+      },
+      {
+        "text": "راهکارهای سفر و رفاه سازمانی",
+        "href": "/organization"
+      },
+      {
+        "text": "درخواست سازمانی و استعلام\nورود به فضای درخواست و پیگیری",
+        "href": "/organization/requests"
+      },
+      {
+        "text": "اعتبار و مزایای سفر\nفقط با احراز شرایط و سیاست مصوب؛ اعتبار یا اقساط خودکار فعال نمی‌شود.",
+        "href": "/employee"
+      },
+      {
+        "text": "مرکز کنترل سفرهای من\nرزروها، مدارک، تغییرات و پشتیبانی سفر",
+        "href": "/trips"
+      },
+      {
+        "text": "۰۹۱۹۱۲۵۸۰۰۹",
+        "href": "tel:+989191258009"
+      },
+      {
+        "text": "پیگیری و راهنمایی سفر ←",
+        "href": "/support"
+      },
+      {
+        "text": "تماس با ما",
+        "href": "/contact"
+      },
+      {
+        "text": "پشتیبانی",
+        "href": "/support"
+      },
+      {
+        "text": "همکاری تأمین‌کنندگان",
+        "href": "/integrations"
+      },
+      {
+        "text": "قوانین",
+        "href": "/terms"
+      },
+      {
+        "text": "حریم خصوصی",
+        "href": "/privacy"
+      }
+    ]
+  }
+]
