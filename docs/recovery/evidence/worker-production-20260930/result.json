@@ -1,0 +1,16 @@
+{
+  "deployment": "PASS",
+  "worker_commit": "4d9f0c3",
+  "worker_health": "healthy",
+  "restarts": 0,
+  "api_web_db_search_unchanged": true,
+  "schema": "20260928_34",
+  "schema_roles_acl_unchanged": true,
+  "reaper": "disabled",
+  "rollback": "karenseir-worker-1-pre-reaper-guard-4d9f0c3",
+  "rollback_original_container_id": "63afba4fa9c45c0053a94981102e3cfec40de688835447d6575fccc8e8257859",
+  "public_smoke": "PASS anonymous read-only desktop/mobile",
+  "fresh_booking_e2e": "PASS isolated Preview3378/API18082 desktop1440/mobile390; not Production hotel publication",
+  "real_payment": false,
+  "real_sms": false
+}

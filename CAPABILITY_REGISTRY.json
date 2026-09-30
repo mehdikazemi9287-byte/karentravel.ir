@@ -279,9 +279,9 @@
       "evidence": "docs/recovery/evidence/hotel-stay-integrity-20/verification.json"
     },
     "worker_reaper_boundary": {
-      "status": "READY_BLOCKED_APPROVAL",
-      "reason": "Current d2ba674 worker crashes on explicitly denied reservation access. Live-base worker-only guard4d9f0c3 tested; not deployed. Reaper remains disabled, not declared operational.",
-      "evidence": "docs/recovery/2026-09-29-worker-reaper-guard-approval.md"
+      "status": "PASS",
+      "reason": "Approved worker-only4d9f0c3 deployed2026-09-30:210s zero restarts, healthy, no reservation permission crash. Reaper disabled; automatic expiry NOT operational. API/Web/DB unchanged.",
+      "evidence": "docs/recovery/evidence/worker-production-20260930/result.json"
     }
   }
 }

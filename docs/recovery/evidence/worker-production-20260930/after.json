@@ -1,0 +1,73 @@
+{
+  "time": "2026-09-30T07:56:10.428855+00:00",
+  "containers": {
+    "karenseir-worker-1": {
+      "Id": "d7663454833c4e9e2419ad8d6af5ad750267369981573ee8a101a82833e1c72f",
+      "Image": "sha256:405be1f2db7fa6b17e4c8ed0bfa810ebf63044298e211a0fe63a6b585e3ff077",
+      "RestartCount": 0,
+      "state": {
+        "Status": "running",
+        "StartedAt": "2026-09-30T07:52:11.505701442Z",
+        "Health": "healthy"
+      }
+    },
+    "karenseir-api-1": {
+      "Id": "5ff41924e4edcc989a6112c4498cdaa1b6478d9fbfd1f67f2c63a4b6fc602884",
+      "Image": "sha256:73dc3430edb6514e48a4550956b76733f25dcfef7ee23642622606b49f0aab9a",
+      "RestartCount": 0,
+      "state": {
+        "Status": "running",
+        "StartedAt": "2026-09-29T11:55:13.99794614Z",
+        "Health": "healthy"
+      }
+    },
+    "karenseir-frontend-1": {
+      "Id": "9d45e40841b6c17c9486a70d716e73bb2752f7e64855d426a0304748a8911cf0",
+      "Image": "sha256:d27e90f03dc9f3b9cec15277b76f1651a209d7d62852dc438a79435d99288528",
+      "RestartCount": 0,
+      "state": {
+        "Status": "running",
+        "StartedAt": "2026-09-29T11:56:02.423095248Z",
+        "Health": "healthy"
+      }
+    },
+    "karenseir-search": {
+      "Id": "e91242f7e09a50c48e8f9105cb311d2de65fea5a67fcaf5ee0a94045ddebbe0a",
+      "Image": "sha256:a0b0f86c7fa0323b6276bc306c6c1d36cc78471dd6c3cf0a1c0eea06ff082500",
+      "RestartCount": 0,
+      "state": {
+        "Status": "running",
+        "StartedAt": "2026-09-28T19:12:51.090328904Z",
+        "Health": "healthy"
+      }
+    },
+    "karenseir-db-1": {
+      "Id": "7259fe57afc07d62fbe332b52656416199a065db963b80daebca10c00258f052",
+      "Image": "sha256:44c4ee9810eff91f7eab4d822642e01115b1a9eccce4bcbdde7604752d68eac6",
+      "RestartCount": 0,
+      "state": {
+        "Status": "running",
+        "StartedAt": "2026-08-15T14:00:48.245575079Z",
+        "Health": "healthy"
+      }
+    }
+  },
+  "schema": "20260928_34",
+  "schema_roles_acl_sha256": "d434513d2f71743a9e6de61a7a543aa7bbb308939f4d02e554484f123d00529f",
+  "web_build": {
+    "status": 200,
+    "body": {
+      "git_commit": "d2ba674be607a5908bac15a46d385a0b63b26b10",
+      "build_timestamp_utc": "2026-09-29T11:49:14.170445+00:00"
+    }
+  },
+  "api_ready": {
+    "status": 200,
+    "body": {
+      "status": "ready",
+      "database": "ok",
+      "rate_limiter": "distributed",
+      "external_providers": "fail_closed"
+    }
+  }
+}

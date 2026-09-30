@@ -1,0 +1,56 @@
+{
+  "pass": true,
+  "readOnly": true,
+  "checks": [
+    {
+      "width": 1440,
+      "path": "/",
+      "status": 200,
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "path": "/search/results?vertical=hotel&destination=Shiraz",
+      "status": 200,
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "path": "/checkout/00000000-0000-0000-0000-000000000000",
+      "status": 200,
+      "loginGate": true,
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "path": "/trips",
+      "status": 200,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "path": "/",
+      "status": 200,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "path": "/search/results?vertical=hotel&destination=Shiraz",
+      "status": 200,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "path": "/checkout/00000000-0000-0000-0000-000000000000",
+      "status": 200,
+      "loginGate": true,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "path": "/trips",
+      "status": 200,
+      "overflow": false
+    }
+  ]
+}

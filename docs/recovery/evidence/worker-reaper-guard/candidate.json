@@ -8,6 +8,7 @@
   "target": "karenseir-worker-1",
   "rollback": "karenseir-worker-1-pre-reaper-guard-4d9f0c3",
   "migration": false,
-  "production_deployed": false,
-  "release_worktree": "/tmp/karen-worker-guard-release"
+  "production_deployed": true,
+  "release_worktree": "/tmp/karen-worker-guard-release",
+  "deployment_evidence": "docs/recovery/evidence/worker-production-20260930/result.json"
 }
