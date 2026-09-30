@@ -43,3 +43,30 @@ Requested MATCH/REGRESSION classifications cannot honestly be assigned without a
 
 ## Boundaries and next action
 API/DB/Worker unchanged; no migration/permission change, no real payment/SMS. Rollbacks retained. No frontend/backend source edits. Source files and production snapshots are checked after documentation work. UI recovery cannot be completed faithfully until approved reference identity is supplied. Once available, compare reference→historical baseline→candidate, limit changes to frontend, then run requested visual and product-integrity QA; seek explicit approval before Production.
+
+## Follow-up: real discovery attempts and historical component mapping
+
+Latest directive permits frontend deployment ONLY after all candidate gates pass. No such PASS or deployment has occurred.
+
+Discovery evidence:
+- Enumerated every available Figma tool: figma-tool-inventory.json. There is no account/team/project design-file listing/search method. get_libraries/search_design_system/use_figma/get_metadata all require an existing fileKey. Library asset search is not account file search. No guessed key, new design file or mutated design used to bypass this limitation.
+- Authenticated connector whoami previously returned the connected team. Actual browser navigation to its files/team/.../recents-and-sharing URL redirects to https://www.figma.com/login?is_not_gen_0=true&resource_type=team, title Login | Figma. Evidence: figma-browser-discovery.json and figma-login.png. Connector authentication does not provide a signed-in browser session. No credential/session extraction attempted.
+- All available git history searched for figma.com/design, /file and /proto URL changes in document/code files: none. Repository and attachments had no file URL. public/reference/README.md identifies expected asset19204EA5-4649-4726-9AF0-50AD4F478FC6.jpeg and explicitly records its absence. Exact filename/.fig searches in supplied attachments, public assets and accessible temporary files found none.
+- Actual accessible files/pages/frames could NOT be enumerated with these capabilities. This is not a claim that no project exists or that the Figma account has no files. Required dependency: a browser session authorized to list the team's files, an API capability to enumerate them, or one known project file key. No user frame choice is necessary once the file can be opened.
+
+Historical parent76bea5c is an IMPLEMENTATION baseline, not authenticated approved Figma:
+
+| Section | Current | Historical76bea5c | Source change | Safe correction boundary |
+|---|---|---|---|---|
+| Header/navigation | mk-header/main nav/mobile menu | HomeHeader/HomeMobileNav incl nearby link |2255a05 Home switches to MarketplaceHome| Preserve current routes; recover geometry once actual reference is accessible |
+| Hero |450px desktop/335px mobile, square shell|ref-hero650px desktop, media590/520px, curved bottom|2255a05| Confirm intended crop/height; do not blindly restore plum layout |
+| Search/tabs/controls |HomeSearchExperience; turquoise wrapper|Same search component in ReferenceHero with prior palette|2255a05 wrapper/tokens;3f0a33a hotel entry changes| Preserve Date/Guest/Room contracts; visual dimensions remain reference-dependent |
+| Service shortcuts |14 equal cards|HomeServicesHub|2255a05| Keep every vertical entry; presentation unresolved |
+| Destinations |4 equal cards270px desktop|DestinationMosaic590px, uneven3-column/2-row layout|2255a05| Recover intended composition, not guessed layout |
+| Promotions/content/cards |text-led inspiration/stay categories|ReferenceTrips/LocalExperiences/CompareBand|2255a05| Preserve current data honesty and product links |
+| Trust/organization |compact trust; org intro and3 entries|TrustSection/ReferenceOrganization|2255a05| Do not restore illustrative financial claims as live data |
+| Footer |mk-footer shallow constrained block|ReferenceFooter full-width multi-column with decorative curve|2255a05| Reference comparison needed for restoration |
+| Assistant/floating |inline AI with prompt handoff|SmartCompanion plus FloatingAssistant|2255a05| Preserve conversation draft behavior; no automatic booking/payment |
+| Width/responsive |mk-wrap max1200|ref-container max1184|2255a05, older width already narrow| Rollback is NOT a solution for1920; reference-dependent responsive candidate needed |
+
+Source reference is the exact Home() JSX replacement in2255a05 and styles of parent76bea5c. These prove structural changes; they do not prove approval of every historical section. No code changes, candidate builds or redundant E2Es performed while reference-dependent restoration is blocked. Existing verified reservation71801f8 and worker4d9f0c3 remain intact.
