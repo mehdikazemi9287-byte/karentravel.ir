@@ -282,6 +282,11 @@
       "status": "PASS",
       "reason": "Approved worker-only4d9f0c3 deployed2026-09-30:210s zero restarts, healthy, no reservation permission crash. Reaper disabled; automatic expiry NOT operational. API/Web/DB unchanged.",
       "evidence": "docs/recovery/evidence/worker-production-20260930/result.json"
+    },
+    "homepage_historical_recovery": {
+      "status": "READY_FOR_RELEASE",
+      "reason": "Frontend recovery patch only: historical Hero/mosaic/services/editorial/comparison/footer/floating restored; current routes/Search preserved. Seven-width visual/controls + isolated booking and role smoke PASS. No Production deployment; whole-source package dependencies not validated for public API. Figma pending.",
+      "evidence": "docs/recovery/2026-09-30-historical-ui-recovery.md"
     }
   }
 }

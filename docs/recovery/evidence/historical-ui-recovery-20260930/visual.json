@@ -1,0 +1,3933 @@
+[
+  {
+    "version": "76bea5c",
+    "width": 1366,
+    "overflow": false,
+    "rtl": "rtl",
+    "hero": {
+      "width": 1366,
+      "height": 650,
+      "x": 0,
+      "y": 76
+    },
+    "search": {
+      "width": 1120,
+      "height": 266.4375,
+      "x": 123,
+      "y": 671
+    },
+    "mosaic": {
+      "width": 1184,
+      "height": 590,
+      "x": 91,
+      "y": 1611.40625
+    },
+    "footer": {
+      "width": 1366,
+      "height": 327,
+      "x": 0,
+      "y": 5443.75
+    },
+    "wrap": {
+      "width": 1184,
+      "height": 76,
+      "x": 91,
+      "y": 0
+    },
+    "images": [
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=1920&q=75",
+        "alt": "مسافری در میان بادگیرها و معماری خشتی یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=750&q=75",
+        "alt": "نمایی از قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=750&q=75",
+        "alt": "نمایی از شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=1920&q=75",
+        "alt": "نمایی از یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=750&q=75",
+        "alt": "نمایی از ماسوله",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=750&q=75",
+        "alt": "سه روز در شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=750&q=75",
+        "alt": "آرامش در جزیره قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=750&q=75",
+        "alt": "مسیر سبز شمال",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#home-services",
+      "/trips",
+      "/nearby",
+      "/organization",
+      "/support",
+      "/login",
+      "/support?channel=expert",
+      "/services",
+      "/services?group=0",
+      "/services?group=1",
+      "/services?group=2",
+      "/services?group=3",
+      "/services?group=4",
+      "/services?group=5",
+      "/destinations",
+      "/destinations/qeshm",
+      "/destinations/shiraz",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/masuleh",
+      "/assistant",
+      "/compare",
+      "/experiences",
+      "/restaurants",
+      "/events-venues",
+      "/pools-sports",
+      "/attractions",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "/contact",
+      "/contact",
+      "/contact",
+      "/contact",
+      "#home-services",
+      "/trips",
+      "/nearby",
+      "/organization",
+      "/support",
+      "/",
+      "/contact",
+      "/hotels",
+      "/compare",
+      "/assistant",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/terms",
+      "/privacy",
+      "/assistant"
+    ],
+    "errors": [],
+    "network": []
+  },
+  {
+    "version": "76bea5c",
+    "width": 1440,
+    "overflow": false,
+    "rtl": "rtl",
+    "hero": {
+      "width": 1440,
+      "height": 650,
+      "x": 0,
+      "y": 76
+    },
+    "search": {
+      "width": 1120,
+      "height": 266.4375,
+      "x": 160,
+      "y": 671
+    },
+    "mosaic": {
+      "width": 1184,
+      "height": 590,
+      "x": 128,
+      "y": 1611.40625
+    },
+    "footer": {
+      "width": 1440,
+      "height": 327,
+      "x": 0,
+      "y": 5445.171875
+    },
+    "wrap": {
+      "width": 1184,
+      "height": 76,
+      "x": 128,
+      "y": 0
+    },
+    "images": [
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=1920&q=75",
+        "alt": "مسافری در میان بادگیرها و معماری خشتی یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=750&q=75",
+        "alt": "نمایی از قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=750&q=75",
+        "alt": "نمایی از شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=1920&q=75",
+        "alt": "نمایی از یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=750&q=75",
+        "alt": "نمایی از ماسوله",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=750&q=75",
+        "alt": "سه روز در شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=750&q=75",
+        "alt": "آرامش در جزیره قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=750&q=75",
+        "alt": "مسیر سبز شمال",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#home-services",
+      "/trips",
+      "/nearby",
+      "/organization",
+      "/support",
+      "/login",
+      "/support?channel=expert",
+      "/services",
+      "/services?group=0",
+      "/services?group=1",
+      "/services?group=2",
+      "/services?group=3",
+      "/services?group=4",
+      "/services?group=5",
+      "/destinations",
+      "/destinations/qeshm",
+      "/destinations/shiraz",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/masuleh",
+      "/assistant",
+      "/compare",
+      "/experiences",
+      "/restaurants",
+      "/events-venues",
+      "/pools-sports",
+      "/attractions",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "/contact",
+      "/contact",
+      "/contact",
+      "/contact",
+      "#home-services",
+      "/trips",
+      "/nearby",
+      "/organization",
+      "/support",
+      "/",
+      "/contact",
+      "/hotels",
+      "/compare",
+      "/assistant",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/terms",
+      "/privacy",
+      "/assistant"
+    ],
+    "errors": [],
+    "network": []
+  },
+  {
+    "version": "76bea5c",
+    "width": 1536,
+    "overflow": false,
+    "rtl": "rtl",
+    "hero": {
+      "width": 1536,
+      "height": 650,
+      "x": 0,
+      "y": 76
+    },
+    "search": {
+      "width": 1120,
+      "height": 266.4375,
+      "x": 208,
+      "y": 671
+    },
+    "mosaic": {
+      "width": 1184,
+      "height": 590,
+      "x": 176,
+      "y": 1611.40625
+    },
+    "footer": {
+      "width": 1536,
+      "height": 327,
+      "x": 0,
+      "y": 5445.171875
+    },
+    "wrap": {
+      "width": 1184,
+      "height": 76,
+      "x": 176,
+      "y": 0
+    },
+    "images": [
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=1920&q=75",
+        "alt": "مسافری در میان بادگیرها و معماری خشتی یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=828&q=75",
+        "alt": "نمایی از قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=828&q=75",
+        "alt": "نمایی از شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=1920&q=75",
+        "alt": "نمایی از یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=828&q=75",
+        "alt": "نمایی از ماسوله",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=828&q=75",
+        "alt": "سه روز در شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=828&q=75",
+        "alt": "آرامش در جزیره قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=828&q=75",
+        "alt": "مسیر سبز شمال",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#home-services",
+      "/trips",
+      "/nearby",
+      "/organization",
+      "/support",
+      "/login",
+      "/support?channel=expert",
+      "/services",
+      "/services?group=0",
+      "/services?group=1",
+      "/services?group=2",
+      "/services?group=3",
+      "/services?group=4",
+      "/services?group=5",
+      "/destinations",
+      "/destinations/qeshm",
+      "/destinations/shiraz",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/masuleh",
+      "/assistant",
+      "/compare",
+      "/experiences",
+      "/restaurants",
+      "/events-venues",
+      "/pools-sports",
+      "/attractions",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "/contact",
+      "/contact",
+      "/contact",
+      "/contact",
+      "#home-services",
+      "/trips",
+      "/nearby",
+      "/organization",
+      "/support",
+      "/",
+      "/contact",
+      "/hotels",
+      "/compare",
+      "/assistant",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/terms",
+      "/privacy",
+      "/assistant"
+    ],
+    "errors": [],
+    "network": []
+  },
+  {
+    "version": "76bea5c",
+    "width": 1920,
+    "overflow": false,
+    "rtl": "rtl",
+    "hero": {
+      "width": 1920,
+      "height": 650,
+      "x": 0,
+      "y": 76
+    },
+    "search": {
+      "width": 1120,
+      "height": 266.4375,
+      "x": 400,
+      "y": 671
+    },
+    "mosaic": {
+      "width": 1184,
+      "height": 590,
+      "x": 368,
+      "y": 1611.40625
+    },
+    "footer": {
+      "width": 1920,
+      "height": 327,
+      "x": 0,
+      "y": 5445.171875
+    },
+    "wrap": {
+      "width": 1184,
+      "height": 76,
+      "x": 368,
+      "y": 0
+    },
+    "images": [
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=1920&q=75",
+        "alt": "مسافری در میان بادگیرها و معماری خشتی یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=1080&q=75",
+        "alt": "نمایی از قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=1080&q=75",
+        "alt": "نمایی از شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=1920&q=75",
+        "alt": "نمایی از یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=1080&q=75",
+        "alt": "نمایی از ماسوله",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=1080&q=75",
+        "alt": "سه روز در شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=1080&q=75",
+        "alt": "آرامش در جزیره قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=1080&q=75",
+        "alt": "مسیر سبز شمال",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#home-services",
+      "/trips",
+      "/nearby",
+      "/organization",
+      "/support",
+      "/login",
+      "/support?channel=expert",
+      "/services",
+      "/services?group=0",
+      "/services?group=1",
+      "/services?group=2",
+      "/services?group=3",
+      "/services?group=4",
+      "/services?group=5",
+      "/destinations",
+      "/destinations/qeshm",
+      "/destinations/shiraz",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/masuleh",
+      "/assistant",
+      "/compare",
+      "/experiences",
+      "/restaurants",
+      "/events-venues",
+      "/pools-sports",
+      "/attractions",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "/contact",
+      "/contact",
+      "/contact",
+      "/contact",
+      "#home-services",
+      "/trips",
+      "/nearby",
+      "/organization",
+      "/support",
+      "/",
+      "/contact",
+      "/hotels",
+      "/compare",
+      "/assistant",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/terms",
+      "/privacy",
+      "/assistant"
+    ],
+    "errors": [],
+    "network": []
+  },
+  {
+    "version": "76bea5c",
+    "width": 360,
+    "overflow": false,
+    "rtl": "rtl",
+    "hero": {
+      "width": 360,
+      "height": 520,
+      "x": 0,
+      "y": 66
+    },
+    "search": {
+      "width": 312,
+      "height": 604.453125,
+      "x": 24,
+      "y": 558
+    },
+    "mosaic": {
+      "width": 328,
+      "height": 590,
+      "x": 16,
+      "y": 2162.1875
+    },
+    "footer": {
+      "width": 360,
+      "height": 517.75,
+      "x": 0,
+      "y": 7530.734375
+    },
+    "wrap": {
+      "width": 328,
+      "height": 66,
+      "x": 16,
+      "y": 0
+    },
+    "images": [
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=640&q=75",
+        "alt": "مسافری در میان بادگیرها و معماری خشتی یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=384&q=75",
+        "alt": "نمایی از قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=384&q=75",
+        "alt": "نمایی از شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=640&q=75",
+        "alt": "نمایی از یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=384&q=75",
+        "alt": "نمایی از ماسوله",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=384&q=75",
+        "alt": "سه روز در شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=384&q=75",
+        "alt": "آرامش در جزیره قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=384&q=75",
+        "alt": "مسیر سبز شمال",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#home-services",
+      "/trips",
+      "/nearby",
+      "/organization",
+      "/support",
+      "/login",
+      "/support?channel=expert",
+      "/services",
+      "/services?group=0",
+      "/services?group=1",
+      "/services?group=2",
+      "/services?group=3",
+      "/services?group=4",
+      "/services?group=5",
+      "/destinations",
+      "/destinations/qeshm",
+      "/destinations/shiraz",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/masuleh",
+      "/assistant",
+      "/compare",
+      "/experiences",
+      "/restaurants",
+      "/events-venues",
+      "/pools-sports",
+      "/attractions",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "/contact",
+      "/contact",
+      "/contact",
+      "/contact",
+      "#home-services",
+      "/trips",
+      "/nearby",
+      "/organization",
+      "/support",
+      "/",
+      "/contact",
+      "/hotels",
+      "/compare",
+      "/assistant",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/terms",
+      "/privacy"
+    ],
+    "errors": [],
+    "network": []
+  },
+  {
+    "version": "76bea5c",
+    "width": 390,
+    "overflow": false,
+    "rtl": "rtl",
+    "hero": {
+      "width": 390,
+      "height": 520,
+      "x": 0,
+      "y": 66
+    },
+    "search": {
+      "width": 342,
+      "height": 563.078125,
+      "x": 24,
+      "y": 558
+    },
+    "mosaic": {
+      "width": 358,
+      "height": 590,
+      "x": 16,
+      "y": 2120.8125
+    },
+    "footer": {
+      "width": 390,
+      "height": 495,
+      "x": 0,
+      "y": 7399.1875
+    },
+    "wrap": {
+      "width": 358,
+      "height": 66,
+      "x": 16,
+      "y": 0
+    },
+    "images": [
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=640&q=75",
+        "alt": "مسافری در میان بادگیرها و معماری خشتی یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=640&q=75",
+        "alt": "نمایی از قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=640&q=75",
+        "alt": "نمایی از شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=640&q=75",
+        "alt": "نمایی از یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=640&q=75",
+        "alt": "نمایی از ماسوله",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=640&q=75",
+        "alt": "سه روز در شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=640&q=75",
+        "alt": "آرامش در جزیره قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=640&q=75",
+        "alt": "مسیر سبز شمال",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#home-services",
+      "/trips",
+      "/nearby",
+      "/organization",
+      "/support",
+      "/login",
+      "/support?channel=expert",
+      "/services",
+      "/services?group=0",
+      "/services?group=1",
+      "/services?group=2",
+      "/services?group=3",
+      "/services?group=4",
+      "/services?group=5",
+      "/destinations",
+      "/destinations/qeshm",
+      "/destinations/shiraz",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/masuleh",
+      "/assistant",
+      "/compare",
+      "/experiences",
+      "/restaurants",
+      "/events-venues",
+      "/pools-sports",
+      "/attractions",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "/contact",
+      "/contact",
+      "/contact",
+      "/contact",
+      "#home-services",
+      "/trips",
+      "/nearby",
+      "/organization",
+      "/support",
+      "/",
+      "/contact",
+      "/hotels",
+      "/compare",
+      "/assistant",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/terms",
+      "/privacy"
+    ],
+    "errors": [],
+    "network": []
+  },
+  {
+    "version": "76bea5c",
+    "width": 430,
+    "overflow": false,
+    "rtl": "rtl",
+    "hero": {
+      "width": 430,
+      "height": 520,
+      "x": 0,
+      "y": 66
+    },
+    "search": {
+      "width": 382,
+      "height": 537.578125,
+      "x": 24,
+      "y": 558
+    },
+    "mosaic": {
+      "width": 398,
+      "height": 590,
+      "x": 16,
+      "y": 2095.3125
+    },
+    "footer": {
+      "width": 430,
+      "height": 495,
+      "x": 0,
+      "y": 7197.125
+    },
+    "wrap": {
+      "width": 398,
+      "height": 66,
+      "x": 16,
+      "y": 0
+    },
+    "images": [
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=640&q=75",
+        "alt": "مسافری در میان بادگیرها و معماری خشتی یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=640&q=75",
+        "alt": "نمایی از قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=640&q=75",
+        "alt": "نمایی از شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=640&q=75",
+        "alt": "نمایی از یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=640&q=75",
+        "alt": "نمایی از ماسوله",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=640&q=75",
+        "alt": "سه روز در شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=640&q=75",
+        "alt": "آرامش در جزیره قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3381/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=640&q=75",
+        "alt": "مسیر سبز شمال",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#home-services",
+      "/trips",
+      "/nearby",
+      "/organization",
+      "/support",
+      "/login",
+      "/support?channel=expert",
+      "/services",
+      "/services?group=0",
+      "/services?group=1",
+      "/services?group=2",
+      "/services?group=3",
+      "/services?group=4",
+      "/services?group=5",
+      "/destinations",
+      "/destinations/qeshm",
+      "/destinations/shiraz",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/masuleh",
+      "/assistant",
+      "/compare",
+      "/experiences",
+      "/restaurants",
+      "/events-venues",
+      "/pools-sports",
+      "/attractions",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "/contact",
+      "/contact",
+      "/contact",
+      "/contact",
+      "#home-services",
+      "/trips",
+      "/nearby",
+      "/organization",
+      "/support",
+      "/",
+      "/contact",
+      "/hotels",
+      "/compare",
+      "/assistant",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/terms",
+      "/privacy"
+    ],
+    "errors": [],
+    "network": []
+  },
+  {
+    "version": "2255a05",
+    "width": 1366,
+    "overflow": false,
+    "rtl": "rtl",
+    "hero": {
+      "width": 1366,
+      "height": 450,
+      "x": 0,
+      "y": 87
+    },
+    "search": {
+      "width": 1200,
+      "height": 276.6875,
+      "x": 83,
+      "y": 489
+    },
+    "mosaic": {
+      "width": 1200,
+      "height": 270,
+      "x": 83,
+      "y": 1758.46875
+    },
+    "footer": {
+      "width": 1184,
+      "height": 126.1875,
+      "x": 91,
+      "y": 3303.328125
+    },
+    "wrap": {
+      "width": 1200,
+      "height": 86,
+      "x": 83,
+      "y": 0
+    },
+    "images": [
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=1920&q=75",
+        "alt": "بادگیرها و معماری یزد؛ یکی از مقصدهای سفر در ایران",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=384&q=75",
+        "alt": "شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=384&q=75",
+        "alt": "قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=1920&q=75",
+        "alt": "یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=384&q=75",
+        "alt": "ماسوله",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#marketplace-services",
+      "#discover",
+      "/assistant",
+      "/organization",
+      "/trips",
+      "/login",
+      "#discover",
+      "/support",
+      "/services",
+      "/?vertical=flight#search",
+      "/?vertical=hotel#search",
+      "/?vertical=train#search",
+      "/?vertical=tour#search",
+      "/villas",
+      "/car-rental",
+      "/restaurants",
+      "/attractions",
+      "/pools-sports",
+      "/events-venues",
+      "/events-venues",
+      "/travel-guides",
+      "/tourist-transport",
+      "/handicrafts",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%D9%85%20%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87%E2%80%8C%D8%B1%DB%8C%D8%B2%DB%8C%20%DA%A9%D9%86%DB%8C%D9%85",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D8%B1%D8%AF%D9%86%20%DA%AF%D8%B2%DB%8C%D9%86%D9%87%E2%80%8C%D9%87%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%85%DA%A9%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/compare",
+      "/itineraries",
+      "/trips",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%B4%D9%85%D8%A7%D9%84%20%DA%A9%D8%AC%D8%A7%20%D8%A8%D8%B1%DB%8C%D9%85%D8%9F",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%DB%B4%20%D9%86%D9%81%D8%B1%20%D9%88%DB%8C%D9%84%D8%A7%20%D8%A8%D8%A7%20%D8%A7%D8%B3%D8%AA%D8%AE%D8%B1%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D9%86",
+      "/assistant?prompt=%D9%BE%D8%B1%D9%88%D8%A7%D8%B2%20%D8%B5%D8%A8%D8%AD%20%D8%AA%D9%87%D8%B1%D8%A7%D9%86%20%D9%85%D8%B4%D9%87%D8%AF%20%D9%88%20%D9%87%D8%AA%D9%84%20%D9%86%D8%B2%D8%AF%DB%8C%DA%A9%20%D8%AD%D8%B1%D9%85%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/villas",
+      "/?vertical=hotel#search",
+      "/villas?property_type=villa",
+      "/villas?property_type=apartment",
+      "/villas?property_type=suite",
+      "/villas?property_type=ecolodge",
+      "/villas?property_type=cabin",
+      "/villas?property_type=traditional_house",
+      "/villas?property_type=pool_property",
+      "/villas?property_type=forest",
+      "/villas?property_type=coastal",
+      "/assistant?prompt=%DB%8C%DA%A9%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%88%D8%AA%D8%A7%D9%87%20%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%85%D9%86%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A7%DB%8C%D9%86%20%D9%81%D8%B5%D9%84%20%D9%88%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%A2%D8%A8%E2%80%8C%D9%88%D9%87%D9%88%D8%A7%20%DB%8C%DA%A9%20%D8%A7%DB%8C%D8%AF%D9%87%D9%94%20%D8%B3%D9%81%D8%B1%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87%D8%9B%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%88%20%D8%AA%D8%A7%D8%B1%DB%8C%D8%AE%20%D8%B1%D8%A7%20%D8%A7%D8%B2%20%D9%85%D9%86%20%D8%A8%D9%BE%D8%B1%D8%B3",
+      "/tours",
+      "/experiences",
+      "/organization",
+      "/organization/requests",
+      "/employee",
+      "/trips",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/support",
+      "/integrations",
+      "/terms",
+      "/privacy"
+    ],
+    "errors": [],
+    "network": []
+  },
+  {
+    "version": "2255a05",
+    "width": 1440,
+    "overflow": false,
+    "rtl": "rtl",
+    "hero": {
+      "width": 1440,
+      "height": 450,
+      "x": 0,
+      "y": 87
+    },
+    "search": {
+      "width": 1200,
+      "height": 276.6875,
+      "x": 120,
+      "y": 489
+    },
+    "mosaic": {
+      "width": 1200,
+      "height": 270,
+      "x": 120,
+      "y": 1758.46875
+    },
+    "footer": {
+      "width": 1184,
+      "height": 126.1875,
+      "x": 128,
+      "y": 3303.328125
+    },
+    "wrap": {
+      "width": 1200,
+      "height": 86,
+      "x": 120,
+      "y": 0
+    },
+    "images": [
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=1920&q=75",
+        "alt": "بادگیرها و معماری یزد؛ یکی از مقصدهای سفر در ایران",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=384&q=75",
+        "alt": "شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=384&q=75",
+        "alt": "قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=1920&q=75",
+        "alt": "یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=384&q=75",
+        "alt": "ماسوله",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#marketplace-services",
+      "#discover",
+      "/assistant",
+      "/organization",
+      "/trips",
+      "/login",
+      "#discover",
+      "/support",
+      "/services",
+      "/?vertical=flight#search",
+      "/?vertical=hotel#search",
+      "/?vertical=train#search",
+      "/?vertical=tour#search",
+      "/villas",
+      "/car-rental",
+      "/restaurants",
+      "/attractions",
+      "/pools-sports",
+      "/events-venues",
+      "/events-venues",
+      "/travel-guides",
+      "/tourist-transport",
+      "/handicrafts",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%D9%85%20%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87%E2%80%8C%D8%B1%DB%8C%D8%B2%DB%8C%20%DA%A9%D9%86%DB%8C%D9%85",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D8%B1%D8%AF%D9%86%20%DA%AF%D8%B2%DB%8C%D9%86%D9%87%E2%80%8C%D9%87%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%85%DA%A9%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/compare",
+      "/itineraries",
+      "/trips",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%B4%D9%85%D8%A7%D9%84%20%DA%A9%D8%AC%D8%A7%20%D8%A8%D8%B1%DB%8C%D9%85%D8%9F",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%DB%B4%20%D9%86%D9%81%D8%B1%20%D9%88%DB%8C%D9%84%D8%A7%20%D8%A8%D8%A7%20%D8%A7%D8%B3%D8%AA%D8%AE%D8%B1%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D9%86",
+      "/assistant?prompt=%D9%BE%D8%B1%D9%88%D8%A7%D8%B2%20%D8%B5%D8%A8%D8%AD%20%D8%AA%D9%87%D8%B1%D8%A7%D9%86%20%D9%85%D8%B4%D9%87%D8%AF%20%D9%88%20%D9%87%D8%AA%D9%84%20%D9%86%D8%B2%D8%AF%DB%8C%DA%A9%20%D8%AD%D8%B1%D9%85%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/villas",
+      "/?vertical=hotel#search",
+      "/villas?property_type=villa",
+      "/villas?property_type=apartment",
+      "/villas?property_type=suite",
+      "/villas?property_type=ecolodge",
+      "/villas?property_type=cabin",
+      "/villas?property_type=traditional_house",
+      "/villas?property_type=pool_property",
+      "/villas?property_type=forest",
+      "/villas?property_type=coastal",
+      "/assistant?prompt=%DB%8C%DA%A9%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%88%D8%AA%D8%A7%D9%87%20%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%85%D9%86%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A7%DB%8C%D9%86%20%D9%81%D8%B5%D9%84%20%D9%88%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%A2%D8%A8%E2%80%8C%D9%88%D9%87%D9%88%D8%A7%20%DB%8C%DA%A9%20%D8%A7%DB%8C%D8%AF%D9%87%D9%94%20%D8%B3%D9%81%D8%B1%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87%D8%9B%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%88%20%D8%AA%D8%A7%D8%B1%DB%8C%D8%AE%20%D8%B1%D8%A7%20%D8%A7%D8%B2%20%D9%85%D9%86%20%D8%A8%D9%BE%D8%B1%D8%B3",
+      "/tours",
+      "/experiences",
+      "/organization",
+      "/organization/requests",
+      "/employee",
+      "/trips",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/support",
+      "/integrations",
+      "/terms",
+      "/privacy"
+    ],
+    "errors": [],
+    "network": []
+  },
+  {
+    "version": "2255a05",
+    "width": 1536,
+    "overflow": false,
+    "rtl": "rtl",
+    "hero": {
+      "width": 1536,
+      "height": 450,
+      "x": 0,
+      "y": 87
+    },
+    "search": {
+      "width": 1200,
+      "height": 276.6875,
+      "x": 168,
+      "y": 489
+    },
+    "mosaic": {
+      "width": 1200,
+      "height": 270,
+      "x": 168,
+      "y": 1758.46875
+    },
+    "footer": {
+      "width": 1184,
+      "height": 126.1875,
+      "x": 176,
+      "y": 3303.328125
+    },
+    "wrap": {
+      "width": 1200,
+      "height": 86,
+      "x": 168,
+      "y": 0
+    },
+    "images": [
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=1920&q=75",
+        "alt": "بادگیرها و معماری یزد؛ یکی از مقصدهای سفر در ایران",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=384&q=75",
+        "alt": "شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=384&q=75",
+        "alt": "قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=1920&q=75",
+        "alt": "یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=384&q=75",
+        "alt": "ماسوله",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#marketplace-services",
+      "#discover",
+      "/assistant",
+      "/organization",
+      "/trips",
+      "/login",
+      "#discover",
+      "/support",
+      "/services",
+      "/?vertical=flight#search",
+      "/?vertical=hotel#search",
+      "/?vertical=train#search",
+      "/?vertical=tour#search",
+      "/villas",
+      "/car-rental",
+      "/restaurants",
+      "/attractions",
+      "/pools-sports",
+      "/events-venues",
+      "/events-venues",
+      "/travel-guides",
+      "/tourist-transport",
+      "/handicrafts",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%D9%85%20%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87%E2%80%8C%D8%B1%DB%8C%D8%B2%DB%8C%20%DA%A9%D9%86%DB%8C%D9%85",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D8%B1%D8%AF%D9%86%20%DA%AF%D8%B2%DB%8C%D9%86%D9%87%E2%80%8C%D9%87%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%85%DA%A9%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/compare",
+      "/itineraries",
+      "/trips",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%B4%D9%85%D8%A7%D9%84%20%DA%A9%D8%AC%D8%A7%20%D8%A8%D8%B1%DB%8C%D9%85%D8%9F",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%DB%B4%20%D9%86%D9%81%D8%B1%20%D9%88%DB%8C%D9%84%D8%A7%20%D8%A8%D8%A7%20%D8%A7%D8%B3%D8%AA%D8%AE%D8%B1%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D9%86",
+      "/assistant?prompt=%D9%BE%D8%B1%D9%88%D8%A7%D8%B2%20%D8%B5%D8%A8%D8%AD%20%D8%AA%D9%87%D8%B1%D8%A7%D9%86%20%D9%85%D8%B4%D9%87%D8%AF%20%D9%88%20%D9%87%D8%AA%D9%84%20%D9%86%D8%B2%D8%AF%DB%8C%DA%A9%20%D8%AD%D8%B1%D9%85%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/villas",
+      "/?vertical=hotel#search",
+      "/villas?property_type=villa",
+      "/villas?property_type=apartment",
+      "/villas?property_type=suite",
+      "/villas?property_type=ecolodge",
+      "/villas?property_type=cabin",
+      "/villas?property_type=traditional_house",
+      "/villas?property_type=pool_property",
+      "/villas?property_type=forest",
+      "/villas?property_type=coastal",
+      "/assistant?prompt=%DB%8C%DA%A9%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%88%D8%AA%D8%A7%D9%87%20%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%85%D9%86%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A7%DB%8C%D9%86%20%D9%81%D8%B5%D9%84%20%D9%88%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%A2%D8%A8%E2%80%8C%D9%88%D9%87%D9%88%D8%A7%20%DB%8C%DA%A9%20%D8%A7%DB%8C%D8%AF%D9%87%D9%94%20%D8%B3%D9%81%D8%B1%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87%D8%9B%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%88%20%D8%AA%D8%A7%D8%B1%DB%8C%D8%AE%20%D8%B1%D8%A7%20%D8%A7%D8%B2%20%D9%85%D9%86%20%D8%A8%D9%BE%D8%B1%D8%B3",
+      "/tours",
+      "/experiences",
+      "/organization",
+      "/organization/requests",
+      "/employee",
+      "/trips",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/support",
+      "/integrations",
+      "/terms",
+      "/privacy"
+    ],
+    "errors": [],
+    "network": []
+  },
+  {
+    "version": "2255a05",
+    "width": 1920,
+    "overflow": false,
+    "rtl": "rtl",
+    "hero": {
+      "width": 1920,
+      "height": 450,
+      "x": 0,
+      "y": 87
+    },
+    "search": {
+      "width": 1200,
+      "height": 276.6875,
+      "x": 360,
+      "y": 489
+    },
+    "mosaic": {
+      "width": 1200,
+      "height": 270,
+      "x": 360,
+      "y": 1758.46875
+    },
+    "footer": {
+      "width": 1184,
+      "height": 126.1875,
+      "x": 368,
+      "y": 3303.328125
+    },
+    "wrap": {
+      "width": 1200,
+      "height": 86,
+      "x": 360,
+      "y": 0
+    },
+    "images": [
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=1920&q=75",
+        "alt": "بادگیرها و معماری یزد؛ یکی از مقصدهای سفر در ایران",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=640&q=75",
+        "alt": "شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=640&q=75",
+        "alt": "قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=1920&q=75",
+        "alt": "یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=640&q=75",
+        "alt": "ماسوله",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#marketplace-services",
+      "#discover",
+      "/assistant",
+      "/organization",
+      "/trips",
+      "/login",
+      "#discover",
+      "/support",
+      "/services",
+      "/?vertical=flight#search",
+      "/?vertical=hotel#search",
+      "/?vertical=train#search",
+      "/?vertical=tour#search",
+      "/villas",
+      "/car-rental",
+      "/restaurants",
+      "/attractions",
+      "/pools-sports",
+      "/events-venues",
+      "/events-venues",
+      "/travel-guides",
+      "/tourist-transport",
+      "/handicrafts",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%D9%85%20%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87%E2%80%8C%D8%B1%DB%8C%D8%B2%DB%8C%20%DA%A9%D9%86%DB%8C%D9%85",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D8%B1%D8%AF%D9%86%20%DA%AF%D8%B2%DB%8C%D9%86%D9%87%E2%80%8C%D9%87%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%85%DA%A9%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/compare",
+      "/itineraries",
+      "/trips",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%B4%D9%85%D8%A7%D9%84%20%DA%A9%D8%AC%D8%A7%20%D8%A8%D8%B1%DB%8C%D9%85%D8%9F",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%DB%B4%20%D9%86%D9%81%D8%B1%20%D9%88%DB%8C%D9%84%D8%A7%20%D8%A8%D8%A7%20%D8%A7%D8%B3%D8%AA%D8%AE%D8%B1%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D9%86",
+      "/assistant?prompt=%D9%BE%D8%B1%D9%88%D8%A7%D8%B2%20%D8%B5%D8%A8%D8%AD%20%D8%AA%D9%87%D8%B1%D8%A7%D9%86%20%D9%85%D8%B4%D9%87%D8%AF%20%D9%88%20%D9%87%D8%AA%D9%84%20%D9%86%D8%B2%D8%AF%DB%8C%DA%A9%20%D8%AD%D8%B1%D9%85%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/villas",
+      "/?vertical=hotel#search",
+      "/villas?property_type=villa",
+      "/villas?property_type=apartment",
+      "/villas?property_type=suite",
+      "/villas?property_type=ecolodge",
+      "/villas?property_type=cabin",
+      "/villas?property_type=traditional_house",
+      "/villas?property_type=pool_property",
+      "/villas?property_type=forest",
+      "/villas?property_type=coastal",
+      "/assistant?prompt=%DB%8C%DA%A9%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%88%D8%AA%D8%A7%D9%87%20%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%85%D9%86%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A7%DB%8C%D9%86%20%D9%81%D8%B5%D9%84%20%D9%88%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%A2%D8%A8%E2%80%8C%D9%88%D9%87%D9%88%D8%A7%20%DB%8C%DA%A9%20%D8%A7%DB%8C%D8%AF%D9%87%D9%94%20%D8%B3%D9%81%D8%B1%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87%D8%9B%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%88%20%D8%AA%D8%A7%D8%B1%DB%8C%D8%AE%20%D8%B1%D8%A7%20%D8%A7%D8%B2%20%D9%85%D9%86%20%D8%A8%D9%BE%D8%B1%D8%B3",
+      "/tours",
+      "/experiences",
+      "/organization",
+      "/organization/requests",
+      "/employee",
+      "/trips",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/support",
+      "/integrations",
+      "/terms",
+      "/privacy"
+    ],
+    "errors": [],
+    "network": []
+  },
+  {
+    "version": "2255a05",
+    "width": 360,
+    "overflow": false,
+    "rtl": "rtl",
+    "hero": {
+      "width": 360,
+      "height": 335,
+      "x": 0,
+      "y": 73
+    },
+    "search": {
+      "width": 332,
+      "height": 636.5625,
+      "x": 14,
+      "y": 378
+    },
+    "mosaic": {
+      "width": 332,
+      "height": 432,
+      "x": 14,
+      "y": 2486.375
+    },
+    "footer": {
+      "width": 0,
+      "height": 0,
+      "x": 0,
+      "y": 0
+    },
+    "wrap": {
+      "width": 332,
+      "height": 72,
+      "x": 14,
+      "y": 0
+    },
+    "images": [
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=640&q=75",
+        "alt": "بادگیرها و معماری یزد؛ یکی از مقصدهای سفر در ایران",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=384&q=75",
+        "alt": "شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=384&q=75",
+        "alt": "قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=640&q=75",
+        "alt": "یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=384&q=75",
+        "alt": "ماسوله",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#marketplace-services",
+      "#discover",
+      "/assistant",
+      "/organization",
+      "/trips",
+      "/login",
+      "#discover",
+      "/support",
+      "/services",
+      "/?vertical=flight#search",
+      "/?vertical=hotel#search",
+      "/?vertical=train#search",
+      "/?vertical=tour#search",
+      "/villas",
+      "/car-rental",
+      "/restaurants",
+      "/attractions",
+      "/pools-sports",
+      "/events-venues",
+      "/events-venues",
+      "/travel-guides",
+      "/tourist-transport",
+      "/handicrafts",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%D9%85%20%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87%E2%80%8C%D8%B1%DB%8C%D8%B2%DB%8C%20%DA%A9%D9%86%DB%8C%D9%85",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D8%B1%D8%AF%D9%86%20%DA%AF%D8%B2%DB%8C%D9%86%D9%87%E2%80%8C%D9%87%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%85%DA%A9%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/compare",
+      "/itineraries",
+      "/trips",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%B4%D9%85%D8%A7%D9%84%20%DA%A9%D8%AC%D8%A7%20%D8%A8%D8%B1%DB%8C%D9%85%D8%9F",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%DB%B4%20%D9%86%D9%81%D8%B1%20%D9%88%DB%8C%D9%84%D8%A7%20%D8%A8%D8%A7%20%D8%A7%D8%B3%D8%AA%D8%AE%D8%B1%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D9%86",
+      "/assistant?prompt=%D9%BE%D8%B1%D9%88%D8%A7%D8%B2%20%D8%B5%D8%A8%D8%AD%20%D8%AA%D9%87%D8%B1%D8%A7%D9%86%20%D9%85%D8%B4%D9%87%D8%AF%20%D9%88%20%D9%87%D8%AA%D9%84%20%D9%86%D8%B2%D8%AF%DB%8C%DA%A9%20%D8%AD%D8%B1%D9%85%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/villas",
+      "/?vertical=hotel#search",
+      "/villas?property_type=villa",
+      "/villas?property_type=apartment",
+      "/villas?property_type=suite",
+      "/villas?property_type=ecolodge",
+      "/villas?property_type=cabin",
+      "/villas?property_type=traditional_house",
+      "/villas?property_type=pool_property",
+      "/villas?property_type=forest",
+      "/villas?property_type=coastal",
+      "/assistant?prompt=%DB%8C%DA%A9%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%88%D8%AA%D8%A7%D9%87%20%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%85%D9%86%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A7%DB%8C%D9%86%20%D9%81%D8%B5%D9%84%20%D9%88%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%A2%D8%A8%E2%80%8C%D9%88%D9%87%D9%88%D8%A7%20%DB%8C%DA%A9%20%D8%A7%DB%8C%D8%AF%D9%87%D9%94%20%D8%B3%D9%81%D8%B1%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87%D8%9B%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%88%20%D8%AA%D8%A7%D8%B1%DB%8C%D8%AE%20%D8%B1%D8%A7%20%D8%A7%D8%B2%20%D9%85%D9%86%20%D8%A8%D9%BE%D8%B1%D8%B3",
+      "/tours",
+      "/experiences",
+      "/organization",
+      "/organization/requests",
+      "/employee",
+      "/trips",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/support",
+      "/integrations",
+      "/terms",
+      "/privacy"
+    ],
+    "errors": [],
+    "network": []
+  },
+  {
+    "version": "2255a05",
+    "width": 390,
+    "overflow": false,
+    "rtl": "rtl",
+    "hero": {
+      "width": 390,
+      "height": 335,
+      "x": 0,
+      "y": 73
+    },
+    "search": {
+      "width": 362,
+      "height": 595.1875,
+      "x": 14,
+      "y": 378
+    },
+    "mosaic": {
+      "width": 362,
+      "height": 432,
+      "x": 14,
+      "y": 2445
+    },
+    "footer": {
+      "width": 0,
+      "height": 0,
+      "x": 0,
+      "y": 0
+    },
+    "wrap": {
+      "width": 362,
+      "height": 72,
+      "x": 14,
+      "y": 0
+    },
+    "images": [
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=640&q=75",
+        "alt": "بادگیرها و معماری یزد؛ یکی از مقصدهای سفر در ایران",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=384&q=75",
+        "alt": "شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=384&q=75",
+        "alt": "قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=640&q=75",
+        "alt": "یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=384&q=75",
+        "alt": "ماسوله",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#marketplace-services",
+      "#discover",
+      "/assistant",
+      "/organization",
+      "/trips",
+      "/login",
+      "#discover",
+      "/support",
+      "/services",
+      "/?vertical=flight#search",
+      "/?vertical=hotel#search",
+      "/?vertical=train#search",
+      "/?vertical=tour#search",
+      "/villas",
+      "/car-rental",
+      "/restaurants",
+      "/attractions",
+      "/pools-sports",
+      "/events-venues",
+      "/events-venues",
+      "/travel-guides",
+      "/tourist-transport",
+      "/handicrafts",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%D9%85%20%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87%E2%80%8C%D8%B1%DB%8C%D8%B2%DB%8C%20%DA%A9%D9%86%DB%8C%D9%85",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D8%B1%D8%AF%D9%86%20%DA%AF%D8%B2%DB%8C%D9%86%D9%87%E2%80%8C%D9%87%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%85%DA%A9%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/compare",
+      "/itineraries",
+      "/trips",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%B4%D9%85%D8%A7%D9%84%20%DA%A9%D8%AC%D8%A7%20%D8%A8%D8%B1%DB%8C%D9%85%D8%9F",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%DB%B4%20%D9%86%D9%81%D8%B1%20%D9%88%DB%8C%D9%84%D8%A7%20%D8%A8%D8%A7%20%D8%A7%D8%B3%D8%AA%D8%AE%D8%B1%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D9%86",
+      "/assistant?prompt=%D9%BE%D8%B1%D9%88%D8%A7%D8%B2%20%D8%B5%D8%A8%D8%AD%20%D8%AA%D9%87%D8%B1%D8%A7%D9%86%20%D9%85%D8%B4%D9%87%D8%AF%20%D9%88%20%D9%87%D8%AA%D9%84%20%D9%86%D8%B2%D8%AF%DB%8C%DA%A9%20%D8%AD%D8%B1%D9%85%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/villas",
+      "/?vertical=hotel#search",
+      "/villas?property_type=villa",
+      "/villas?property_type=apartment",
+      "/villas?property_type=suite",
+      "/villas?property_type=ecolodge",
+      "/villas?property_type=cabin",
+      "/villas?property_type=traditional_house",
+      "/villas?property_type=pool_property",
+      "/villas?property_type=forest",
+      "/villas?property_type=coastal",
+      "/assistant?prompt=%DB%8C%DA%A9%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%88%D8%AA%D8%A7%D9%87%20%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%85%D9%86%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A7%DB%8C%D9%86%20%D9%81%D8%B5%D9%84%20%D9%88%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%A2%D8%A8%E2%80%8C%D9%88%D9%87%D9%88%D8%A7%20%DB%8C%DA%A9%20%D8%A7%DB%8C%D8%AF%D9%87%D9%94%20%D8%B3%D9%81%D8%B1%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87%D8%9B%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%88%20%D8%AA%D8%A7%D8%B1%DB%8C%D8%AE%20%D8%B1%D8%A7%20%D8%A7%D8%B2%20%D9%85%D9%86%20%D8%A8%D9%BE%D8%B1%D8%B3",
+      "/tours",
+      "/experiences",
+      "/organization",
+      "/organization/requests",
+      "/employee",
+      "/trips",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/support",
+      "/integrations",
+      "/terms",
+      "/privacy"
+    ],
+    "errors": [],
+    "network": []
+  },
+  {
+    "version": "2255a05",
+    "width": 430,
+    "overflow": false,
+    "rtl": "rtl",
+    "hero": {
+      "width": 430,
+      "height": 335,
+      "x": 0,
+      "y": 73
+    },
+    "search": {
+      "width": 402,
+      "height": 569.1875,
+      "x": 14,
+      "y": 378
+    },
+    "mosaic": {
+      "width": 402,
+      "height": 432,
+      "x": 14,
+      "y": 2395.609375
+    },
+    "footer": {
+      "width": 0,
+      "height": 0,
+      "x": 0,
+      "y": 0
+    },
+    "wrap": {
+      "width": 402,
+      "height": 72,
+      "x": 14,
+      "y": 0
+    },
+    "images": [
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=640&q=75",
+        "alt": "بادگیرها و معماری یزد؛ یکی از مقصدهای سفر در ایران",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=384&q=75",
+        "alt": "شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=384&q=75",
+        "alt": "قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=640&q=75",
+        "alt": "یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3382/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=384&q=75",
+        "alt": "ماسوله",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#marketplace-services",
+      "#discover",
+      "/assistant",
+      "/organization",
+      "/trips",
+      "/login",
+      "#discover",
+      "/support",
+      "/services",
+      "/?vertical=flight#search",
+      "/?vertical=hotel#search",
+      "/?vertical=train#search",
+      "/?vertical=tour#search",
+      "/villas",
+      "/car-rental",
+      "/restaurants",
+      "/attractions",
+      "/pools-sports",
+      "/events-venues",
+      "/events-venues",
+      "/travel-guides",
+      "/tourist-transport",
+      "/handicrafts",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%D9%85%20%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87%E2%80%8C%D8%B1%DB%8C%D8%B2%DB%8C%20%DA%A9%D9%86%DB%8C%D9%85",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D8%B1%D8%AF%D9%86%20%DA%AF%D8%B2%DB%8C%D9%86%D9%87%E2%80%8C%D9%87%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%85%DA%A9%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/compare",
+      "/itineraries",
+      "/trips",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%B4%D9%85%D8%A7%D9%84%20%DA%A9%D8%AC%D8%A7%20%D8%A8%D8%B1%DB%8C%D9%85%D8%9F",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%DB%B4%20%D9%86%D9%81%D8%B1%20%D9%88%DB%8C%D9%84%D8%A7%20%D8%A8%D8%A7%20%D8%A7%D8%B3%D8%AA%D8%AE%D8%B1%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D9%86",
+      "/assistant?prompt=%D9%BE%D8%B1%D9%88%D8%A7%D8%B2%20%D8%B5%D8%A8%D8%AD%20%D8%AA%D9%87%D8%B1%D8%A7%D9%86%20%D9%85%D8%B4%D9%87%D8%AF%20%D9%88%20%D9%87%D8%AA%D9%84%20%D9%86%D8%B2%D8%AF%DB%8C%DA%A9%20%D8%AD%D8%B1%D9%85%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/villas",
+      "/?vertical=hotel#search",
+      "/villas?property_type=villa",
+      "/villas?property_type=apartment",
+      "/villas?property_type=suite",
+      "/villas?property_type=ecolodge",
+      "/villas?property_type=cabin",
+      "/villas?property_type=traditional_house",
+      "/villas?property_type=pool_property",
+      "/villas?property_type=forest",
+      "/villas?property_type=coastal",
+      "/assistant?prompt=%DB%8C%DA%A9%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%88%D8%AA%D8%A7%D9%87%20%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%85%D9%86%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A7%DB%8C%D9%86%20%D9%81%D8%B5%D9%84%20%D9%88%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%A2%D8%A8%E2%80%8C%D9%88%D9%87%D9%88%D8%A7%20%DB%8C%DA%A9%20%D8%A7%DB%8C%D8%AF%D9%87%D9%94%20%D8%B3%D9%81%D8%B1%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87%D8%9B%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%88%20%D8%AA%D8%A7%D8%B1%DB%8C%D8%AE%20%D8%B1%D8%A7%20%D8%A7%D8%B2%20%D9%85%D9%86%20%D8%A8%D9%BE%D8%B1%D8%B3",
+      "/tours",
+      "/experiences",
+      "/organization",
+      "/organization/requests",
+      "/employee",
+      "/trips",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/support",
+      "/integrations",
+      "/terms",
+      "/privacy"
+    ],
+    "errors": [],
+    "network": []
+  },
+  {
+    "version": "d2ba674",
+    "width": 1366,
+    "overflow": false,
+    "rtl": "rtl",
+    "hero": {
+      "width": 1366,
+      "height": 450,
+      "x": 0,
+      "y": 87
+    },
+    "search": {
+      "width": 1200,
+      "height": 276.6875,
+      "x": 83,
+      "y": 489
+    },
+    "mosaic": {
+      "width": 1200,
+      "height": 270,
+      "x": 83,
+      "y": 1758.46875
+    },
+    "footer": {
+      "width": 1184,
+      "height": 126.1875,
+      "x": 91,
+      "y": 3303.328125
+    },
+    "wrap": {
+      "width": 1200,
+      "height": 86,
+      "x": 83,
+      "y": 0
+    },
+    "images": [
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=1920&q=75",
+        "alt": "بادگیرها و معماری یزد؛ یکی از مقصدهای سفر در ایران",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=384&q=75",
+        "alt": "شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=384&q=75",
+        "alt": "قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=1920&q=75",
+        "alt": "یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=384&q=75",
+        "alt": "ماسوله",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#marketplace-services",
+      "#discover",
+      "/assistant",
+      "/organization",
+      "/trips",
+      "/login",
+      "#discover",
+      "/support",
+      "/services",
+      "/?vertical=flight#search",
+      "/?vertical=hotel#search",
+      "/?vertical=train#search",
+      "/?vertical=tour#search",
+      "/villas",
+      "/car-rental",
+      "/restaurants",
+      "/attractions",
+      "/pools-sports",
+      "/events-venues",
+      "/events-venues",
+      "/travel-guides",
+      "/tourist-transport",
+      "/handicrafts",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%D9%85%20%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87%E2%80%8C%D8%B1%DB%8C%D8%B2%DB%8C%20%DA%A9%D9%86%DB%8C%D9%85",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D8%B1%D8%AF%D9%86%20%DA%AF%D8%B2%DB%8C%D9%86%D9%87%E2%80%8C%D9%87%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%85%DA%A9%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/compare",
+      "/itineraries",
+      "/trips",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%B4%D9%85%D8%A7%D9%84%20%DA%A9%D8%AC%D8%A7%20%D8%A8%D8%B1%DB%8C%D9%85%D8%9F",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%DB%B4%20%D9%86%D9%81%D8%B1%20%D9%88%DB%8C%D9%84%D8%A7%20%D8%A8%D8%A7%20%D8%A7%D8%B3%D8%AA%D8%AE%D8%B1%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D9%86",
+      "/assistant?prompt=%D9%BE%D8%B1%D9%88%D8%A7%D8%B2%20%D8%B5%D8%A8%D8%AD%20%D8%AA%D9%87%D8%B1%D8%A7%D9%86%20%D9%85%D8%B4%D9%87%D8%AF%20%D9%88%20%D9%87%D8%AA%D9%84%20%D9%86%D8%B2%D8%AF%DB%8C%DA%A9%20%D8%AD%D8%B1%D9%85%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/villas",
+      "/?vertical=hotel#search",
+      "/villas?property_type=villa",
+      "/villas?property_type=apartment",
+      "/villas?property_type=suite",
+      "/villas?property_type=ecolodge",
+      "/villas?property_type=cabin",
+      "/villas?property_type=traditional_house",
+      "/villas?property_type=pool_property",
+      "/villas?property_type=forest",
+      "/villas?property_type=coastal",
+      "/assistant?prompt=%DB%8C%DA%A9%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%88%D8%AA%D8%A7%D9%87%20%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%85%D9%86%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A7%DB%8C%D9%86%20%D9%81%D8%B5%D9%84%20%D9%88%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%A2%D8%A8%E2%80%8C%D9%88%D9%87%D9%88%D8%A7%20%DB%8C%DA%A9%20%D8%A7%DB%8C%D8%AF%D9%87%D9%94%20%D8%B3%D9%81%D8%B1%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87%D8%9B%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%88%20%D8%AA%D8%A7%D8%B1%DB%8C%D8%AE%20%D8%B1%D8%A7%20%D8%A7%D8%B2%20%D9%85%D9%86%20%D8%A8%D9%BE%D8%B1%D8%B3",
+      "/tours",
+      "/experiences",
+      "/organization",
+      "/organization/requests",
+      "/employee",
+      "/trips",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/support",
+      "/integrations",
+      "/terms",
+      "/privacy"
+    ],
+    "errors": [],
+    "network": []
+  },
+  {
+    "version": "d2ba674",
+    "width": 1440,
+    "overflow": false,
+    "rtl": "rtl",
+    "hero": {
+      "width": 1440,
+      "height": 450,
+      "x": 0,
+      "y": 87
+    },
+    "search": {
+      "width": 1200,
+      "height": 276.6875,
+      "x": 120,
+      "y": 489
+    },
+    "mosaic": {
+      "width": 1200,
+      "height": 270,
+      "x": 120,
+      "y": 1758.46875
+    },
+    "footer": {
+      "width": 1184,
+      "height": 126.1875,
+      "x": 128,
+      "y": 3303.328125
+    },
+    "wrap": {
+      "width": 1200,
+      "height": 86,
+      "x": 120,
+      "y": 0
+    },
+    "images": [
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=1920&q=75",
+        "alt": "بادگیرها و معماری یزد؛ یکی از مقصدهای سفر در ایران",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=384&q=75",
+        "alt": "شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=384&q=75",
+        "alt": "قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=1920&q=75",
+        "alt": "یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=384&q=75",
+        "alt": "ماسوله",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#marketplace-services",
+      "#discover",
+      "/assistant",
+      "/organization",
+      "/trips",
+      "/login",
+      "#discover",
+      "/support",
+      "/services",
+      "/?vertical=flight#search",
+      "/?vertical=hotel#search",
+      "/?vertical=train#search",
+      "/?vertical=tour#search",
+      "/villas",
+      "/car-rental",
+      "/restaurants",
+      "/attractions",
+      "/pools-sports",
+      "/events-venues",
+      "/events-venues",
+      "/travel-guides",
+      "/tourist-transport",
+      "/handicrafts",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%D9%85%20%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87%E2%80%8C%D8%B1%DB%8C%D8%B2%DB%8C%20%DA%A9%D9%86%DB%8C%D9%85",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D8%B1%D8%AF%D9%86%20%DA%AF%D8%B2%DB%8C%D9%86%D9%87%E2%80%8C%D9%87%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%85%DA%A9%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/compare",
+      "/itineraries",
+      "/trips",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%B4%D9%85%D8%A7%D9%84%20%DA%A9%D8%AC%D8%A7%20%D8%A8%D8%B1%DB%8C%D9%85%D8%9F",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%DB%B4%20%D9%86%D9%81%D8%B1%20%D9%88%DB%8C%D9%84%D8%A7%20%D8%A8%D8%A7%20%D8%A7%D8%B3%D8%AA%D8%AE%D8%B1%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D9%86",
+      "/assistant?prompt=%D9%BE%D8%B1%D9%88%D8%A7%D8%B2%20%D8%B5%D8%A8%D8%AD%20%D8%AA%D9%87%D8%B1%D8%A7%D9%86%20%D9%85%D8%B4%D9%87%D8%AF%20%D9%88%20%D9%87%D8%AA%D9%84%20%D9%86%D8%B2%D8%AF%DB%8C%DA%A9%20%D8%AD%D8%B1%D9%85%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/villas",
+      "/?vertical=hotel#search",
+      "/villas?property_type=villa",
+      "/villas?property_type=apartment",
+      "/villas?property_type=suite",
+      "/villas?property_type=ecolodge",
+      "/villas?property_type=cabin",
+      "/villas?property_type=traditional_house",
+      "/villas?property_type=pool_property",
+      "/villas?property_type=forest",
+      "/villas?property_type=coastal",
+      "/assistant?prompt=%DB%8C%DA%A9%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%88%D8%AA%D8%A7%D9%87%20%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%85%D9%86%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A7%DB%8C%D9%86%20%D9%81%D8%B5%D9%84%20%D9%88%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%A2%D8%A8%E2%80%8C%D9%88%D9%87%D9%88%D8%A7%20%DB%8C%DA%A9%20%D8%A7%DB%8C%D8%AF%D9%87%D9%94%20%D8%B3%D9%81%D8%B1%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87%D8%9B%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%88%20%D8%AA%D8%A7%D8%B1%DB%8C%D8%AE%20%D8%B1%D8%A7%20%D8%A7%D8%B2%20%D9%85%D9%86%20%D8%A8%D9%BE%D8%B1%D8%B3",
+      "/tours",
+      "/experiences",
+      "/organization",
+      "/organization/requests",
+      "/employee",
+      "/trips",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/support",
+      "/integrations",
+      "/terms",
+      "/privacy"
+    ],
+    "errors": [],
+    "network": []
+  },
+  {
+    "version": "d2ba674",
+    "width": 1536,
+    "overflow": false,
+    "rtl": "rtl",
+    "hero": {
+      "width": 1536,
+      "height": 450,
+      "x": 0,
+      "y": 87
+    },
+    "search": {
+      "width": 1200,
+      "height": 276.6875,
+      "x": 168,
+      "y": 489
+    },
+    "mosaic": {
+      "width": 1200,
+      "height": 270,
+      "x": 168,
+      "y": 1758.46875
+    },
+    "footer": {
+      "width": 1184,
+      "height": 126.1875,
+      "x": 176,
+      "y": 3303.328125
+    },
+    "wrap": {
+      "width": 1200,
+      "height": 86,
+      "x": 168,
+      "y": 0
+    },
+    "images": [
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=1920&q=75",
+        "alt": "بادگیرها و معماری یزد؛ یکی از مقصدهای سفر در ایران",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=384&q=75",
+        "alt": "شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=384&q=75",
+        "alt": "قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=1920&q=75",
+        "alt": "یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=384&q=75",
+        "alt": "ماسوله",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#marketplace-services",
+      "#discover",
+      "/assistant",
+      "/organization",
+      "/trips",
+      "/login",
+      "#discover",
+      "/support",
+      "/services",
+      "/?vertical=flight#search",
+      "/?vertical=hotel#search",
+      "/?vertical=train#search",
+      "/?vertical=tour#search",
+      "/villas",
+      "/car-rental",
+      "/restaurants",
+      "/attractions",
+      "/pools-sports",
+      "/events-venues",
+      "/events-venues",
+      "/travel-guides",
+      "/tourist-transport",
+      "/handicrafts",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%D9%85%20%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87%E2%80%8C%D8%B1%DB%8C%D8%B2%DB%8C%20%DA%A9%D9%86%DB%8C%D9%85",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D8%B1%D8%AF%D9%86%20%DA%AF%D8%B2%DB%8C%D9%86%D9%87%E2%80%8C%D9%87%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%85%DA%A9%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/compare",
+      "/itineraries",
+      "/trips",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%B4%D9%85%D8%A7%D9%84%20%DA%A9%D8%AC%D8%A7%20%D8%A8%D8%B1%DB%8C%D9%85%D8%9F",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%DB%B4%20%D9%86%D9%81%D8%B1%20%D9%88%DB%8C%D9%84%D8%A7%20%D8%A8%D8%A7%20%D8%A7%D8%B3%D8%AA%D8%AE%D8%B1%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D9%86",
+      "/assistant?prompt=%D9%BE%D8%B1%D9%88%D8%A7%D8%B2%20%D8%B5%D8%A8%D8%AD%20%D8%AA%D9%87%D8%B1%D8%A7%D9%86%20%D9%85%D8%B4%D9%87%D8%AF%20%D9%88%20%D9%87%D8%AA%D9%84%20%D9%86%D8%B2%D8%AF%DB%8C%DA%A9%20%D8%AD%D8%B1%D9%85%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/villas",
+      "/?vertical=hotel#search",
+      "/villas?property_type=villa",
+      "/villas?property_type=apartment",
+      "/villas?property_type=suite",
+      "/villas?property_type=ecolodge",
+      "/villas?property_type=cabin",
+      "/villas?property_type=traditional_house",
+      "/villas?property_type=pool_property",
+      "/villas?property_type=forest",
+      "/villas?property_type=coastal",
+      "/assistant?prompt=%DB%8C%DA%A9%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%88%D8%AA%D8%A7%D9%87%20%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%85%D9%86%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A7%DB%8C%D9%86%20%D9%81%D8%B5%D9%84%20%D9%88%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%A2%D8%A8%E2%80%8C%D9%88%D9%87%D9%88%D8%A7%20%DB%8C%DA%A9%20%D8%A7%DB%8C%D8%AF%D9%87%D9%94%20%D8%B3%D9%81%D8%B1%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87%D8%9B%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%88%20%D8%AA%D8%A7%D8%B1%DB%8C%D8%AE%20%D8%B1%D8%A7%20%D8%A7%D8%B2%20%D9%85%D9%86%20%D8%A8%D9%BE%D8%B1%D8%B3",
+      "/tours",
+      "/experiences",
+      "/organization",
+      "/organization/requests",
+      "/employee",
+      "/trips",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/support",
+      "/integrations",
+      "/terms",
+      "/privacy"
+    ],
+    "errors": [],
+    "network": []
+  },
+  {
+    "version": "d2ba674",
+    "width": 1920,
+    "overflow": false,
+    "rtl": "rtl",
+    "hero": {
+      "width": 1920,
+      "height": 450,
+      "x": 0,
+      "y": 87
+    },
+    "search": {
+      "width": 1200,
+      "height": 276.6875,
+      "x": 360,
+      "y": 489
+    },
+    "mosaic": {
+      "width": 1200,
+      "height": 270,
+      "x": 360,
+      "y": 1758.46875
+    },
+    "footer": {
+      "width": 1184,
+      "height": 126.1875,
+      "x": 368,
+      "y": 3303.328125
+    },
+    "wrap": {
+      "width": 1200,
+      "height": 86,
+      "x": 360,
+      "y": 0
+    },
+    "images": [
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=1920&q=75",
+        "alt": "بادگیرها و معماری یزد؛ یکی از مقصدهای سفر در ایران",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=640&q=75",
+        "alt": "شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=640&q=75",
+        "alt": "قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=1920&q=75",
+        "alt": "یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=640&q=75",
+        "alt": "ماسوله",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#marketplace-services",
+      "#discover",
+      "/assistant",
+      "/organization",
+      "/trips",
+      "/login",
+      "#discover",
+      "/support",
+      "/services",
+      "/?vertical=flight#search",
+      "/?vertical=hotel#search",
+      "/?vertical=train#search",
+      "/?vertical=tour#search",
+      "/villas",
+      "/car-rental",
+      "/restaurants",
+      "/attractions",
+      "/pools-sports",
+      "/events-venues",
+      "/events-venues",
+      "/travel-guides",
+      "/tourist-transport",
+      "/handicrafts",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%D9%85%20%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87%E2%80%8C%D8%B1%DB%8C%D8%B2%DB%8C%20%DA%A9%D9%86%DB%8C%D9%85",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D8%B1%D8%AF%D9%86%20%DA%AF%D8%B2%DB%8C%D9%86%D9%87%E2%80%8C%D9%87%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%85%DA%A9%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/compare",
+      "/itineraries",
+      "/trips",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%B4%D9%85%D8%A7%D9%84%20%DA%A9%D8%AC%D8%A7%20%D8%A8%D8%B1%DB%8C%D9%85%D8%9F",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%DB%B4%20%D9%86%D9%81%D8%B1%20%D9%88%DB%8C%D9%84%D8%A7%20%D8%A8%D8%A7%20%D8%A7%D8%B3%D8%AA%D8%AE%D8%B1%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D9%86",
+      "/assistant?prompt=%D9%BE%D8%B1%D9%88%D8%A7%D8%B2%20%D8%B5%D8%A8%D8%AD%20%D8%AA%D9%87%D8%B1%D8%A7%D9%86%20%D9%85%D8%B4%D9%87%D8%AF%20%D9%88%20%D9%87%D8%AA%D9%84%20%D9%86%D8%B2%D8%AF%DB%8C%DA%A9%20%D8%AD%D8%B1%D9%85%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/villas",
+      "/?vertical=hotel#search",
+      "/villas?property_type=villa",
+      "/villas?property_type=apartment",
+      "/villas?property_type=suite",
+      "/villas?property_type=ecolodge",
+      "/villas?property_type=cabin",
+      "/villas?property_type=traditional_house",
+      "/villas?property_type=pool_property",
+      "/villas?property_type=forest",
+      "/villas?property_type=coastal",
+      "/assistant?prompt=%DB%8C%DA%A9%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%88%D8%AA%D8%A7%D9%87%20%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%85%D9%86%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A7%DB%8C%D9%86%20%D9%81%D8%B5%D9%84%20%D9%88%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%A2%D8%A8%E2%80%8C%D9%88%D9%87%D9%88%D8%A7%20%DB%8C%DA%A9%20%D8%A7%DB%8C%D8%AF%D9%87%D9%94%20%D8%B3%D9%81%D8%B1%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87%D8%9B%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%88%20%D8%AA%D8%A7%D8%B1%DB%8C%D8%AE%20%D8%B1%D8%A7%20%D8%A7%D8%B2%20%D9%85%D9%86%20%D8%A8%D9%BE%D8%B1%D8%B3",
+      "/tours",
+      "/experiences",
+      "/organization",
+      "/organization/requests",
+      "/employee",
+      "/trips",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/support",
+      "/integrations",
+      "/terms",
+      "/privacy"
+    ],
+    "errors": [],
+    "network": []
+  },
+  {
+    "version": "d2ba674",
+    "width": 360,
+    "overflow": false,
+    "rtl": "rtl",
+    "hero": {
+      "width": 360,
+      "height": 335,
+      "x": 0,
+      "y": 73
+    },
+    "search": {
+      "width": 332,
+      "height": 636.5625,
+      "x": 14,
+      "y": 378
+    },
+    "mosaic": {
+      "width": 332,
+      "height": 432,
+      "x": 14,
+      "y": 2486.375
+    },
+    "footer": {
+      "width": 0,
+      "height": 0,
+      "x": 0,
+      "y": 0
+    },
+    "wrap": {
+      "width": 332,
+      "height": 72,
+      "x": 14,
+      "y": 0
+    },
+    "images": [
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=640&q=75",
+        "alt": "بادگیرها و معماری یزد؛ یکی از مقصدهای سفر در ایران",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=384&q=75",
+        "alt": "شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=384&q=75",
+        "alt": "قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=640&q=75",
+        "alt": "یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=384&q=75",
+        "alt": "ماسوله",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#marketplace-services",
+      "#discover",
+      "/assistant",
+      "/organization",
+      "/trips",
+      "/login",
+      "#discover",
+      "/support",
+      "/services",
+      "/?vertical=flight#search",
+      "/?vertical=hotel#search",
+      "/?vertical=train#search",
+      "/?vertical=tour#search",
+      "/villas",
+      "/car-rental",
+      "/restaurants",
+      "/attractions",
+      "/pools-sports",
+      "/events-venues",
+      "/events-venues",
+      "/travel-guides",
+      "/tourist-transport",
+      "/handicrafts",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%D9%85%20%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87%E2%80%8C%D8%B1%DB%8C%D8%B2%DB%8C%20%DA%A9%D9%86%DB%8C%D9%85",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D8%B1%D8%AF%D9%86%20%DA%AF%D8%B2%DB%8C%D9%86%D9%87%E2%80%8C%D9%87%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%85%DA%A9%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/compare",
+      "/itineraries",
+      "/trips",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%B4%D9%85%D8%A7%D9%84%20%DA%A9%D8%AC%D8%A7%20%D8%A8%D8%B1%DB%8C%D9%85%D8%9F",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%DB%B4%20%D9%86%D9%81%D8%B1%20%D9%88%DB%8C%D9%84%D8%A7%20%D8%A8%D8%A7%20%D8%A7%D8%B3%D8%AA%D8%AE%D8%B1%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D9%86",
+      "/assistant?prompt=%D9%BE%D8%B1%D9%88%D8%A7%D8%B2%20%D8%B5%D8%A8%D8%AD%20%D8%AA%D9%87%D8%B1%D8%A7%D9%86%20%D9%85%D8%B4%D9%87%D8%AF%20%D9%88%20%D9%87%D8%AA%D9%84%20%D9%86%D8%B2%D8%AF%DB%8C%DA%A9%20%D8%AD%D8%B1%D9%85%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/villas",
+      "/?vertical=hotel#search",
+      "/villas?property_type=villa",
+      "/villas?property_type=apartment",
+      "/villas?property_type=suite",
+      "/villas?property_type=ecolodge",
+      "/villas?property_type=cabin",
+      "/villas?property_type=traditional_house",
+      "/villas?property_type=pool_property",
+      "/villas?property_type=forest",
+      "/villas?property_type=coastal",
+      "/assistant?prompt=%DB%8C%DA%A9%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%88%D8%AA%D8%A7%D9%87%20%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%85%D9%86%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A7%DB%8C%D9%86%20%D9%81%D8%B5%D9%84%20%D9%88%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%A2%D8%A8%E2%80%8C%D9%88%D9%87%D9%88%D8%A7%20%DB%8C%DA%A9%20%D8%A7%DB%8C%D8%AF%D9%87%D9%94%20%D8%B3%D9%81%D8%B1%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87%D8%9B%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%88%20%D8%AA%D8%A7%D8%B1%DB%8C%D8%AE%20%D8%B1%D8%A7%20%D8%A7%D8%B2%20%D9%85%D9%86%20%D8%A8%D9%BE%D8%B1%D8%B3",
+      "/tours",
+      "/experiences",
+      "/organization",
+      "/organization/requests",
+      "/employee",
+      "/trips",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/support",
+      "/integrations",
+      "/terms",
+      "/privacy"
+    ],
+    "errors": [],
+    "network": []
+  },
+  {
+    "version": "d2ba674",
+    "width": 390,
+    "overflow": false,
+    "rtl": "rtl",
+    "hero": {
+      "width": 390,
+      "height": 335,
+      "x": 0,
+      "y": 73
+    },
+    "search": {
+      "width": 362,
+      "height": 595.1875,
+      "x": 14,
+      "y": 378
+    },
+    "mosaic": {
+      "width": 362,
+      "height": 432,
+      "x": 14,
+      "y": 2445
+    },
+    "footer": {
+      "width": 0,
+      "height": 0,
+      "x": 0,
+      "y": 0
+    },
+    "wrap": {
+      "width": 362,
+      "height": 72,
+      "x": 14,
+      "y": 0
+    },
+    "images": [
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=640&q=75",
+        "alt": "بادگیرها و معماری یزد؛ یکی از مقصدهای سفر در ایران",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=384&q=75",
+        "alt": "شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=384&q=75",
+        "alt": "قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=640&q=75",
+        "alt": "یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=384&q=75",
+        "alt": "ماسوله",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#marketplace-services",
+      "#discover",
+      "/assistant",
+      "/organization",
+      "/trips",
+      "/login",
+      "#discover",
+      "/support",
+      "/services",
+      "/?vertical=flight#search",
+      "/?vertical=hotel#search",
+      "/?vertical=train#search",
+      "/?vertical=tour#search",
+      "/villas",
+      "/car-rental",
+      "/restaurants",
+      "/attractions",
+      "/pools-sports",
+      "/events-venues",
+      "/events-venues",
+      "/travel-guides",
+      "/tourist-transport",
+      "/handicrafts",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%D9%85%20%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87%E2%80%8C%D8%B1%DB%8C%D8%B2%DB%8C%20%DA%A9%D9%86%DB%8C%D9%85",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D8%B1%D8%AF%D9%86%20%DA%AF%D8%B2%DB%8C%D9%86%D9%87%E2%80%8C%D9%87%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%85%DA%A9%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/compare",
+      "/itineraries",
+      "/trips",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%B4%D9%85%D8%A7%D9%84%20%DA%A9%D8%AC%D8%A7%20%D8%A8%D8%B1%DB%8C%D9%85%D8%9F",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%DB%B4%20%D9%86%D9%81%D8%B1%20%D9%88%DB%8C%D9%84%D8%A7%20%D8%A8%D8%A7%20%D8%A7%D8%B3%D8%AA%D8%AE%D8%B1%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D9%86",
+      "/assistant?prompt=%D9%BE%D8%B1%D9%88%D8%A7%D8%B2%20%D8%B5%D8%A8%D8%AD%20%D8%AA%D9%87%D8%B1%D8%A7%D9%86%20%D9%85%D8%B4%D9%87%D8%AF%20%D9%88%20%D9%87%D8%AA%D9%84%20%D9%86%D8%B2%D8%AF%DB%8C%DA%A9%20%D8%AD%D8%B1%D9%85%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/villas",
+      "/?vertical=hotel#search",
+      "/villas?property_type=villa",
+      "/villas?property_type=apartment",
+      "/villas?property_type=suite",
+      "/villas?property_type=ecolodge",
+      "/villas?property_type=cabin",
+      "/villas?property_type=traditional_house",
+      "/villas?property_type=pool_property",
+      "/villas?property_type=forest",
+      "/villas?property_type=coastal",
+      "/assistant?prompt=%DB%8C%DA%A9%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%88%D8%AA%D8%A7%D9%87%20%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%85%D9%86%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A7%DB%8C%D9%86%20%D9%81%D8%B5%D9%84%20%D9%88%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%A2%D8%A8%E2%80%8C%D9%88%D9%87%D9%88%D8%A7%20%DB%8C%DA%A9%20%D8%A7%DB%8C%D8%AF%D9%87%D9%94%20%D8%B3%D9%81%D8%B1%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87%D8%9B%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%88%20%D8%AA%D8%A7%D8%B1%DB%8C%D8%AE%20%D8%B1%D8%A7%20%D8%A7%D8%B2%20%D9%85%D9%86%20%D8%A8%D9%BE%D8%B1%D8%B3",
+      "/tours",
+      "/experiences",
+      "/organization",
+      "/organization/requests",
+      "/employee",
+      "/trips",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/support",
+      "/integrations",
+      "/terms",
+      "/privacy"
+    ],
+    "errors": [],
+    "network": []
+  },
+  {
+    "version": "d2ba674",
+    "width": 430,
+    "overflow": false,
+    "rtl": "rtl",
+    "hero": {
+      "width": 430,
+      "height": 335,
+      "x": 0,
+      "y": 73
+    },
+    "search": {
+      "width": 402,
+      "height": 569.1875,
+      "x": 14,
+      "y": 378
+    },
+    "mosaic": {
+      "width": 402,
+      "height": 432,
+      "x": 14,
+      "y": 2395.609375
+    },
+    "footer": {
+      "width": 0,
+      "height": 0,
+      "x": 0,
+      "y": 0
+    },
+    "wrap": {
+      "width": 402,
+      "height": 72,
+      "x": 14,
+      "y": 0
+    },
+    "images": [
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=640&q=75",
+        "alt": "بادگیرها و معماری یزد؛ یکی از مقصدهای سفر در ایران",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=384&q=75",
+        "alt": "شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=384&q=75",
+        "alt": "قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=640&q=75",
+        "alt": "یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3383/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=384&q=75",
+        "alt": "ماسوله",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#marketplace-services",
+      "#discover",
+      "/assistant",
+      "/organization",
+      "/trips",
+      "/login",
+      "#discover",
+      "/support",
+      "/services",
+      "/?vertical=flight#search",
+      "/?vertical=hotel#search",
+      "/?vertical=train#search",
+      "/?vertical=tour#search",
+      "/villas",
+      "/car-rental",
+      "/restaurants",
+      "/attractions",
+      "/pools-sports",
+      "/events-venues",
+      "/events-venues",
+      "/travel-guides",
+      "/tourist-transport",
+      "/handicrafts",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%D9%85%20%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87%E2%80%8C%D8%B1%DB%8C%D8%B2%DB%8C%20%DA%A9%D9%86%DB%8C%D9%85",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D8%B1%D8%AF%D9%86%20%DA%AF%D8%B2%DB%8C%D9%86%D9%87%E2%80%8C%D9%87%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%85%DA%A9%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/compare",
+      "/itineraries",
+      "/trips",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%B4%D9%85%D8%A7%D9%84%20%DA%A9%D8%AC%D8%A7%20%D8%A8%D8%B1%DB%8C%D9%85%D8%9F",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%DB%B4%20%D9%86%D9%81%D8%B1%20%D9%88%DB%8C%D9%84%D8%A7%20%D8%A8%D8%A7%20%D8%A7%D8%B3%D8%AA%D8%AE%D8%B1%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D9%86",
+      "/assistant?prompt=%D9%BE%D8%B1%D9%88%D8%A7%D8%B2%20%D8%B5%D8%A8%D8%AD%20%D8%AA%D9%87%D8%B1%D8%A7%D9%86%20%D9%85%D8%B4%D9%87%D8%AF%20%D9%88%20%D9%87%D8%AA%D9%84%20%D9%86%D8%B2%D8%AF%DB%8C%DA%A9%20%D8%AD%D8%B1%D9%85%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/villas",
+      "/?vertical=hotel#search",
+      "/villas?property_type=villa",
+      "/villas?property_type=apartment",
+      "/villas?property_type=suite",
+      "/villas?property_type=ecolodge",
+      "/villas?property_type=cabin",
+      "/villas?property_type=traditional_house",
+      "/villas?property_type=pool_property",
+      "/villas?property_type=forest",
+      "/villas?property_type=coastal",
+      "/assistant?prompt=%DB%8C%DA%A9%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%88%D8%AA%D8%A7%D9%87%20%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%85%D9%86%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A7%DB%8C%D9%86%20%D9%81%D8%B5%D9%84%20%D9%88%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%A2%D8%A8%E2%80%8C%D9%88%D9%87%D9%88%D8%A7%20%DB%8C%DA%A9%20%D8%A7%DB%8C%D8%AF%D9%87%D9%94%20%D8%B3%D9%81%D8%B1%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87%D8%9B%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%88%20%D8%AA%D8%A7%D8%B1%DB%8C%D8%AE%20%D8%B1%D8%A7%20%D8%A7%D8%B2%20%D9%85%D9%86%20%D8%A8%D9%BE%D8%B1%D8%B3",
+      "/tours",
+      "/experiences",
+      "/organization",
+      "/organization/requests",
+      "/employee",
+      "/trips",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/support",
+      "/integrations",
+      "/terms",
+      "/privacy"
+    ],
+    "errors": [],
+    "network": []
+  },
+  {
+    "version": "candidate",
+    "width": 1366,
+    "overflow": false,
+    "rtl": "rtl",
+    "hero": {
+      "width": 1366,
+      "height": 650,
+      "x": 0,
+      "y": 87
+    },
+    "search": {
+      "width": 1120,
+      "height": 276.6875,
+      "x": 123,
+      "y": 689
+    },
+    "mosaic": {
+      "width": 1184,
+      "height": 590,
+      "x": 91,
+      "y": 1777.71875
+    },
+    "footer": {
+      "width": 1366,
+      "height": 328.25,
+      "x": 0,
+      "y": 5145.1875
+    },
+    "wrap": {
+      "width": 1200,
+      "height": 86,
+      "x": 83,
+      "y": 0
+    },
+    "images": [
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=1920&q=75",
+        "alt": "مسافری در میان بادگیرها و معماری خشتی یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=750&q=75",
+        "alt": "نمایی از قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=750&q=75",
+        "alt": "نمایی از شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=1920&q=75",
+        "alt": "نمایی از یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=750&q=75",
+        "alt": "نمایی از ماسوله",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=750&q=75",
+        "alt": "سه روز در شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=750&q=75",
+        "alt": "آرامش در جزیره قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=750&q=75",
+        "alt": "مسیر سبز شمال",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#marketplace-services",
+      "#discover",
+      "/assistant",
+      "/organization",
+      "/trips",
+      "/login",
+      "/support",
+      "/services",
+      "/services?group=0",
+      "/services?group=1",
+      "/services?group=2",
+      "/services?group=3",
+      "/services?group=4",
+      "/services?group=5",
+      "/?vertical=flight#search",
+      "/?vertical=hotel#search",
+      "/?vertical=train#search",
+      "/?vertical=tour#search",
+      "/villas",
+      "/car-rental",
+      "/restaurants",
+      "/attractions",
+      "/pools-sports",
+      "/events-venues",
+      "/events-venues",
+      "/travel-guides",
+      "/tourist-transport",
+      "/handicrafts",
+      "/destinations",
+      "/destinations/qeshm",
+      "/destinations/shiraz",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/masuleh",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%D9%85%20%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87%E2%80%8C%D8%B1%DB%8C%D8%B2%DB%8C%20%DA%A9%D9%86%DB%8C%D9%85",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D8%B1%D8%AF%D9%86%20%DA%AF%D8%B2%DB%8C%D9%86%D9%87%E2%80%8C%D9%87%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%85%DA%A9%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/compare",
+      "/itineraries",
+      "/trips",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%B4%D9%85%D8%A7%D9%84%20%DA%A9%D8%AC%D8%A7%20%D8%A8%D8%B1%DB%8C%D9%85%D8%9F",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%DB%B4%20%D9%86%D9%81%D8%B1%20%D9%88%DB%8C%D9%84%D8%A7%20%D8%A8%D8%A7%20%D8%A7%D8%B3%D8%AA%D8%AE%D8%B1%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D9%86",
+      "/assistant?prompt=%D9%BE%D8%B1%D9%88%D8%A7%D8%B2%20%D8%B5%D8%A8%D8%AD%20%D8%AA%D9%87%D8%B1%D8%A7%D9%86%20%D9%85%D8%B4%D9%87%D8%AF%20%D9%88%20%D9%87%D8%AA%D9%84%20%D9%86%D8%B2%D8%AF%DB%8C%DA%A9%20%D8%AD%D8%B1%D9%85%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/compare",
+      "/villas",
+      "/?vertical=hotel#search",
+      "/villas?property_type=villa",
+      "/villas?property_type=apartment",
+      "/villas?property_type=suite",
+      "/villas?property_type=ecolodge",
+      "/villas?property_type=cabin",
+      "/villas?property_type=traditional_house",
+      "/villas?property_type=pool_property",
+      "/villas?property_type=forest",
+      "/villas?property_type=coastal",
+      "/assistant?prompt=%DB%8C%DA%A9%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%88%D8%AA%D8%A7%D9%87%20%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%85%D9%86%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A7%DB%8C%D9%86%20%D9%81%D8%B5%D9%84%20%D9%88%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%A2%D8%A8%E2%80%8C%D9%88%D9%87%D9%88%D8%A7%20%DB%8C%DA%A9%20%D8%A7%DB%8C%D8%AF%D9%87%D9%94%20%D8%B3%D9%81%D8%B1%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87%D8%9B%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%88%20%D8%AA%D8%A7%D8%B1%DB%8C%D8%AE%20%D8%B1%D8%A7%20%D8%A7%D8%B2%20%D9%85%D9%86%20%D8%A8%D9%BE%D8%B1%D8%B3",
+      "/tours",
+      "/experiences",
+      "/organization",
+      "/organization/requests",
+      "/employee",
+      "/trips",
+      "tel:+989191258009",
+      "/support",
+      "/",
+      "/contact",
+      "/hotels",
+      "/compare",
+      "/assistant",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/terms",
+      "/privacy"
+    ],
+    "errors": [],
+    "network": []
+  },
+  {
+    "version": "candidate",
+    "width": 1440,
+    "overflow": false,
+    "rtl": "rtl",
+    "hero": {
+      "width": 1440,
+      "height": 650,
+      "x": 0,
+      "y": 87
+    },
+    "search": {
+      "width": 1120,
+      "height": 276.6875,
+      "x": 160,
+      "y": 689
+    },
+    "mosaic": {
+      "width": 1184,
+      "height": 590,
+      "x": 128,
+      "y": 1777.71875
+    },
+    "footer": {
+      "width": 1440,
+      "height": 328.25,
+      "x": 0,
+      "y": 5145.1875
+    },
+    "wrap": {
+      "width": 1200,
+      "height": 86,
+      "x": 120,
+      "y": 0
+    },
+    "images": [
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=1920&q=75",
+        "alt": "مسافری در میان بادگیرها و معماری خشتی یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=750&q=75",
+        "alt": "نمایی از قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=750&q=75",
+        "alt": "نمایی از شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=1920&q=75",
+        "alt": "نمایی از یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=750&q=75",
+        "alt": "نمایی از ماسوله",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=750&q=75",
+        "alt": "سه روز در شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=750&q=75",
+        "alt": "آرامش در جزیره قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=750&q=75",
+        "alt": "مسیر سبز شمال",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#marketplace-services",
+      "#discover",
+      "/assistant",
+      "/organization",
+      "/trips",
+      "/login",
+      "/support",
+      "/services",
+      "/services?group=0",
+      "/services?group=1",
+      "/services?group=2",
+      "/services?group=3",
+      "/services?group=4",
+      "/services?group=5",
+      "/?vertical=flight#search",
+      "/?vertical=hotel#search",
+      "/?vertical=train#search",
+      "/?vertical=tour#search",
+      "/villas",
+      "/car-rental",
+      "/restaurants",
+      "/attractions",
+      "/pools-sports",
+      "/events-venues",
+      "/events-venues",
+      "/travel-guides",
+      "/tourist-transport",
+      "/handicrafts",
+      "/destinations",
+      "/destinations/qeshm",
+      "/destinations/shiraz",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/masuleh",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%D9%85%20%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87%E2%80%8C%D8%B1%DB%8C%D8%B2%DB%8C%20%DA%A9%D9%86%DB%8C%D9%85",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D8%B1%D8%AF%D9%86%20%DA%AF%D8%B2%DB%8C%D9%86%D9%87%E2%80%8C%D9%87%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%85%DA%A9%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/compare",
+      "/itineraries",
+      "/trips",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%B4%D9%85%D8%A7%D9%84%20%DA%A9%D8%AC%D8%A7%20%D8%A8%D8%B1%DB%8C%D9%85%D8%9F",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%DB%B4%20%D9%86%D9%81%D8%B1%20%D9%88%DB%8C%D9%84%D8%A7%20%D8%A8%D8%A7%20%D8%A7%D8%B3%D8%AA%D8%AE%D8%B1%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D9%86",
+      "/assistant?prompt=%D9%BE%D8%B1%D9%88%D8%A7%D8%B2%20%D8%B5%D8%A8%D8%AD%20%D8%AA%D9%87%D8%B1%D8%A7%D9%86%20%D9%85%D8%B4%D9%87%D8%AF%20%D9%88%20%D9%87%D8%AA%D9%84%20%D9%86%D8%B2%D8%AF%DB%8C%DA%A9%20%D8%AD%D8%B1%D9%85%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/compare",
+      "/villas",
+      "/?vertical=hotel#search",
+      "/villas?property_type=villa",
+      "/villas?property_type=apartment",
+      "/villas?property_type=suite",
+      "/villas?property_type=ecolodge",
+      "/villas?property_type=cabin",
+      "/villas?property_type=traditional_house",
+      "/villas?property_type=pool_property",
+      "/villas?property_type=forest",
+      "/villas?property_type=coastal",
+      "/assistant?prompt=%DB%8C%DA%A9%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%88%D8%AA%D8%A7%D9%87%20%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%85%D9%86%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A7%DB%8C%D9%86%20%D9%81%D8%B5%D9%84%20%D9%88%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%A2%D8%A8%E2%80%8C%D9%88%D9%87%D9%88%D8%A7%20%DB%8C%DA%A9%20%D8%A7%DB%8C%D8%AF%D9%87%D9%94%20%D8%B3%D9%81%D8%B1%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87%D8%9B%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%88%20%D8%AA%D8%A7%D8%B1%DB%8C%D8%AE%20%D8%B1%D8%A7%20%D8%A7%D8%B2%20%D9%85%D9%86%20%D8%A8%D9%BE%D8%B1%D8%B3",
+      "/tours",
+      "/experiences",
+      "/organization",
+      "/organization/requests",
+      "/employee",
+      "/trips",
+      "tel:+989191258009",
+      "/support",
+      "/",
+      "/contact",
+      "/hotels",
+      "/compare",
+      "/assistant",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/terms",
+      "/privacy"
+    ],
+    "errors": [],
+    "network": []
+  },
+  {
+    "version": "candidate",
+    "width": 1536,
+    "overflow": false,
+    "rtl": "rtl",
+    "hero": {
+      "width": 1536,
+      "height": 650,
+      "x": 0,
+      "y": 87
+    },
+    "search": {
+      "width": 1120,
+      "height": 276.6875,
+      "x": 208,
+      "y": 689
+    },
+    "mosaic": {
+      "width": 1184,
+      "height": 590,
+      "x": 176,
+      "y": 1777.71875
+    },
+    "footer": {
+      "width": 1536,
+      "height": 328.25,
+      "x": 0,
+      "y": 5145.1875
+    },
+    "wrap": {
+      "width": 1200,
+      "height": 86,
+      "x": 168,
+      "y": 0
+    },
+    "images": [
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=1920&q=75",
+        "alt": "مسافری در میان بادگیرها و معماری خشتی یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=828&q=75",
+        "alt": "نمایی از قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=828&q=75",
+        "alt": "نمایی از شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=1920&q=75",
+        "alt": "نمایی از یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=828&q=75",
+        "alt": "نمایی از ماسوله",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=828&q=75",
+        "alt": "سه روز در شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=828&q=75",
+        "alt": "آرامش در جزیره قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=828&q=75",
+        "alt": "مسیر سبز شمال",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#marketplace-services",
+      "#discover",
+      "/assistant",
+      "/organization",
+      "/trips",
+      "/login",
+      "/support",
+      "/services",
+      "/services?group=0",
+      "/services?group=1",
+      "/services?group=2",
+      "/services?group=3",
+      "/services?group=4",
+      "/services?group=5",
+      "/?vertical=flight#search",
+      "/?vertical=hotel#search",
+      "/?vertical=train#search",
+      "/?vertical=tour#search",
+      "/villas",
+      "/car-rental",
+      "/restaurants",
+      "/attractions",
+      "/pools-sports",
+      "/events-venues",
+      "/events-venues",
+      "/travel-guides",
+      "/tourist-transport",
+      "/handicrafts",
+      "/destinations",
+      "/destinations/qeshm",
+      "/destinations/shiraz",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/masuleh",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%D9%85%20%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87%E2%80%8C%D8%B1%DB%8C%D8%B2%DB%8C%20%DA%A9%D9%86%DB%8C%D9%85",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D8%B1%D8%AF%D9%86%20%DA%AF%D8%B2%DB%8C%D9%86%D9%87%E2%80%8C%D9%87%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%85%DA%A9%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/compare",
+      "/itineraries",
+      "/trips",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%B4%D9%85%D8%A7%D9%84%20%DA%A9%D8%AC%D8%A7%20%D8%A8%D8%B1%DB%8C%D9%85%D8%9F",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%DB%B4%20%D9%86%D9%81%D8%B1%20%D9%88%DB%8C%D9%84%D8%A7%20%D8%A8%D8%A7%20%D8%A7%D8%B3%D8%AA%D8%AE%D8%B1%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D9%86",
+      "/assistant?prompt=%D9%BE%D8%B1%D9%88%D8%A7%D8%B2%20%D8%B5%D8%A8%D8%AD%20%D8%AA%D9%87%D8%B1%D8%A7%D9%86%20%D9%85%D8%B4%D9%87%D8%AF%20%D9%88%20%D9%87%D8%AA%D9%84%20%D9%86%D8%B2%D8%AF%DB%8C%DA%A9%20%D8%AD%D8%B1%D9%85%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/compare",
+      "/villas",
+      "/?vertical=hotel#search",
+      "/villas?property_type=villa",
+      "/villas?property_type=apartment",
+      "/villas?property_type=suite",
+      "/villas?property_type=ecolodge",
+      "/villas?property_type=cabin",
+      "/villas?property_type=traditional_house",
+      "/villas?property_type=pool_property",
+      "/villas?property_type=forest",
+      "/villas?property_type=coastal",
+      "/assistant?prompt=%DB%8C%DA%A9%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%88%D8%AA%D8%A7%D9%87%20%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%85%D9%86%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A7%DB%8C%D9%86%20%D9%81%D8%B5%D9%84%20%D9%88%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%A2%D8%A8%E2%80%8C%D9%88%D9%87%D9%88%D8%A7%20%DB%8C%DA%A9%20%D8%A7%DB%8C%D8%AF%D9%87%D9%94%20%D8%B3%D9%81%D8%B1%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87%D8%9B%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%88%20%D8%AA%D8%A7%D8%B1%DB%8C%D8%AE%20%D8%B1%D8%A7%20%D8%A7%D8%B2%20%D9%85%D9%86%20%D8%A8%D9%BE%D8%B1%D8%B3",
+      "/tours",
+      "/experiences",
+      "/organization",
+      "/organization/requests",
+      "/employee",
+      "/trips",
+      "tel:+989191258009",
+      "/support",
+      "/",
+      "/contact",
+      "/hotels",
+      "/compare",
+      "/assistant",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/terms",
+      "/privacy"
+    ],
+    "errors": [],
+    "network": []
+  },
+  {
+    "version": "candidate",
+    "width": 1920,
+    "overflow": false,
+    "rtl": "rtl",
+    "hero": {
+      "width": 1920,
+      "height": 650,
+      "x": 0,
+      "y": 87
+    },
+    "search": {
+      "width": 1480,
+      "height": 276.6875,
+      "x": 220,
+      "y": 689
+    },
+    "mosaic": {
+      "width": 1480,
+      "height": 590,
+      "x": 220,
+      "y": 1777.71875
+    },
+    "footer": {
+      "width": 1920,
+      "height": 328.25,
+      "x": 0,
+      "y": 5145.1875
+    },
+    "wrap": {
+      "width": 1480,
+      "height": 86,
+      "x": 220,
+      "y": 0
+    },
+    "images": [
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=1920&q=75",
+        "alt": "مسافری در میان بادگیرها و معماری خشتی یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=1080&q=75",
+        "alt": "نمایی از قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=1080&q=75",
+        "alt": "نمایی از شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=1920&q=75",
+        "alt": "نمایی از یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=1080&q=75",
+        "alt": "نمایی از ماسوله",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=1080&q=75",
+        "alt": "سه روز در شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=1080&q=75",
+        "alt": "آرامش در جزیره قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=1080&q=75",
+        "alt": "مسیر سبز شمال",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#marketplace-services",
+      "#discover",
+      "/assistant",
+      "/organization",
+      "/trips",
+      "/login",
+      "/support",
+      "/services",
+      "/services?group=0",
+      "/services?group=1",
+      "/services?group=2",
+      "/services?group=3",
+      "/services?group=4",
+      "/services?group=5",
+      "/?vertical=flight#search",
+      "/?vertical=hotel#search",
+      "/?vertical=train#search",
+      "/?vertical=tour#search",
+      "/villas",
+      "/car-rental",
+      "/restaurants",
+      "/attractions",
+      "/pools-sports",
+      "/events-venues",
+      "/events-venues",
+      "/travel-guides",
+      "/tourist-transport",
+      "/handicrafts",
+      "/destinations",
+      "/destinations/qeshm",
+      "/destinations/shiraz",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/masuleh",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%D9%85%20%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87%E2%80%8C%D8%B1%DB%8C%D8%B2%DB%8C%20%DA%A9%D9%86%DB%8C%D9%85",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D8%B1%D8%AF%D9%86%20%DA%AF%D8%B2%DB%8C%D9%86%D9%87%E2%80%8C%D9%87%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%85%DA%A9%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/compare",
+      "/itineraries",
+      "/trips",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%B4%D9%85%D8%A7%D9%84%20%DA%A9%D8%AC%D8%A7%20%D8%A8%D8%B1%DB%8C%D9%85%D8%9F",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%DB%B4%20%D9%86%D9%81%D8%B1%20%D9%88%DB%8C%D9%84%D8%A7%20%D8%A8%D8%A7%20%D8%A7%D8%B3%D8%AA%D8%AE%D8%B1%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D9%86",
+      "/assistant?prompt=%D9%BE%D8%B1%D9%88%D8%A7%D8%B2%20%D8%B5%D8%A8%D8%AD%20%D8%AA%D9%87%D8%B1%D8%A7%D9%86%20%D9%85%D8%B4%D9%87%D8%AF%20%D9%88%20%D9%87%D8%AA%D9%84%20%D9%86%D8%B2%D8%AF%DB%8C%DA%A9%20%D8%AD%D8%B1%D9%85%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/compare",
+      "/villas",
+      "/?vertical=hotel#search",
+      "/villas?property_type=villa",
+      "/villas?property_type=apartment",
+      "/villas?property_type=suite",
+      "/villas?property_type=ecolodge",
+      "/villas?property_type=cabin",
+      "/villas?property_type=traditional_house",
+      "/villas?property_type=pool_property",
+      "/villas?property_type=forest",
+      "/villas?property_type=coastal",
+      "/assistant?prompt=%DB%8C%DA%A9%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%88%D8%AA%D8%A7%D9%87%20%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%85%D9%86%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A7%DB%8C%D9%86%20%D9%81%D8%B5%D9%84%20%D9%88%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%A2%D8%A8%E2%80%8C%D9%88%D9%87%D9%88%D8%A7%20%DB%8C%DA%A9%20%D8%A7%DB%8C%D8%AF%D9%87%D9%94%20%D8%B3%D9%81%D8%B1%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87%D8%9B%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%88%20%D8%AA%D8%A7%D8%B1%DB%8C%D8%AE%20%D8%B1%D8%A7%20%D8%A7%D8%B2%20%D9%85%D9%86%20%D8%A8%D9%BE%D8%B1%D8%B3",
+      "/tours",
+      "/experiences",
+      "/organization",
+      "/organization/requests",
+      "/employee",
+      "/trips",
+      "tel:+989191258009",
+      "/support",
+      "/",
+      "/contact",
+      "/hotels",
+      "/compare",
+      "/assistant",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/terms",
+      "/privacy"
+    ],
+    "errors": [],
+    "network": []
+  },
+  {
+    "version": "candidate",
+    "width": 360,
+    "overflow": false,
+    "rtl": "rtl",
+    "hero": {
+      "width": 360,
+      "height": 520,
+      "x": 0,
+      "y": 73
+    },
+    "search": {
+      "width": 332,
+      "height": 636.5625,
+      "x": 14,
+      "y": 563
+    },
+    "mosaic": {
+      "width": 328,
+      "height": 590,
+      "x": 16,
+      "y": 2420.859375
+    },
+    "footer": {
+      "width": 360,
+      "height": 539,
+      "x": 0,
+      "y": 7218.203125
+    },
+    "wrap": {
+      "width": 332,
+      "height": 72,
+      "x": 14,
+      "y": 0
+    },
+    "images": [
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=640&q=75",
+        "alt": "مسافری در میان بادگیرها و معماری خشتی یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=384&q=75",
+        "alt": "نمایی از قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=384&q=75",
+        "alt": "نمایی از شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=640&q=75",
+        "alt": "نمایی از یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=384&q=75",
+        "alt": "نمایی از ماسوله",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=384&q=75",
+        "alt": "سه روز در شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=384&q=75",
+        "alt": "آرامش در جزیره قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=384&q=75",
+        "alt": "مسیر سبز شمال",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#marketplace-services",
+      "#discover",
+      "/assistant",
+      "/organization",
+      "/trips",
+      "/login",
+      "/support",
+      "/services",
+      "/services?group=0",
+      "/services?group=1",
+      "/services?group=2",
+      "/services?group=3",
+      "/services?group=4",
+      "/services?group=5",
+      "/?vertical=flight#search",
+      "/?vertical=hotel#search",
+      "/?vertical=train#search",
+      "/?vertical=tour#search",
+      "/villas",
+      "/car-rental",
+      "/restaurants",
+      "/attractions",
+      "/pools-sports",
+      "/events-venues",
+      "/events-venues",
+      "/travel-guides",
+      "/tourist-transport",
+      "/handicrafts",
+      "/destinations",
+      "/destinations/qeshm",
+      "/destinations/shiraz",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/masuleh",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%D9%85%20%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87%E2%80%8C%D8%B1%DB%8C%D8%B2%DB%8C%20%DA%A9%D9%86%DB%8C%D9%85",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D8%B1%D8%AF%D9%86%20%DA%AF%D8%B2%DB%8C%D9%86%D9%87%E2%80%8C%D9%87%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%85%DA%A9%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/compare",
+      "/itineraries",
+      "/trips",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%B4%D9%85%D8%A7%D9%84%20%DA%A9%D8%AC%D8%A7%20%D8%A8%D8%B1%DB%8C%D9%85%D8%9F",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%DB%B4%20%D9%86%D9%81%D8%B1%20%D9%88%DB%8C%D9%84%D8%A7%20%D8%A8%D8%A7%20%D8%A7%D8%B3%D8%AA%D8%AE%D8%B1%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D9%86",
+      "/assistant?prompt=%D9%BE%D8%B1%D9%88%D8%A7%D8%B2%20%D8%B5%D8%A8%D8%AD%20%D8%AA%D9%87%D8%B1%D8%A7%D9%86%20%D9%85%D8%B4%D9%87%D8%AF%20%D9%88%20%D9%87%D8%AA%D9%84%20%D9%86%D8%B2%D8%AF%DB%8C%DA%A9%20%D8%AD%D8%B1%D9%85%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/compare",
+      "/villas",
+      "/?vertical=hotel#search",
+      "/villas?property_type=villa",
+      "/villas?property_type=apartment",
+      "/villas?property_type=suite",
+      "/villas?property_type=ecolodge",
+      "/villas?property_type=cabin",
+      "/villas?property_type=traditional_house",
+      "/villas?property_type=pool_property",
+      "/villas?property_type=forest",
+      "/villas?property_type=coastal",
+      "/assistant?prompt=%DB%8C%DA%A9%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%88%D8%AA%D8%A7%D9%87%20%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%85%D9%86%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A7%DB%8C%D9%86%20%D9%81%D8%B5%D9%84%20%D9%88%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%A2%D8%A8%E2%80%8C%D9%88%D9%87%D9%88%D8%A7%20%DB%8C%DA%A9%20%D8%A7%DB%8C%D8%AF%D9%87%D9%94%20%D8%B3%D9%81%D8%B1%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87%D8%9B%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%88%20%D8%AA%D8%A7%D8%B1%DB%8C%D8%AE%20%D8%B1%D8%A7%20%D8%A7%D8%B2%20%D9%85%D9%86%20%D8%A8%D9%BE%D8%B1%D8%B3",
+      "/tours",
+      "/experiences",
+      "/organization",
+      "/organization/requests",
+      "/employee",
+      "/trips",
+      "tel:+989191258009",
+      "/support",
+      "/",
+      "/contact",
+      "/hotels",
+      "/compare",
+      "/assistant",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/terms",
+      "/privacy"
+    ],
+    "errors": [],
+    "network": []
+  },
+  {
+    "version": "candidate",
+    "width": 390,
+    "overflow": false,
+    "rtl": "rtl",
+    "hero": {
+      "width": 390,
+      "height": 520,
+      "x": 0,
+      "y": 73
+    },
+    "search": {
+      "width": 362,
+      "height": 595.1875,
+      "x": 14,
+      "y": 563
+    },
+    "mosaic": {
+      "width": 358,
+      "height": 590,
+      "x": 16,
+      "y": 2379.484375
+    },
+    "footer": {
+      "width": 390,
+      "height": 516.25,
+      "x": 0,
+      "y": 7118.796875
+    },
+    "wrap": {
+      "width": 362,
+      "height": 72,
+      "x": 14,
+      "y": 0
+    },
+    "images": [
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=640&q=75",
+        "alt": "مسافری در میان بادگیرها و معماری خشتی یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=640&q=75",
+        "alt": "نمایی از قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=640&q=75",
+        "alt": "نمایی از شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=640&q=75",
+        "alt": "نمایی از یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=640&q=75",
+        "alt": "نمایی از ماسوله",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=640&q=75",
+        "alt": "سه روز در شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=640&q=75",
+        "alt": "آرامش در جزیره قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=640&q=75",
+        "alt": "مسیر سبز شمال",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#marketplace-services",
+      "#discover",
+      "/assistant",
+      "/organization",
+      "/trips",
+      "/login",
+      "/support",
+      "/services",
+      "/services?group=0",
+      "/services?group=1",
+      "/services?group=2",
+      "/services?group=3",
+      "/services?group=4",
+      "/services?group=5",
+      "/?vertical=flight#search",
+      "/?vertical=hotel#search",
+      "/?vertical=train#search",
+      "/?vertical=tour#search",
+      "/villas",
+      "/car-rental",
+      "/restaurants",
+      "/attractions",
+      "/pools-sports",
+      "/events-venues",
+      "/events-venues",
+      "/travel-guides",
+      "/tourist-transport",
+      "/handicrafts",
+      "/destinations",
+      "/destinations/qeshm",
+      "/destinations/shiraz",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/masuleh",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%D9%85%20%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87%E2%80%8C%D8%B1%DB%8C%D8%B2%DB%8C%20%DA%A9%D9%86%DB%8C%D9%85",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D8%B1%D8%AF%D9%86%20%DA%AF%D8%B2%DB%8C%D9%86%D9%87%E2%80%8C%D9%87%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%85%DA%A9%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/compare",
+      "/itineraries",
+      "/trips",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%B4%D9%85%D8%A7%D9%84%20%DA%A9%D8%AC%D8%A7%20%D8%A8%D8%B1%DB%8C%D9%85%D8%9F",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%DB%B4%20%D9%86%D9%81%D8%B1%20%D9%88%DB%8C%D9%84%D8%A7%20%D8%A8%D8%A7%20%D8%A7%D8%B3%D8%AA%D8%AE%D8%B1%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D9%86",
+      "/assistant?prompt=%D9%BE%D8%B1%D9%88%D8%A7%D8%B2%20%D8%B5%D8%A8%D8%AD%20%D8%AA%D9%87%D8%B1%D8%A7%D9%86%20%D9%85%D8%B4%D9%87%D8%AF%20%D9%88%20%D9%87%D8%AA%D9%84%20%D9%86%D8%B2%D8%AF%DB%8C%DA%A9%20%D8%AD%D8%B1%D9%85%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/compare",
+      "/villas",
+      "/?vertical=hotel#search",
+      "/villas?property_type=villa",
+      "/villas?property_type=apartment",
+      "/villas?property_type=suite",
+      "/villas?property_type=ecolodge",
+      "/villas?property_type=cabin",
+      "/villas?property_type=traditional_house",
+      "/villas?property_type=pool_property",
+      "/villas?property_type=forest",
+      "/villas?property_type=coastal",
+      "/assistant?prompt=%DB%8C%DA%A9%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%88%D8%AA%D8%A7%D9%87%20%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%85%D9%86%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A7%DB%8C%D9%86%20%D9%81%D8%B5%D9%84%20%D9%88%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%A2%D8%A8%E2%80%8C%D9%88%D9%87%D9%88%D8%A7%20%DB%8C%DA%A9%20%D8%A7%DB%8C%D8%AF%D9%87%D9%94%20%D8%B3%D9%81%D8%B1%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87%D8%9B%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%88%20%D8%AA%D8%A7%D8%B1%DB%8C%D8%AE%20%D8%B1%D8%A7%20%D8%A7%D8%B2%20%D9%85%D9%86%20%D8%A8%D9%BE%D8%B1%D8%B3",
+      "/tours",
+      "/experiences",
+      "/organization",
+      "/organization/requests",
+      "/employee",
+      "/trips",
+      "tel:+989191258009",
+      "/support",
+      "/",
+      "/contact",
+      "/hotels",
+      "/compare",
+      "/assistant",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/terms",
+      "/privacy"
+    ],
+    "errors": [],
+    "network": []
+  },
+  {
+    "version": "candidate",
+    "width": 430,
+    "overflow": false,
+    "rtl": "rtl",
+    "hero": {
+      "width": 430,
+      "height": 520,
+      "x": 0,
+      "y": 73
+    },
+    "search": {
+      "width": 402,
+      "height": 569.1875,
+      "x": 14,
+      "y": 563
+    },
+    "mosaic": {
+      "width": 398,
+      "height": 590,
+      "x": 16,
+      "y": 2353.484375
+    },
+    "footer": {
+      "width": 430,
+      "height": 516.25,
+      "x": 0,
+      "y": 6910.046875
+    },
+    "wrap": {
+      "width": 402,
+      "height": 72,
+      "x": 14,
+      "y": 0
+    },
+    "images": [
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=640&q=75",
+        "alt": "مسافری در میان بادگیرها و معماری خشتی یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=640&q=75",
+        "alt": "نمایی از قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=640&q=75",
+        "alt": "نمایی از شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=640&q=75",
+        "alt": "نمایی از یزد",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=640&q=75",
+        "alt": "نمایی از ماسوله",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=640&q=75",
+        "alt": "سه روز در شیراز",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=640&q=75",
+        "alt": "آرامش در جزیره قشم",
+        "loaded": true
+      },
+      {
+        "src": "http://127.0.0.1:3384/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=640&q=75",
+        "alt": "مسیر سبز شمال",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#marketplace-services",
+      "#discover",
+      "/assistant",
+      "/organization",
+      "/trips",
+      "/login",
+      "/support",
+      "/services",
+      "/services?group=0",
+      "/services?group=1",
+      "/services?group=2",
+      "/services?group=3",
+      "/services?group=4",
+      "/services?group=5",
+      "/?vertical=flight#search",
+      "/?vertical=hotel#search",
+      "/?vertical=train#search",
+      "/?vertical=tour#search",
+      "/villas",
+      "/car-rental",
+      "/restaurants",
+      "/attractions",
+      "/pools-sports",
+      "/events-venues",
+      "/events-venues",
+      "/travel-guides",
+      "/tourist-transport",
+      "/handicrafts",
+      "/destinations",
+      "/destinations/qeshm",
+      "/destinations/shiraz",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/masuleh",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%D9%85%20%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87%E2%80%8C%D8%B1%DB%8C%D8%B2%DB%8C%20%DA%A9%D9%86%DB%8C%D9%85",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D8%B1%D8%AF%D9%86%20%DA%AF%D8%B2%DB%8C%D9%86%D9%87%E2%80%8C%D9%87%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%85%DA%A9%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/compare",
+      "/itineraries",
+      "/trips",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%B4%D9%85%D8%A7%D9%84%20%DA%A9%D8%AC%D8%A7%20%D8%A8%D8%B1%DB%8C%D9%85%D8%9F",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%DB%B4%20%D9%86%D9%81%D8%B1%20%D9%88%DB%8C%D9%84%D8%A7%20%D8%A8%D8%A7%20%D8%A7%D8%B3%D8%AA%D8%AE%D8%B1%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D9%86",
+      "/assistant?prompt=%D9%BE%D8%B1%D9%88%D8%A7%D8%B2%20%D8%B5%D8%A8%D8%AD%20%D8%AA%D9%87%D8%B1%D8%A7%D9%86%20%D9%85%D8%B4%D9%87%D8%AF%20%D9%88%20%D9%87%D8%AA%D9%84%20%D9%86%D8%B2%D8%AF%DB%8C%DA%A9%20%D8%AD%D8%B1%D9%85%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/compare",
+      "/villas",
+      "/?vertical=hotel#search",
+      "/villas?property_type=villa",
+      "/villas?property_type=apartment",
+      "/villas?property_type=suite",
+      "/villas?property_type=ecolodge",
+      "/villas?property_type=cabin",
+      "/villas?property_type=traditional_house",
+      "/villas?property_type=pool_property",
+      "/villas?property_type=forest",
+      "/villas?property_type=coastal",
+      "/assistant?prompt=%DB%8C%DA%A9%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%88%D8%AA%D8%A7%D9%87%20%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%85%D9%86%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A7%DB%8C%D9%86%20%D9%81%D8%B5%D9%84%20%D9%88%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%A2%D8%A8%E2%80%8C%D9%88%D9%87%D9%88%D8%A7%20%DB%8C%DA%A9%20%D8%A7%DB%8C%D8%AF%D9%87%D9%94%20%D8%B3%D9%81%D8%B1%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87%D8%9B%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%88%20%D8%AA%D8%A7%D8%B1%DB%8C%D8%AE%20%D8%B1%D8%A7%20%D8%A7%D8%B2%20%D9%85%D9%86%20%D8%A8%D9%BE%D8%B1%D8%B3",
+      "/tours",
+      "/experiences",
+      "/organization",
+      "/organization/requests",
+      "/employee",
+      "/trips",
+      "tel:+989191258009",
+      "/support",
+      "/",
+      "/contact",
+      "/hotels",
+      "/compare",
+      "/assistant",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/terms",
+      "/privacy"
+    ],
+    "errors": [],
+    "network": []
+  }
+]

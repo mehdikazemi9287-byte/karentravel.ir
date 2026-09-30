@@ -1,0 +1,47 @@
+{
+  "pass": true,
+  "rows": [
+    {
+      "width": 1366,
+      "dateAndGuestKeyboard": true,
+      "panelsWithinViewport": true,
+      "menuAndFloating": "desktop-hidden-by-historical-rule"
+    },
+    {
+      "width": 1440,
+      "dateAndGuestKeyboard": true,
+      "panelsWithinViewport": true,
+      "menuAndFloating": "desktop-hidden-by-historical-rule"
+    },
+    {
+      "width": 1536,
+      "dateAndGuestKeyboard": true,
+      "panelsWithinViewport": true,
+      "menuAndFloating": "desktop-hidden-by-historical-rule"
+    },
+    {
+      "width": 1920,
+      "dateAndGuestKeyboard": true,
+      "panelsWithinViewport": true,
+      "menuAndFloating": "desktop-hidden-by-historical-rule"
+    },
+    {
+      "width": 360,
+      "dateAndGuestKeyboard": true,
+      "panelsWithinViewport": true,
+      "menuAndFloating": true
+    },
+    {
+      "width": 390,
+      "dateAndGuestKeyboard": true,
+      "panelsWithinViewport": true,
+      "menuAndFloating": true
+    },
+    {
+      "width": 430,
+      "dateAndGuestKeyboard": true,
+      "panelsWithinViewport": true,
+      "menuAndFloating": true
+    }
+  ]
+}

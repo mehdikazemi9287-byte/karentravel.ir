@@ -1,0 +1,128 @@
+[
+  {
+    "version": "76bea5c",
+    "width": 1366,
+    "footerVisible": true,
+    "mosaicImages": 4
+  },
+  {
+    "version": "76bea5c",
+    "width": 1440,
+    "footerVisible": true,
+    "mosaicImages": 4
+  },
+  {
+    "version": "76bea5c",
+    "width": 1536,
+    "footerVisible": true,
+    "mosaicImages": 4
+  },
+  {
+    "version": "76bea5c",
+    "width": 1920,
+    "footerVisible": true,
+    "mosaicImages": 4
+  },
+  {
+    "version": "76bea5c",
+    "width": 360,
+    "footerVisible": true,
+    "mosaicImages": 4
+  },
+  {
+    "version": "76bea5c",
+    "width": 390,
+    "footerVisible": true,
+    "mosaicImages": 4
+  },
+  {
+    "version": "76bea5c",
+    "width": 430,
+    "footerVisible": true,
+    "mosaicImages": 4
+  },
+  {
+    "version": "d2ba674",
+    "width": 1366,
+    "footerVisible": true,
+    "mosaicImages": 4
+  },
+  {
+    "version": "d2ba674",
+    "width": 1440,
+    "footerVisible": true,
+    "mosaicImages": 4
+  },
+  {
+    "version": "d2ba674",
+    "width": 1536,
+    "footerVisible": true,
+    "mosaicImages": 4
+  },
+  {
+    "version": "d2ba674",
+    "width": 1920,
+    "footerVisible": true,
+    "mosaicImages": 4
+  },
+  {
+    "version": "d2ba674",
+    "width": 360,
+    "footerVisible": false,
+    "mosaicImages": 4
+  },
+  {
+    "version": "d2ba674",
+    "width": 390,
+    "footerVisible": false,
+    "mosaicImages": 4
+  },
+  {
+    "version": "d2ba674",
+    "width": 430,
+    "footerVisible": false,
+    "mosaicImages": 4
+  },
+  {
+    "version": "candidate",
+    "width": 1366,
+    "footerVisible": true,
+    "mosaicImages": 4
+  },
+  {
+    "version": "candidate",
+    "width": 1440,
+    "footerVisible": true,
+    "mosaicImages": 4
+  },
+  {
+    "version": "candidate",
+    "width": 1536,
+    "footerVisible": true,
+    "mosaicImages": 4
+  },
+  {
+    "version": "candidate",
+    "width": 1920,
+    "footerVisible": true,
+    "mosaicImages": 4
+  },
+  {
+    "version": "candidate",
+    "width": 360,
+    "footerVisible": true,
+    "mosaicImages": 4
+  },
+  {
+    "version": "candidate",
+    "width": 390,
+    "footerVisible": true,
+    "mosaicImages": 4
+  },
+  {
+    "version": "candidate",
+    "width": 430,
+    "footerVisible": true,
+    "mosaicImages": 4
+  }
+]

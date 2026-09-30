@@ -1,0 +1,63 @@
+{
+  "karenseir-ui-history-76bea5c": {
+    "container": "3dcc8eb78e5d9b3b7760de4c57a822a0631483cfd8453323b9256a2587d7d892",
+    "image": "sha256:e99218ae0ae6e72662984ee7a22b4454c213f21d2bad52781557386d1080f396",
+    "ports": {
+      "3000/tcp": [
+        {
+          "HostIp": "127.0.0.1",
+          "HostPort": "3381"
+        }
+      ]
+    },
+    "build_id": "wsyfIt8JAyTeOiOhz9V_5"
+  },
+  "karenseir-ui-history-2255a05": {
+    "container": "85952ac748a6e372f2c07b955e88c5bc6e3c31995c5c418a3d0e1810232331af",
+    "image": "sha256:1fbe7b861b1256a187d41039245a2c764d16217f40ba0b2f8eaa42223116a01a",
+    "ports": {
+      "3000/tcp": [
+        {
+          "HostIp": "127.0.0.1",
+          "HostPort": "3382"
+        }
+      ]
+    },
+    "build_id": "xxwbq8zqlxKofHy6WIT8P"
+  },
+  "karenseir-ui-history-d2ba674": {
+    "container": "5fa2830463e6df5dc6fb430c02a6b419c6f9cd1ad84601f301f622ff8c62f173",
+    "image": "sha256:d27e90f03dc9f3b9cec15277b76f1651a209d7d62852dc438a79435d99288528",
+    "ports": {
+      "3000/tcp": [
+        {
+          "HostIp": "127.0.0.1",
+          "HostPort": "3383"
+        }
+      ]
+    },
+    "build_id": "f2RCNeisrtn7IzoGKDsyg"
+  },
+  "karenseir-ui-recovery-candidate": {
+    "container": "c7f14fbf46127743fffbf4983313a7afabe1f92a779daf1a4167f3a9fdb09b91",
+    "image": "sha256:e36d23716ee902157a4b8dc7af5eabb83be6f9f21644e9a2228be9829213e24e",
+    "ports": {
+      "3000/tcp": [
+        {
+          "HostIp": "127.0.0.1",
+          "HostPort": "3384"
+        }
+      ]
+    },
+    "build_id": "dzXC3Fx4AkASE-sAwUm8Z"
+  },
+  "historical_parent": "76bea5ca1fb060c3d847340bcfb5999dd28696b9",
+  "candidate_base": "92af832",
+  "candidate_source_files": {
+    "app/globals.css": "185b054eb24650b3e58621b26e9911b410c3338ca43f9019be80768505b5bad4",
+    "components/marketplace/MarketplaceHome.tsx": "7ba45ad08ae7486585208362d2ee43452bde6e1d9738ca44baf5584580fd979a",
+    "components/marketplace/HistoricalPresentation.tsx": "af298aba894d9b49190e35701ebd32dc46a48faeac738fdf8fd341e0b2904ab8"
+  },
+  "figma_validation": "PENDING",
+  "production_changed": false
+}

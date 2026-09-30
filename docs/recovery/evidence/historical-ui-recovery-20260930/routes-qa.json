@@ -1,0 +1,111 @@
+{
+  "pass": true,
+  "out": [
+    {
+      "width": 1440,
+      "path": "/login",
+      "form": true,
+      "noSubmission": true
+    },
+    {
+      "width": 1440,
+      "path": "/register",
+      "form": true,
+      "noSubmission": true
+    },
+    {
+      "width": 1440,
+      "path": "/account",
+      "render": true,
+      "customerRoleGate": false
+    },
+    {
+      "width": 1440,
+      "path": "/notifications",
+      "render": true,
+      "customerRoleGate": false
+    },
+    {
+      "width": 1440,
+      "path": "/support",
+      "render": true,
+      "customerRoleGate": false
+    },
+    {
+      "width": 1440,
+      "path": "/trips",
+      "render": true,
+      "customerRoleGate": false
+    },
+    {
+      "width": 1440,
+      "path": "/trips/66acc5ce-f4dd-4d5f-aec6-53d1d49e02ad",
+      "render": true,
+      "customerRoleGate": false
+    },
+    {
+      "width": 1440,
+      "path": "/backoffice/trips",
+      "render": true,
+      "customerRoleGate": true
+    },
+    {
+      "width": 1440,
+      "path": "/backoffice/trips",
+      "staffPanel": true
+    },
+    {
+      "width": 390,
+      "path": "/login",
+      "form": true,
+      "noSubmission": true
+    },
+    {
+      "width": 390,
+      "path": "/register",
+      "form": true,
+      "noSubmission": true
+    },
+    {
+      "width": 390,
+      "path": "/account",
+      "render": true,
+      "customerRoleGate": false
+    },
+    {
+      "width": 390,
+      "path": "/notifications",
+      "render": true,
+      "customerRoleGate": false
+    },
+    {
+      "width": 390,
+      "path": "/support",
+      "render": true,
+      "customerRoleGate": false
+    },
+    {
+      "width": 390,
+      "path": "/trips",
+      "render": true,
+      "customerRoleGate": false
+    },
+    {
+      "width": 390,
+      "path": "/trips/66acc5ce-f4dd-4d5f-aec6-53d1d49e02ad",
+      "render": true,
+      "customerRoleGate": false
+    },
+    {
+      "width": 390,
+      "path": "/backoffice/trips",
+      "render": true,
+      "customerRoleGate": true
+    },
+    {
+      "width": 390,
+      "path": "/backoffice/trips",
+      "staffPanel": true
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "historical_visual_recovery": "PASS",
+  "figma_validation": "PENDING",
+  "candidate_status": "READY_FOR_RELEASE_UI_PATCH",
+  "whole_repository_production_release": "NOT_AUTHORIZED_NOT_VALIDATED",
+  "current_features_preserved": true,
+  "routes_before_after": [
+    72,
+    72
+  ],
+  "desktop": [
+    1366,
+    1440,
+    1536,
+    1920
+  ],
+  "mobile": [
+    360,
+    390,
+    430
+  ],
+  "reservation_e2e": "isolated QA PASS desktop/mobile",
+  "backend_worker_db_production_unchanged": true,
+  "real_payment": false,
+  "real_sms": false,
+  "reaper": "disabled",
+  "remaining_implementable_gaps_in_historical_recovery_scope": 0,
+  "full_page_capture_limitation": "Some offscreen repeated images are omitted by full-page compositor; actual in-viewport section captures used for imagery acceptance and explicitly labeled comparison montage."
+}
