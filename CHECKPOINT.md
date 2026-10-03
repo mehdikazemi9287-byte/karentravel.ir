@@ -336,3 +336,19 @@ Next exact action: customer account support cards have no case navigation and ra
 - One observed, pre-existing, NOT fixed (out of this phase's scope): the non-refundable badge label ("قانون استرداد تأیید نشده" - "cancellation policy not verified") is reused for the genuine "refundable: false" case, which is a misleading copy choice (conflates "unverified" with "confirmed non-refundable") - predates this phase, not introduced by GRS work, flagged rather than silently patched given the no-UI-change constraint.
 - Production changed: NO.
 - NEXT EXACT ACTION: build the remaining lifecycle orchestration (extend_hold, modify/accept-modify/cancel-modify, request_service/create_activity, refund/reconciliation tie-in to the ledger), Rules/Promotions parsing, then a real deploy once explicitly approved.
+
+## FIGMA ACCESS GATE (Claude Code session) — 2026-10-03
+- HEAD c8b8c72 (candidate); Production frontend unchanged d2ba674/visible-slice18.
+- Claude Code session: no Figma MCP server configured (global/project mcpServers empty), no FIGMA token in env. Figma connector found only inside Codex app plugin (openai-curated-remote/figma) whose auth is held by that app; not reused, no credential extraction.
+- `GET api.figma.com/v1/files/Ei8MUR9VN2yCX6BLOpvTXm` unauthenticated → 403.
+- BLOCKER: Figma read access for this session. NEXT EXACT ACTION after access: inventory pages/frames of Ei8MUR9VN2yCX6BLOpvTXm → map to routes → fix candidate c8b8c72 → QA 360/390/430/768/1024/1366/1440/1920 → frontend-only deploy.
+
+## FIGMA HOMEPAGE CANDIDATE — SOURCE QA — 2026-10-03
+- HEAD c8b8c72 + uncommitted candidate (globals.css, HistoricalPresentation.tsx, MarketplaceHome.tsx, customer-catalog.ts, 7 images under public/images/figma). Environment: SOURCE only. Production frontend unchanged (karenseir-frontend-1, visible-slice18, healthy).
+- Fixed in this stage: (1) footer link `/manage-booking` → 404, removed (only `/manage-booking/[bookingId]` exists); (2) `.fh-trip footer` inherited the global `footer{padding;border-top;max-width}` rule so label overlapped the arrow button — reset inside the card; (3) at >=1101px the 620px search card clipped the service tabs (scrollWidth 675 vs 568, "بیشتر" unreachable without hidden scroll) — tab padding/gap tightened, now 568/568.
+- Verified: `next build --webpack` passes; local preview 127.0.0.1:3111 at 360/390/430/768/1024/1366/1440/1920 — no horizontal document overflow, 0/10 broken images, 0 console/page errors, 0 HTTP>=400; 56 homepage-linked paths all <400; 7 search tabs + 9-item "more" menu respond at 1440/390; trip card → /destinations/masuleh renders. Evidence: docs/recovery/evidence/figma-candidate-20261003/.
+- NOT verified: FIGMA_MATCH. Figma MCP is unreachable from this server (HTTP 451, sanctioned location) and the claude.ai Figma connector is unauthorized, so frames 44:3 / 75:435 could not be compared pixel-to-pixel. Visual check was done only at 1440 and 390 by eye; other widths are metric-only. Booking/search E2E not re-run (no change to those flows).
+- Observations left open: hero-yazd.jpeg looks soft/upscaled at 600x560; search card shows three helper lines (assistant link + two price notes); pre-existing lint errors in app/page.tsx (set-state-in-effect) untouched.
+- Build note: stale generated `.next/dev/types/app` (2026-09-24) broke typecheck; moved out of `.next` (gitignored cache), no source change.
+- Production changed: NO. Not committed.
+- NEXT EXACT ACTION: user compares candidate with Figma frames (or restores Figma access) → commit candidate → explicit approval → frontend-only production deploy with rollback image retained.

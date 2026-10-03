@@ -166,11 +166,13 @@ function Assistant(){
 
   useEffect(() => {
     const requestedPrompt=new URLSearchParams(window.location.search).get("prompt");
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate client-only state (URL prompt, localStorage) after mount
     if(requestedPrompt)setDraft(requestedPrompt.slice(0,1000));
     setConversationId(loadConversationId());
     setMessages(loadStoredMessages());
     setHydrated(true);
   }, []);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot resume flag read from sessionStorage after login
   useEffect(() => { if (session && consumeResumePending()) setResumeAvailable(true); }, [session]);
   useEffect(() => { if (hydrated) saveStoredMessages(messages); }, [hydrated, messages]);
 

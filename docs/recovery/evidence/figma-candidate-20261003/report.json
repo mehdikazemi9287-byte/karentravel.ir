@@ -1,0 +1,539 @@
+{
+ "widths": [
+  {
+   "w": 360,
+   "scrollW": 360,
+   "clientW": 360,
+   "pageH": 8445,
+   "over": [
+    "BUTTON. -11..62",
+    "BUTTON. -101..-13",
+    "svg.[object SVGAnimatedString] -43..-26",
+    "path.[object SVGAnimatedString] -39..-30",
+    "path.[object SVGAnimatedString] -39..-30",
+    "path.[object SVGAnimatedString] -38..-37"
+   ],
+   "brokenImgs": [],
+   "imgs": 10,
+   "wrap": {
+    "w": 328,
+    "h": 60
+   },
+   "hero": {
+    "w": 360,
+    "h": 1281
+   },
+   "heroImg": {
+    "w": 328,
+    "h": 260
+   },
+   "search": {
+    "w": 328,
+    "h": 677
+   },
+   "bento": {
+    "w": 328,
+    "h": 836
+   },
+   "footer": {
+    "w": 0,
+    "h": 0
+   },
+   "errors": [],
+   "bad": [],
+   "menu": 10
+  },
+  {
+   "w": 390,
+   "scrollW": 390,
+   "clientW": 390,
+   "pageH": 8242,
+   "over": [
+    "BUTTON. -71..17",
+    "svg.[object SVGAnimatedString] -13..4",
+    "path.[object SVGAnimatedString] -9..0",
+    "path.[object SVGAnimatedString] -9..0",
+    "path.[object SVGAnimatedString] -8..-7",
+    "path.[object SVGAnimatedString] -2..-1"
+   ],
+   "brokenImgs": [],
+   "imgs": 10,
+   "wrap": {
+    "w": 358,
+    "h": 60
+   },
+   "hero": {
+    "w": 390,
+    "h": 1240
+   },
+   "heroImg": {
+    "w": 358,
+    "h": 260
+   },
+   "search": {
+    "w": 358,
+    "h": 636
+   },
+   "bento": {
+    "w": 358,
+    "h": 836
+   },
+   "footer": {
+    "w": 0,
+    "h": 0
+   },
+   "errors": [],
+   "bad": [],
+   "menu": 10
+  },
+  {
+   "w": 430,
+   "scrollW": 430,
+   "clientW": 430,
+   "pageH": 7948,
+   "over": [
+    "BUTTON. -31..57",
+    "BUTTON. -97..-33",
+    "svg.[object SVGAnimatedString] -63..-46",
+    "path.[object SVGAnimatedString] -62..-47",
+    "path.[object SVGAnimatedString] -57..-52",
+    "BUTTON. -190..-99"
+   ],
+   "brokenImgs": [],
+   "imgs": 10,
+   "wrap": {
+    "w": 398,
+    "h": 60
+   },
+   "hero": {
+    "w": 430,
+    "h": 1215
+   },
+   "heroImg": {
+    "w": 398,
+    "h": 260
+   },
+   "search": {
+    "w": 398,
+    "h": 611
+   },
+   "bento": {
+    "w": 398,
+    "h": 836
+   },
+   "footer": {
+    "w": 0,
+    "h": 0
+   },
+   "errors": [],
+   "bad": [],
+   "menu": 10
+  },
+  {
+   "w": 768,
+   "scrollW": 768,
+   "clientW": 768,
+   "pageH": 7007,
+   "over": [],
+   "brokenImgs": [],
+   "imgs": 10,
+   "wrap": {
+    "w": 704,
+    "h": 67
+   },
+   "hero": {
+    "w": 768,
+    "h": 1237
+   },
+   "heroImg": {
+    "w": 704,
+    "h": 380
+   },
+   "search": {
+    "w": 656,
+    "h": 454
+   },
+   "bento": {
+    "w": 704,
+    "h": 540
+   },
+   "footer": {
+    "w": 0,
+    "h": 0
+   },
+   "errors": [],
+   "bad": [],
+   "menu": 10
+  },
+  {
+   "w": 1024,
+   "scrollW": 1024,
+   "clientW": 1024,
+   "pageH": 7096,
+   "over": [],
+   "brokenImgs": [],
+   "imgs": 10,
+   "wrap": {
+    "w": 960,
+    "h": 67
+   },
+   "hero": {
+    "w": 1024,
+    "h": 1237
+   },
+   "heroImg": {
+    "w": 960,
+    "h": 380
+   },
+   "search": {
+    "w": 912,
+    "h": 454
+   },
+   "bento": {
+    "w": 960,
+    "h": 540
+   },
+   "footer": {
+    "w": 1024,
+    "h": 519
+   },
+   "errors": [],
+   "bad": [],
+   "menu": null
+  },
+  {
+   "w": 1366,
+   "scrollW": 1366,
+   "clientW": 1366,
+   "pageH": 5488,
+   "over": [],
+   "brokenImgs": [],
+   "imgs": 10,
+   "wrap": {
+    "w": 1238,
+    "h": 67
+   },
+   "hero": {
+    "w": 1366,
+    "h": 1029
+   },
+   "heroImg": {
+    "w": 565,
+    "h": 560
+   },
+   "search": {
+    "w": 620,
+    "h": 469
+   },
+   "bento": {
+    "w": 1238,
+    "h": 420
+   },
+   "footer": {
+    "w": 1184,
+    "h": 519
+   },
+   "errors": [],
+   "bad": [],
+   "menu": null
+  },
+  {
+   "w": 1440,
+   "scrollW": 1440,
+   "clientW": 1440,
+   "pageH": 5459,
+   "over": [],
+   "brokenImgs": [],
+   "imgs": 10,
+   "wrap": {
+    "w": 1312,
+    "h": 67
+   },
+   "hero": {
+    "w": 1440,
+    "h": 1029
+   },
+   "heroImg": {
+    "w": 600,
+    "h": 560
+   },
+   "search": {
+    "w": 620,
+    "h": 469
+   },
+   "bento": {
+    "w": 1312,
+    "h": 420
+   },
+   "footer": {
+    "w": 1184,
+    "h": 519
+   },
+   "errors": [],
+   "bad": [],
+   "menu": null
+  },
+  {
+   "w": 1920,
+   "scrollW": 1920,
+   "clientW": 1920,
+   "pageH": 5443,
+   "over": [],
+   "brokenImgs": [],
+   "imgs": 10,
+   "wrap": {
+    "w": 1480,
+    "h": 67
+   },
+   "hero": {
+    "w": 1920,
+    "h": 1029
+   },
+   "heroImg": {
+    "w": 680,
+    "h": 560
+   },
+   "search": {
+    "w": 620,
+    "h": 469
+   },
+   "bento": {
+    "w": 1480,
+    "h": 460
+   },
+   "footer": {
+    "w": 1184,
+    "h": 519
+   },
+   "errors": [],
+   "bad": [],
+   "menu": null
+  }
+ ],
+ "links": [
+  [
+   "/",
+   200
+  ],
+  [
+   "/flights",
+   200
+  ],
+  [
+   "/?vertical=train",
+   200
+  ],
+  [
+   "/hotels",
+   200
+  ],
+  [
+   "/tours",
+   200
+  ],
+  [
+   "/services",
+   200
+  ],
+  [
+   "/travel-guides",
+   200
+  ],
+  [
+   "/assistant",
+   200
+  ],
+  [
+   "/organization",
+   200
+  ],
+  [
+   "/trips",
+   200
+  ],
+  [
+   "/login",
+   200
+  ],
+  [
+   "/destinations/shiraz",
+   200
+  ],
+  [
+   "/destinations/kish",
+   200
+  ],
+  [
+   "/support",
+   200
+  ],
+  [
+   "/car-rental",
+   200
+  ],
+  [
+   "/restaurants",
+   200
+  ],
+  [
+   "/compare",
+   200
+  ],
+  [
+   "/?vertical=flight",
+   200
+  ],
+  [
+   "/?vertical=hotel",
+   200
+  ],
+  [
+   "/?vertical=tour",
+   200
+  ],
+  [
+   "/villas",
+   200
+  ],
+  [
+   "/attractions",
+   200
+  ],
+  [
+   "/pools-sports",
+   200
+  ],
+  [
+   "/events-venues",
+   200
+  ],
+  [
+   "/tourist-transport",
+   200
+  ],
+  [
+   "/handicrafts",
+   200
+  ],
+  [
+   "/destinations",
+   200
+  ],
+  [
+   "/destinations/masuleh",
+   200
+  ],
+  [
+   "/destinations/isfahan",
+   200
+  ],
+  [
+   "/destinations/qeshm",
+   200
+  ],
+  [
+   "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%D9%85%20%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87%E2%80%8C%D8%B1%DB%8C%D8%B2%DB%8C%20%DA%A9%D9%86%DB%8C%D9%85",
+   200
+  ],
+  [
+   "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D8%B1%D8%AF%D9%86%20%DA%AF%D8%B2%DB%8C%D9%86%D9%87%E2%80%8C%D9%87%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%85%DA%A9%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+   200
+  ],
+  [
+   "/assistant?prompt=%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%A8%D9%88%D8%AF%D8%AC%D9%87%E2%80%8C%D8%A7%D9%85%20%DB%8C%DA%A9%20%D9%85%D9%82%D8%B5%D8%AF%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87",
+   200
+  ],
+  [
+   "/itineraries",
+   200
+  ],
+  [
+   "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%B4%D9%85%D8%A7%D9%84%20%DA%A9%D8%AC%D8%A7%20%D8%A8%D8%B1%DB%8C%D9%85%D8%9F",
+   200
+  ],
+  [
+   "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%DB%B4%20%D9%86%D9%81%D8%B1%20%D9%88%DB%8C%D9%84%D8%A7%20%D8%A8%D8%A7%20%D8%A7%D8%B3%D8%AA%D8%AE%D8%B1%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D9%86",
+   200
+  ],
+  [
+   "/assistant?prompt=%D9%BE%D8%B1%D9%88%D8%A7%D8%B2%20%D8%B5%D8%A8%D8%AD%20%D8%AA%D9%87%D8%B1%D8%A7%D9%86%20%D9%85%D8%B4%D9%87%D8%AF%20%D9%88%20%D9%87%D8%AA%D9%84%20%D9%86%D8%B2%D8%AF%DB%8C%DA%A9%20%D8%AD%D8%B1%D9%85%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+   200
+  ],
+  [
+   "/villas?property_type=villa",
+   200
+  ],
+  [
+   "/villas?property_type=apartment",
+   200
+  ],
+  [
+   "/villas?property_type=suite",
+   200
+  ],
+  [
+   "/villas?property_type=ecolodge",
+   200
+  ],
+  [
+   "/villas?property_type=cabin",
+   200
+  ],
+  [
+   "/villas?property_type=traditional_house",
+   200
+  ],
+  [
+   "/villas?property_type=pool_property",
+   200
+  ],
+  [
+   "/villas?property_type=forest",
+   200
+  ],
+  [
+   "/villas?property_type=coastal",
+   200
+  ],
+  [
+   "/assistant?prompt=%DB%8C%DA%A9%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%88%D8%AA%D8%A7%D9%87%20%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%85%D9%86%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87",
+   200
+  ],
+  [
+   "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A7%DB%8C%D9%86%20%D9%81%D8%B5%D9%84%20%D9%88%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%A2%D8%A8%E2%80%8C%D9%88%D9%87%D9%88%D8%A7%20%DB%8C%DA%A9%20%D8%A7%DB%8C%D8%AF%D9%87%D9%94%20%D8%B3%D9%81%D8%B1%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87%D8%9B%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%88%20%D8%AA%D8%A7%D8%B1%DB%8C%D8%AE%20%D8%B1%D8%A7%20%D8%A7%D8%B2%20%D9%85%D9%86%20%D8%A8%D9%BE%D8%B1%D8%B3",
+   200
+  ],
+  [
+   "/experiences",
+   200
+  ],
+  [
+   "/employee",
+   200
+  ],
+  [
+   "/organization/requests",
+   200
+  ],
+  [
+   "/contact",
+   200
+  ],
+  [
+   "/terms",
+   200
+  ],
+  [
+   "/privacy",
+   200
+  ],
+  [
+   "/white-label",
+   200
+  ],
+  [
+   "/integrations",
+   200
+  ]
+ ]
+}
