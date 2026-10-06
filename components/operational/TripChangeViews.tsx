@@ -57,7 +57,7 @@ export function TripChanges({tripId}: {tripId: string}) {
   }
   if (!session) return null;
   return <section className="container customer-page" aria-labelledby="trip-changes-title">
-    <h2 id="trip-changes-title" className="text-xl font-bold">چه چیزی در سفر من تغییر کرده؟</h2>
+    <h2 id="trip-changes-title" className="text-xl font-bold">تغییرهای ثبت‌شدهٔ سفر</h2>
     <p className="mt-1 text-sm text-slate-600">فقط تغییرهایی که از سوی تأمین‌کننده یا کارشناسان ثبت شده‌اند، با مقدار قبلی و جدید. چیزی در این بخش حدس زده نمی‌شود.</p>
     {state.kind === 'loading' && <div role="status" className="mt-4 animate-pulse rounded-2xl bg-white p-6 text-center text-slate-600">در حال دریافت تغییرهای ثبت‌شده…</div>}
     {state.kind === 'error' && <div role="alert" className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center text-rose-800">{state.status === 404 ? 'این سفر در حساب شما نیست.' : state.status === 403 ? 'نقش شما به این بخش دسترسی ندارد.' : 'دریافت تغییرها انجام نشد. دوباره تلاش کنید.'}</div>}

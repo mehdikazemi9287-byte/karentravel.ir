@@ -78,8 +78,11 @@ def test_rates_need_published_hotel_verified_mapping_and_registered_source(tmp_p
 
 
 def test_runtime_has_no_rate_source_registered():
-    import importlib
-    assert importlib.reload(hotel_rates).RATE_SOURCES == {}
+    import pathlib, re
+    app = pathlib.Path(hotel_rates.__file__).parent
+    assert "RATE_SOURCES: dict[str, HotelRateSource] = {}" in (app / "hotel_rates.py").read_text() and "FLIGHT_SOURCES: dict[str, FlightSupplierPort] = {}" in (app / "flight_port.py").read_text()
+    registrations = [f.name for f in app.glob("*.py") if re.search(r"(RATE_SOURCES|FLIGHT_SOURCES)\s*\[[^\]]+\]\s*=|(RATE_SOURCES|FLIGHT_SOURCES)\.(update|setdefault)\(", f.read_text())]
+    assert registrations == []  # no application module registers a supplier source; only a configured real adapter may
 
 
 def test_jalali_dates_convert_only_when_valid():
