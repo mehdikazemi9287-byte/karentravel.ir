@@ -65,16 +65,18 @@ def test_room_and_rate_plan_mapping_and_recheck_endpoint(tmp_path, client):
     admin = _token(client, "platform-admin@aftab.test")
     saved = client.put("/admin/catalog/hotels/h1", json={**VALID, "city_id": "ir-shiraz"}, headers=admin).json()
     other = client.put("/admin/catalog/hotels/h2", json={**VALID, "city_id": "ir-shiraz", "name_en": "Other"}, headers=admin).json()
-    mapping = client.post("/admin/catalog/hotels/h1/provider-mappings", json={"provider": "harness", "provider_hotel_id": "P1-" + NOW.isoformat()[:4] + "x"}, headers=admin).json()["provider_mappings"][0]
+    import uuid
+    ref = "P1-" + uuid.uuid4().hex[:8]
+    mapping = next(x for x in client.post("/admin/catalog/hotels/h1/provider-mappings", json={"provider": "harness", "provider_hotel_id": ref}, headers=admin).json()["provider_mappings"] if x["provider_hotel_id"] == ref)
     room, foreign_room = saved["room_types"][0]["id"], other["room_types"][0]["id"]
-    assert client.post(f"/admin/catalog/provider-mappings/{mapping['id']}/rooms", json={"room_type_id": foreign_room, "provider_room_id": "RM1"}, headers=admin).status_code == 422   # room of another hotel
-    assert client.post(f"/admin/catalog/provider-mappings/{mapping['id']}/rooms", json={"room_type_id": room, "provider_room_id": "RM1"}, headers=admin).status_code == 201
-    assert client.post(f"/admin/catalog/provider-mappings/{mapping['id']}/rooms", json={"room_type_id": room, "provider_room_id": "RM1"}, headers=admin).status_code == 409
-    plan = client.post(f"/admin/catalog/provider-mappings/{mapping['id']}/rate-plans", json={"provider_rate_plan_id": "BAR", "board": "BB", "refundable": True}, headers=admin)
+    assert client.post(f"/admin/catalog/provider-mappings/{mapping['id']}/rooms", json={"room_type_id": foreign_room, "provider_room_id": ref + "-RM1"}, headers=admin).status_code == 422   # room of another hotel
+    assert client.post(f"/admin/catalog/provider-mappings/{mapping['id']}/rooms", json={"room_type_id": room, "provider_room_id": ref + "-RM1"}, headers=admin).status_code == 201
+    assert client.post(f"/admin/catalog/provider-mappings/{mapping['id']}/rooms", json={"room_type_id": room, "provider_room_id": ref + "-RM1"}, headers=admin).status_code == 409
+    plan = client.post(f"/admin/catalog/provider-mappings/{mapping['id']}/rate-plans", json={"provider_rate_plan_id": ref + "-BAR", "board": "BB", "refundable": True}, headers=admin)
     assert plan.status_code == 201 and plan.json()["amount"] is None
     for bad in ({"provider_rate_plan_id": "X", "board": "ZZ"}, {"provider_rate_plan_id": "X", "price": 10}, {"provider_rate_plan_id": ""}):
         assert client.post(f"/admin/catalog/provider-mappings/{mapping['id']}/rate-plans", json=bad, headers=admin).status_code == 422
-    assert client.post(f"/admin/catalog/provider-mappings/{mapping['id']}/rooms", json={"room_type_id": room, "provider_room_id": "RM2"}, headers=_token(client, "supplier@aftab.test")).status_code == 403
+    assert client.post(f"/admin/catalog/provider-mappings/{mapping['id']}/rooms", json={"room_type_id": room, "provider_room_id": ref + "-RM2"}, headers=_token(client, "supplier@aftab.test")).status_code == 403
     assert client.post("/catalog/hotels/test-hotel-one/rates/999999/recheck").status_code == 404
     hr.RATE_SOURCES.clear()
 

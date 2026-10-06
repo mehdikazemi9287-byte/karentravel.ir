@@ -17,7 +17,7 @@ NOW = datetime.now(timezone.utc)
 def _offer(tid, amount=5000000, valid=timedelta(days=5), units=3, status="active"):
     with SessionLocal() as db:
         s = m.Supplier(tenant_id=tid, supplier_type="hotel", display_name="sup-" + uuid.uuid4().hex[:8]); db.add(s); db.flush()
-        o = m.Offer(tenant_id=tid, supplier_id=s.id, service_type="hotel", title="اتاق دوتخته آزمون", amount=amount, currency="IRR", available_units=units, status=status, valid_until=NOW + valid); db.add(o); db.commit()
+        o = m.Offer(tenant_id=tid, supplier_id=s.id, service_type="hotel", title="اتاق دوتخته آزمون " + uuid.uuid4().hex[:8], amount=amount, currency="IRR", available_units=units, status=status, valid_until=NOW + valid); db.add(o); db.commit()
         return o.id, s.id
 
 
@@ -42,7 +42,10 @@ def test_partner_admin_quote_booking_commission_and_accounting(client):
     assert mine["sales_channel_id"] == channel and mine["members"][0]["user_id"] == agent_id and any(c["id"] == channel and c["type"] == "AGENCY" and c["agency_id"] == agency for c in listed["sales_channels"])
     # --- quote: only a real, valid, priced offer; price is the offer's own
     offer, _ = _offer(tid); expired, _ = _offer(tid, valid=timedelta(days=-1)); free, _ = _offer(tid, amount=0); foreign, _ = _offer(otid)
-    assert offer in [o["id"] for o in client.get(f"/agency/{agency}/offers", headers=agent).json()["items"]] and expired not in [o["id"] for o in client.get(f"/agency/{agency}/offers", headers=agent).json()["items"]]
+    with SessionLocal() as db:
+        titles = {o.id: o.title for o in db.scalars(select(m.Offer).where(m.Offer.id.in_((offer, expired))))}
+    find = lambda oid: [o["id"] for o in client.get(f"/agency/{agency}/offers", params={"q": titles[oid]}, headers=agent).json()["items"]]  # noqa: E731
+    assert find(offer) == [offer] and find(expired) == []
     for bad in ({"offer_id": expired, "customer_user_id": cust_id}, {"offer_id": free, "customer_user_id": cust_id}, {"offer_id": foreign, "customer_user_id": cust_id}, {"offer_id": offer, "customer_user_id": other_id},
                 {"offer_id": offer, "customer_user_id": agent_id}, {"offer_id": offer, "customer_user_id": cust_id, "amount": 1}):
         assert client.post(f"/agency/{agency}/quotes", json=bad, headers=agent).status_code == 422, bad
@@ -156,10 +159,10 @@ def test_supplier_hotel_assignment_and_self_service_mapping(tmp_path, client):
     assert mapping["status"] == "unverified" and mapping["rooms"] == [] and mapping["rate_plans"] == []
     client.put("/admin/catalog/hotels/h1", json={**VALID, "city_id": "ir-shiraz"}, headers=padmin)
     room = client.get("/admin/catalog/hotels/h1", headers=padmin).json()["room_types"][0]["id"]
-    client.post(f"/admin/catalog/provider-mappings/{mapping['id']}/rooms", json={"room_type_id": room, "provider_room_id": "R-1"}, headers=padmin)
-    client.post(f"/admin/catalog/provider-mappings/{mapping['id']}/rate-plans", json={"provider_rate_plan_id": "BAR", "board": "BB", "refundable": True}, headers=padmin)
+    client.post(f"/admin/catalog/provider-mappings/{mapping['id']}/rooms", json={"room_type_id": room, "provider_room_id": ref + "-R1"}, headers=padmin)
+    client.post(f"/admin/catalog/provider-mappings/{mapping['id']}/rate-plans", json={"provider_rate_plan_id": ref + "-BAR", "board": "BB", "refundable": True}, headers=padmin)
     after = next(x for x in client.get("/admin/catalog/hotels/h1", headers=padmin).json()["provider_mappings"] if x["id"] == mapping["id"])
-    assert after["rooms"][0]["provider_room_id"] == "R-1" and after["rate_plans"][0] == {"id": after["rate_plans"][0]["id"], "provider_rate_plan_id": "BAR", "board": "BB", "refundable": True}
+    assert after["rooms"][0]["provider_room_id"] == ref + "-R1" and after["rate_plans"][0] == {"id": after["rate_plans"][0]["id"], "provider_rate_plan_id": ref + "-BAR", "board": "BB", "refundable": True}
     assert client.delete(f"/admin/partners/suppliers/{supplier}/hotels/h1", headers=admin).json() == {"removed": True}
     assert "h1" not in [h["hotel_id"] for h in client.get("/supplier/hotels", headers=sup).json()["items"]]
     assert client.delete(f"/admin/partners/suppliers/{supplier}/members/{sup_id}", headers=admin).json() == {"removed": True}

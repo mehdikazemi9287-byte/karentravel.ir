@@ -152,7 +152,9 @@ export function AgencyQuotes({agencyId}: {agencyId: string}) {
     {q.state.data.items.length === 0 ? <Empty>پیشنهاد قیمتی ثبت نشده است.</Empty> : <Table columns={['offer_title', 'customer_name', 'amount', 'valid_until', 'status', 'action']} rows={q.state.data.items as unknown as Row[]}
       labels={{offer_title: 'خدمت', customer_name: 'مشتری', amount: 'قیمت تأمین‌کننده', valid_until: 'اعتبار تا', status: 'وضعیت', action: ''}}
       render={{amount: cur('amount'), valid_until: r => when(r.valid_until as string), status: r => QUOTE_FA[r.status as string] ?? String(r.status),
-        action: r => ['sent', 'accepted'].includes(r.status as string) ? <button type="button" className="button secondary" disabled={a.busy} onClick={() => void a.run(() => q.api.post(`/agency/${agencyId}/quotes/${r.id}/cancel`, {}), 'پیشنهاد لغو شد.')}>لغو</button> : null}}/>}
+        action: r => <span className="flex flex-wrap items-center gap-1">{r.status === 'accepted' && <form className="flex flex-wrap gap-1" aria-label="وصل به رزرو" onSubmit={e => {e.preventDefault(); const f = e.currentTarget; void a.run(() => q.api.post(`/agency/${agencyId}/quotes/${r.id}/link-booking`, {reservation_id: values(f).reservation_id.trim()}), 'پیشنهاد به رزرو مشتری وصل شد.', f);}}>
+          <input name="reservation_id" required minLength={36} maxLength={36} placeholder="شناسهٔ رزرو مشتری" dir="ltr" className="w-40 rounded-lg border border-slate-300 p-1 text-sm"/><button className="button secondary" disabled={a.busy}>وصل به رزرو</button></form>}
+          {['sent', 'accepted'].includes(r.status as string) && <button type="button" className="button secondary" disabled={a.busy} onClick={() => void a.run(() => q.api.post(`/agency/${agencyId}/quotes/${r.id}/cancel`, {}), 'پیشنهاد لغو شد.')}>لغو</button>}</span>}}/>}
   </div>;
 }
 
