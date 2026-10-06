@@ -80,7 +80,7 @@ export function FinanceRecords() {
       <div className="flex flex-wrap items-center gap-3 text-sm"><span aria-live="polite">{records.state.kind === 'ready' ? `${fa(records.state.data.total)} ردیف` : ''}</span><button type="button" className="button secondary" onClick={() => void exportCsv()}>خروجی CSV</button></div>
       <Notice n={notice}/>
       {records.state.kind === 'loading' ? <Loading/> : records.state.kind === 'error' ? <Failed status={records.state.status}/> : records.state.data.items.length === 0 ? <Empty>برای «{DATASETS[dataset]}» ردیفی ثبت نشده است.</Empty>
-        : <Table columns={records.state.data.columns} rows={records.state.data.items} labels={FIN_LABELS} render={{created_at: r => when(r.created_at as string), issued_at: r => when(r.issued_at as string), amount: r => money(r.amount, r.currency), total_amount: r => money(r.total_amount, r.currency), id: r => <span dir="ltr">{String(r.id).slice(0, 8)}</span>}}/>}
+        : <Table columns={records.state.data.columns} rows={records.state.data.items} labels={FIN_LABELS} render={{created_at: r => when(r.created_at as string), issued_at: r => when(r.issued_at as string), amount: r => money(r.amount, r.currency), total_amount: r => money(r.total_amount, r.currency), subtotal_amount: r => money(r.subtotal_amount, r.currency), tax_amount: r => money(r.tax_amount, r.currency), captured_amount: r => money(r.captured_amount, r.currency), refunded_amount: r => money(r.refunded_amount, r.currency), limit_amount: r => money(r.limit_amount, r.currency), id: r => <span dir="ltr">{String(r.id).slice(0, 8)}</span>}}/>}
     </Shell>}</Gate>;
 }
 
@@ -104,6 +104,8 @@ export function SupportDesk() {
     try {await cases.api.post(`/support/cases/${selected}/${path}`, body(v), idem ? newId() : undefined); form.reset(); ws.reload(); cases.reload(); setNotice({ok: true, text: done});}
     catch (err) {setNotice({ok: false, text: detailOf(err, 'ثبت انجام نشد.')});} finally {setBusy(false);}
   }
+  const role = cases.session?.user?.role ?? '';
+  if (cases.session && !['backoffice_expert', 'platform_admin'].includes(role)) return <ErrorState status={403} message="میز پشتیبانی فقط برای کارشناسان پشتیبانی است."/>;
   return <Gate session={cases.session}>{cases.state.kind === 'error' ? <ErrorState status={cases.state.status} message="دسترسی به میز پشتیبانی ممکن نیست."/> :
     <Shell title="میز پشتیبانی" intro="پرونده، زمینهٔ رزرو و مشتری، رویدادهای ثبت‌شدهٔ سفر و یادداشت‌های داخلی در یک نما. یادداشت داخلی هرگز به مشتری نمایش داده نمی‌شود." back={['بازگشت به پنل عملیات', '/backoffice']}>
       {cases.state.kind === 'loading' ? <Loading/> : cases.state.data.length === 0 ? <Empty>پرونده‌ای ثبت نشده است.</Empty> :
