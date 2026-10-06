@@ -179,7 +179,7 @@ export function SupplierSettlements() {
 }
 
 /* ------------------------------------------------------------------ Notification deliveries */
-const CHANNEL: Record<string, string> = {in_app: 'وب و اپ', push: 'پوش', sms: 'پیامک'};
+const CHANNEL: Record<string, string> = {in_app: 'وب و اپ', web: 'وب', app: 'اپ', push: 'پوش', sms: 'پیامک'};
 export function NotificationDeliveries() {
   const [status, setStatus] = useState(''); const [channel, setChannel] = useState('');
   const q = new URLSearchParams(); if (status) q.set('status', status); if (channel) q.set('channel', channel);
