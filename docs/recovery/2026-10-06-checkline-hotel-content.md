@@ -20,3 +20,16 @@ Branch `feat/checkline-hotel-catalog-20261006` (worktree `~/ks-checkline-work/sr
 2. Deploy API image built from this branch; `alembic upgrade head` (34 → 37; 35 and 36 are also not yet applied in production).
 3. Load master catalog (`import_catalog.py`), then `import_checkline.py <staged dir>`.
 4. Rollback: remove `source in (checkline, karenseir)` hotels and hotels without coordinates, `alembic downgrade 20261003_36` (or restore the dump), redeploy previous images.
+
+## Update 2026-10-07 — migration 38, state, matching, reference places (candidate only)
+- Chain audit on a throwaway restore of the production dump: 34 → 35 → 36 → 37 → 38 applied, then 38 → 34 reverted; column fingerprint identical to the start, bookings/users row counts unchanged. API role after upgrade: SELECT/INSERT/UPDATE on hotels, no DELETE.
+- Every hotel now reports `state` = catalogued / content_complete / rate_available / bookable / published / source / last_verified_at. `rate_available` and `bookable` are false for all hotels: no live rate source is connected; `catalog_hotel_provider_mappings` (admin-entered, unverified by default) is the only future entry point.
+- Reference places added by the CheckLine import, with provenance: 14 countries (`source=iso3166-1`, ISO code as ref) and 36 cities (`source=checkline`, `geography/<id>`), no coordinates. Tehran, Kish and Qeshm were absent from the OSM-derived catalog.
+- CheckLine: 706 of 722 imported as drafts (was 511); 56 without a city (51 Turkey rows have no city in the source); 16 preserved in staging only (7 without a country, 9 country/city conflicts).
+- Duplicates: 53 pairs found by exact name within the same city. 3 also share address number + distinctive word and are linked automatically (`duplicate_of`, never public, never deleted); 50 are `proposed` and wait for a reviewer in the panel (confirm = link + fill empty fields of the canonical record; reject is remembered across re-imports).
+- Public UI: baseline 682f5eb vs candidate, 11 pages x desktop/mobile, byte-identical screenshots. The policy filter is URL/API-only until it has an approved design.
+- Admin panel QA (Playwright, 26 checks x desktop/mobile): all pass.
+
+### Production rollout — additional gate found
+This branch sits on 791d007 plus the uncommitted homepage/catalog work, while production runs d2ba674. Deploying the web image from this branch would also replace the live homepage and other customer pages. Decide between (a) full release of this branch, or (b) API + migrations + data only, leaving the current web image, in which case `/admin/catalog` and the public catalog pages are not reachable from the live site yet.
+Rollback for 38: `alembic downgrade 20261006_37` (drops match pairs / provider mappings and the four state columns), then the 37 procedure above.
