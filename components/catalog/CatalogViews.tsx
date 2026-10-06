@@ -177,7 +177,7 @@ export function HotelDetail({slug}: {slug: string}) {
         {h.details && Object.keys(h.details).length > 0 && <section><h2>مشخصات اقامتگاه</h2><dl className="cat-dl">
           {([['محدوده', h.details.district], ['تعداد اتاق', h.details.room_count], ['تعداد تخت', h.details.bed_count], ['سال ساخت', h.details.built_year_jalali], ['تعداد طبقه', h.details.floors], ['چشم‌انداز', h.details.hotel_view], ['وعدهٔ قابل ارائه', h.details.board_plans?.join('، ')]] as [string, string | undefined][]).filter(([, v]) => v).map(([k, v]) => <span key={k} style={{display: 'contents'}}><dt>{k}</dt><dd>{v}</dd></span>)}</dl>
           {h.details.nearby?.length ? <><h3>فاصله تا مکان‌های مهم</h3><ul className="cat-access">{h.details.nearby.map((n, i) => <li key={i}>{n.place}{n.distance ? ` — ${n.distance}${n.unit === 'km' ? ' کیلومتر' : n.unit === 'm' ? ' متر' : n.unit ? ` ${n.unit}` : ''}` : ''}</li>)}</ul></> : null}
-          {h.details.restaurants?.length ? <><h3>رستوران و کافه</h3><ul className="cat-access">{h.details.restaurants.map((r, i) => <li key={i}>{r.name}{r.hours ? ` — ${r.hours}` : ''}</li>)}</ul></> : null}
+          {h.details.restaurants?.length ? <><h3 className="cat-h3">رستوران و کافه</h3><ul className="cat-access">{h.details.restaurants.map((r, i) => <li key={i}>{r.name}{r.hours ? ` — ${r.hours}` : ''}</li>)}</ul></> : null}
           {h.details.traffic && <p>{h.details.traffic}</p>}{h.details.review && h.details.review.split('\n').map((line, i) => <p key={i}>{line}</p>)}
           {h.details.map_link && <p><a href={h.details.map_link} target="_blank" rel="noreferrer nofollow">جست‌وجوی این اقامتگاه روی نقشه</a> <span className="cat-muted">(مختصات دقیق در منبع ثبت نشده است)</span></p>}</section>}
         <section><h2>موقعیت و تماس</h2><dl className="cat-dl">
@@ -299,7 +299,7 @@ export function CatalogPlaceView({slug, fallback}: {slug: string; fallback: Reac
     {p.image_url && <Thumb src={p.image_url} credit={p.image_credit} alt={p.name} label=""/>}
     {p.description && p.description.split('\n').map((line, i) => <p key={i}>{line}</p>)}
     {p.details && Object.keys(p.details).length > 0 && <section><h2>اطلاعات مقصد</h2><dl className="cat-dl">{([['پایتخت', p.details.capital], ['واحد پول', p.details.currency], ['زبان رسمی', p.details.official_language], ['جمعیت', p.details.population_text], ['برق شهری', p.details.voltage], ['اختلاف ساعت', p.details.time_zone]] as [string, string | undefined][]).filter(([, v]) => v).map(([k, v]) => <span key={k} style={{display: 'contents'}}><dt>{k}</dt><dd>{v}</dd></span>)}</dl>
-      {p.details.guide && p.details.guide.split('\n').map((line, i) => <p key={i}>{line}</p>)}{p.details.visa_note && <><h3>ویزا</h3>{p.details.visa_note.split('\n').map((line, i) => <p key={i}>{line}</p>)}</>}</section>}
+      {p.details.guide && p.details.guide.split('\n').map((line, i) => <p key={i}>{line}</p>)}{p.details.visa_note && <><h3 className="cat-h3">ویزا</h3>{p.details.visa_note.split('\n').map((line, i) => <p key={i}>{line}</p>)}</>}</section>}
     {p.details?.images && p.details.images.length > 1 && <div className="cat-gallery" aria-label="تصاویر مقصد">{p.details.images.slice(0, 6).map((src, i) => <figure key={src}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={src} alt={`${p.name} ${i + 1}`} loading="lazy"/></figure>)}</div>}
     {p.details?.map_link && <p><a href={p.details.map_link} target="_blank" rel="noreferrer nofollow">نمایش {p.name} روی نقشه</a></p>}
     {p.details?.visa_note && <p><Link className="button secondary" href={`/visa/cl-visa-country-${p.country_code.toLowerCase()}`}>راهنمای کامل ویزای {p.name}</Link></p>}
@@ -399,8 +399,8 @@ export function VisaGuide() {
   const {data, loading, error} = useCatalog<VisaGuideData>('/catalog/visa');
   return <section className="cat" aria-labelledby="visa-guide-title"><header className="cat-head"><div><h2 id="visa-guide-title">راهنمای ویزا و مدارک سفر</h2><p>{data?.disclaimer ?? 'راهنمای عمومی ویزا به تفکیک مقصد.'}</p></div></header>
     <Status loading={loading} error={error} empty={!data || (data.countries.length === 0 && data.articles.length === 0)}>راهنمایی برای نمایش ثبت نشده است.</Status>
-    {data && data.countries.length > 0 && <><h3>به تفکیک کشور</h3><div className="cat-chips">{data.countries.map(c => <Link key={c.id} href={`/visa/cl-visa-country-${c.id}`}>ویزای {c.name}</Link>)}</div></>}
-    {data && data.articles.length > 0 && <><h3>مقاله‌های راهنما</h3><ul className="cat-rooms">{data.articles.map(a => <li key={a.id}><Link href={`/visa/${a.id}`}><strong>{a.title}</strong></Link><p>{a.excerpt}…</p></li>)}</ul></>}
+    {data && data.countries.length > 0 && <><h3 className="cat-h3">به تفکیک کشور</h3><div className="cat-chips">{data.countries.map(c => <Link key={c.id} href={`/visa/cl-visa-country-${c.id}`}>ویزای {c.name}</Link>)}</div></>}
+    {data && data.articles.length > 0 && <><h3 className="cat-h3">مقاله‌های راهنما</h3><ul className="cat-rooms">{data.articles.map(a => <li key={a.id}><Link href={`/visa/${a.id}`}><strong>{a.title}</strong></Link><p>{a.excerpt}…</p></li>)}</ul></>}
   </section>;
 }
 export function VisaArticle({id}: {id: string}) {

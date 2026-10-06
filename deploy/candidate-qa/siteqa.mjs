@@ -7,6 +7,7 @@ const tour = psql("select t.slug||'|'||t.title_fa||'|'||t.destination_place_id f
 const visaCountry = psql("select replace(id,'cl-visa-country-','') from catalog_content where kind='visa_country' order by length(body) desc limit 1");
 const cityWithGallery = psql("select id from catalog_places where kind='city' and details_json like '%\"images\"%' and description is not null and hotel_count>0 limit 1");
 const legacy = psql("select legacy_path||'|'||target_path from catalog_legacy_routes where target_path like '/hotels?%city=%' limit 1").split('|');
+const cityName = psql(`select name_fa from catalog_places where id='${hotel[2]}'`);
 const attraction = psql("select name_fa from catalog_venues where source='checkline' limit 1");
 const login = async email => (await (await fetch(API + '/auth/dev-login', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({email})})).json());
 if (hotel.length < 3 || tour.length < 3 || legacy.length < 2) {console.log('fixture lookup failed', hotel, tour, legacy); process.exit(1);}
@@ -18,19 +19,29 @@ for (const [vp, size] of [['desktop', {width: 1366, height: 900}], ['mobile', {w
   const text = () => page.locator('main').first().innerText();
   const fits = () => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);
   const links = new Set(); const collect = async () => {for (const h of await page.$$eval('main a[href^="/"]', as => as.map(a => a.getAttribute('href')))) links.add(h);};
-  // ---------- homepage -> hotel search
-  await open('/'); const tab = page.locator('main button:has-text("هتل"), main [role=tab]:has-text("هتل")').first(); if (await tab.count()) await tab.click().catch(() => {}); await page.waitForTimeout(400); const box = page.locator('input[role=combobox]').first();
-  let viaHome = false;
-  if (await box.count()) {await box.click().catch(() => {}); await box.fill(hotel[1]).catch(() => {}); await page.waitForTimeout(1800); viaHome = (await page.locator(`[role=option]:has-text("${hotel[1]}"), [role=listbox] :text("${hotel[1]}")`).count()) > 0; if (!viaHome) console.log('home options:', (await page.locator('[role=option]').allInnerTexts()).slice(0, 5).join(' | ').slice(0, 200));}
+  // ---------- homepage -> hotel search (the destination field has a default value; fill() replaces it)
+  await open('/'); await page.locator('.fs-tabs button:has-text("هتل")').first().click(); await page.waitForTimeout(400);
+  const box = page.locator('input[role=combobox][aria-controls="destination-suggestions"]').first(); await box.click(); await box.fill(hotel[1]); await page.waitForTimeout(1800);
+  const opt = page.locator('#destination-suggestions [role=option]').filter({hasText: hotel[1]}).first(); const viaHome = (await opt.count()) > 0;
+  if (!viaHome) console.log('home options:', (await page.locator('[role=option]').allInnerTexts()).slice(0, 5).join(' | ').slice(0, 200));
   check('homepage search suggests the bundle hotel', viaHome);
-  const homeState = await page.evaluate(() => ({s: Object.keys(sessionStorage), l: Object.keys(localStorage)})); await page.evaluate(() => {sessionStorage.clear(); localStorage.clear();}); await ctx.clearCookies(); if (!viaHome) console.log('home search state keys', JSON.stringify(homeState), page.url());
+  if (viaHome) {await opt.click(); await page.waitForURL(u => u.pathname.startsWith('/hotels/'), {timeout: 12000}).catch(() => {}); await page.waitForSelector('.cat-detail-head h1', {timeout: 12000}).catch(() => {});
+    check('homepage search: choosing the hotel opens its page', decodeURIComponent(page.url()).endsWith('/hotels/' + hotel[0]) && (await text()).includes(hotel[1]), decodeURIComponent(page.url()).replace(WEB, ''));}
+  await open('/'); await page.locator('.fs-tabs button:has-text("هتل")').first().click(); const box2 = page.locator('input[role=combobox][aria-controls="destination-suggestions"]').first(); await box2.click(); await box2.fill(cityName); await page.waitForTimeout(1500);
+  const cityOpt = page.locator('#destination-suggestions [role=option]').filter({hasText: cityName}).first(); check('homepage search suggests the city', (await cityOpt.count()) > 0); if (await cityOpt.count()) await cityOpt.click();
+  await page.locator('form button[type=submit], .fs-submit').first().click().catch(() => {}); await page.waitForURL(u => u.pathname.startsWith('/search/results'), {timeout: 12000}).catch(() => {});
+  if (!page.url().includes('/search/results')) await open(`/search/results?vertical=hotel&destination=${encodeURIComponent(cityName)}`);
+  await page.waitForSelector('#catalog-for-search .cat-grid a', {timeout: 15000}).catch(() => {});
+  check('homepage search submit: results page lists registered hotels of the destination', page.url().includes('vertical=hotel') && (await page.locator('#catalog-for-search .cat-grid a').count()) >= 1 && !/\d[\d٬,]*\s*(ریال|تومان)/.test(await page.locator('#catalog-for-search').innerText().catch(() => '')), decodeURIComponent(page.url()).replace(WEB, '').slice(0, 90));
+  check('results page: no horizontal overflow', await fits()); await page.screenshot({path: `${OUT}/site-home-results-${vp}.png`, fullPage: true});
+  await page.evaluate(() => {sessionStorage.clear(); localStorage.clear();}); await ctx.clearCookies();
   // ---------- hotel vertical
   await open(`/hotels?city=${hotel[2]}`); if (!(await page.locator('.cat-grid a').count())) {console.log('retry hotels:', (await text()).slice(-160).replace(/\n/g, ' ')); await page.waitForTimeout(4000); await open(`/hotels?city=${hotel[2]}`);} await page.waitForSelector('.cat-grid a'); check('hotel results for the city, with filters', (await page.locator('.cat-grid a').count()) >= 1 && (await page.locator('.cat-filters select').count()) >= 2); await collect();
   await open('/hotels/' + hotel[0]); await page.waitForSelector('.cat-detail-head h1'); const th = await text();
   check('hotel detail: description, room types with image, facilities', /دربارهٔ اقامتگاه/.test(th) && /انواع اتاق/.test(th) && (await page.locator('img.cat-room-img').count()) >= 1 && (await page.locator('.cat-rooms .cat-amen li').count()) >= 1);
   check('hotel detail: explicit rate/booking state', /نرخ و موجودی\s*متصل نیست/.test(th.replace(/\n/g, ' ')) && /رزرو آنلاین\s*غیرفعال/.test(th.replace(/\n/g, ' ')) && (await page.locator('[data-request-state=inquiry]').count()) === 1);
   check('hotel detail: anonymous is asked to sign in for a request', (await page.locator('[data-request-state] a[href="/login"]').count()) === 1);
-  check('hotel SEO title/description from data', (await page.title()).includes(hotel[1].slice(0, 12)) && ((await page.locator('meta[name=description]').getAttribute('content')) || '').length > 20, await page.title()); await collect();
+  check('hotel SEO title/description from data', (await page.title()).includes(hotel[1].slice(0, 12)) && ((await page.locator('meta[name=description]').getAttribute('content')) || '').length > 20, await page.title()); check('hotel canonical', ((await page.locator('link[rel=canonical]').getAttribute('href').catch(() => '')) || '').endsWith('/hotels/' + hotel[0])); await collect();
   // ---------- tour vertical
   await open('/tours'); check('tour landing: programme by destination with real tours', /برنامهٔ تورها بر اساس مقصد/.test(await text()) && (await page.locator('#tour-catalog .cat-grid a').count()) >= 3); await collect();
   await open('/tours/search'); await page.waitForSelector('#tour-catalog .cat-grid a'); const totalAll = await page.locator('.cat-meta span').first().innerText();
@@ -42,7 +53,7 @@ for (const [vp, size] of [['desktop', {width: 1366, height: 900}], ['mobile', {w
   check('tour detail by slug: intro, origin/destination, duration, transport, services', res.status() === 200 && /دربارهٔ تور/.test(tt) && /مقصد/.test(tt) && /مدت/.test(tt) && /خدمات تور|برنامهٔ حمل‌ونقل/.test(tt));
   check('tour detail: hotels, past dates, taxonomy', /هتل‌های این تور/.test(tt) && /تاریخ‌های برگزارشده/.test(tt) && (await page.locator('[aria-label="دسته‌بندی"] a').count()) >= 1);
   check('tour detail: not bookable, explicit request state', /رزرو آنلاین\s*غیرفعال/.test(tt.replace(/\n/g, ' ')) && !/\d[\d٬,]*\s*(ریال|تومان)/.test(tt) && !(await page.locator('main button:has-text("رزرو")').count()));
-  check('tour SEO title from data', (await page.title()).includes(tour[1].slice(0, 10)), await page.title()); check('tour detail: no horizontal overflow', await fits()); await collect(); await page.screenshot({path: `${OUT}/site-tour-${vp}.png`, fullPage: true});
+  check('tour SEO title from data', (await page.title()).includes(tour[1].slice(0, 10)), await page.title()); check('tour canonical', decodeURIComponent((await page.locator('link[rel=canonical]').getAttribute('href').catch(() => '')) || '').endsWith('/tours/' + tour[0])); check('tour detail: no horizontal overflow', await fits()); await collect(); await page.screenshot({path: `${OUT}/site-tour-${vp}.png`, fullPage: true});
   await open('/tours/destination/' + tour[2]); await page.waitForSelector('#tour-catalog .cat-grid a'); check('tours by destination page', (await page.locator('#tour-catalog .cat-grid a').count()) >= 1 && !(await page.locator('[aria-label="مقصد تور"]').count())); await collect();
   await open('/tours/reference'); check('old tour list route redirects', /\/tours\/search/.test(page.url()));
   // ---------- request flow as a signed-in customer (creates a real support case on the candidate)
@@ -58,7 +69,7 @@ for (const [vp, size] of [['desktop', {width: 1366, height: 900}], ['mobile', {w
   // ---------- destinations
   await open('/destinations/' + cityWithGallery); const td = await text();
   check('destination: breadcrumbs, gallery, related, hotels', (await page.locator('.cat-place .cat-crumbs a').count()) >= 2 && (await page.locator('.cat-place .cat-gallery img').count()) >= 2 && /مقصدهای مرتبط/.test(td) && /هتل و اقامتگاه/.test(td));
-  check('destination SEO title from data', /راهنمای مقصد کارن‌سیر/.test(await page.title()), await page.title()); await collect();
+  check('destination SEO title from data', /راهنمای مقصد کارن‌سیر/.test(await page.title()), await page.title()); check('destination canonical', ((await page.locator('link[rel=canonical]').getAttribute('href').catch(() => '')) || '').endsWith('/destinations/' + cityWithGallery)); await collect();
   await page.locator('.cat-place .cat-crumbs a').nth(1).click(); await page.waitForTimeout(900); check('breadcrumb leads to the country page', /\/destinations\/[a-z]{2}$/.test(page.url()) && /اطلاعات مقصد/.test(await text()));
   // ---------- visa / travel requirements
   await open('/visa'); const tv = await text(); check('visa page: country guides and articles from the bundle', /به تفکیک کشور/.test(tv) && /مقاله‌های راهنما/.test(tv) && (await page.locator('a[href^="/visa/cl-visa-"]').count()) >= 10 && /تضمین نمی‌شود/.test(tv)); await collect();
@@ -68,6 +79,8 @@ for (const [vp, size] of [['desktop', {width: 1366, height: 900}], ['mobile', {w
   await open('/attractions'); await page.waitForTimeout(800); check('attractions page lists a bundle attraction', (await page.locator('body').innerText()).includes(attraction) || (await (await fetch(API + '/catalog/venues?q=' + encodeURIComponent(attraction))).json()).items.length > 0, attraction);
   await page.goto(WEB + encodeURI(legacy[0]), {waitUntil: 'networkidle'}); await page.waitForURL(u => u.pathname.startsWith('/hotels'), {timeout: 12000}).catch(() => {});
   check('old-site URL is redirected to its KarenSeir page', decodeURIComponent(page.url()).includes(legacy[1].split('?')[0]) && /city=/.test(page.url()), decodeURIComponent(page.url()).replace(WEB, ''));
+  for (const [title, target] of [['اقامت و مهاجرت', '/visa'], ['گردشگری سلامت چیست؟', '/services']]) {const lp = psql(`select legacy_path from catalog_legacy_routes where title='${title}'`); await page.goto(WEB + lp, {waitUntil: 'networkidle'}); await page.waitForURL(u => u.pathname === target, {timeout: 12000}).catch(() => {}); check(`decided old page «${title}» → ${target}`, new URL(page.url()).pathname === target, decodeURIComponent(lp));}
+  const st404 = (await ctx.request.get(WEB + '/no-such-old-page-xyz/')).status(); check('unknown URL answers HTTP 404', st404 === 404, st404);
   await page.goto(WEB + '/no-such-old-page-xyz/', {waitUntil: 'networkidle'}); check('unknown URL stays a normal 404', /این صفحه پیدا نشد/.test(await page.locator('body').innerText()));
   // ---------- dead links reachable from these pages
   const dead = []; let n = 0;

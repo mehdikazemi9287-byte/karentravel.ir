@@ -40,7 +40,8 @@ def _bundle(tmp_path):
                                                               "transport-list-column-titles_0_direction_title": ["هوایی"], "transport-list-column-titles_0_origin_title": ["تهران"], "transport-list-column-titles_0_destination_title": ["شیراز"], "top-image": ["900"]}},
         {"id": 40, "type": "attraction", "title": "حافظیه", "meta": {"city": ["2"], "country": ["1"], "map": [{"lat": "29.62", "lng": "52.55", "address": "Hafezieh"}]}}]
     (root / "evidence-round3/deep-data-audit-round3.json").write_text(json.dumps({"catalog": catalog, "taxonomy": [{"term_taxonomy_id": "7", "taxonomy": "location-category", "name": "هتل های شیراز"}],
-        "pages": [{"ID": "50", "post_title": "هتل های شیراز", "post_name": "shiraz-hotels", "post_status": "publish", "body_chars": 10}, {"ID": "51", "post_title": "اقامت و مهاجرت", "post_name": "immigration", "post_status": "publish", "body_chars": 5},
+        "pages": [{"ID": "50", "post_title": "هتل های شیراز", "post_name": "shiraz-hotels", "post_status": "publish", "body_chars": 10}, {"ID": "51", "post_title": "باشگاه مشتریان", "post_name": "immigration", "post_status": "publish", "body_chars": 5},
+                  {"ID": "54", "post_title": "اقامت و مهاجرت", "post_name": "residency", "post_status": "publish", "body_chars": 5},
                   {"ID": "52", "post_title": "تور شیراز", "post_name": "shiraz-tour", "post_status": "publish", "body_chars": 0}, {"ID": "53", "post_title": "پیش‌نویس", "post_name": "d", "post_status": "draft", "body_chars": 0}],
         "menu_items": [{"_menu_item_object": "page", "_menu_item_object_id": "50"}]}, ensure_ascii=False), encoding="utf-8")
     (root / "evidence-round3/catalog-controls-round3.json").write_text(json.dumps({"catalog_meta": meta, "catalog_taxonomy": [{"post_id": "10", "term_taxonomy_id": "7"}]}, ensure_ascii=False), encoding="utf-8")
@@ -108,7 +109,7 @@ def test_bundle_import_carries_content_and_never_commercial_data(tmp_path, clien
         assert [x.hotel_id for x in db.scalars(select(CatalogTourHotel).where(CatalogTourHotel.tour_id == "cl-tour-20"))] == ["cl-10"] and db.get(CatalogTour, "cl-tour-21") is None
         assert db.get(CatalogVenue, "cl-attr-40").latitude == 29.62 and db.get(CatalogContent, "cl-visa-30").body == "مدارک لازم"
         routes = {r.legacy_path: r.target_path for r in db.scalars(select(CatalogLegacyRoute))}
-        assert routes == {"/shiraz-hotels/": "/hotels?country=IR&city=ir-shiraz", "/immigration/": None, "/shiraz-tour/": "/tours/search?destination=ir-shiraz"}
+        assert routes == {"/shiraz-hotels/": "/hotels?country=IR&city=ir-shiraz", "/immigration/": None, "/residency/": "/visa", "/shiraz-tour/": "/tours/search?destination=ir-shiraz"}   # unknown page stays unmapped; a decided page goes to its closest live page
     # ---- the content is reachable through the public API: search -> results -> detail, with no price and not bookable
     listing = client.get("/catalog/hotels", params={"city": "ir-shiraz", "q": "باغ نارنج"}).json()
     assert listing["total"] == 1 and listing["items"][0]["price"] is None and listing["items"][0]["state"]["bookable"] is False and listing["items"][0]["image_url"]
@@ -127,7 +128,7 @@ def test_bundle_import_carries_content_and_never_commercial_data(tmp_path, clien
     assert client.get("/catalog/places/th").json()["details"]["visa_note"] == "ویزای توریستی"
     assert client.get("/catalog/content", params={"kind": "visa"}).json()["items"][0]["title"] == "ویزای تایلند" and client.get("/catalog/content/cl-visa-30").json()["body"] == "مدارک لازم"
     assert client.get("/catalog/legacy-route", params={"path": "shiraz-hotels"}).json()["target_path"] == "/hotels?country=IR&city=ir-shiraz" and client.get("/catalog/legacy-route", params={"path": "nope"}).status_code == 404
-    assert client.get("/catalog/legacy-routes").json() == {"total": 3, "mapped": 2, "items": client.get("/catalog/legacy-routes").json()["items"]}
+    assert client.get("/catalog/legacy-routes").json() == {"total": 4, "mapped": 3, "items": client.get("/catalog/legacy-routes").json()["items"]}
 
 
 def test_bundle_reimport_keeps_reviewer_edits_and_other_sources(tmp_path, client):

@@ -732,6 +732,16 @@ def catalog_router(get_db) -> APIRouter:
             raise HTTPException(status_code=404, detail="مسیر قدیمی شناخته نشد")
         return {"legacy_path": row.legacy_path, "title": row.title, "target_path": row.target_path, "has_equivalent": row.target_path is not None}
 
+    @router.get("/sitemap")
+    def sitemap(response: Response, db: Session = Depends(get_db)) -> dict:
+        """Public catalogue pages for the site map: only published records that have a page of their own."""
+        cached(response)
+        hotels = db.scalars(select(CatalogHotel.slug).where(CatalogHotel.status == "published", CatalogHotel.duplicate_of.is_(None), CatalogHotel.slug.is_not(None)).order_by(CatalogHotel.id).limit(40000)).all()
+        tours = db.scalars(select(CatalogTour.slug).where(CatalogTour.status == "published", CatalogTour.slug.is_not(None)).order_by(CatalogTour.id)).all()
+        places = db.scalars(select(CatalogPlace.id).where(or_(CatalogPlace.description.is_not(None), CatalogPlace.hotel_count > 0)).order_by(CatalogPlace.id).limit(5000)).all()
+        content = db.scalars(select(CatalogContent.id).where(CatalogContent.kind.in_(("visa", "visa_country")), CatalogContent.status == "published").order_by(CatalogContent.id)).all()
+        return {"paths": ["/hotels", "/tours/search", "/visa"] + [f"/hotels/{s}" for s in hotels] + [f"/tours/{s}" for s in tours] + [f"/destinations/{i}" for i in places] + [f"/visa/{i}" for i in content]}
+
     @router.get("/legacy-routes")
     def legacy_routes(response: Response, db: Session = Depends(get_db)) -> dict:
         cached(response)

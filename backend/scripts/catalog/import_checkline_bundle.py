@@ -374,7 +374,8 @@ def main(bundle_dir: str, dry_run: bool, publish: bool = True) -> dict:
                 for k2, v2 in vals.items(): setattr(row, k2, v2)
             report["content"] += 1
         STATIC = {"ثبت شکایت": "/support", "مشاوره گردشگری آنلاین": "/support", "چرا ما را انتخاب می کنید؟": "/about", "جاذبه های گردشگری": "/attractions", "صنایع دستی": "/handicrafts", "رزرو هتل خارجی": "/hotels",
-                  "راهنمای خرید هتل": "/hotels", "کشور": "/destinations", "تفریحات کیش": "/attractions", "تورهای ویژه BSI": "/tours/search", "bsi tour": "/tours/search", "بلاگ": "/travel-guides"}
+                  "راهنمای خرید هتل": "/hotels", "کشور": "/destinations", "تفریحات کیش": "/attractions", "تورهای ویژه BSI": "/tours/search", "bsi tour": "/tours/search", "بلاگ": "/travel-guides",
+                  "اقامت و مهاجرت": "/visa", "گردشگری سلامت چیست؟": "/services", "اپلیکیشن چک‌لاین تراول": "/"}
         menu_targets = {str(mi.get("_menu_item_object_id")) for mi in deep["menu_items"] if mi.get("_menu_item_object") == "page"}
         for page in deep["pages"]:
             if page["post_status"] != "publish": continue

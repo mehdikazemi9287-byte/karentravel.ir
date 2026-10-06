@@ -29,3 +29,14 @@ def test_tour_vertical_visa_and_destination_structure(tmp_path, client):
     shiraz = client.get("/catalog/places/ir-shiraz").json()
     assert shiraz["breadcrumbs"][0] == {"id": "ir", "name": "ایران"} and shiraz["seo"]["title"].startswith("سفر به شیراز") and isinstance(shiraz["related"], list)
     assert client.get("/catalog/places/cl-city-4").json()["breadcrumbs"] == [{"id": "th", "name": "تایلند"}]
+
+
+def test_sitemap_lists_only_published_pages(tmp_path, client):
+    _reset(); _load(tmp_path); root = _bundle(tmp_path); b.main(root, False)
+    paths = client.get("/catalog/sitemap").json()["paths"]
+    assert "/hotels/checkline-10" in paths and "/tours/t20" in paths and "/destinations/ir-shiraz" in paths and "/visa/cl-visa-country-th" in paths and len(paths) == len(set(paths))
+    from app.catalog import CatalogHotel
+    from app.main import SessionLocal
+    with SessionLocal() as db:
+        db.get(CatalogHotel, "cl-10").status = "draft"; db.commit()
+    assert "/hotels/checkline-10" not in client.get("/catalog/sitemap").json()["paths"]
