@@ -72,6 +72,7 @@ class CatalogPlace(SourceMixin, Base):
     wikidata_id: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     hotel_count: Mapped[int] = mapped_column(Integer, default=0)
     search_text: Mapped[str] = mapped_column(Text, default="")
+    details_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # source facts without a dedicated column, keyed by source
 
 
 class CatalogHotel(SourceMixin, Base):
@@ -113,6 +114,7 @@ class CatalogHotel(SourceMixin, Base):
     content_complete: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false", index=True)
     duplicate_of: Mapped[Optional[str]] = mapped_column(ForeignKey("catalog_hotels.id"), nullable=True, index=True)  # set => never public; canonical record wins
     match_basis: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+    details_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     __table_args__ = (Index("ix_catalog_hotels_country_city", "country_code", "city_id"),)
 
 
@@ -273,6 +275,7 @@ class CatalogTour(SourceMixin, Base):
     transfer_included: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
     documents_required: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     cancellation_policy_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    details_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     search_text: Mapped[str] = mapped_column(Text, default="")
     updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     updated_by: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
@@ -289,6 +292,28 @@ class CatalogTourDeparture(Base):
     starts_on: Mapped[Optional[date]] = mapped_column(Date, nullable=True, index=True)  # only when the text is a valid calendar date
     ends_on: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     __table_args__ = (Index("ux_catalog_tour_departures_row", "tour_id", "source_row", unique=True),)
+
+
+class CatalogContent(SourceMixin, Base):
+    """Editorial reference content carried over from a source site (e.g. visa guidance). Text only."""
+    __tablename__ = "catalog_content"
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    kind: Mapped[str] = mapped_column(String(24), index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    slug: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    body: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(16), default="published", index=True)
+
+
+class CatalogLegacyRoute(SourceMixin, Base):
+    """A page of the previous site and where its subject lives in KarenSeir (null = no equivalent yet)."""
+    __tablename__ = "catalog_legacy_routes"
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    legacy_path: Mapped[str] = mapped_column(String(300), index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    target_path: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
+    in_menu: Mapped[bool] = mapped_column(Boolean, default=False)
+    body_chars: Mapped[int] = mapped_column(Integer, default=0)
 
 
 class CatalogTourItineraryDay(Base):
@@ -358,15 +383,36 @@ HOTEL_LINK_TABLES = (CatalogHotelMatch.__table__, CatalogHotelProviderMapping.__
 TOUR_TABLES = (CatalogTour.__table__, CatalogTourDeparture.__table__)
 TOUR_CONTENT_TABLES = (CatalogTourItineraryDay.__table__, CatalogTourHotel.__table__)
 PROVIDER_DETAIL_TABLES = (CatalogHotelRoomMapping.__table__, CatalogHotelRatePlanMapping.__table__, HotelOfferSnapshot.__table__)
+CONTENT_TABLES = (CatalogContent.__table__, CatalogLegacyRoute.__table__)
 TOUR_TRANSPORT = {"flight": "پرواز", "bus": "اتوبوس", "train": "قطار", "cruise": "کشتی", "self": "بدون حمل‌ونقل"}
 TOUR_BOARD = {"RO": "بدون وعده", "BB": "صبحانه", "HB": "نیم‌پانسیون", "FB": "تمام‌پانسیون", "AI": "همه‌چیز رایگان", "UAI": "اولترا آل‌اینکلوسیو"}
 CATALOG_MODELS = {"places": CatalogPlace, "hotels": CatalogHotel, "airlines": CatalogAirline, "airports": CatalogAirport, "rail_operators": CatalogRailOperator, "rail_stations": CatalogRailStation, "venues": CatalogVenue}
 
 
+def source_details(row) -> dict:
+    """Facts imported from a source without a dedicated column (never a price or availability)."""
+    try:
+        data = json.loads(row.details_json or "{}")
+    except ValueError:
+        return {}
+    merged: dict = {}
+    for value in data.values():
+        if isinstance(value, dict): merged.update(value)
+    return merged
+
+
+def tour_brief(t: CatalogTour, places: dict, departures: list) -> dict:
+    d = source_details(t); dest = places.get(t.destination_place_id or "")
+    return {"id": t.id, "title": t.title_fa, "destination": _brief(dest), "duration_nights": t.duration_nights, "duration_days": t.duration_days, "transport_mode": t.transport_mode, "transport_fa": TOUR_TRANSPORT.get(t.transport_mode or ""),
+            "image_url": d.get("image_url"), "image_credit": d.get("image_credit"), "departures_recorded": len(departures), "latest_departure": max((x.starts_on.isoformat() for x in departures if x.starts_on), default=None),
+            "price": None, "price_status": "inquiry", "sellable": False, "state_note": "این برنامه سابقهٔ تورهای برگزارشده است؛ تاریخ و قیمت جدید با استعلام اعلام می‌شود."}
+
+
 def _place(row: Optional[CatalogPlace]) -> Optional[dict]:
     if row is None:
         return None
-    return {"id": row.id, "kind": row.kind, "parent_id": row.parent_id, "country_code": row.country_code, "name_fa": row.name_fa, "name_en": row.name_en,
+    return {"details": {k: v for k, v in source_details(row).items() if k in ("capital", "currency", "official_language", "population_text", "voltage", "time_zone", "visa_note", "guide")},
+            "id": row.id, "kind": row.kind, "parent_id": row.parent_id, "country_code": row.country_code, "name_fa": row.name_fa, "name_en": row.name_en,
             "name": row.name_fa or row.name_en or row.name_local, "latitude": row.latitude, "longitude": row.longitude, "population": row.population,
             "description": row.description, "image_url": row.image_url, "image_credit": row.image_credit, "hotel_count": row.hotel_count}
 
@@ -402,7 +448,8 @@ def _hotel(row: CatalogHotel, places: dict[str, CatalogPlace], full: bool = Fals
             "price": None, "price_status": "inquiry", "price_note": PRICE_NOTE_FA, "state": hotel_state(row, rateable)}
     if full:
         data.update({"description": row.description, "checkin_time": row.checkin_time, "checkout_time": row.checkout_time, "phone": row.phone, "website": row.website,
-                     "email": row.email, "provenance": _provenance(row), "rules_text": row.rules_text, "stars_status": row.stars_status,
+                     "email": row.email, "provenance": _provenance(row), "rules_text": row.rules_text,
+                     "details": {k: v for k, v in source_details(row).items() if k in ("district", "room_count", "bed_count", "built_year_jalali", "floors", "hotel_view", "board_plans", "nearby", "restaurants", "review")}, "stars_status": row.stars_status,
                      "stars_status_fa": STARS_STATUS.get(row.stars_status or ""),
                      "policies": [{"key": k, "label": label, "value": getattr(row, k), "value_fa": POLICY_VALUES[getattr(row, k)]} for k, label in POLICY_FIELDS.items() if getattr(row, k) in POLICY_VALUES]})
     return data
@@ -479,7 +526,12 @@ def catalog_router(get_db) -> APIRouter:
         venue_scope = CatalogVenue.city_id if row.kind == "city" else CatalogVenue.region_id
         venue_counts = dict(db.execute(select(CatalogVenue.kind, func.count()).where(venue_scope == row.id).group_by(CatalogVenue.kind)).all()) if row.kind != "country" else {}
         children = db.scalars(select(CatalogPlace).where(CatalogPlace.parent_id == row.id).order_by(CatalogPlace.hotel_count.desc(), CatalogPlace.population.desc().nulls_last()).limit(40)).all()
-        return {**_place(row), "parent": _place(db.get(CatalogPlace, row.parent_id)) if row.parent_id else None, "children": [_place(c) for c in children],
+        tour_scope = [row.id, *[c.id for c in children]] if row.kind != "city" else [row.id]
+        tours = db.scalars(select(CatalogTour).where(CatalogTour.status == "published", CatalogTour.destination_place_id.in_(tour_scope)).order_by(CatalogTour.id.desc()).limit(12)).all()
+        tour_departures: dict[str, list] = {}
+        for dep in (db.scalars(select(CatalogTourDeparture).where(CatalogTourDeparture.tour_id.in_({t.id for t in tours}))) if tours else []): tour_departures.setdefault(dep.tour_id, []).append(dep)
+        return {**_place(row), "reference_tours": [tour_brief(t, {row.id: row, **{c.id: c for c in children}}, tour_departures.get(t.id, [])) for t in tours],
+                "parent": _place(db.get(CatalogPlace, row.parent_id)) if row.parent_id else None, "children": [_place(c) for c in children],
                 "hotels": row.hotel_count if scope is not None else db.scalar(select(func.count()).select_from(CatalogHotel).where(CatalogHotel.country_code == row.country_code)),
                 "airports": [_airport(a) for a in airports], "rail_stations": [_station(s) for s in stations], "venue_counts": venue_counts, "provenance": _provenance(row)}
 
@@ -574,6 +626,78 @@ def catalog_router(get_db) -> APIRouter:
         result = recheck_snapshot(db, snapshot)
         db.commit()
         return result
+
+    @router.get("/tours")
+    def reference_tours(response: Response, destination: Optional[str] = None, q: Optional[str] = None, offset: int = Query(default=0, ge=0), limit: int = Query(default=24, ge=1, le=60), db: Session = Depends(get_db)) -> dict:
+        """Reference tours carried over from the source catalogue. Never sellable from here: no price, no capacity, past dates only."""
+        cached(response)
+        stmt = select(CatalogTour).where(CatalogTour.status == "published")
+        if destination:
+            place = db.get(CatalogPlace, destination)
+            ids = [destination]
+            if place is not None and place.kind == "country": ids += list(db.scalars(select(CatalogPlace.id).where(CatalogPlace.country_code == place.country_code)))
+            elif place is not None and place.kind == "region": ids += list(db.scalars(select(CatalogPlace.id).where(CatalogPlace.parent_id == destination)))
+            stmt = stmt.where(CatalogTour.destination_place_id.in_(ids))
+        if q and normalize_text(q):
+            for token in [x for x in normalize_text(q).split()[:4] if x not in ("تور", "tour")]: stmt = stmt.where(CatalogTour.search_text.like(f"%{token}%"))
+        total = db.scalar(select(func.count()).select_from(stmt.subquery()))
+        rows = db.scalars(stmt.order_by(CatalogTour.id.desc()).offset(offset).limit(limit)).all()
+        deps: dict[str, list] = {}
+        for dep in (db.scalars(select(CatalogTourDeparture).where(CatalogTourDeparture.tour_id.in_({r.id for r in rows}))) if rows else []): deps.setdefault(dep.tour_id, []).append(dep)
+        places_map = _places_for(db, {r.destination_place_id for r in rows})
+        dest_rows = db.execute(select(CatalogTour.destination_place_id, func.count()).where(CatalogTour.status == "published", CatalogTour.destination_place_id.is_not(None)).group_by(CatalogTour.destination_place_id).order_by(func.count().desc())).all()
+        dest_places = _places_for(db, {d for d, _ in dest_rows})
+        return {"total": total, "offset": offset, "limit": limit, "items": [tour_brief(r, places_map, deps.get(r.id, [])) for r in rows], "price_status": "inquiry", "sellable": False,
+                "destinations": [{"id": d, "name": dest_places[d].name_fa or dest_places[d].name_en, "count": n} for d, n in dest_rows if d in dest_places]}
+
+    @router.get("/tours/{tour_id}")
+    def reference_tour(tour_id: str, response: Response, db: Session = Depends(get_db)) -> dict:
+        cached(response)
+        row = db.scalar(select(CatalogTour).where(CatalogTour.id == tour_id, CatalogTour.status == "published"))
+        if row is None:
+            raise HTTPException(status_code=404, detail="تور پیدا نشد")
+        departures = db.scalars(select(CatalogTourDeparture).where(CatalogTourDeparture.tour_id == row.id).order_by(CatalogTourDeparture.source_row)).all()
+        links = db.scalars(select(CatalogTourHotel).where(CatalogTourHotel.tour_id == row.id).order_by(CatalogTourHotel.id)).all()
+        hotels = {h.id: h for h in db.scalars(select(CatalogHotel).where(CatalogHotel.id.in_({x.hotel_id for x in links})))} if links else {}
+        d = source_details(row)
+        return {**tour_brief(row, _places_for(db, {row.destination_place_id}), departures), "description": row.description, "board": row.board, "board_fa": TOUR_BOARD.get(row.board or ""), "guide_included": row.guide_included,
+                "transfer_included": row.transfer_included, "documents_required": row.documents_required, "cancellation_policy_text": row.cancellation_policy_text,
+                "details": {k: v for k, v in d.items() if k in ("long_title", "services_text", "inclusions", "leave_duration", "difficulty", "age_range", "moving_point", "roadmap", "notice", "transport_legs", "categories")},
+                "itinerary": [{"day_no": i.day_no, "title": i.title, "description": i.description} for i in db.scalars(select(CatalogTourItineraryDay).where(CatalogTourItineraryDay.tour_id == row.id).order_by(CatalogTourItineraryDay.day_no))],
+                "hotels": [{"id": h.id, "name": h.name_fa or h.name_en, "stars": h.stars, "slug": h.slug if h.status == "published" and h.duplicate_of is None else None, "nights": x.nights} for x in links for h in [hotels.get(x.hotel_id)] if h is not None],
+                "departures": [{"starts_jalali": x.starts_jalali, "ends_jalali": x.ends_jalali, "starts_on": x.starts_on.isoformat() if x.starts_on else None, "past": bool(x.starts_on and x.starts_on < date.today())} for x in departures],
+                "source_soldout": row.source_soldout, "provenance": _provenance(row)}
+
+    @router.get("/content")
+    def content_list(response: Response, kind: Optional[str] = None, db: Session = Depends(get_db)) -> dict:
+        cached(response)
+        stmt = select(CatalogContent).where(CatalogContent.status == "published")
+        if kind: stmt = stmt.where(CatalogContent.kind == kind)
+        return {"items": [{"id": c.id, "kind": c.kind, "title": c.title, "excerpt": c.body[:220]} for c in db.scalars(stmt.order_by(CatalogContent.id))]}
+
+    @router.get("/content/{content_id}")
+    def content_detail(content_id: str, response: Response, db: Session = Depends(get_db)) -> dict:
+        cached(response)
+        c = db.scalar(select(CatalogContent).where(CatalogContent.id == content_id, CatalogContent.status == "published"))
+        if c is None:
+            raise HTTPException(status_code=404, detail="محتوا پیدا نشد")
+        return {"id": c.id, "kind": c.kind, "title": c.title, "body": c.body, "provenance": _provenance(c)}
+
+    @router.get("/legacy-route")
+    def legacy_route(path: str, response: Response, db: Session = Depends(get_db)) -> dict:
+        """Where a page of the previous site lives now. Used for redirects when the old domain is pointed here."""
+        cached(response)
+        wanted = "/" + path.strip().strip("/") + "/"
+        row = db.scalar(select(CatalogLegacyRoute).where(CatalogLegacyRoute.legacy_path == wanted))
+        if row is None:
+            raise HTTPException(status_code=404, detail="مسیر قدیمی شناخته نشد")
+        return {"legacy_path": row.legacy_path, "title": row.title, "target_path": row.target_path, "has_equivalent": row.target_path is not None}
+
+    @router.get("/legacy-routes")
+    def legacy_routes(response: Response, db: Session = Depends(get_db)) -> dict:
+        cached(response)
+        rows = db.scalars(select(CatalogLegacyRoute).order_by(CatalogLegacyRoute.id)).all()
+        return {"total": len(rows), "mapped": sum(1 for r in rows if r.target_path), "items": [{"legacy_path": r.legacy_path, "title": r.title, "target_path": r.target_path, "in_menu": r.in_menu} for r in rows]}
 
     def _airport(a: CatalogAirport) -> dict:
         return {"iata": a.id, "icao": a.icao_code, "name": a.name_fa or a.name_en, "name_fa": a.name_fa, "name_en": a.name_en, "city_id": a.city_id, "city_name": a.city_name,
@@ -678,6 +802,10 @@ def catalog_router(get_db) -> APIRouter:
         items += [{"type": "airport", "id": a.id, "title": a.name_fa or a.name_en, "subtitle": f"{a.id} · {a.city_name or ''}".strip(" ·"), "name_en": a.name_en, "country_code": a.country_code, "city_id": a.city_id} for a in airport_rows]
         items += [{"type": "hotel", "id": h.id, "title": h.name_fa or h.name_en or h.name_local, "subtitle": (places_map[h.city_id].name_fa or places_map[h.city_id].name_en) if h.city_id in places_map else "", "name_en": h.name_en,
                    "country_code": h.country_code, "href": f"/hotels/{h.slug}"} for h in hotel_rows]
+        tour_stmt = select(CatalogTour).where(CatalogTour.status == "published")
+        for token in [x for x in tokens[:4] if x not in ("تور", "tour")] or tokens[:1]:
+            tour_stmt = tour_stmt.where(CatalogTour.search_text.like(f"%{token}%"))
+        items += [{"type": "tour", "id": t.id, "title": t.title_fa, "subtitle": "تور برگزارشده · استعلام تاریخ جدید", "href": f"/tours/reference/{t.id}"} for t in db.scalars(tour_stmt.order_by(CatalogTour.id.desc()).limit(4))]
         return {"query": q, "items": items, "commercial_data": False}
 
     return router

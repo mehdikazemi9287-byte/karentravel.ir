@@ -334,7 +334,7 @@ def catalog_admin_router(get_db, guard: Callable, audit: Callable, history: Call
     def tour(row: CatalogTour, departures: list[CatalogTourDeparture]) -> dict:
         return {"description": row.description, "origin_place_id": row.origin_place_id, "destination_place_id": row.destination_place_id, "duration_nights": row.duration_nights, "duration_days": row.duration_days,
                 "transport_mode": row.transport_mode, "board": row.board, "guide_included": row.guide_included, "transfer_included": row.transfer_included, "documents_required": row.documents_required,
-                "cancellation_policy_text": row.cancellation_policy_text, "capacity": None, "supplier": None,
+                "cancellation_policy_text": row.cancellation_policy_text, "capacity": None, "supplier": None, "details": __import__("app.catalog", fromlist=["source_details"]).source_details(row),
                 "id": row.id, "title": row.title_fa, "status": row.status, "source": row.source, "source_ref": row.source_ref, "source_disabled": row.source_disabled, "source_soldout": row.source_soldout,
                 "sellable": False, "price": None, "departures_recorded": len(departures), "latest_departure": max((d.starts_on.isoformat() for d in departures if d.starts_on), default=None),
                 "departures": [{"starts_jalali": d.starts_jalali, "ends_jalali": d.ends_jalali, "starts_on": d.starts_on.isoformat() if d.starts_on else None, "ends_on": d.ends_on.isoformat() if d.ends_on else None} for d in departures]}

@@ -9,6 +9,8 @@ import {useAuth} from '../../lib/api/auth-context';
 type Brief = {id: string; name: string; name_en?: string | null} | null;
 type Hotel = {id: string; slug: string; name: string; name_fa: string | null; name_en: string | null; name_local: string | null; hotel_type: string; hotel_type_fa: string; stars: number | null; country_code: string;
   city: Brief; region: Brief; country?: Brief; address: string | null; latitude: number | null; longitude: number | null; amenities: {key: string; label: string}[]; image_url: string | null; image_credit: string | null; price_note: string;
+  details?: {district?: string; room_count?: string; bed_count?: string; built_year_jalali?: string; floors?: string; hotel_view?: string; board_plans?: string[]; review?: string;
+    nearby?: {place: string; distance: string | null; unit: string | null}[]; restaurants?: {name: string; capacity: string | null; hours: string | null}[]};
   rules_text?: string | null; stars_status?: string | null; stars_status_fa?: string | null; policies?: {key: string; label: string; value_fa: string}[];
   images?: {id: number; url: string; caption: string | null; author: string | null; license: string; license_url: string | null; source_url: string}[];
   room_types?: {id: number; name_fa: string; name_en: string | null; bed_type_fa: string | null; max_adults: number | null; max_children: number | null; size_m2: number | null; view_fa: string | null; description: string | null; amenities: {key: string; label: string}[]}[];
@@ -24,7 +26,7 @@ type Station = {id: string; name: string; name_en: string | null; city_id: strin
 type Airline = {id: string; iata: string; icao: string | null; name: string; name_en: string | null; country_code: string; airline_type: string | null; website: string | null; logo_url: string | null; logo_credit: string | null};
 type Place = {id: string; kind: string; parent_id: string | null; country_code: string; name: string; name_fa: string | null; name_en: string | null; latitude: number | null; longitude: number | null; population: number | null;
   description: string | null; image_url: string | null; image_credit: string | null; hotel_count: number};
-type PlaceDetail = Place & {parent: Place | null; children: Place[]; hotels: number; airports: Airport[]; rail_stations: Station[]; venue_counts: Record<string, number>};
+type PlaceDetail = Place & {details?: {capital?: string; currency?: string; official_language?: string; population_text?: string; voltage?: string; time_zone?: string; visa_note?: string; guide?: string}; reference_tours?: TourBrief[]; parent: Place | null; children: Place[]; hotels: number; airports: Airport[]; rail_stations: Station[]; venue_counts: Record<string, number>};
 
 const fa = (n: number) => n.toLocaleString('fa-IR');
 const COUNTRY_FA: Record<string, string> = {IR: 'ایران', TR: 'ترکیه', AE: 'امارات', AM: 'ارمنستان', GE: 'گرجستان', IQ: 'عراق', QA: 'قطر', OM: 'عمان', KW: 'کویت', AZ: 'جمهوری آذربایجان'};
@@ -146,10 +148,15 @@ export function HotelDetail({slug}: {slug: string}) {
     <div className="cat-detail-grid">
       <div>
         {h.images?.length ? <div className="cat-gallery">{h.images.map((im, i) => <figure key={im.id} className={i === 0 ? 'lead' : ''}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={im.url} alt={im.caption || h.name} loading={i ? 'lazy' : 'eager'}/><figcaption>{im.caption ? `${im.caption} — ` : ''}<a href={im.source_url} target="_blank" rel="noreferrer">{im.author || 'منبع'}</a> · {im.license_url ? <a href={im.license_url} target="_blank" rel="noreferrer">{im.license}</a> : im.license}</figcaption></figure>)}</div> : h.image_url ? <Thumb src={h.image_url} credit={h.image_credit} alt={h.name} label=""/> : <div className="cat-noimage">برای این اقامتگاه هنوز تصویر تأییدشده‌ای ثبت نشده است.</div>}
-        {h.description && <section><h2>دربارهٔ اقامتگاه</h2><p>{h.description}</p></section>}
+        {h.description && <section><h2>دربارهٔ اقامتگاه</h2>{h.description.split('\n').map((line, i) => <p key={i}>{line}</p>)}</section>}
         <section><h2>امکانات ثبت‌شده</h2>{h.amenities.length ? <ul className="cat-amen">{h.amenities.map(a => <li key={a.key}>{a.label}</li>)}</ul> : <p className="cat-muted">امکانات این اقامتگاه در منبع مرجع ثبت نشده است؛ هنگام استعلام اعلام می‌شود.</p>}</section>
         {h.room_types?.length ? <section><h2>انواع اتاق</h2><ul className="cat-rooms">{h.room_types.map(r => <li key={r.id}><strong>{r.name_fa}</strong>{r.name_en && <span dir="ltr" lang="en"> {r.name_en}</span>}<p>{[r.bed_type_fa, r.max_adults ? `${fa(r.max_adults)} بزرگسال` : null, r.max_children ? `${fa(r.max_children)} کودک` : null, r.size_m2 ? `${fa(r.size_m2)} متر مربع` : null, r.view_fa ? `منظره: ${r.view_fa}` : null].filter(Boolean).join(' · ')}</p>{r.description && <p>{r.description}</p>}{r.amenities.length > 0 && <ul className="cat-amen">{r.amenities.map(a => <li key={a.key}>{a.label}</li>)}</ul>}</li>)}</ul><p className="cat-muted">این فهرست توصیف انواع اتاق است و به معنی موجودی یا قیمت نیست.</p></section> : null}
         <section><h2>ورود و خروج</h2><p className={h.checkin_time || h.checkout_time ? '' : 'cat-muted'}>{h.checkin_time || h.checkout_time ? <>ورود: {h.checkin_time ?? '—'} · خروج: {h.checkout_time ?? '—'}</> : 'ساعت ورود و خروج و قوانین اقامت هنگام استعلام از اقامتگاه تأیید می‌شود.'}</p>{h.policies?.length ? <dl className="cat-dl">{h.policies.map(p => <span key={p.key} style={{display: 'contents'}}><dt>{p.label}</dt><dd>{p.value_fa}</dd></span>)}</dl> : null}{h.rules_text && <p>{h.rules_text}</p>}</section>
+        {h.details && Object.keys(h.details).length > 0 && <section><h2>مشخصات اقامتگاه</h2><dl className="cat-dl">
+          {([['محدوده', h.details.district], ['تعداد اتاق', h.details.room_count], ['تعداد تخت', h.details.bed_count], ['سال ساخت', h.details.built_year_jalali], ['تعداد طبقه', h.details.floors], ['چشم‌انداز', h.details.hotel_view], ['وعدهٔ قابل ارائه', h.details.board_plans?.join('، ')]] as [string, string | undefined][]).filter(([, v]) => v).map(([k, v]) => <span key={k} style={{display: 'contents'}}><dt>{k}</dt><dd>{v}</dd></span>)}</dl>
+          {h.details.nearby?.length ? <><h3>فاصله تا مکان‌های مهم</h3><ul className="cat-access">{h.details.nearby.map((n, i) => <li key={i}>{n.place}{n.distance ? ` — ${n.distance}${n.unit === 'km' ? ' کیلومتر' : n.unit === 'm' ? ' متر' : n.unit ? ` ${n.unit}` : ''}` : ''}</li>)}</ul></> : null}
+          {h.details.restaurants?.length ? <><h3>رستوران و کافه</h3><ul className="cat-access">{h.details.restaurants.map((r, i) => <li key={i}>{r.name}{r.hours ? ` — ${r.hours}` : ''}</li>)}</ul></> : null}
+          {h.details.review && h.details.review.split('\n').map((line, i) => <p key={i}>{line}</p>)}</section>}
         <section><h2>موقعیت و تماس</h2><dl className="cat-dl">
           {h.address && <><dt>نشانی</dt><dd>{h.address}</dd></>}
           {h.latitude !== null && h.longitude !== null && <><dt>مختصات</dt><dd><a href={osmLink(h.latitude, h.longitude)} target="_blank" rel="noreferrer" dir="ltr">{h.latitude.toFixed(5)}, {h.longitude.toFixed(5)}</a> (نمایش روی نقشه)</dd></>}
@@ -266,7 +273,10 @@ export function CatalogPlaceView({slug, fallback}: {slug: string; fallback: Reac
   return <div className="cat cat-place">
     <header className="cat-detail-head"><h1>سفر به {p.name}</h1>{p.name_en && <p className="cat-en" dir="ltr" lang="en">{p.name_en}</p>}<p className="cat-where">{[p.parent?.name, COUNTRY_FA[p.country_code]].filter(x => x && x !== p.name).join('، ')}{p.population ? ` · جمعیت ${fa(p.population)}` : ''}</p></header>
     {p.image_url && <Thumb src={p.image_url} credit={p.image_credit} alt={p.name} label=""/>}
-    {p.description && <p>{p.description}</p>}
+    {p.description && p.description.split('\n').map((line, i) => <p key={i}>{line}</p>)}
+    {p.details && Object.keys(p.details).length > 0 && <section><h2>اطلاعات مقصد</h2><dl className="cat-dl">{([['پایتخت', p.details.capital], ['واحد پول', p.details.currency], ['زبان رسمی', p.details.official_language], ['جمعیت', p.details.population_text], ['برق شهری', p.details.voltage], ['اختلاف ساعت', p.details.time_zone]] as [string, string | undefined][]).filter(([, v]) => v).map(([k, v]) => <span key={k} style={{display: 'contents'}}><dt>{k}</dt><dd>{v}</dd></span>)}</dl>
+      {p.details.guide && p.details.guide.split('\n').map((line, i) => <p key={i}>{line}</p>)}{p.details.visa_note && <><h3>ویزا</h3>{p.details.visa_note.split('\n').map((line, i) => <p key={i}>{line}</p>)}</>}</section>}
+    {p.reference_tours && p.reference_tours.length > 0 && <section><h2>تورهای برگزارشده به این مقصد</h2><div className="cat-grid">{p.reference_tours.map(t => <TourCard key={t.id} t={t}/>)}</div></section>}
     <div className="cat-place-stats"><Link href={hotelsHref}><b>{fa(p.hotels)}</b> هتل و اقامتگاه</Link>
       {PLACE_VENUE_LINKS.filter(([k]) => p.venue_counts[k]).map(([k, label, href]) => <Link key={k} href={`${href}?vcity=${p.kind === 'city' ? p.id : ''}&vkind=${k}`}><b>{fa(p.venue_counts[k])}</b> {label}</Link>)}</div>
     {p.airports.length > 0 && <section><h2>فرودگاه‌ها</h2><ul className="cat-access">{p.airports.map(a => <li key={a.iata}>{a.name} <span dir="ltr">({a.iata})</span></li>)}</ul></section>}
@@ -276,4 +286,69 @@ export function CatalogPlaceView({slug, fallback}: {slug: string; fallback: Reac
     <div className="customer-actions"><Link className="button primary" href={hotelsHref}>اقامتگاه‌های {p.name}</Link><Link className="button secondary" href={`/search/results?vertical=hotel&destination=${encodeURIComponent(p.name)}`}>جست‌وجوی اقامت با تاریخ</Link></div>
     {ATTRIBUTION}
   </div>;
+}
+
+/* ---- Reference tours carried over from the previous catalogue: descriptive only, never sellable from here ---- */
+type TourBrief = {id: string; title: string; destination: Brief; duration_nights: number | null; duration_days: number | null; transport_fa: string | null; image_url: string | null; image_credit: string | null;
+  departures_recorded: number; latest_departure: string | null; state_note: string};
+type TourFull = TourBrief & {description: string | null; guide_included: boolean | null; transfer_included: boolean | null; documents_required: string | null; cancellation_policy_text: string | null; board_fa: string | null;
+  details: {long_title?: string; services_text?: string; inclusions?: string[]; leave_duration?: string; difficulty?: string; age_range?: string; moving_point?: string; roadmap?: string; notice?: string;
+    transport_legs?: {mode: string | null; origin: string | null; destination: string | null; departs: string | null; arrives: string | null; carrier: string | null}[]};
+  itinerary: {day_no: number; title: string; description: string | null}[]; hotels: {id: string; name: string; stars: number | null; slug: string | null; nights: number | null}[];
+  departures: {starts_jalali: string | null; ends_jalali: string | null; past: boolean}[]};
+const duration = (t: {duration_nights: number | null; duration_days: number | null}) => t.duration_nights !== null && t.duration_days !== null ? `${fa(t.duration_nights)} شب و ${fa(t.duration_days)} روز` : t.duration_nights !== null ? `${fa(t.duration_nights)} شب` : t.duration_days !== null ? `${fa(t.duration_days)} روز` : null;
+
+export function TourCard({t}: {t: TourBrief}) {
+  return <Link className="cat-card" href={`/tours/reference/${t.id}`}><Thumb src={t.image_url} credit={null} alt={t.title} label="تور"/>
+    <div className="cat-card-body"><h3>{t.title}</h3><p className="cat-where">{[t.destination?.name, duration(t), t.transport_fa].filter(Boolean).join(' · ')}</p>
+      <p className="cat-price">قیمت و تاریخ جدید با استعلام</p></div></Link>;
+}
+
+export function TourCatalog({title = 'برنامهٔ تورهای برگزارشده', intro, limit}: {title?: string; intro?: string; limit?: number}) {
+  const {params, set} = useQueryState();
+  const destination = params.get('destination') || '', q = params.get('tq') || '', page = Math.max(1, Number(params.get('tpage')) || 1);
+  const size = limit ?? PAGE;
+  const query = new URLSearchParams(); if (destination) query.set('destination', destination); if (q) query.set('q', q); query.set('limit', String(size)); query.set('offset', String((page - 1) * size));
+  const list = useCatalog<{total: number; items: TourBrief[]; destinations: {id: string; name: string; count: number}[]}>(`/catalog/tours?${query}`);
+  const data = list.data ?? list.stale;
+  return <section className="cat" id="tour-catalog" aria-labelledby="cat-tours-title">
+    <header className="cat-head"><div><h2 id="cat-tours-title">{title}</h2><p>{intro ?? 'برنامه، مقصد، مدت، خدمات و هتل‌های تورهایی که پیش‌تر برگزار شده‌اند. تاریخ حرکت و قیمت جدید فقط با استعلام از برگزارکننده اعلام می‌شود و از این فهرست رزرو انجام نمی‌شود.'}</p></div>
+      <SearchBox value={q} onSubmit={v => set({tq: v || null, tpage: null})} placeholder="نام تور یا مقصد"/></header>
+    {data && data.destinations.length > 0 && <div className="cat-chips" role="group" aria-label="مقصد تور"><button className={!destination ? 'on' : ''} onClick={() => set({destination: null, tpage: null})}>همهٔ مقصدها</button>
+      {data.destinations.map(d => <button key={d.id} className={destination === d.id ? 'on' : ''} onClick={() => set({destination: d.id, tpage: null})}>{d.name} <small>{fa(d.count)}</small></button>)}</div>}
+    <div className="cat-meta"><span aria-live="polite">{data ? `${fa(data.total)} تور` : ''}</span>{(destination || q) && <button onClick={() => set({destination: null, tq: null, tpage: null})}>حذف فیلترها</button>}</div>
+    <Status loading={list.loading} error={list.error} empty={!data || data.items.length === 0}>توری با این شرایط ثبت نشده است.</Status>
+    {data && data.items.length > 0 && <div className={`cat-grid${list.loading ? ' is-loading' : ''}`}>{data.items.map(t => <TourCard key={t.id} t={t}/>)}</div>}
+    {data && !limit && <Pager total={data.total} limit={size} page={page} onPage={p => {set({tpage: p > 1 ? String(p) : null}); document.getElementById('tour-catalog')?.scrollIntoView();}}/>}
+    {limit && data && data.total > data.items.length ? <Link className="button secondary" href="/tours/reference">همهٔ برنامه‌های تور</Link> : null}
+  </section>;
+}
+
+export function TourReferenceDetail({id}: {id: string}) {
+  const {data: t, loading, error} = useCatalog<TourFull>(`/catalog/tours/${encodeURIComponent(id)}`);
+  if (!t) return <main className="journey-main cat-detail"><Status loading={loading} error={false} empty>{error ? 'این تور در فهرست پیدا نشد.' : undefined}</Status><Link className="button secondary" href="/tours/reference">بازگشت به برنامهٔ تورها</Link></main>;
+  const d = t.details;
+  const facts = [['مقصد', t.destination?.name], ['مدت', duration(t)], ['حمل‌ونقل', t.transport_fa], ['وعده', t.board_fa], ['راهنما', t.guide_included ? 'دارد' : null], ['ترانسفر', t.transfer_included ? 'دارد' : null], ['محل حرکت', d.moving_point], ['مدت مرخصی لازم', d.leave_duration], ['سطح دشواری', d.difficulty], ['ردهٔ سنی', d.age_range]].filter(([, v]) => v) as [string, string][];
+  return <main className="journey-main cat-detail">
+    <nav className="cat-crumbs" aria-label="مسیر"><Link href="/tours">تورها</Link><Link href="/tours/reference">برنامهٔ تورهای برگزارشده</Link>{t.destination && <Link href={`/tours/reference?destination=${t.destination.id}`}>{t.destination.name}</Link>}</nav>
+    <header className="cat-detail-head"><div><span className="cat-tag">تور برگزارشده</span></div><h1>{t.title}</h1>{d.long_title && d.long_title !== t.title && <p className="cat-where">{d.long_title}</p>}</header>
+    <div className="cat-detail-grid">
+      <div>
+        {t.image_url ? <Thumb src={t.image_url} credit={t.image_credit} alt={t.title} label=""/> : <div className="cat-noimage">برای این تور تصویری ثبت نشده است.</div>}
+        {t.description && <section><h2>دربارهٔ تور</h2>{t.description.split('\n').map((line, i) => <p key={i}>{line}</p>)}</section>}
+        <section><h2>مشخصات</h2>{facts.length ? <dl className="cat-dl">{facts.map(([k, v]) => <span key={k} style={{display: 'contents'}}><dt>{k}</dt><dd>{v}</dd></span>)}</dl> : <p className="cat-muted">مشخصات این تور در منبع ثبت نشده است.</p>}</section>
+        {(d.inclusions?.length || d.services_text) ? <section><h2>خدمات تور</h2>{d.inclusions?.length ? <ul className="cat-amen">{d.inclusions.map(x => <li key={x}>{x}</li>)}</ul> : null}{d.services_text && d.services_text.split('\n').map((line, i) => <p key={i}>{line}</p>)}</section> : null}
+        {d.transport_legs?.length ? <section><h2>برنامهٔ حمل‌ونقل</h2><ul className="cat-access">{d.transport_legs.map((l, i) => <li key={i}>{[l.mode, [l.origin, l.destination].filter(Boolean).join(' ← '), l.carrier, l.departs && `حرکت ${l.departs}`, l.arrives && `رسیدن ${l.arrives}`].filter(Boolean).join(' · ')}</li>)}</ul></section> : null}
+        {t.itinerary.length > 0 && <section><h2>برنامهٔ سفر</h2><ul className="cat-rooms">{t.itinerary.map(i => <li key={i.day_no}><strong>روز {fa(i.day_no)}: {i.title}</strong>{i.description && <p>{i.description}</p>}</li>)}</ul></section>}
+        {t.hotels.length > 0 && <section><h2>هتل‌های این تور</h2><ul className="cat-access">{t.hotels.map(h => <li key={h.id}>{h.slug ? <Link href={`/hotels/${h.slug}`}>{h.name}</Link> : h.name}{h.stars ? ` · ${fa(h.stars)} ستاره` : ''}{h.nights ? ` · ${fa(h.nights)} شب` : ''}</li>)}</ul></section>}
+        {t.departures.length > 0 && <section><h2>تاریخ‌های برگزارشده</h2><ul className="cat-amen">{t.departures.map((x, i) => <li key={i} dir="ltr">{x.starts_jalali}{x.ends_jalali ? ` → ${x.ends_jalali}` : ''}</li>)}</ul><p className="cat-muted">این تاریخ‌ها سابقهٔ برگزاری است و قابل رزرو نیست.</p></section>}
+        {t.cancellation_policy_text && <section><h2>قوانین لغو</h2>{t.cancellation_policy_text.split('\n').map((line, i) => <p key={i}>{line}</p>)}</section>}
+        {d.notice && <section><h2>توضیحات</h2><p>{d.notice}</p></section>}
+      </div>
+      <aside className="cat-inquiry"><h2>قیمت و تاریخ حرکت</h2><p className="cat-price">قیمت و تاریخ جدید با استعلام</p><p>{t.state_note}</p>
+        <Link className="button primary" href={`/contact?subject=tour-inquiry&tour=${encodeURIComponent(t.title)}`}>استعلام تاریخ و قیمت جدید</Link>
+        <Link className="button secondary" href="/tours">تورهای قابل رزرو</Link></aside>
+    </div>
+    <p className="cat-attrib">منبع این صفحه: فهرست تورهای چک‌لاین (سابقهٔ برگزاری). این صفحه قیمت، ظرفیت یا تاریخ قابل رزرو نشان نمی‌دهد.</p>
+  </main>;
 }
