@@ -683,7 +683,7 @@ a.cat-card:hover{box-shadow:0 12px 28px rgba(8,37,61,.12);transform:translateY(-
 .cat-gallery figure{margin:0;display:grid;gap:4px}.cat-gallery figure.lead{grid-column:1/-1}
 .cat-gallery img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:12px;background:#eef2f5}.cat-gallery .lead img{aspect-ratio:16/9}
 .cat-gallery figcaption{font-size:10.5px;color:var(--muted);overflow-wrap:anywhere}
-.cat-rooms{list-style:none;margin:0;padding:0;display:grid;gap:10px}.cat-rooms li{border:1px solid var(--line);border-radius:12px;padding:10px 12px}.cat-rooms p{margin:4px 0;font-size:13px}
+.cat-rooms{list-style:none;margin:0;padding:0;display:grid;gap:10px}.cat-rooms strong{display:block}.cat-rooms li{border:1px solid var(--line);border-radius:12px;padding:10px 12px}.cat-rooms p{margin:4px 0;font-size:13px}
 .cadm{display:grid;gap:16px;max-width:1080px;margin:0 auto;padding:16px}.cadm h1{font-size:22px;margin:0}.cadm header p{color:var(--muted);font-size:13px;margin:6px 0 0}
 .cadm-note{border-radius:12px;padding:10px 14px;font-size:13px;margin:0}.cadm-note.ok{background:#e8f7ef;color:#11613a}.cadm-note.error{background:#fdecec;color:#9b1c1c;overflow-wrap:anywhere}
 .cadm-bar,.cadm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;align-items:end}
