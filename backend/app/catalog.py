@@ -262,6 +262,17 @@ class CatalogTour(SourceMixin, Base):
     status: Mapped[str] = mapped_column(String(16), default="draft", index=True)  # draft | published | hidden
     source_disabled: Mapped[bool] = mapped_column(Boolean, default=False)  # flags exactly as the source had them
     source_soldout: Mapped[bool] = mapped_column(Boolean, default=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    origin_place_id: Mapped[Optional[str]] = mapped_column(ForeignKey("catalog_places.id"), nullable=True)
+    destination_place_id: Mapped[Optional[str]] = mapped_column(ForeignKey("catalog_places.id"), nullable=True, index=True)
+    duration_nights: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    duration_days: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    transport_mode: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
+    board: Mapped[Optional[str]] = mapped_column(String(8), nullable=True)
+    guide_included: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    transfer_included: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    documents_required: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    cancellation_policy_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     search_text: Mapped[str] = mapped_column(Text, default="")
     updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     updated_by: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
@@ -280,10 +291,75 @@ class CatalogTourDeparture(Base):
     __table_args__ = (Index("ux_catalog_tour_departures_row", "tour_id", "source_row", unique=True),)
 
 
+class CatalogTourItineraryDay(Base):
+    __tablename__ = "catalog_tour_itinerary_days"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tour_id: Mapped[str] = mapped_column(ForeignKey("catalog_tours.id", ondelete="CASCADE"), index=True)
+    day_no: Mapped[int] = mapped_column(Integer)
+    title: Mapped[str] = mapped_column(String(200))
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    place_id: Mapped[Optional[str]] = mapped_column(ForeignKey("catalog_places.id"), nullable=True)
+    __table_args__ = (Index("ux_catalog_tour_itinerary_day", "tour_id", "day_no", unique=True),)
+
+
+class CatalogTourHotel(Base):
+    __tablename__ = "catalog_tour_hotels"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tour_id: Mapped[str] = mapped_column(ForeignKey("catalog_tours.id", ondelete="CASCADE"), index=True)
+    hotel_id: Mapped[str] = mapped_column(ForeignKey("catalog_hotels.id"), index=True)
+    nights: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    __table_args__ = (Index("ux_catalog_tour_hotel", "tour_id", "hotel_id", unique=True),)
+
+
+class CatalogHotelRoomMapping(Base):
+    """KarenSeir room type ↔ the supplier's own room id, under one verified hotel mapping."""
+    __tablename__ = "catalog_hotel_room_mappings"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    mapping_id: Mapped[int] = mapped_column(ForeignKey("catalog_hotel_provider_mappings.id", ondelete="CASCADE"), index=True)
+    room_type_id: Mapped[int] = mapped_column(ForeignKey("catalog_hotel_room_types.id", ondelete="CASCADE"), index=True)
+    provider_room_id: Mapped[str] = mapped_column(String(120))
+    __table_args__ = (Index("ux_catalog_hotel_room_mapping", "mapping_id", "provider_room_id", unique=True),)
+
+
+class CatalogHotelRatePlanMapping(Base):
+    """The supplier's rate plan id with the terms KarenSeir may state about it (board, refundability). No amount."""
+    __tablename__ = "catalog_hotel_rate_plan_mappings"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    mapping_id: Mapped[int] = mapped_column(ForeignKey("catalog_hotel_provider_mappings.id", ondelete="CASCADE"), index=True)
+    provider_rate_plan_id: Mapped[str] = mapped_column(String(120))
+    board: Mapped[Optional[str]] = mapped_column(String(8), nullable=True)
+    refundable: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    __table_args__ = (Index("ux_catalog_hotel_rate_plan_mapping", "mapping_id", "provider_rate_plan_id", unique=True),)
+
+
+class HotelOfferSnapshot(Base):
+    """Exactly what a supplier quoted and what was shown, so recheck/reserve can prove it. Written only from a real rate source."""
+    __tablename__ = "hotel_offer_snapshots"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    hotel_id: Mapped[str] = mapped_column(ForeignKey("catalog_hotels.id"), index=True)
+    provider: Mapped[str] = mapped_column(String(40))
+    provider_hotel_id: Mapped[str] = mapped_column(String(120))
+    provider_offer_ref: Mapped[str] = mapped_column(String(200))
+    room_name: Mapped[str] = mapped_column(String(200))
+    total_amount: Mapped[int] = mapped_column(Integer)
+    currency: Mapped[str] = mapped_column(String(3))
+    refundable: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    checkin: Mapped[date] = mapped_column(Date)
+    checkout: Mapped[date] = mapped_column(Date)
+    adults: Mapped[int] = mapped_column(Integer)
+    children: Mapped[int] = mapped_column(Integer, default=0)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
 CATALOG_TABLES = tuple(m.__table__ for m in (CatalogPlace, CatalogHotel, CatalogAirline, CatalogAirport, CatalogRailOperator, CatalogRailStation, CatalogVenue))
 HOTEL_CONTENT_TABLES = (CatalogHotelImage.__table__, CatalogHotelRoomType.__table__)
 HOTEL_LINK_TABLES = (CatalogHotelMatch.__table__, CatalogHotelProviderMapping.__table__)
 TOUR_TABLES = (CatalogTour.__table__, CatalogTourDeparture.__table__)
+TOUR_CONTENT_TABLES = (CatalogTourItineraryDay.__table__, CatalogTourHotel.__table__)
+PROVIDER_DETAIL_TABLES = (CatalogHotelRoomMapping.__table__, CatalogHotelRatePlanMapping.__table__, HotelOfferSnapshot.__table__)
+TOUR_TRANSPORT = {"flight": "پرواز", "bus": "اتوبوس", "train": "قطار", "cruise": "کشتی", "self": "بدون حمل‌ونقل"}
+TOUR_BOARD = {"RO": "بدون وعده", "BB": "صبحانه", "HB": "نیم‌پانسیون", "FB": "تمام‌پانسیون", "AI": "همه‌چیز رایگان", "UAI": "اولترا آل‌اینکلوسیو"}
 CATALOG_MODELS = {"places": CatalogPlace, "hotels": CatalogHotel, "airlines": CatalogAirline, "airports": CatalogAirport, "rail_operators": CatalogRailOperator, "rail_stations": CatalogRailStation, "venues": CatalogVenue}
 
 
@@ -483,7 +559,21 @@ def catalog_router(get_db) -> APIRouter:
         if checkout <= checkin or (checkout - checkin).days > 30:
             raise HTTPException(status_code=422, detail="بازهٔ اقامت نامعتبر است")
         from .hotel_rates import quote_hotel
-        return {"hotel_id": row.id, "checkin": checkin.isoformat(), "checkout": checkout.isoformat(), **quote_hotel(db, row, checkin, checkout, adults, children)}
+        result = quote_hotel(db, row, checkin, checkout, adults, children)
+        db.commit()  # persists offer snapshots, if a real source produced any
+        return {"hotel_id": row.id, "checkin": checkin.isoformat(), "checkout": checkout.isoformat(), **result}
+
+    @router.post("/hotels/{slug}/rates/{snapshot_id}/recheck")
+    def hotel_rate_recheck(slug: str, snapshot_id: int, db: Session = Depends(get_db)) -> dict:
+        """Is the offer the customer saw still valid at the same price? A change is reported, never applied silently."""
+        from .hotel_rates import recheck_snapshot
+        row = db.scalar(select(CatalogHotel).where(or_(CatalogHotel.slug == slug, CatalogHotel.id == slug), CatalogHotel.status == "published", CatalogHotel.duplicate_of.is_(None)))
+        snapshot = db.get(HotelOfferSnapshot, snapshot_id) if row is not None else None
+        if row is None or snapshot is None or snapshot.hotel_id != row.id:
+            raise HTTPException(status_code=404, detail="پیشنهاد پیدا نشد")
+        result = recheck_snapshot(db, snapshot)
+        db.commit()
+        return result
 
     def _airport(a: CatalogAirport) -> dict:
         return {"iata": a.id, "icao": a.icao_code, "name": a.name_fa or a.name_en, "name_fa": a.name_fa, "name_en": a.name_en, "city_id": a.city_id, "city_name": a.city_name,

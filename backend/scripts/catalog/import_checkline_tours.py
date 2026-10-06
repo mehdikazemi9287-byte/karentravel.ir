@@ -67,7 +67,10 @@ def main(staged_dir: str, dry_run: bool) -> dict:
             if not title:
                 continue
             known.add(tid)
-            values = {"title_fa": title[:200], "search_text": normalize_text(title), "source_disabled": str(raw.get("disabled")) == "1", "source_soldout": str(raw.get("soldout")) == "1",
+            nights, days = (re.search(r"(\d{1,2})\s*شب", title.translate(_DIGITS)), re.search(r"(\d{1,2})\s*روز", title.translate(_DIGITS)))
+            nights, days = (int(nights[1]) if nights else None, int(days[1]) if days else None)
+            if nights is not None and days is not None and not 0 <= days - nights <= 1: nights = days = None  # inconsistent text: keep neither
+            values = {"duration_nights": nights, "duration_days": days, "title_fa": title[:200], "search_text": normalize_text(title), "source_disabled": str(raw.get("disabled")) == "1", "source_soldout": str(raw.get("soldout")) == "1",
                       "source": SOURCE, "source_ref": f"tour/{raw['tour_id']}", "source_license": LICENSE, "retrieved_on": RETRIEVED}
             row = db.get(CatalogTour, tid)
             if row is None:

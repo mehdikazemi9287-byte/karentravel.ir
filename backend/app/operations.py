@@ -495,6 +495,7 @@ class TourProduct(OperationalMixin, Base):
     tour_type: Mapped[str] = mapped_column(String(48), index=True)
     status: Mapped[str] = mapped_column(String(24), default="draft", index=True)
     details_json: Mapped[str] = mapped_column(Text, default="{}")
+    catalog_tour_id: Mapped[Optional[str]] = mapped_column(String(40), nullable=True, index=True)  # optional link to the reference tour this product sells
     __table_args__ = (UniqueConstraint("tenant_id", "slug", name="uq_tour_product_slug"),)
 
 
@@ -909,6 +910,14 @@ class TripEventRecord(OperationalMixin, Base):
     requires_action: Mapped[bool] = mapped_column(Boolean, default=False)
     visibility: Mapped[str] = mapped_column(String(24), default="customer")
     deep_link: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
+    # Structured change record (Trip Operations Center). All nullable: older/system events simply have none.
+    change_category: Mapped[Optional[str]] = mapped_column(String(32), nullable=True, index=True)
+    actor_user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    old_value_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    new_value_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    affected_reference: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    acknowledged_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    acknowledged_by_user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
     __table_args__ = (UniqueConstraint("tenant_id", "event_key", name="uq_trip_event_key"),)
 
 

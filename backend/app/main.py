@@ -1908,7 +1908,7 @@ def create_tour(data: TourProductIn, user: User = Depends(require_permission("in
 @app.post("/supplier/tours/{tour_id}/departures", status_code=201)
 def create_tour_departure(tour_id: str, data: TourDepartureIn, user: User = Depends(require_permission("inventory:manage")), db: Session = Depends(get_db)) -> dict:
     tour = db.scalar(select(operational_models.TourProduct).where(operational_models.TourProduct.id == tour_id, operational_models.TourProduct.tenant_id == user.tenant_id))
-    if tour is None or _aware(data.ends_at) <= _aware(data.starts_at) or _aware(data.booking_deadline) > _aware(data.starts_at): raise HTTPException(422, "تور یا تاریخ حرکت معتبر نیست")
+    if tour is None or _aware(data.ends_at) <= _aware(data.starts_at) or _aware(data.booking_deadline) > _aware(data.starts_at) or _aware(data.starts_at) <= datetime.now(timezone.utc): raise HTTPException(422, "تور یا تاریخ حرکت معتبر نیست")
     if tour.supplier_id not in _supplier_scope(db,user):raise HTTPException(403,"این تور به تأمین‌کنندهٔ جاری واگذار نشده است")
     row = operational_models.TourDeparture(tenant_id=user.tenant_id, tour_id=tour.id, starts_at=data.starts_at, ends_at=data.ends_at, booking_deadline=data.booking_deadline, capacity=data.capacity, remaining=data.capacity, base_price=data.base_price, pricing_json=json.dumps(data.pricing, sort_keys=True)); db.add(row); db.commit(); return {"id": row.id, "remaining": row.remaining, "status": row.status}
 
@@ -3774,6 +3774,7 @@ def issue_invoice(reservation_id: str, user: User = Depends(require_permission("
 
 
 def _case_output(row: operational_models.SupportCase, messages: list[operational_models.SupportThreadMessage]) -> dict:
+    messages = [item for item in messages if item.sender_type != "internal_note"]  # internal notes are served only by /support/cases/{id}/workspace
     return {"id": row.id, "reservation_id": row.reservation_id, "trip_id": row.trip_id, "subject": row.subject, "status": row.status, "priority": row.priority, "case_type": row.case_type, "severity": row.severity, "sla_due_at": row.sla_due_at.isoformat() if row.sla_due_at else None, "assigned_to_user_id": row.assigned_to_user_id, "resolution_type": row.resolution_type, "resolution_notes": row.resolution_notes, "resolved_by_user_id": row.resolved_by_user_id, "resolved_at": row.resolved_at.isoformat() if row.resolved_at else None, "audit_trail": json.loads(row.audit_trail_json or "[]"), "messages": [{"id": item.id, "sender_type": item.sender_type, "body": item.body, "created_at": item.created_at.isoformat()} for item in messages]}
 
 
@@ -5009,7 +5010,7 @@ def record_operations_trip_change(trip_id:str,data:TripChangeNoticeIn,user:User=
         if prior.aggregate_id!=trip.id or any(stored.get(k)!=v for k,v in payload.items()):raise HTTPException(409,"این شناسه برای تغییر دیگری استفاده شده است")
         return {"id":prior.id,"trip_id":trip.id,"status":"recorded","event_id":stored["event_id"]}
     titles={"flight":"تغییر اعلام‌شدهٔ پرواز","hotel":"تغییر اعلام‌شدهٔ اقامت","reservation":"تغییر اعلام‌شدهٔ رزرو"}
-    event=operational_models.ingest_trip_event(db,operational_models.TripEventRecord(tenant_id=user.tenant_id,trip_id=trip.id,event_key=key,event_type=data.kind+".changed",source="human_agent",title=titles[data.kind],message=f"قبلی: {payload['before']}\nجدید: {payload['after']}\nدلیل: {payload['reason']}",severity="warning",visibility="customer",requires_action=False,deep_link=f"/trips/{trip.id}"))
+    event=operational_models.ingest_trip_event(db,operational_models.TripEventRecord(tenant_id=user.tenant_id,trip_id=trip.id,event_key=key,event_type=data.kind+".changed",source="human_agent",actor_user_id=user.id,change_category={"flight":"schedule_change","hotel":"hotel_change"}.get(data.kind),old_value_json=json.dumps({"مقدار":payload["before"]},ensure_ascii=False),new_value_json=json.dumps({"مقدار":payload["after"]},ensure_ascii=False),title=titles[data.kind],message=f"قبلی: {payload['before']}\nجدید: {payload['after']}\nدلیل: {payload['reason']}",severity="warning",visibility="customer",requires_action=False,deep_link=f"/trips/{trip.id}"))
     audit=operational_models.OutboxEvent(tenant_id=user.tenant_id,aggregate_type="trip",aggregate_id=trip.id,event_type="trip.change.recorded",idempotency_key=key+":audit",correlation_id=str(uuid.uuid4()),payload_json=json.dumps({**payload,"actor_id":user.id,"event_id":event.id,"customer_id":trip.user_id},ensure_ascii=False))
     db.add(audit);db.commit()
     return {"id":audit.id,"trip_id":trip.id,"status":"recorded","event_id":event.id}
@@ -5070,6 +5071,12 @@ def _catalog_audit(db: Session, user: User, action: str, detail: dict) -> None:
     db.add(AuditEvent(tenant_id=user.tenant_id, actor_id=user.id, action=action, entity="catalog_hotel", entity_id=0, detail=json.dumps(detail, sort_keys=True, ensure_ascii=False)))
 
 
+def _platform_audit(db: Session, user: User, action: str, entity: str, detail: dict) -> None:
+    db.add(AuditEvent(tenant_id=user.tenant_id, actor_id=user.id, action=action, entity=entity, entity_id=0, detail=json.dumps(detail, sort_keys=True, ensure_ascii=False)))
+
+
+from .platform_ops import platform_ops_router  # noqa: E402
+app.include_router(platform_ops_router(get_db, current_user, require_permission, role_has_permission, _supplier_scope, _platform_audit, User))
 from .catalog_admin import catalog_admin_router  # noqa: E402
 def _catalog_history(db: Session, hotel_id: str) -> list[dict]:
     needle = json.dumps({"hotel_id": hotel_id})[1:-1]  # '"hotel_id": "<id>"', exactly as _catalog_audit serialises it

@@ -17,7 +17,7 @@ from sqlalchemy import delete, func, or_, select
 from sqlalchemy.orm import Session
 
 from .catalog import (AMENITIES, BED_TYPES, HOTEL_STATUS, HOTEL_TYPES, POLICY_FIELDS, POLICY_VALUES, ROOM_VIEWS, STARS_STATUS, CatalogHotel, CatalogHotelImage, CatalogHotelMatch,
-                      CatalogHotelProviderMapping, CatalogHotelRoomType, CatalogPlace, CatalogTour, CatalogTourDeparture, _hotel, _places_for, content_is_complete, hotel_image, normalize_text, room_type)
+                      CatalogHotelProviderMapping, CatalogHotelRatePlanMapping, CatalogHotelRoomMapping, CatalogHotelRoomType, CatalogPlace, CatalogTour, CatalogTourDeparture, CatalogTourHotel, CatalogTourItineraryDay, TOUR_BOARD, TOUR_TRANSPORT, _hotel, _places_for, content_is_complete, hotel_image, normalize_text, room_type)
 
 Policy = Optional[Literal["allowed", "not_allowed", "on_request"]]
 _URL = r"^https://[^\s]+$"
@@ -102,6 +102,47 @@ class StatusIn(Strict):
 class MatchDecisionIn(Strict):
     decision: Literal["confirm", "reject"]
     merge_fields: bool = False  # on confirm: copy the duplicate's values into the canonical record's EMPTY fields only
+
+
+class RoomMappingIn(Strict):
+    room_type_id: int
+    provider_room_id: str = Field(min_length=1, max_length=120)
+
+
+class RatePlanMappingIn(Strict):
+    provider_rate_plan_id: str = Field(min_length=1, max_length=120)
+    board: Optional[Literal[tuple(TOUR_BOARD)]] = None  # type: ignore[valid-type]
+    refundable: Optional[bool] = None
+
+
+class ItineraryDayIn(Strict):
+    day_no: int = Field(ge=1, le=60)
+    title: str = Field(min_length=2, max_length=200)
+    description: Optional[str] = Field(default=None, max_length=3000)
+    place_id: Optional[str] = Field(default=None, max_length=80)
+
+
+class TourHotelIn(Strict):
+    hotel_id: str = Field(max_length=40)
+    nights: Optional[int] = Field(default=None, ge=1, le=60)
+
+
+class TourIn(Strict):
+    title_fa: str = Field(min_length=3, max_length=200)
+    description: Optional[str] = Field(default=None, max_length=6000)
+    origin_place_id: Optional[str] = Field(default=None, max_length=80)
+    destination_place_id: Optional[str] = Field(default=None, max_length=80)
+    duration_nights: Optional[int] = Field(default=None, ge=0, le=60)
+    duration_days: Optional[int] = Field(default=None, ge=1, le=61)
+    transport_mode: Optional[Literal[tuple(TOUR_TRANSPORT)]] = None  # type: ignore[valid-type]
+    board: Optional[Literal[tuple(TOUR_BOARD)]] = None  # type: ignore[valid-type]
+    guide_included: Optional[bool] = None
+    transfer_included: Optional[bool] = None
+    documents_required: Optional[str] = Field(default=None, max_length=3000)
+    cancellation_policy_text: Optional[str] = Field(default=None, max_length=4000)
+    status: Literal["draft", "published", "hidden"] = "draft"
+    itinerary: list[ItineraryDayIn] = Field(default_factory=list, max_length=60)
+    hotels: list[TourHotelIn] = Field(default_factory=list, max_length=30)
 
 
 class ProviderMappingIn(Strict):
@@ -289,7 +330,10 @@ def catalog_admin_router(get_db, guard: Callable, audit: Callable, history: Call
         return full(db, db.get(CatalogHotel, mapping.hotel_id))
 
     def tour(row: CatalogTour, departures: list[CatalogTourDeparture]) -> dict:
-        return {"id": row.id, "title": row.title_fa, "status": row.status, "source": row.source, "source_ref": row.source_ref, "source_disabled": row.source_disabled, "source_soldout": row.source_soldout,
+        return {"description": row.description, "origin_place_id": row.origin_place_id, "destination_place_id": row.destination_place_id, "duration_nights": row.duration_nights, "duration_days": row.duration_days,
+                "transport_mode": row.transport_mode, "board": row.board, "guide_included": row.guide_included, "transfer_included": row.transfer_included, "documents_required": row.documents_required,
+                "cancellation_policy_text": row.cancellation_policy_text, "capacity": None, "supplier": None,
+                "id": row.id, "title": row.title_fa, "status": row.status, "source": row.source, "source_ref": row.source_ref, "source_disabled": row.source_disabled, "source_soldout": row.source_soldout,
                 "sellable": False, "price": None, "departures_recorded": len(departures), "latest_departure": max((d.starts_on.isoformat() for d in departures if d.starts_on), default=None),
                 "departures": [{"starts_jalali": d.starts_jalali, "ends_jalali": d.ends_jalali, "starts_on": d.starts_on.isoformat() if d.starts_on else None, "ends_on": d.ends_on.isoformat() if d.ends_on else None} for d in departures]}
 
@@ -307,6 +351,53 @@ def catalog_admin_router(get_db, guard: Callable, audit: Callable, history: Call
     def get_tour(tour_id: str, user=Depends(guard), db: Session = Depends(get_db)) -> dict:
         row = db.get(CatalogTour, tour_id)
         if row is None: raise HTTPException(status_code=404, detail="تور پیدا نشد")
-        return tour(row, db.scalars(select(CatalogTourDeparture).where(CatalogTourDeparture.tour_id == row.id).order_by(CatalogTourDeparture.source_row)).all())
+        return tour_full(db, row)
+
+    def tour_full(db: Session, row: CatalogTour) -> dict:
+        data = tour(row, db.scalars(select(CatalogTourDeparture).where(CatalogTourDeparture.tour_id == row.id).order_by(CatalogTourDeparture.source_row)).all())
+        data["itinerary"] = [{"day_no": d.day_no, "title": d.title, "description": d.description, "place_id": d.place_id} for d in db.scalars(select(CatalogTourItineraryDay).where(CatalogTourItineraryDay.tour_id == row.id).order_by(CatalogTourItineraryDay.day_no))]
+        data["hotels"] = [{"hotel_id": h.hotel_id, "nights": h.nights} for h in db.scalars(select(CatalogTourHotel).where(CatalogTourHotel.tour_id == row.id).order_by(CatalogTourHotel.id))]
+        data["options"] = {"transport": TOUR_TRANSPORT, "board": TOUR_BOARD}
+        return data
+
+    @router.put("/tours/{tour_id}")
+    def save_tour(tour_id: str, data: TourIn, user=Depends(guard), db: Session = Depends(get_db)) -> dict:
+        """Edits reference content only. There is no field here for price, capacity, supplier or a future departure."""
+        row = db.scalar(select(CatalogTour).where(CatalogTour.id == tour_id).with_for_update())
+        if row is None: raise HTTPException(status_code=404, detail="تور پیدا نشد")
+        for key in ("origin_place_id", "destination_place_id"):
+            if getattr(data, key) and db.get(CatalogPlace, getattr(data, key)) is None: raise HTTPException(status_code=422, detail="مبدأ یا مقصد در فهرست مرجع نیست")
+        if any(d.place_id and db.get(CatalogPlace, d.place_id) is None for d in data.itinerary): raise HTTPException(status_code=422, detail="مکان برنامهٔ سفر در فهرست مرجع نیست")
+        if len({d.day_no for d in data.itinerary}) != len(data.itinerary) or len({h.hotel_id for h in data.hotels}) != len(data.hotels): raise HTTPException(status_code=422, detail="روز یا هتل تکراری در تور")
+        if any(db.get(CatalogHotel, h.hotel_id) is None for h in data.hotels): raise HTTPException(status_code=422, detail="هتل در فهرست مرجع نیست")
+        if data.duration_nights is not None and data.duration_days is not None and not 0 <= data.duration_days - data.duration_nights <= 1: raise HTTPException(status_code=422, detail="تعداد شب و روز هم‌خوان نیست")
+        if data.status == "published" and not (data.destination_place_id and data.itinerary): raise HTTPException(status_code=422, detail="برای انتشار، مقصد و برنامهٔ سفر لازم است")
+        for key, value in data.model_dump(exclude={"itinerary", "hotels"}).items(): setattr(row, key, value)
+        row.search_text, row.updated_at, row.updated_by = normalize_text(data.title_fa), datetime.now(timezone.utc), user.id
+        db.execute(delete(CatalogTourItineraryDay).where(CatalogTourItineraryDay.tour_id == row.id)); db.execute(delete(CatalogTourHotel).where(CatalogTourHotel.tour_id == row.id))
+        db.add_all([CatalogTourItineraryDay(tour_id=row.id, **d.model_dump()) for d in data.itinerary]); db.add_all([CatalogTourHotel(tour_id=row.id, **h.model_dump()) for h in data.hotels])
+        audit(db, user, "catalog_tour.updated", {"tour_id": row.id, "status": data.status})
+        db.commit()
+        return tour_full(db, row)
+
+    @router.post("/provider-mappings/{mapping_id}/rooms", status_code=201)
+    def map_room(mapping_id: int, data: RoomMappingIn, user=Depends(guard), db: Session = Depends(get_db)) -> dict:
+        mapping = db.get(CatalogHotelProviderMapping, mapping_id)
+        room = db.get(CatalogHotelRoomType, data.room_type_id)
+        if mapping is None: raise HTTPException(status_code=404, detail="نگاشت پیدا نشد")
+        if room is None or room.hotel_id != mapping.hotel_id: raise HTTPException(status_code=422, detail="این نوع اتاق متعلق به همین هتل نیست")
+        if db.scalar(select(CatalogHotelRoomMapping.id).where(CatalogHotelRoomMapping.mapping_id == mapping.id, CatalogHotelRoomMapping.provider_room_id == data.provider_room_id)): raise HTTPException(status_code=409, detail="این شناسهٔ اتاق قبلاً نگاشت شده است")
+        row = CatalogHotelRoomMapping(mapping_id=mapping.id, room_type_id=room.id, provider_room_id=data.provider_room_id); db.add(row)
+        audit(db, user, "catalog_hotel.room_mapping_added", {"hotel_id": mapping.hotel_id, "provider": mapping.provider, "provider_room_id": data.provider_room_id}); db.commit()
+        return {"id": row.id, "mapping_id": mapping.id, "room_type_id": room.id, "provider_room_id": row.provider_room_id}
+
+    @router.post("/provider-mappings/{mapping_id}/rate-plans", status_code=201)
+    def map_rate_plan(mapping_id: int, data: RatePlanMappingIn, user=Depends(guard), db: Session = Depends(get_db)) -> dict:
+        mapping = db.get(CatalogHotelProviderMapping, mapping_id)
+        if mapping is None: raise HTTPException(status_code=404, detail="نگاشت پیدا نشد")
+        if db.scalar(select(CatalogHotelRatePlanMapping.id).where(CatalogHotelRatePlanMapping.mapping_id == mapping.id, CatalogHotelRatePlanMapping.provider_rate_plan_id == data.provider_rate_plan_id)): raise HTTPException(status_code=409, detail="این طرح نرخ قبلاً نگاشت شده است")
+        row = CatalogHotelRatePlanMapping(mapping_id=mapping.id, **data.model_dump()); db.add(row)
+        audit(db, user, "catalog_hotel.rate_plan_mapping_added", {"hotel_id": mapping.hotel_id, "provider": mapping.provider, "provider_rate_plan_id": data.provider_rate_plan_id}); db.commit()
+        return {"id": row.id, "mapping_id": mapping.id, "provider_rate_plan_id": row.provider_rate_plan_id, "board": row.board, "refundable": row.refundable, "amount": None}
 
     return router
