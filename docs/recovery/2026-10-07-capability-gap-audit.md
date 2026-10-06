@@ -89,3 +89,23 @@ Still not WORKING, with the real reason:
 - Support: AI messages are not stored in the case thread, so the AI/human distinction is a label on what exists (customer, human support, internal note).
 - Push/SMS delivery, live hotel rates, flight search/issue, customer login by OTP, payments/refunds, future tour departures — EXTERNAL_BLOCKED (credentials, supplier contracts, tenant owner).
 Candidate-only test rows (prefixed «آزمون QA» / `QA-`) exist in the throwaway candidate database for browser QA; none are in production.
+
+## Update — round 3 (candidate, migration 43)
+New, WORKING with data model + API + UI + validation + audit + RBAC + tenant/object isolation + desktop/mobile browser QA (48 + 7 checks per viewport):
+- Supplier/agency administration (`/admin/partners`): create agency/supplier, agency sales channel, memberships add/remove, agency credit account, hotel assignment to a supplier.
+- Agency quotes (`/agency` → پیشنهاد قیمت, customer `/quotes`): a quote is a real active supplier offer at its own price; sent → accepted/declined/expired/cancelled → booked (linked to the customer booking on the agency channel). A supplier price change expires the quote instead of honouring the old price.
+- Booking attribution guard: an AGENCY sales channel is accepted by the booking API only for a customer holding an accepted quote of that agency.
+- Commission ledger (`/finance/accounting`): one posting per confirmed agency booking, accrued → approved → settled (payment reference) or reversed; the agency sees its ledger.
+- Accounting views: receivables, supplier payables, commission totals, organization credit, tax summary — each with its formula; explicitly not a statutory ledger.
+- Supplier self-service (`/supplier/hotels`): proposes its own provider hotel id for assigned hotels; verification stays with KarenSeir.
+- Mapping editor in `/admin/catalog`: provider mapping add/verify, room mapping, rate-plan mapping (no amount).
+- Reference tour hotels, notification requeue button, agency credit view.
+Re-verified without change: enterprise request/RFQ/quote/selection/approval and supplier inventory — 22 existing API tests pass and 48 existing role screens render cleanly (no JS error, no API 5xx, no overflow) on desktop and mobile.
+Object-level sweep: 31 parameterised GET routes with real ids of tenant A — anonymous and other-tenant callers got 4xx on all; 12 routes had no fixture object on the candidate and are covered only by the existing tests.
+
+Internal items still open (no credential needed):
+1. The customer booking screens do not send the agency sales channel, so a customer cannot yet book an accepted quote from the UI; the API accepts it. Changing that touches the approved customer booking UI and belongs to the UI release.
+2. Statutory tax report and an approved chart of accounts — need accounting rules from the business; the tax summary is a sum over invoices.
+3. AI assistant messages are not stored in the support case thread.
+4. Supplier inventory and enterprise flows were re-verified by API tests and screen rendering, not by a full browser journey.
+5. Least-privilege migration 41 and everything after migration 38 is candidate-only until a production release is approved.
