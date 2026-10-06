@@ -89,7 +89,8 @@ def rows_of(meta: dict, prefix: str, fields: tuple[str, ...]) -> list[dict]:
     return out
 
 
-def main(bundle_dir: str, dry_run: bool) -> dict:
+def main(bundle_dir: str, dry_run: bool, publish: bool = True) -> dict:
+    """publish=False (CLI default): content is written, but no hotel or tour becomes public or stops being public by this run."""
     root = Path(bundle_dir)
     deep = json.loads((root / "evidence-round3/deep-data-audit-round3.json").read_text(encoding="utf-8"))
     controls = json.loads((root / "evidence-round3/catalog-controls-round3.json").read_text(encoding="utf-8"))
@@ -120,6 +121,7 @@ def main(bundle_dir: str, dry_run: bool) -> dict:
                                                                                                                  "with_description": 0, "room_types": 0, "images": 0, "bad_image_refs": 0},
               "tours": {"input": 0, "inserted": 0, "updated": 0, "admin_skipped": 0, "hotel_links": 0, "published": 0}, "attractions": 0, "content": 0, "legacy_routes": 0, "skipped_commercial_fields": ["discount-amount", "start-price", "hotels-list prices", "holding-dates capacity", "price-percent"]}
     now = datetime.now(timezone.utc)
+    publish_flag = publish
     with SessionLocal() as db:
         places = {p.id: p for p in db.scalars(select(CatalogPlace))}
         countries = {p.country_code: p for p in places.values() if p.kind == "country"}
@@ -281,9 +283,11 @@ def main(bundle_dir: str, dry_run: bool) -> dict:
             for hid in touched:
                 row = db.get(CatalogHotel, hid)
                 if row is None or row.updated_by is not None: continue
+                publish_allowed = publish_flag
                 publish = wanted.get(hid, False) and row.city_id is not None and row.duplicate_of is None and row.id not in proposed and bool(row.description or row.address)
-                row.status = "published" if publish else "draft"
-                report["hotels"]["published" if publish else "kept_draft"] += 1
+                if publish_allowed: row.status = "published" if publish else "draft"
+                elif row.status == "published" and (row.duplicate_of is not None or row.id in proposed): row.status = "draft"  # a duplicate is never public
+                report["hotels"]["published" if row.status == "published" else "kept_draft"] += 1
             counts = dict(db.execute(select(CatalogHotel.city_id, func.count()).where(CatalogHotel.status == "published", CatalogHotel.duplicate_of.is_(None), CatalogHotel.city_id.is_not(None)).group_by(CatalogHotel.city_id)).all())
             for p in places.values():
                 if p.kind == "city" and (p.source == SOURCE or p.id in counts) and p.hotel_count != counts.get(p.id, 0) and (p.source == SOURCE or counts.get(p.id, 0) > p.hotel_count): p.hotel_count = counts.get(p.id, p.hotel_count)
@@ -321,6 +325,7 @@ def main(bundle_dir: str, dry_run: bool) -> dict:
                       "details_json": json.dumps({"checkline": details}, ensure_ascii=False, sort_keys=True), "source_disabled": str(first(meta.get("disabled")) or "0") == "1", "source_soldout": str(first(meta.get("static-soldout")) or "0") == "1",
                       "source": SOURCE, "source_ref": f"tour/{x['id']}", "source_license": LICENSE, "retrieved_on": RETRIEVED, "status": "published" if x["status"] == "publish" else "draft"}
             row = db.get(CatalogTour, tid)
+            if not publish_flag: values["status"] = row.status if row is not None else "draft"
             if row is not None and row.updated_by is not None: report["tours"]["admin_skipped"] += 1; continue
             if row is None:
                 report["tours"]["inserted"] += 1; row = CatalogTour(id=tid, **values)
@@ -398,4 +403,4 @@ def main(bundle_dir: str, dry_run: bool) -> dict:
 
 if __name__ == "__main__":
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
-    main(args[0], "--dry-run" in sys.argv)
+    main(args[0], "--dry-run" in sys.argv, publish="--publish" in sys.argv)

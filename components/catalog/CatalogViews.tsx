@@ -426,3 +426,18 @@ export function LegacyRedirect() {
   }, [api, pathname, router]);
   return target ? <p role="status" className="cat-muted">این نشانی جابه‌جا شده است؛ در حال انتقال به <Link href={target}>صفحهٔ جدید</Link>…</p> : null;
 }
+
+
+/* ---- Unified hotel results: the registered hotels of the searched destination (no rate yet, inquiry only) ---- */
+export function CatalogHotelsForSearch() {
+  const params = useSearchParams();
+  const vertical = params.get('vertical'), destination = (params.get('destination') || '').trim();
+  const show = (vertical === 'hotel' || vertical === 'package') && destination.length >= 2;
+  const {data, loading} = useCatalog<Page<Hotel>>(show ? `/catalog/hotels?q=${encodeURIComponent(destination)}&limit=6` : null);
+  if (!show || loading || !data || data.items.length === 0) return null;
+  return <section className="cat container" id="catalog-for-search" aria-labelledby="cat-search-title">
+    <header className="cat-head"><div><h2 id="cat-search-title">اقامتگاه‌های ثبت‌شده برای «{destination}»</h2><p>این اقامتگاه‌ها در فهرست کارن‌سیر ثبت شده‌اند ولی هنوز نرخ و موجودی متصل ندارند؛ برای هر کدام می‌توانید درخواست استعلام ثبت کنید.</p></div></header>
+    <div className="cat-grid">{data.items.map(h => <HotelCard key={h.id} h={h}/>)}</div>
+    {data.total > data.items.length && <Link className="button secondary" href={`/hotels?q=${encodeURIComponent(destination)}`}>همهٔ {fa(data.total)} اقامتگاه ثبت‌شده</Link>}
+  </section>;
+}

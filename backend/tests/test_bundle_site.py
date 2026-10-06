@@ -3,7 +3,7 @@ import json
 
 from scripts.catalog import import_checkline_bundle as b
 from tests.test_catalog_master_data import _load
-from tests.test_checkline_bundle import _bundle, _reset
+from tests.test_checkline_bundle import _bundle, _clean_catalog_after, _reset  # noqa: F401  (autouse cleanup)
 
 
 def test_tour_vertical_visa_and_destination_structure(tmp_path, client):

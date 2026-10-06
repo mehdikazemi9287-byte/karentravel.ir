@@ -8,11 +8,11 @@ import { parseTravelIntent, type NLIntent } from '../../lib/domain/nl-intent';
 
 import { formatJalali, gregorianToJalali, jalaliMonths, jalaliMonthLength, jalaliToIso, persianDigits, todayIso, todayJalali, type JalaliDate } from '../../lib/domain/jalali';
 import { JalaliCalendar } from './JalaliCalendar';
-type Suggestion={id:string;title:string;subtitle:string;entity_type:string;city?:string;country?:string;code?:string;source:string};
+type Suggestion={id:string;title:string;subtitle:string;entity_type:string;city?:string;country?:string;code?:string;source:string;href?:string};
 type AutocompleteResponse={suggestions:Suggestion[]};
-type CatalogSuggestResponse={items:{type:string;id:string;title:string;subtitle:string;country_code:string}[]};
+type CatalogSuggestResponse={items:{type:string;id:string;title:string;subtitle:string;country_code:string;href?:string}[]};
 /* Master-catalog places, airports and hotels (reference data only) complement the geo catalog; hotels only for stay searches. */
-function catalogSuggestions(response:CatalogSuggestResponse,vertical:string,existing:Suggestion[]):Suggestion[]{const seen=new Set(existing.map(item=>item.title));const stay=vertical==='hotel'||vertical==='vacation_rental';return response.items.filter(item=>item.title&&!seen.has(item.title)&&(item.type==='city'||(item.type==='airport'&&vertical==='flight')||(item.type==='hotel'&&stay))).map(item=>({id:'catalog-'+item.id,title:item.title,subtitle:item.subtitle,entity_type:item.type,country:item.country_code,code:item.type==='airport'?item.id:undefined,source:'karenseir_master_catalog'}))}
+function catalogSuggestions(response:CatalogSuggestResponse,vertical:string,existing:Suggestion[]):Suggestion[]{const seen=new Set(existing.map(item=>item.title));const stay=vertical==='hotel'||vertical==='vacation_rental';return response.items.filter(item=>item.title&&!seen.has(item.title)&&(item.type==='city'||(item.type==='airport'&&vertical==='flight')||(item.type==='hotel'&&stay))).map(item=>({id:'catalog-'+item.id,title:item.title,subtitle:item.subtitle,entity_type:item.type,country:item.country_code,code:item.type==='airport'?item.id:undefined,source:'karenseir_master_catalog',href:item.href}))}
 type TripType='round_trip'|'one_way'|'multi_city';
 type Popover='origin'|'destination'|'dates'|'passengers'|null;
 type SpeechRecognitionResultLike={0:{transcript:string}};
@@ -228,7 +228,7 @@ export function HomeSearchExperience({defaultVertical="flight",presentation}:{de
       <div className="fs-row">
         <div className={service.origin?'fs-places fs-places--swap':'fs-places'}>
           {service.origin&&<><EntityInput kind="origin" label={originLabel} value={origin} onChange={setOrigin} onSelect={item=>{setOrigin(item.title);setPopover(null)}} open={popover==='origin'} setOpen={()=>setPopover('origin')} vertical={service.vertical}/><button type="button" className="fs-swap" aria-label="جابجایی مبدا و مقصد" onClick={()=>{setOrigin(destination);setDestination(origin)}}><Icon name="swap"/></button></>}
-          <EntityInput kind="destination" label={destinationLabel} value={destination} onChange={setDestination} onSelect={item=>{setDestination(item.title);setPopover(null)}} open={popover==='destination'} setOpen={()=>setPopover('destination')} vertical={service.vertical}/>
+          <EntityInput kind="destination" label={destinationLabel} value={destination} onChange={setDestination} onSelect={item=>{setDestination(item.title);setPopover(null);if(item.entity_type==='hotel'&&item.href)router.push(item.href)}} open={popover==='destination'} setOpen={()=>setPopover('destination')} vertical={service.vertical}/>
         </div>
         <div className="fs-field fs-field--dates">
           <span className="fs-field-ic"><Icon name="calendar"/></span>

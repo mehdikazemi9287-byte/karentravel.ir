@@ -56,6 +56,29 @@ def _reset():
         db.execute(delete(CatalogVenue).where(CatalogVenue.source == "checkline")); db.execute(delete(CatalogPlace).where(CatalogPlace.source.in_(("checkline", "iso3166-1")))); db.commit()
 
 
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def _clean_catalog_after():
+    """The importers are additive by design, so rows of this source would otherwise leak into other tests' reference counts."""
+    yield
+    _reset()
+
+
+def test_bundle_import_keeps_publication_untouched_without_the_publish_flag(tmp_path, client):
+    _reset(); _load(tmp_path); root = _bundle(tmp_path)
+    first = b.main(root, False, publish=False)
+    assert first["hotels"]["inserted"] == 3 and first["hotels"]["published"] == 0
+    with SessionLocal() as db:
+        assert {h.status for h in db.scalars(select(CatalogHotel).where(CatalogHotel.source == "checkline"))} == {"draft"} and db.get(CatalogTour, "cl-tour-20").status == "draft"
+        db.get(CatalogHotel, "cl-10").status = "published"; db.commit()                      # a reviewer published one
+    again = b.main(root, False, publish=False)
+    with SessionLocal() as db:
+        assert db.get(CatalogHotel, "cl-10").status == "published" and db.get(CatalogHotel, "cl-12").status == "draft" and again["hotels"]["updated"] == 0
+    assert client.get("/catalog/tours").json()["total"] == 0 and client.get("/catalog/hotels/checkline-10").status_code == 200
+
+
 def test_bundle_import_carries_content_and_never_commercial_data(tmp_path, client):
     _reset(); _load(tmp_path); root = _bundle(tmp_path)
     first = b.main(root, False)
