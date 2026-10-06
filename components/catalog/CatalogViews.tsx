@@ -93,7 +93,7 @@ export function InquiryRequest({subject, context, reason}: {subject: string; con
   const [open, setOpen] = useState(false), [busy, setBusy] = useState(false), [done, setDone] = useState<string | null>(null), [error, setError] = useState<string | null>(null), [note, setNote] = useState('');
   async function send() {
     setBusy(true); setError(null);
-    try {const made = await api.post<{id: string}>('/support/cases', {subject: subject.slice(0, 200), body: `${context}${note.trim() ? `\n\nتوضیح مسافر: ${note.trim()}` : ''}`}, newId()); setDone(made.id);}
+    try {const made = await api.post<{id: string}>('/support/cases', {subject: subject.slice(0, 200), case_type: 'SERVICE_INQUIRY', body: `${context}${note.trim() ? `\n\nتوضیح مسافر: ${note.trim()}` : ''}`}, newId()); setDone(made.id);}
     catch (e) {setError(e instanceof ApiError && e.status === 401 ? 'برای ثبت درخواست وارد شوید.' : 'ثبت درخواست انجام نشد؛ دوباره تلاش کنید.');} finally {setBusy(false);}
   }
   return <div className="cat-request" data-request-state="inquiry">
