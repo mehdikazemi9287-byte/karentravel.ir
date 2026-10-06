@@ -366,6 +366,15 @@ def main(bundle_dir: str, dry_run: bool, publish: bool = True) -> dict:
             meta, tid = meta_of(x), f"cl-tour-{x['id']}"
             cities, countries_ref = first(meta.get("cities")) or [], first(meta.get("countries")) or []
             dest = next((geo_place[str(c)] for c in (cities if isinstance(cities, list) else [cities]) if str(c) in geo_place), None) or next((geo_place[str(c)] for c in (countries_ref if isinstance(countries_ref, list) else [countries_ref]) if str(c) in geo_place), None)
+            dest_basis = None
+            if dest is None:  # no place reference: the tour's own category terms ("تور استانبول") or its title may name one bundle city, else one country
+                names = [re.sub(r"^(تورهای|تور)\s+", "", n).strip() for n in (categories.get(str(x["id"])) or [])]
+                text = " " + re.sub(r"[^\w\u0600-\u06FF]+", " ", x["title"]) + " "
+                all_cities = {p.id: p for group in bundle_cities.values() for p in group}
+                for pool in (all_cities.values(), countries.values()):
+                    hit = {p.id: p for p in pool if p.name_fa and (squash(p.name_fa) in {squash(n) for n in names} or (len(p.name_fa) >= 3 and f" {p.name_fa} " in text))}
+                    if len(hit) == 1: dest, dest_basis = next(iter(hit.values())), "source_taxonomy_or_title"; break
+                    if len(hit) > 1: break
             duration = str(first(meta.get("travel-duration")) or x["title"]).translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹", "0123456789"))
             nights, days = re.search(r"(\d{1,2})\s*شب", duration), re.search(r"(\d{1,2})\s*روز", duration)
             nights, days = (int(nights[1]) if nights else None, int(days[1]) if days else None)
@@ -378,7 +387,7 @@ def main(bundle_dir: str, dry_run: bool, publish: bool = True) -> dict:
                                          "age_range": first(meta.get("age_range")), "moving_point": first(meta.get("moving-point")), "roadmap": text_of(first(meta.get("roadmap"))), "notice": text_of(first(meta.get("notice-text"))),
                                          "transport_legs": [{"mode": l["direction_title"], "origin": l["origin_title"], "destination": l["destination_title"], "departs": l["movement_time_title"], "arrives": l["arriving_time_title"], "carrier": l["company_name_title"]} for l in legs],
                                          "images": gallery_urls([*ids_of(meta.get("gallery")), *ids_of(meta.get("places-gallery"))]), "carriers": [c for c in (first(meta.get(f"carrier_{i}_name")) for i in range(6)) if c],
-                                         "ribbon": first(meta.get("ribbon_title")), "booking_note": text_of(first(meta.get("packages-details"))), "title_en": first(meta.get("title-en")),
+                                         "ribbon": first(meta.get("ribbon_title")), "destination_basis": dest_basis, "booking_note": text_of(first(meta.get("packages-details"))), "title_en": first(meta.get("title-en")),
                                          "hotel_notes": [n for n in (text_of(first(meta.get(f"hotels-list_{i}_hl-description"))) for i in range(40)) if n][:10],
                                          "image_url": image_url(first(meta.get("top-image"))), "image_credit": IMAGE_LICENSE if image_url(first(meta.get("top-image"))) else None}.items() if v not in EMPTY}
             slug = re.sub(r"[^\w\u0600-\u06FF-]+", "-", unquote(x.get("slug") or "")).strip("-")[:180] or tid
