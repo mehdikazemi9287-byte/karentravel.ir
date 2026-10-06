@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Shell } from './page';
+import { LegacyRedirect } from '../components/catalog/CatalogViews';
 
 // Before this file existed, any unknown URL fell through to Next.js's built-in
 // default 404 - a plain black screen with English-only text ("This page could
@@ -13,6 +14,7 @@ export default function NotFound() {
       <span className="eyebrow">۴۰۴</span>
       <h1>این صفحه پیدا نشد.</h1>
       <p>ممکن است آدرس اشتباه باشد یا صفحه جابه‌جا شده باشد.</p>
+      <LegacyRedirect/>
     </div>
     <div className="container" style={{ paddingBottom: 70 }}>
       <Link href="/" className="button primary">بازگشت به صفحه اصلی</Link>

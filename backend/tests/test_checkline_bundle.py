@@ -70,7 +70,7 @@ def test_bundle_import_carries_content_and_never_commercial_data(tmp_path, clien
         assert details["room_count"] == "40" and details["nearby"] == [{"place": "حافظیه", "distance": "2", "unit": "km"}] and details["board_plans"] == ["صبحانه"] and details["categories"] == ["هتل های شیراز"]
         assert "discount" not in h.details_json and "15%" not in h.details_json and "facilit" not in h.details_json                      # no discount, no unlabeled facility codes
         rooms = db.scalars(select(CatalogHotelRoomType).where(CatalogHotelRoomType.hotel_id == "cl-10")).all()
-        assert [(r.name_fa, json.loads(r.amenities_json)) for r in rooms] == [("دوتخته", ["wifi", "air_conditioning"])]                    # hidden room skipped, unknown code dropped
+        assert [(r.name_fa, json.loads(r.amenities_json)) for r in rooms] == [("دوتخته", ["wifi", "air_conditioning"])] and rooms[0].image_url is None                    # hidden room skipped, unknown code dropped
         images = db.scalars(select(CatalogHotelImage).where(CatalogHotelImage.hotel_id == "cl-10").order_by(CatalogHotelImage.sort_order)).all()
         assert [i.url for i in images] == ["https://checkline.travel/wp-content/uploads/2024/01/%D9%86%D9%85%D8%A7%DB%8C%20%D9%87%D8%AA%D9%84.jpg", "https://checkline.travel/wp-content/uploads/2024/01/b.jpg"] and all("rights unverified" in i.license for i in images)
         assert db.get(CatalogHotel, "cl-11").status == "draft" and db.get(CatalogHotel, "cl-12").city_id == "cl-city-4"
@@ -85,7 +85,7 @@ def test_bundle_import_carries_content_and_never_commercial_data(tmp_path, clien
         assert [x.hotel_id for x in db.scalars(select(CatalogTourHotel).where(CatalogTourHotel.tour_id == "cl-tour-20"))] == ["cl-10"] and db.get(CatalogTour, "cl-tour-21") is None
         assert db.get(CatalogVenue, "cl-attr-40").latitude == 29.62 and db.get(CatalogContent, "cl-visa-30").body == "مدارک لازم"
         routes = {r.legacy_path: r.target_path for r in db.scalars(select(CatalogLegacyRoute))}
-        assert routes == {"/shiraz-hotels/": "/hotels?country=IR&city=ir-shiraz", "/immigration/": None, "/shiraz-tour/": "/tours/reference?destination=ir-shiraz"}
+        assert routes == {"/shiraz-hotels/": "/hotels?country=IR&city=ir-shiraz", "/immigration/": None, "/shiraz-tour/": "/tours/search?destination=ir-shiraz"}
     # ---- the content is reachable through the public API: search -> results -> detail, with no price and not bookable
     listing = client.get("/catalog/hotels", params={"city": "ir-shiraz", "q": "باغ نارنج"}).json()
     assert listing["total"] == 1 and listing["items"][0]["price"] is None and listing["items"][0]["state"]["bookable"] is False and listing["items"][0]["image_url"]
@@ -93,7 +93,7 @@ def test_bundle_import_carries_content_and_never_commercial_data(tmp_path, clien
     assert detail["description"].startswith("معرفی") and detail["details"]["nearby"][0]["place"] == "حافظیه" and len(detail["images"]) == 2 and detail["room_types"][0]["name_fa"] == "دوتخته" and detail["price"] is None
     assert client.get("/catalog/hotels/checkline-11").status_code == 404
     assert any(i["type"] == "hotel" and i["href"] == "/hotels/checkline-10" for i in client.get("/catalog/suggest", params={"q": "باغ نارنج"}).json()["items"])
-    assert any(i["type"] == "tour" and i["href"] == "/tours/reference/cl-tour-20" for i in client.get("/catalog/suggest", params={"q": "شیراز"}).json()["items"])
+    assert any(i["type"] == "tour" and i["href"] == "/tours/t20" for i in client.get("/catalog/suggest", params={"q": "شیراز"}).json()["items"])
     tours = client.get("/catalog/tours", params={"destination": "ir-shiraz"}).json()
     assert tours["total"] == 1 and tours["sellable"] is False and tours["items"][0]["price"] is None and tours["items"][0]["image_url"] and tours["destinations"][0]["id"] == "ir-shiraz"
     t = client.get("/catalog/tours/cl-tour-20").json()
