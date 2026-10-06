@@ -1,0 +1,5985 @@
+[
+  {
+    "method": "POST",
+    "documentation_label": "/authenticate",
+    "http_path": "/authenticate",
+    "request_example_fields": [],
+    "response_example_fields": [
+      {
+        "path": "Success",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "token",
+        "observed_type": "string"
+      }
+    ],
+    "parameters": [
+      {
+        "name": "username",
+        "required_marker": true,
+        "in": "query"
+      },
+      {
+        "name": "password",
+        "required_marker": true,
+        "in": "query"
+      }
+    ],
+    "source": "https://doc.citysoft.ir/",
+    "status": "Documentation inspected 2026-10-06; examples are not complete validation schemas; no operation executed"
+  },
+  {
+    "method": "POST",
+    "documentation_label": "/flights/search",
+    "http_path": "/flights/search",
+    "request_example_fields": [
+      {
+        "path": "Lang",
+        "observed_type": "string"
+      },
+      {
+        "path": "TravelPreference.CabinPref.Cabin",
+        "observed_type": "string"
+      },
+      {
+        "path": "TravelPreference.EquipPref.AirEquipType",
+        "observed_type": "string"
+      },
+      {
+        "path": "TravelPreference.FlightTypePref.BackhaulIndicator",
+        "observed_type": "string"
+      },
+      {
+        "path": "TravelPreference.FlightTypePref.DirectAndNonStopOnlyInd",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "TravelPreference.FlightTypePref.ExcludeTrainInd",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "TravelPreference.FlightTypePref.GroundTransportIndicator",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "TravelPreference.FlightTypePref.MaxConnections",
+        "observed_type": "number"
+      },
+      {
+        "path": "TravelerInfoSummary.AirTravelerAvail.PassengerTypeQuantity[].Code",
+        "observed_type": "string"
+      },
+      {
+        "path": "TravelerInfoSummary.AirTravelerAvail.PassengerTypeQuantity[].Quantity",
+        "observed_type": "number"
+      },
+      {
+        "path": "SpecificFlightInfo.Airline",
+        "observed_type": "array"
+      },
+      {
+        "path": "OriginDestinationInformations[].OriginLocation.CodeContext",
+        "observed_type": "string"
+      },
+      {
+        "path": "OriginDestinationInformations[].OriginLocation.LocationCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "OriginDestinationInformations[].OriginLocation.MultiAirportCityInd",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "OriginDestinationInformations[].DestinationLocation.CodeContext",
+        "observed_type": "string"
+      },
+      {
+        "path": "OriginDestinationInformations[].DestinationLocation.LocationCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "OriginDestinationInformations[].DestinationLocation.MultiAirportCityInd",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "OriginDestinationInformations[].DepartureDateTime",
+        "observed_type": "string"
+      },
+      {
+        "path": "OriginDestinationInformations[].ArrivalDateTime",
+        "observed_type": "null"
+      },
+      {
+        "path": "DeepLink",
+        "observed_type": "number"
+      }
+    ],
+    "response_example_fields": [
+      {
+        "path": "Success",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items[].AirItinerary[].SessionId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].AirItinerary[].CombinationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AirItinerary[].RecommendationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AirItinerary[].SubsystemId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AirItinerary[].SubsystemName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].AirItineraryPricingInfo.ItinTotalFare.BaseFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AirItineraryPricingInfo.ItinTotalFare.TotalFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AirItineraryPricingInfo.ItinTotalFare.TotalCommission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AirItineraryPricingInfo.ItinTotalFare.TotalTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AirItineraryPricingInfo.ItinTotalFare.ServiceTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AirItineraryPricingInfo.ItinTotalFare.Original",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AirItineraryPricingInfo.ItinTotalFare.Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.BaseFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.TotalFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.Commission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.ServiceTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.Taxes",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerTypeQuantity.Code",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerTypeQuantity.Quantity",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AirItineraryPricingInfo.AirItineraryPricingDetails[].AirItineraryPricingInfo.ItinTotalFare.BaseFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AirItineraryPricingInfo.AirItineraryPricingDetails[].AirItineraryPricingInfo.ItinTotalFare.TotalFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AirItineraryPricingInfo.AirItineraryPricingDetails[].AirItineraryPricingInfo.ItinTotalFare.TotalCommission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AirItineraryPricingInfo.AirItineraryPricingDetails[].AirItineraryPricingInfo.ItinTotalFare.TotalTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AirItineraryPricingInfo.AirItineraryPricingDetails[].AirItineraryPricingInfo.ItinTotalFare.ServiceTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AirItineraryPricingInfo.AirItineraryPricingDetails[].AirItineraryPricingInfo.ItinTotalFare.Original",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AirItineraryPricingInfo.AirItineraryPricingDetails[].AirItineraryPricingInfo.ItinTotalFare.Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].AirItineraryPricingInfo.AirItineraryPricingDetails[].AirItineraryPricingInfo.ItinTotalFare.Commission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AirItineraryPricingInfo.AirItineraryPricingDetails[].AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.BaseFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AirItineraryPricingInfo.AirItineraryPricingDetails[].AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.TotalFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AirItineraryPricingInfo.AirItineraryPricingDetails[].AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.Commission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AirItineraryPricingInfo.AirItineraryPricingDetails[].AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.ServiceTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AirItineraryPricingInfo.AirItineraryPricingDetails[].AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.Taxes",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AirItineraryPricingInfo.AirItineraryPricingDetails[].AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.Original",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AirItineraryPricingInfo.AirItineraryPricingDetails[].AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].AirItineraryPricingInfo.AirItineraryPricingDetails[].AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerTypeQuantity.Code",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].AirItineraryPricingInfo.AirItineraryPricingDetails[].AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerTypeQuantity.Quantity",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].DepartureDateTime",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].DepartureDateG",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].DepartureDateJ",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].ArrivalDateTime",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].ArrivalDateG",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].ArrivalDateJ",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].JourneyDuration",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].JourneyDurationPerMinute",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].OriginLocation",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].DestinationLocation",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].TPA_Extensions.OriginFa",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].TPA_Extensions.DestinationFa",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].TPA_Extensions.Origin",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].TPA_Extensions.Destination",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].TPA_Extensions.AgencyCode",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].TPA_Extensions.FlightType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].TPA_Extensions.IsForeign",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].TPA_Extensions.IsLock",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].TPA_Extensions.Stop",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].DepartureDateTime",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].ArrivalDateTime",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].FlightNumber",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].ResBookDesigCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].JourneyDuration",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].JourneyDurationPerMinute",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].ConnectionTime",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].ConnectionTimePerMinute",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].DepartureAirport.LocationCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].DepartureAirport.AirportName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].DepartureAirport.Terminal",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].DepartureAirport.Gate",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].DepartureAirport.CodeContext",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].ArrivalAirport.LocationCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].ArrivalAirport.AirportName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].ArrivalAirport.Terminal",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].ArrivalAirport.Gate",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].ArrivalAirport.CodeContext",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].MarketingAirline.Code",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].MarketingAirline.CompanyShortName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].CabinClassCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].OperatingAirline.Code",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].OperatingAirline.FlightNumber",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].OperatingAirline.CompanyShortName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.Origin",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.Destination",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.OriginFa",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.DestinationFa",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.DepartureDateG",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.DepartureDateJ",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.ArrivalDateG",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.ArrivalDateJ",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.FlightTime",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.ArrivalTime",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.AirlineNameFa",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].comment",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].Equipment.AircraftTailNumber",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].Equipment.AirEquipType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].Equipment.ChangeofGauge",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].SeatsRemaining",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].BookingClassAvail.ResBookDesigCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].BookingClassAvail.ResBookDesigQuantity",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].BookingClassAvail.ResBookDesigStatusCode",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].BookingClassAvail.Meal",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].MarketingCabin.Meal",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].MarketingCabin.FlightLoadInfo.AuthorizedSeatQty",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].MarketingCabin.FlightLoadInfo.RevenuePaxQty",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].MarketingCabin.BaggageAllowance.UnitOfMeasure",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].MarketingCabin.BaggageAllowance.UnitOfMeasureCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].MarketingCabin.BaggageAllowance.UnitOfMeasureQuantity",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].TPA_Extensions.AgencyCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].TPA_Extensions.IsCharter",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].TPA_Extensions.stop",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].DepartureAirport.Terminal",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].ArrivalAirport.Terminal",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].Comment",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].comment",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].BookingClassAvail.ResBookDesigQuantity",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].MarketingCabin.BaggageAllowance.UnitOfMeasureQuantity",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].ArrivalDateTime",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].ArrivalDateG",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].ArrivalDateJ",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].JourneyDuration",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].JourneyDurationPerMinute",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].TPA_Extensions.AgencyCode",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].ArrivalDateTime",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].JourneyDuration",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].JourneyDurationPerMinute",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.ArrivalDateG",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.ArrivalDateJ",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.ArrivalTime",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].Equipment.AircraftTailNumber",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].Equipment.AirEquipType",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].MarketingCabin.BaggageAllowance.UnitOfMeasureQuantity",
+        "observed_type": "null"
+      }
+    ],
+    "parameters": [],
+    "source": "https://doc.citysoft.ir/",
+    "status": "Documentation inspected 2026-10-06; examples are not complete validation schemas; no operation executed"
+  },
+  {
+    "method": "POST",
+    "documentation_label": "/flights/rules",
+    "http_path": "/flights/rules",
+    "request_example_fields": [
+      {
+        "path": "AirItinerary[].SessionId",
+        "observed_type": "string"
+      },
+      {
+        "path": "AirItinerary[].CombinationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "AirItinerary[].RecommendationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "AirItinerary[].SubsystemId",
+        "observed_type": "number"
+      },
+      {
+        "path": "AirItinerary[].SubsystemName",
+        "observed_type": "string"
+      },
+      {
+        "path": "PassengerType",
+        "observed_type": "string"
+      }
+    ],
+    "response_example_fields": [
+      {
+        "path": "Success",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items[].Airline",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].MarketAirline",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].DepartureLocationCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].ArrivalLocationCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].DetailRules[].Subtitle",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].DetailRules[].Text[]",
+        "observed_type": "string"
+      }
+    ],
+    "parameters": [],
+    "source": "https://doc.citysoft.ir/",
+    "status": "Documentation inspected 2026-10-06; examples are not complete validation schemas; no operation executed"
+  },
+  {
+    "method": "POST",
+    "documentation_label": "/flights/baggage",
+    "http_path": "/flights/baggage",
+    "request_example_fields": [
+      {
+        "path": "AirItinerary[].SessionId",
+        "observed_type": "string"
+      },
+      {
+        "path": "AirItinerary[].CombinationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "AirItinerary[].RecommendationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "AirItinerary[].SubsystemId",
+        "observed_type": "number"
+      },
+      {
+        "path": "AirItinerary[].SubsystemName",
+        "observed_type": "string"
+      },
+      {
+        "path": "PassengerType",
+        "observed_type": "string"
+      }
+    ],
+    "response_example_fields": [
+      {
+        "path": "Success",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items[].BaggageAllowance.UnitOfMeasure",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].BaggageAllowance.UnitOfMeasureCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].BaggageAllowance.UnitOfMeasureQuantity",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].FlightNumber",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Origin",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Destination",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].DepartureAirport.LocationCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].DepartureAirport.AirportName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].DepartureAirport.Terminal",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].DepartureAirport.Gate",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].DepartureAirport.CodeContext",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].ArrivalAirport.LocationCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].ArrivalAirport.AirportName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].ArrivalAirport.Terminal",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].ArrivalAirport.Gate",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].ArrivalAirport.CodeContext",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].OperatingAirline.Code",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].OperatingAirline.FlightNumber",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].OperatingAirline.CompanyShortName",
+        "observed_type": "string"
+      }
+    ],
+    "parameters": [],
+    "source": "https://doc.citysoft.ir/",
+    "status": "Documentation inspected 2026-10-06; examples are not complete validation schemas; no operation executed"
+  },
+  {
+    "method": "GET",
+    "documentation_label": "/airlines",
+    "http_path": "/airlines",
+    "request_example_fields": [],
+    "response_example_fields": [
+      {
+        "path": "Success",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items.name",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items.iata",
+        "observed_type": "string"
+      }
+    ],
+    "parameters": [
+      {
+        "name": "name",
+        "required_marker": true,
+        "in": "query"
+      }
+    ],
+    "source": "https://doc.citysoft.ir/",
+    "status": "Documentation inspected 2026-10-06; examples are not complete validation schemas; no operation executed"
+  },
+  {
+    "method": "GET",
+    "documentation_label": "/airportlist",
+    "http_path": "/airportlist",
+    "request_example_fields": [],
+    "response_example_fields": [
+      {
+        "path": "Success",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items.cityCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items.originalCityCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items.cityNameEn",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items.originalCityName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items.priority",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items.cityNameFa",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items.originalCityNameFa",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items.airportCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items.originalAirportCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items.airportNameEn",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items.airportNameFa",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items.originalAirportName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items.countryCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items.originalCountryCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items.countryNameFa",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items.originalCountryNameFa",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items.isCity",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items.count",
+        "observed_type": "number"
+      }
+    ],
+    "parameters": [
+      {
+        "name": "q",
+        "required_marker": true,
+        "in": "query"
+      }
+    ],
+    "source": "https://doc.citysoft.ir/",
+    "status": "Documentation inspected 2026-10-06; examples are not complete validation schemas; no operation executed"
+  },
+  {
+    "method": "GET",
+    "documentation_label": "/hotels/smartsearch",
+    "http_path": "/hotels/smartsearch",
+    "request_example_fields": [],
+    "response_example_fields": [
+      {
+        "path": "Success",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items[].Airline",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].MarketAirline",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].DepartureLocationCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].ArrivalLocationCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].DetailRules[].Subtitle",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].DetailRules[].Text[]",
+        "observed_type": "string"
+      }
+    ],
+    "parameters": [
+      {
+        "name": "q",
+        "required_marker": true,
+        "in": "query"
+      }
+    ],
+    "source": "https://doc.citysoft.ir/",
+    "status": "Documentation inspected 2026-10-06; examples are not complete validation schemas; no operation executed"
+  },
+  {
+    "method": "POST",
+    "documentation_label": "/hotels/search",
+    "http_path": "/hotels/search",
+    "request_example_fields": [
+      {
+        "path": "Lang",
+        "observed_type": "string"
+      },
+      {
+        "path": "CheckInDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "CheckOutDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "Search.InputType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Search.Value.Fa",
+        "observed_type": "string"
+      },
+      {
+        "path": "Search.Value.En",
+        "observed_type": "string"
+      },
+      {
+        "path": "Search.CountryCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Search.CityId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Province",
+        "observed_type": "string"
+      },
+      {
+        "path": "GuestNationality",
+        "observed_type": "string"
+      },
+      {
+        "path": "PreferredCurrencyCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "RoomGuests[].AdultCount",
+        "observed_type": "number"
+      },
+      {
+        "path": "RoomGuests[].ChildAge",
+        "observed_type": "array"
+      }
+    ],
+    "response_example_fields": [
+      {
+        "path": "Success",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items[].Combinations[].HotelItinerary.SessionId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Combinations[].HotelItinerary.CombinationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].HotelItinerary.RecommendationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].HotelItinerary.PriceType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Combinations[].HotelItinerary.SubsystemId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].HotelItinerary.SubsystemName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].RoomTypeId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].RoomType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].RoomTypeName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].Promotion",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].UsedExtra",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].MealTypeId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].MealType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].MealTypeSubSystem",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].Nationality",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.ItinTotalFare.Fare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.ItinTotalFare.Total",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.ItinTotalFare.ServiceTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.ItinTotalFare.Commission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.ItinTotalFare.Tax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.ItinTotalFare.Original",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.ItinTotalFare.Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.ItinTotalFare.ReservationState",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns[].Fare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns[].Total",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns[].Commission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns[].Tax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns[].ServiceTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns[].Original",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns[].Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns[].ReservationState",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns[].Date",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Combinations[].Rules",
+        "observed_type": "array"
+      },
+      {
+        "path": "Items[].HotelInfo.CityName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].HotelInfo.CheckInDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].HotelInfo.CheckOutDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].HotelInfo.Residence",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].HotelInfo.Rating",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].HotelInfo.HotelId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].HotelInfo.HotelName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].HotelInfo.CitynetCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].HotelInfo.CorrectName.fa",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].HotelInfo.CorrectName.en",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].HotelInfo.Type",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].HotelInfo.HotelPicture",
+        "observed_type": "array"
+      },
+      {
+        "path": "Items[].HotelInfo.Address",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].HotelInfo.Lat",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].HotelInfo.Lng",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].HotelInfo.Description",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].HotelInfo.TripAdvisorRating",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].HotelInfo.TripAdvisorReviewUrl",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].HotelInfo.CountryCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].HotelInfo.HotelPicture[]",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].HotelInfo.Description",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].MealTypeId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns",
+        "observed_type": "array"
+      },
+      {
+        "path": "Items[].HotelInfo.Priority",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].HotelInfo.AgencyCode",
+        "observed_type": "number"
+      }
+    ],
+    "parameters": [],
+    "source": "https://doc.citysoft.ir/",
+    "status": "Documentation inspected 2026-10-06; examples are not complete validation schemas; no operation executed"
+  },
+  {
+    "method": "POST",
+    "documentation_label": "/hotels/rooms",
+    "http_path": "/hotels/rooms",
+    "request_example_fields": [
+      {
+        "path": "Lang",
+        "observed_type": "string"
+      },
+      {
+        "path": "CheckInDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "CheckOutDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "CitynetCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "GuestNationality",
+        "observed_type": "string"
+      },
+      {
+        "path": "PreferredCurrencyCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Province",
+        "observed_type": "string"
+      },
+      {
+        "path": "RoomGuests[].AdultCount",
+        "observed_type": "number"
+      },
+      {
+        "path": "RoomGuests[].ChildAge",
+        "observed_type": "array"
+      }
+    ],
+    "response_example_fields": [
+      {
+        "path": "Success",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items[].Combinations[].HotelItinerary.SessionId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Combinations[].HotelItinerary.CombinationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].HotelItinerary.RecommendationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].HotelItinerary.PriceType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Combinations[].HotelItinerary.SubsystemId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].HotelItinerary.SubsystemName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].RoomTypeId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].RoomType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].RoomTypeName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].Promotion",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].UsedExtra",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].MealTypeId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].MealType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].MealTypeSubSystem",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].Nationality",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.ItinTotalFare.Fare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.ItinTotalFare.Total",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.ItinTotalFare.ServiceTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.ItinTotalFare.Commission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.ItinTotalFare.Tax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.ItinTotalFare.Original",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.ItinTotalFare.Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.ItinTotalFare.ReservationState",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns[].Fare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns[].Total",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns[].Commission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns[].Tax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns[].ServiceTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns[].Original",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns[].Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns[].ReservationState",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Combinations[].Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns[].Date",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Combinations[].Rules",
+        "observed_type": "array"
+      },
+      {
+        "path": "Items[].HotelInfo.CityName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].HotelInfo.CountryCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].HotelInfo.CheckInDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].HotelInfo.CheckOutDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].HotelInfo.Residence",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].HotelInfo.Rating",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].HotelInfo.HotelId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].HotelInfo.HotelName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].HotelInfo.CitynetCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].HotelInfo.CorrectName.fa",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].HotelInfo.CorrectName.en",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].HotelInfo.HotelPicture",
+        "observed_type": "array"
+      },
+      {
+        "path": "Items[].HotelInfo.Address",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].HotelInfo.Type",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].HotelInfo.Lat",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].HotelInfo.Lng",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].HotelInfo.Description",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].HotelInfo.TripAdvisorRating",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].HotelInfo.TripAdvisorReviewUrl",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].status",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].orgId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].redirectSessionId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].expiredAt",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].TwoPhase",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].RedirectFrom",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Owner",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Username",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AccountUsername",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AccountName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Mobile",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].MobileCode",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Email",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].CompanyName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].amount",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].contacts[].Email",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].contacts[].Telephone",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].serial",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].CompanyId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].createdAt",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].ForAccountId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AccountId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].SupporterId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Supporter",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].SupporterUsername",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].NotCleared",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].SumPurchase",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].supportId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].id",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Tax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Amount",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Id",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Tax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.SessionId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.SubsystemId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.referenceId",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.CombinationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.SubsystemName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.RecommendationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.AirItineraryPricingInfo.ItinTotalFare.BaseFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.AirItineraryPricingInfo.ItinTotalFare.Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.AirItineraryPricingInfo.ItinTotalFare.Original",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.AirItineraryPricingInfo.ItinTotalFare.TotalTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.AirItineraryPricingInfo.ItinTotalFare.TotalFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.AirItineraryPricingInfo.ItinTotalFare.Commission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.AirItineraryPricingInfo.ItinTotalFare.ServiceTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.AirItineraryPricingInfo.ItinTotalFare.TotalCommission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.Taxes",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.BaseFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.Original",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.TotalFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.Commission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.ServiceTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerTypeQuantity.Code",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerTypeQuantity.Quantity",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].ArrivalDateG",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].ArrivalDateJ",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].comment",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].Equipment.AirEquipType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].Equipment.ChangeofGauge",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].Equipment.AircraftTailNumber",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].FlightNumber",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].ArrivalAirport.Gate",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].ArrivalAirport.Terminal",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].ArrivalAirport.AirportName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].ArrivalAirport.CodeContext",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].ArrivalAirport.LocationCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].CabinClassCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].ConnectionTime",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].MarketingCabin.Meal",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].MarketingCabin.FlightLoadInfo.RevenuePaxQty",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].MarketingCabin.FlightLoadInfo.AuthorizedSeatQty",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].MarketingCabin.BaggageAllowance.UnitOfMeasure",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].MarketingCabin.BaggageAllowance.UnitOfMeasureCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].MarketingCabin.BaggageAllowance.UnitOfMeasureQuantity",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].SeatsRemaining",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.Origin",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.OriginFa",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.FlightTime",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.ArrivalTime",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.Destination",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.ArrivalDateG",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.ArrivalDateJ",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.AirlineNameFa",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.DestinationFa",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.DepartureDateG",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.DepartureDateJ",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].ArrivalDateTime",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].JourneyDuration",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].DepartureAirport.Gate",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].DepartureAirport.Terminal",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].DepartureAirport.AirportName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].DepartureAirport.CodeContext",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].DepartureAirport.LocationCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].MarketingAirline.Code",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].MarketingAirline.CompanyShortName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].OperatingAirline.Code",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].OperatingAirline.FlightNumber",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].OperatingAirline.CompanyShortName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].ResBookDesigCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].BookingClassAvail.Meal",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].BookingClassAvail.ResBookDesigCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].BookingClassAvail.ResBookDesigQuantity",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].BookingClassAvail.ResBookDesigStatusCode",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].DepartureDateTime",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].ConnectionTimePerMinute",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].JourneyDurationPerMinute",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].DepartureDateG",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].DepartureDateJ",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].OriginLocation",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].TPA_Extensions.Stop",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].TPA_Extensions.IsLock",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].TPA_Extensions.Origin",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].TPA_Extensions.OriginFa",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].TPA_Extensions.IsForeign",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].TPA_Extensions.AgencyCode",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].TPA_Extensions.FlightType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].TPA_Extensions.Destination",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].TPA_Extensions.DestinationFa",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].ArrivalDateTime",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].JourneyDuration",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].DepartureDateTime",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].DestinationLocation",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].JourneyDurationPerMinute",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.ServiceId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.ServiceName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Amount",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Status",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Service",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].ServiceId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Commission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].FactorCode",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].Id",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].Email",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].Gender",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].Mobile",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].Comment",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].Eticket[]",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].SurName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].BirthDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].GivenName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].MobileCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].NamePrefix",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].NationalId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].PassportNO",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].Nationality",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].PassengerId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].ReferenceId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].InnerDocType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].PassengerTypeCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].PassportExpireDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].IsOnlineCancel",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].domesticPenalty",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].CurrencyEquality",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].InternationalPenalty",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Commission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].FactorCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].CurrencyEquality",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].createdAtUtc",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].expiredAtUtc",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].DefaultTimeZone",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].SupporterUsername",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].Eticket",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].ReferenceId",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].contacts[].sendDetails",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items[].contacts[].SendToProvider",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.Lat",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.Lng",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.Type",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.Rating",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.Address",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.HotelId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.CityName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.HotelName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.Residence",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.CheckInDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.CitynetCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.CorrectName.en",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.CorrectName.fa",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.CountryCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.Description",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.CheckOutDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.HotelPicture",
+        "observed_type": "array"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.TripAdvisorRating",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.TripAdvisorReviewUrl",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].MealType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].RoomType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].Promotion",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].MealTypeId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].RoomTypeId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].Nationality",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].RoomTypeName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].MealTypeSubSystem",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].HotelItineraryPricingInfo.ItinTotalFare.Tax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].HotelItineraryPricingInfo.ItinTotalFare.Fare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].HotelItineraryPricingInfo.ItinTotalFare.Total",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].HotelItineraryPricingInfo.ItinTotalFare.Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].HotelItineraryPricingInfo.ItinTotalFare.Original",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].HotelItineraryPricingInfo.ItinTotalFare.Commission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].HotelItineraryPricingInfo.ItinTotalFare.ServiceTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns[].Tax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns[].Date",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns[].Fare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns[].Total",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns[].Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns[].Original",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns[].Commission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns[].ServiceTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.HotelItinerary.PriceType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.HotelItinerary.SessionId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.HotelItinerary.SubsystemId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.HotelItinerary.CombinationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.HotelItinerary.SubsystemName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.HotelItinerary.RecommendationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Rooms[].TravelerInfo.AirTraveler[].Email",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Rooms[].TravelerInfo.AirTraveler[].Document.DocID",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Rooms[].TravelerInfo.AirTraveler[].Document.ExpireDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Rooms[].TravelerInfo.AirTraveler[].Document.InnerDocType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Rooms[].TravelerInfo.AirTraveler[].Document.DocIssueCountry",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Rooms[].TravelerInfo.AirTraveler[].BirthDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Rooms[].TravelerInfo.AirTraveler[].NationalId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Rooms[].TravelerInfo.AirTraveler[].PersonName.Surname",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Rooms[].TravelerInfo.AirTraveler[].PersonName.GivenName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Rooms[].TravelerInfo.AirTraveler[].PersonName.NamePrefix",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Rooms[].TravelerInfo.AirTraveler[].CurrencyCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Rooms[].TravelerInfo.AirTraveler[].PassengerTypeCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Id",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].BookId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Passengers[].Id",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Passengers[].Email",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Passengers[].Gender",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Passengers[].Mobile",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Passengers[].Comment",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Passengers[].SurName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Passengers[].BirthDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Passengers[].GivenName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Passengers[].MobileCode",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Passengers[].NamePrefix",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Passengers[].NationalId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Passengers[].PassportNO",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Passengers[].Nationality",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Passengers[].PassengerId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Passengers[].InnerDocType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Passengers[].PassengerTypeCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Passengers[].PassportExpireDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].RoomNumber",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].VoucherNumber",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].Mobile",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].MobileCode",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].PassportNO",
+        "observed_type": "number"
+      },
+      {
+        "path": "RecordCount",
+        "observed_type": "number"
+      },
+      {
+        "path": "PageNumber",
+        "observed_type": "number"
+      },
+      {
+        "path": "PerPage",
+        "observed_type": "number"
+      },
+      {
+        "path": "PageIndexes",
+        "observed_type": "number"
+      }
+    ],
+    "parameters": [],
+    "source": "https://doc.citysoft.ir/",
+    "status": "Documentation inspected 2026-10-06; examples are not complete validation schemas; no operation executed"
+  },
+  {
+    "method": "GET",
+    "documentation_label": "/cip/airports",
+    "http_path": "/cip/airports",
+    "request_example_fields": [],
+    "response_example_fields": [],
+    "parameters": [],
+    "source": "https://doc.citysoft.ir/",
+    "status": "Documentation inspected 2026-10-06; examples are not complete validation schemas; no operation executed"
+  },
+  {
+    "method": "POST",
+    "documentation_label": "/cip/search",
+    "http_path": "/cip/search",
+    "request_example_fields": [
+      {
+        "path": "Lang",
+        "observed_type": "string"
+      },
+      {
+        "path": "Date",
+        "observed_type": "string"
+      },
+      {
+        "path": "AirportCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "TripType",
+        "observed_type": "string"
+      },
+      {
+        "path": "FlightType",
+        "observed_type": "string"
+      },
+      {
+        "path": "DataDisplayType",
+        "observed_type": "string"
+      },
+      {
+        "path": "TravelerInfoSummary.AirTravelerAvail.PassengerTypeQuantity[].Code",
+        "observed_type": "string"
+      },
+      {
+        "path": "TravelerInfoSummary.AirTravelerAvail.PassengerTypeQuantity[].Quantity",
+        "observed_type": "number"
+      }
+    ],
+    "response_example_fields": [
+      {
+        "path": "Success",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items[].CipItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.BaseFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].CipItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.TotalFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].CipItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.Commission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].CipItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.ServiceTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].CipItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.Original",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].CipItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.Taxes",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].CipItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].CipItineraryPricingInfo.PTC_FareBreakdowns[].PassengerTypeQuantity.Code",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].CipItineraryPricingInfo.PTC_FareBreakdowns[].PassengerTypeQuantity.Quantity",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].CipItineraryPricingInfo.ItinTotalFare.BaseFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].CipItineraryPricingInfo.ItinTotalFare.TotalFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].CipItineraryPricingInfo.ItinTotalFare.TotalCommission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].CipItineraryPricingInfo.ItinTotalFare.TotalTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].CipItineraryPricingInfo.ItinTotalFare.TotalOriginal",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].CipItineraryPricingInfo.ItinTotalFare.ServiceTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].CipItineraryPricingInfo.ItinTotalFare.Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].CipInfo.Title[].lang",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].CipInfo.Title[].name",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].CipInfo.Title[].type",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].CipInfo.Desciption[].lang",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].CipInfo.Desciption[].name",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].CipInfo.Desciption[].type",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].CipInfo.Notes",
+        "observed_type": "array"
+      },
+      {
+        "path": "Items[].CipInfo.Airport[].lang",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].CipInfo.Airport[].name",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].CipInfo.Services",
+        "observed_type": "array"
+      },
+      {
+        "path": "Items[].CipInfo.PriceInclude",
+        "observed_type": "array"
+      },
+      {
+        "path": "Items[].CipInfo.PriceExclude",
+        "observed_type": "array"
+      },
+      {
+        "path": "Items[].CipInfo.CipId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].CipInfo.PriceId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].CipInfo.AirportCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].CipInfo.FlightType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].CipInfo.TripType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].CipInfo.Date",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].CipInfo.SupportTimeStart1",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].CipInfo.SupportTimeEnd1",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].CipInfo.SupportTimeStart2",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].CipInfo.SupportTimeEnd2",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].CipInfo.CloseSaleCip",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].CipInfo.Rules.ADT[]",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].CipInfo.Rules.CHD[]",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].CipInfo.Rules.INF[]",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].CipInfo.Rules.ExtraRule[]",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].CipInfo.HasList",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items[].CipInfo.IsService",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].CipInfo.CipService",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].CipInfo.CipServiceId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].CipInfo.CipGlobalType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].CipInfo.CipGlobalId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].CipInfo.ServiceInputLabel",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].CipInfo.CipServiceDetailId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].CipInfo.Image",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].CipInfo.BoardInOtherLang",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items[].ExtraService",
+        "observed_type": "array"
+      },
+      {
+        "path": "Items[].CipItinerary.SessionId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].CipItinerary.CombinationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].CipItinerary.RecommendationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].CipItinerary.SubsystemId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].CipItinerary.SubsystemName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].CipInfo.Rules.ExtraRule",
+        "observed_type": "array"
+      }
+    ],
+    "parameters": [],
+    "source": "https://doc.citysoft.ir/",
+    "status": "Documentation inspected 2026-10-06; examples are not complete validation schemas; no operation executed"
+  },
+  {
+    "method": "GET",
+    "documentation_label": "/cip/flightlist",
+    "http_path": "/cip/flightlist",
+    "request_example_fields": [],
+    "response_example_fields": [],
+    "parameters": [],
+    "source": "https://doc.citysoft.ir/",
+    "status": "Documentation inspected 2026-10-06; examples are not complete validation schemas; no operation executed"
+  },
+  {
+    "method": "POST",
+    "documentation_label": "/cip/rules",
+    "http_path": "/cip/rules",
+    "request_example_fields": [
+      {
+        "path": "SessionId",
+        "observed_type": "string"
+      },
+      {
+        "path": "CombinationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "RecommendationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "SubsystemName",
+        "observed_type": "string"
+      },
+      {
+        "path": "SubsystemId",
+        "observed_type": "number"
+      }
+    ],
+    "response_example_fields": [
+      {
+        "path": "Success",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items.RuleType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items.ADT[]",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items.CHD[]",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items.INF[]",
+        "observed_type": "string"
+      },
+      {
+        "path": "lri",
+        "observed_type": "string"
+      }
+    ],
+    "parameters": [],
+    "source": "https://doc.citysoft.ir/",
+    "status": "Documentation inspected 2026-10-06; examples are not complete validation schemas; no operation executed"
+  },
+  {
+    "method": "POST",
+    "documentation_label": "/ticketing/ticket#OfflineCancel",
+    "http_path": "/ticketing/ticket",
+    "request_example_fields": [],
+    "response_example_fields": [],
+    "parameters": [],
+    "source": "https://doc.citysoft.ir/",
+    "status": "Documentation inspected 2026-10-06; examples are not complete validation schemas; no operation executed"
+  },
+  {
+    "method": "POST",
+    "documentation_label": "/cip/cancel#OnlineCancel",
+    "http_path": "/cip/cancel",
+    "request_example_fields": [
+      {
+        "path": "ServiceId",
+        "observed_type": "number"
+      },
+      {
+        "path": "ContractNo",
+        "observed_type": "string"
+      },
+      {
+        "path": "ReferenceId",
+        "observed_type": "string"
+      },
+      {
+        "path": "CipItinerary.SessionId",
+        "observed_type": "string"
+      },
+      {
+        "path": "CipItinerary.SubsystemId",
+        "observed_type": "number"
+      },
+      {
+        "path": "CipItinerary.CombinationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "CipItinerary.SubsystemName",
+        "observed_type": "string"
+      },
+      {
+        "path": "CipItinerary.RecommendationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Passengers[].Id",
+        "observed_type": "number"
+      },
+      {
+        "path": "Passengers[].Email",
+        "observed_type": "string"
+      },
+      {
+        "path": "Passengers[].Gender",
+        "observed_type": "string"
+      },
+      {
+        "path": "Passengers[].Mobile",
+        "observed_type": "null"
+      },
+      {
+        "path": "Passengers[].Comment",
+        "observed_type": "string"
+      },
+      {
+        "path": "Passengers[].Eticket",
+        "observed_type": "string"
+      },
+      {
+        "path": "Passengers[].SurName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Passengers[].BirthDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "Passengers[].GivenName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Passengers[].MobileCode",
+        "observed_type": "null"
+      },
+      {
+        "path": "Passengers[].NamePrefix",
+        "observed_type": "string"
+      },
+      {
+        "path": "Passengers[].NationalId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Passengers[].PassportNO",
+        "observed_type": "string"
+      },
+      {
+        "path": "Passengers[].Nationality",
+        "observed_type": "string"
+      },
+      {
+        "path": "Passengers[].PassengerId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Passengers[].ReferenceId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Passengers[].InnerDocType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Passengers[].PassengerTypeCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Passengers[].PassportExpireDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "Passengers[].Penalty",
+        "observed_type": "number"
+      },
+      {
+        "path": "Passengers[].ExtraPenalty",
+        "observed_type": "number"
+      }
+    ],
+    "response_example_fields": [
+      {
+        "path": "Success",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items.Success",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items.Penalty",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items.returnAmount",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items.lri",
+        "observed_type": "string"
+      }
+    ],
+    "parameters": [],
+    "source": "https://doc.citysoft.ir/",
+    "status": "Documentation inspected 2026-10-06; examples are not complete validation schemas; no operation executed"
+  },
+  {
+    "method": "POST",
+    "documentation_label": "/cip/precancel#OnlineCancel",
+    "http_path": "/cip/precancel",
+    "request_example_fields": [],
+    "response_example_fields": [],
+    "parameters": [],
+    "source": "https://doc.citysoft.ir/",
+    "status": "Documentation inspected 2026-10-06; examples are not complete validation schemas; no operation executed"
+  },
+  {
+    "method": "GET",
+    "documentation_label": "/contractlist",
+    "http_path": "/contractlist",
+    "request_example_fields": [],
+    "response_example_fields": [
+      {
+        "path": "Success",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items[].status",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].orgId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].redirectSessionId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].expiredAt",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].TwoPhase",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].RedirectFrom",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Owner",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Username",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AccountUsername",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AccountName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Mobile",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].MobileCode",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Email",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].CompanyName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].amount",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].contacts[].Email",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].contacts[].Telephone",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].serial",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].CompanyId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].createdAt",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].ForAccountId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AccountId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].SupporterId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Supporter",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].SupporterUsername",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].NotCleared",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].SumPurchase",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].supportId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].id",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Tax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Amount",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Id",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Tax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.SessionId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.SubsystemId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.referenceId",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.CombinationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.SubsystemName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.RecommendationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.AirItineraryPricingInfo.ItinTotalFare.BaseFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.AirItineraryPricingInfo.ItinTotalFare.Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.AirItineraryPricingInfo.ItinTotalFare.Original",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.AirItineraryPricingInfo.ItinTotalFare.TotalTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.AirItineraryPricingInfo.ItinTotalFare.TotalFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.AirItineraryPricingInfo.ItinTotalFare.Commission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.AirItineraryPricingInfo.ItinTotalFare.ServiceTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.AirItineraryPricingInfo.ItinTotalFare.TotalCommission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.Taxes",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.BaseFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.Original",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.TotalFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.Commission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.ServiceTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerTypeQuantity.Code",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerTypeQuantity.Quantity",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].ArrivalDateG",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].ArrivalDateJ",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].comment",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].Equipment.AirEquipType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].Equipment.ChangeofGauge",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].Equipment.AircraftTailNumber",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].FlightNumber",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].ArrivalAirport.Gate",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].ArrivalAirport.Terminal",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].ArrivalAirport.AirportName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].ArrivalAirport.CodeContext",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].ArrivalAirport.LocationCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].CabinClassCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].ConnectionTime",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].MarketingCabin.Meal",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].MarketingCabin.FlightLoadInfo.RevenuePaxQty",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].MarketingCabin.FlightLoadInfo.AuthorizedSeatQty",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].MarketingCabin.BaggageAllowance.UnitOfMeasure",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].MarketingCabin.BaggageAllowance.UnitOfMeasureCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].MarketingCabin.BaggageAllowance.UnitOfMeasureQuantity",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].SeatsRemaining",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.Origin",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.OriginFa",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.FlightTime",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.ArrivalTime",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.Destination",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.ArrivalDateG",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.ArrivalDateJ",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.AirlineNameFa",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.DestinationFa",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.DepartureDateG",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].TPA_Extensions.DepartureDateJ",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].ArrivalDateTime",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].JourneyDuration",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].DepartureAirport.Gate",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].DepartureAirport.Terminal",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].DepartureAirport.AirportName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].DepartureAirport.CodeContext",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].DepartureAirport.LocationCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].MarketingAirline.Code",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].MarketingAirline.CompanyShortName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].OperatingAirline.Code",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].OperatingAirline.FlightNumber",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].OperatingAirline.CompanyShortName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].ResBookDesigCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].BookingClassAvail.Meal",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].BookingClassAvail.ResBookDesigCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].BookingClassAvail.ResBookDesigQuantity",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].BookingClassAvail.ResBookDesigStatusCode",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].DepartureDateTime",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].ConnectionTimePerMinute",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].FlightSegment[].JourneyDurationPerMinute",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].DepartureDateG",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].DepartureDateJ",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].OriginLocation",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].TPA_Extensions.Stop",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].TPA_Extensions.IsLock",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].TPA_Extensions.Origin",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].TPA_Extensions.OriginFa",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].TPA_Extensions.IsForeign",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].TPA_Extensions.AgencyCode",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].TPA_Extensions.FlightType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].TPA_Extensions.Destination",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].TPA_Extensions.DestinationFa",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].ArrivalDateTime",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].JourneyDuration",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].DepartureDateTime",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].DestinationLocation",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.OriginDestinationInformation.OriginDestinationOption[].JourneyDurationPerMinute",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.ServiceId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.ServiceName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Amount",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Status",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Service",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].ServiceId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Commission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].FactorCode",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].Id",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].Email",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].Gender",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].Mobile",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].Comment",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].Eticket[]",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].SurName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].BirthDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].GivenName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].MobileCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].NamePrefix",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].NationalId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].PassportNO",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].Nationality",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].PassengerId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].ReferenceId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].InnerDocType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].PassengerTypeCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].PassportExpireDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].IsOnlineCancel",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].domesticPenalty",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].CurrencyEquality",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].InternationalPenalty",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Commission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].FactorCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].CurrencyEquality",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].createdAtUtc",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].expiredAtUtc",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].DefaultTimeZone",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].SupporterUsername",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].Eticket",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].ReferenceId",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].contacts[].sendDetails",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items[].contacts[].SendToProvider",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.Lat",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.Lng",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.Type",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.Rating",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.Address",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.HotelId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.CityName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.HotelName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.Residence",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.CheckInDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.CitynetCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.CorrectName.en",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.CorrectName.fa",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.CountryCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.Description",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.CheckOutDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.HotelPicture",
+        "observed_type": "array"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.TripAdvisorRating",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.HotelInfo.TripAdvisorReviewUrl",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].MealType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].RoomType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].Promotion",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].MealTypeId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].RoomTypeId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].Nationality",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].RoomTypeName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].MealTypeSubSystem",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].HotelItineraryPricingInfo.ItinTotalFare.Tax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].HotelItineraryPricingInfo.ItinTotalFare.Fare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].HotelItineraryPricingInfo.ItinTotalFare.Total",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].HotelItineraryPricingInfo.ItinTotalFare.Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].HotelItineraryPricingInfo.ItinTotalFare.Original",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].HotelItineraryPricingInfo.ItinTotalFare.Commission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].HotelItineraryPricingInfo.ItinTotalFare.ServiceTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns[].Tax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns[].Date",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns[].Fare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns[].Total",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns[].Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns[].Original",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns[].Commission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns[].ServiceTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.HotelItinerary.PriceType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.HotelItinerary.SessionId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.HotelItinerary.SubsystemId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.HotelItinerary.CombinationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.HotelItinerary.SubsystemName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Item.Combinations.HotelItinerary.RecommendationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Rooms[].TravelerInfo.AirTraveler[].Email",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Rooms[].TravelerInfo.AirTraveler[].Document.DocID",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Rooms[].TravelerInfo.AirTraveler[].Document.ExpireDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Rooms[].TravelerInfo.AirTraveler[].Document.InnerDocType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Rooms[].TravelerInfo.AirTraveler[].Document.DocIssueCountry",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Rooms[].TravelerInfo.AirTraveler[].BirthDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Rooms[].TravelerInfo.AirTraveler[].NationalId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Rooms[].TravelerInfo.AirTraveler[].PersonName.Surname",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Rooms[].TravelerInfo.AirTraveler[].PersonName.GivenName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Rooms[].TravelerInfo.AirTraveler[].PersonName.NamePrefix",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Rooms[].TravelerInfo.AirTraveler[].CurrencyCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Data.Rooms[].TravelerInfo.AirTraveler[].PassengerTypeCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Id",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].BookId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Passengers[].Id",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Passengers[].Email",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Passengers[].Gender",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Passengers[].Mobile",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Passengers[].Comment",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Passengers[].SurName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Passengers[].BirthDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Passengers[].GivenName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Passengers[].MobileCode",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Passengers[].NamePrefix",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Passengers[].NationalId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Passengers[].PassportNO",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Passengers[].Nationality",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Passengers[].PassengerId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Passengers[].InnerDocType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Passengers[].PassengerTypeCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].Passengers[].PassportExpireDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].RoomNumber",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Rooms[].VoucherNumber",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].Mobile",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].MobileCode",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Invoices[].Services[].Passengers[].PassportNO",
+        "observed_type": "number"
+      },
+      {
+        "path": "RecordCount",
+        "observed_type": "number"
+      },
+      {
+        "path": "PageNumber",
+        "observed_type": "number"
+      },
+      {
+        "path": "PerPage",
+        "observed_type": "number"
+      },
+      {
+        "path": "PageIndexes",
+        "observed_type": "number"
+      }
+    ],
+    "parameters": [
+      {
+        "name": "StartDate",
+        "required_marker": true,
+        "in": "query"
+      },
+      {
+        "name": "EndDate",
+        "required_marker": true,
+        "in": "query"
+      }
+    ],
+    "source": "https://doc.citysoft.ir/",
+    "status": "Documentation inspected 2026-10-06; examples are not complete validation schemas; no operation executed"
+  },
+  {
+    "method": "GET",
+    "documentation_label": "/contractlist#ByContractNumber",
+    "http_path": "/contractlist",
+    "request_example_fields": [],
+    "response_example_fields": [],
+    "parameters": [],
+    "source": "https://doc.citysoft.ir/",
+    "status": "Documentation inspected 2026-10-06; examples are not complete validation schemas; no operation executed"
+  },
+  {
+    "method": "GET",
+    "documentation_label": "/report/ticket/pdf#ByItinerary",
+    "http_path": "/report/ticket/pdf",
+    "request_example_fields": [],
+    "response_example_fields": [],
+    "parameters": [
+      {
+        "name": "Serial",
+        "required_marker": true,
+        "in": "query"
+      },
+      {
+        "name": "HidePrice",
+        "required_marker": true,
+        "in": "query"
+      },
+      {
+        "name": "HideLogo",
+        "required_marker": true,
+        "in": "query"
+      },
+      {
+        "name": "lang",
+        "required_marker": true,
+        "in": "query"
+      },
+      {
+        "name": "Type",
+        "required_marker": true,
+        "in": "query"
+      },
+      {
+        "name": "SessionId",
+        "required_marker": true,
+        "in": "query"
+      },
+      {
+        "name": "CombinationId",
+        "required_marker": true,
+        "in": "query"
+      },
+      {
+        "name": "RecommendationId",
+        "required_marker": true,
+        "in": "query"
+      },
+      {
+        "name": "SubsystemId",
+        "required_marker": true,
+        "in": "query"
+      },
+      {
+        "name": "HideCommission",
+        "required_marker": true,
+        "in": "query"
+      }
+    ],
+    "source": "https://doc.citysoft.ir/",
+    "status": "Documentation inspected 2026-10-06; examples are not complete validation schemas; no operation executed"
+  },
+  {
+    "method": "GET",
+    "documentation_label": "/report/ticket/pdf#ByServiceId",
+    "http_path": "/report/ticket/pdf",
+    "request_example_fields": [],
+    "response_example_fields": [],
+    "parameters": [],
+    "source": "https://doc.citysoft.ir/",
+    "status": "Documentation inspected 2026-10-06; examples are not complete validation schemas; no operation executed"
+  },
+  {
+    "method": "GET",
+    "documentation_label": "/ledgers",
+    "http_path": "/ledgers",
+    "request_example_fields": [],
+    "response_example_fields": [
+      {
+        "path": "Success",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items",
+        "observed_type": "number"
+      }
+    ],
+    "parameters": [
+      {
+        "name": "Type",
+        "required_marker": true,
+        "in": "query"
+      },
+      {
+        "name": "Currency",
+        "required_marker": true,
+        "in": "query"
+      }
+    ],
+    "source": "https://doc.citysoft.ir/",
+    "status": "Documentation inspected 2026-10-06; examples are not complete validation schemas; no operation executed"
+  },
+  {
+    "method": "GET",
+    "documentation_label": "/ledgers/budget",
+    "http_path": "/ledgers/budget",
+    "request_example_fields": [],
+    "response_example_fields": [],
+    "parameters": [],
+    "source": "https://doc.citysoft.ir/",
+    "status": "Documentation inspected 2026-10-06; examples are not complete validation schemas; no operation executed"
+  },
+  {
+    "method": "GET",
+    "documentation_label": "/currencyconvert",
+    "http_path": "/currencyconvert",
+    "request_example_fields": [],
+    "response_example_fields": [
+      {
+        "path": "Success",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items[].Id",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AccountId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].FromCurrencyId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].ToCurrencyId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].FromCurrencyAbb",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].ToCurrencyAbb",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].ToCurrencyAbbFa",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].FromCurrencyAbbFa",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Amount",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].DisplayOnSale",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].CreatedAt",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].UpdatedAt",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].UpdatedAt",
+        "observed_type": "string"
+      }
+    ],
+    "parameters": [
+      {
+        "name": "OrgId",
+        "required_marker": true,
+        "in": "query"
+      }
+    ],
+    "source": "https://doc.citysoft.ir/",
+    "status": "Documentation inspected 2026-10-06; examples are not complete validation schemas; no operation executed"
+  },
+  {
+    "method": "POST",
+    "documentation_label": "/insurance/search",
+    "http_path": "/insurance/search",
+    "request_example_fields": [],
+    "response_example_fields": [],
+    "parameters": [],
+    "source": "https://doc.citysoft.ir/",
+    "status": "Documentation inspected 2026-10-06; examples are not complete validation schemas; no operation executed"
+  },
+  {
+    "method": "POST",
+    "documentation_label": "/insurance/markup/insuranceinfo",
+    "http_path": "/insurance/markup/insuranceinfo",
+    "request_example_fields": [
+      {
+        "path": "InsuranceItinerary.SessionId",
+        "observed_type": "string"
+      },
+      {
+        "path": "InsuranceItinerary.CombinationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "InsuranceItinerary.RecommendationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "InsuranceItinerary.SubsystemId",
+        "observed_type": "number"
+      },
+      {
+        "path": "InsuranceItinerary.SubsystemName",
+        "observed_type": "string"
+      }
+    ],
+    "response_example_fields": [
+      {
+        "path": "Success",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items[].SessionId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].CombinationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].RecommendationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].SubsystemId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].SubsystemName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Final[].after.ItinTotalFare.BaseFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Final[].after.ItinTotalFare.Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Final[].after.ItinTotalFare.TotalTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Final[].after.ItinTotalFare.TotalFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Final[].after.ItinTotalFare.ServiceTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Final[].after.ItinTotalFare.TotalCommission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Final[].after.PTC_FareBreakdowns[].PassengerFare.Taxes",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Final[].after.PTC_FareBreakdowns[].PassengerFare.BaseFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Final[].after.PTC_FareBreakdowns[].PassengerFare.Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Final[].after.PTC_FareBreakdowns[].PassengerFare.TotalFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Final[].after.PTC_FareBreakdowns[].PassengerFare.Commission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Final[].after.PTC_FareBreakdowns[].PassengerFare.ServiceTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Final[].after.PTC_FareBreakdowns[].PassengerType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Final[].after.PTC_FareBreakdowns[].PassengerBirthday",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Final[].before.ItinTotalFare.BaseFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Final[].before.ItinTotalFare.Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Final[].before.ItinTotalFare.TotalTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Final[].before.ItinTotalFare.TotalFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Final[].before.ItinTotalFare.ServiceTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Final[].before.ItinTotalFare.TotalCommission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Final[].before.PTC_FareBreakdowns[].PassengerFare.Taxes",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Final[].before.PTC_FareBreakdowns[].PassengerFare.BaseFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Final[].before.PTC_FareBreakdowns[].PassengerFare.Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Final[].before.PTC_FareBreakdowns[].PassengerFare.TotalFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Final[].before.PTC_FareBreakdowns[].PassengerFare.Commission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Final[].before.PTC_FareBreakdowns[].PassengerFare.ServiceTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Final[].before.PTC_FareBreakdowns[].PassengerType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Final[].before.PTC_FareBreakdowns[].PassengerBirthday",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Final[].orgId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Final[].accountId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Final[].forAccountId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Final[].companyId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Insurance.Code",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Insurance.Covers[].CoverCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Insurance.Covers[].CoverTitleEn",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Insurance.Covers[].CoverTitleFa",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Insurance.Covers[].PlanCoverLimit",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Insurance.TitleEn",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Insurance.TitleFa",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Insurance.Duration",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Insurance.PlanType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Insurance.CoverLimit",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Insurance.TravelKind",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Insurance.CountryCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Insurance.CountryNameEn",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Insurance.CountryNameFa",
+        "observed_type": "string"
+      }
+    ],
+    "parameters": [],
+    "source": "https://doc.citysoft.ir/",
+    "status": "Documentation inspected 2026-10-06; examples are not complete validation schemas; no operation executed"
+  },
+  {
+    "method": "POST",
+    "documentation_label": "/flights/captcha",
+    "http_path": "/flights/captcha",
+    "request_example_fields": [],
+    "response_example_fields": [],
+    "parameters": [],
+    "source": "https://doc.citysoft.ir/",
+    "status": "Documentation inspected 2026-10-06; examples are not complete validation schemas; no operation executed"
+  },
+  {
+    "method": "POST",
+    "documentation_label": "/bookingengine/book#Transport",
+    "http_path": "/bookingengine/book",
+    "request_example_fields": [
+      {
+        "path": "Discount.CoponCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Owner.Contacts[].Email",
+        "observed_type": "null"
+      },
+      {
+        "path": "Owner.Contacts[].Telephone",
+        "observed_type": "null"
+      },
+      {
+        "path": "Transports.AirItinerary[].SessionId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Transports.AirItinerary[].CombinationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Transports.AirItinerary[].RecommendationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Transports.AirItinerary[].SubsystemId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Transports.AirItinerary[].SubsystemName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Transports.Ticketing.TicketType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Transports.Captcha",
+        "observed_type": "null"
+      },
+      {
+        "path": "Transports.TravelerInfo.AirTraveler[].PersonName.GivenName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Transports.TravelerInfo.AirTraveler[].PersonName.NamePrefix",
+        "observed_type": "string"
+      },
+      {
+        "path": "Transports.TravelerInfo.AirTraveler[].PersonName.Surname",
+        "observed_type": "string"
+      },
+      {
+        "path": "Transports.TravelerInfo.AirTraveler[].Document.DocID",
+        "observed_type": "string"
+      },
+      {
+        "path": "Transports.TravelerInfo.AirTraveler[].Document.DocIssueCountry",
+        "observed_type": "string"
+      },
+      {
+        "path": "Transports.TravelerInfo.AirTraveler[].Document.ExpireDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "Transports.TravelerInfo.AirTraveler[].Document.InnerDocType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Transports.TravelerInfo.AirTraveler[].NationalId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Transports.TravelerInfo.AirTraveler[].BirthDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "Transports.TravelerInfo.AirTraveler[].PassengerTypeCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Transports.TravelerInfo.AirTraveler[].CurrencyCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Transports.TravelerInfo.AirTraveler[].Email",
+        "observed_type": "string"
+      },
+      {
+        "path": "currencyToPay",
+        "observed_type": "string"
+      }
+    ],
+    "response_example_fields": [
+      {
+        "path": "BookId",
+        "observed_type": "string"
+      },
+      {
+        "path": "ContractInfo.TTL",
+        "observed_type": "string"
+      },
+      {
+        "path": "ContractInfo.TwoPhase",
+        "observed_type": "number"
+      },
+      {
+        "path": "ContractInfo.ContractNo",
+        "observed_type": "number"
+      },
+      {
+        "path": "ContractInfo.Amount",
+        "observed_type": "number"
+      },
+      {
+        "path": "ContractInfo.Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Success",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items[].Items.AirReservation.BookingReferenceID.TicketTimeLimit",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.AirReservation.BookingReferenceID.TicketType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.AirReservation.Ticketing.type",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.AirReservation.Ticketing.ID_Context",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.AirItineraryPricingInfo.ItinTotalFare.BaseFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.AirItineraryPricingInfo.ItinTotalFare.TotalFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.AirItineraryPricingInfo.ItinTotalFare.TotalCommission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.AirItineraryPricingInfo.ItinTotalFare.TotalTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.AirItineraryPricingInfo.ItinTotalFare.ServiceTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.AirItineraryPricingInfo.ItinTotalFare.Original",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.AirItineraryPricingInfo.ItinTotalFare.Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.AirItineraryPricingInfo.ItinTotalFare.Commission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.BaseFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.TotalFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.Commission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.ServiceTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.Taxes",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.Original",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerTypeQuantity.Code",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.AirItineraryPricingInfo.PTC_FareBreakdowns[].PassengerTypeQuantity.Quantity",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AirItinerary.SessionId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].AirItinerary.CombinationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AirItinerary.RecommendationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AirItinerary.SubsystemId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].AirItinerary.SubsystemName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].serviceId",
+        "observed_type": "number"
+      }
+    ],
+    "parameters": [],
+    "source": "https://doc.citysoft.ir/",
+    "status": "Documentation inspected 2026-10-06; examples are not complete validation schemas; no operation executed"
+  },
+  {
+    "method": "POST",
+    "documentation_label": "/bookingengine/book#Stay",
+    "http_path": "/bookingengine/book",
+    "request_example_fields": [
+      {
+        "path": "Discount.CoponCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Owner.Contacts[].Email",
+        "observed_type": "null"
+      },
+      {
+        "path": "Owner.Contacts[].Telephone",
+        "observed_type": "null"
+      },
+      {
+        "path": "Owner.Contacts[].SendToProvider",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Owner.Contacts[].sendDetails",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Hotels.HotelItinerary.SessionId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Hotels.HotelItinerary.CombinationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Hotels.HotelItinerary.RecommendationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Hotels.HotelItinerary.PriceType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Hotels.HotelItinerary.SubsystemId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Hotels.HotelItinerary.SubsystemName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Hotels.Ticketing.TicketType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Hotels.Captcha",
+        "observed_type": "null"
+      },
+      {
+        "path": "Hotels.Rooms[].TravelerInfo.AirTraveler[].PersonName.GivenName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Hotels.Rooms[].TravelerInfo.AirTraveler[].PersonName.NamePrefix",
+        "observed_type": "string"
+      },
+      {
+        "path": "Hotels.Rooms[].TravelerInfo.AirTraveler[].PersonName.Surname",
+        "observed_type": "string"
+      },
+      {
+        "path": "Hotels.Rooms[].TravelerInfo.AirTraveler[].Document.DocID",
+        "observed_type": "string"
+      },
+      {
+        "path": "Hotels.Rooms[].TravelerInfo.AirTraveler[].Document.DocIssueCountry",
+        "observed_type": "string"
+      },
+      {
+        "path": "Hotels.Rooms[].TravelerInfo.AirTraveler[].Document.ExpireDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "Hotels.Rooms[].TravelerInfo.AirTraveler[].Document.InnerDocType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Hotels.Rooms[].TravelerInfo.AirTraveler[].NationalId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Hotels.Rooms[].TravelerInfo.AirTraveler[].BirthDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "Hotels.Rooms[].TravelerInfo.AirTraveler[].PassengerTypeCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Hotels.Rooms[].TravelerInfo.AirTraveler[].CurrencyCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Hotels.Rooms[].TravelerInfo.AirTraveler[].Email",
+        "observed_type": "string"
+      }
+    ],
+    "response_example_fields": [
+      {
+        "path": "BookId",
+        "observed_type": "string"
+      },
+      {
+        "path": "ContractInfo.TTL",
+        "observed_type": "string"
+      },
+      {
+        "path": "ContractInfo.TwoPhase",
+        "observed_type": "number"
+      },
+      {
+        "path": "ContractInfo.ContractNo",
+        "observed_type": "number"
+      },
+      {
+        "path": "ContractInfo.Amount",
+        "observed_type": "number"
+      },
+      {
+        "path": "ContractInfo.Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Success",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items[].Items.Remarks",
+        "observed_type": "array"
+      },
+      {
+        "path": "Items[].Items.Combinations[].HotelItinerary.SessionId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.Combinations[].HotelItinerary.CombinationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.Combinations[].HotelItinerary.RecommendationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.Combinations[].HotelItinerary.PriceType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.Combinations[].HotelItinerary.SubsystemId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.Combinations[].HotelItinerary.SubsystemName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.Combinations[].Rooms[].RoomTypeId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.Combinations[].Rooms[].RoomType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.Combinations[].Rooms[].RoomTypeName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.Combinations[].Rooms[].Promotion",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.Combinations[].Rooms[].UsedExtra",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items[].Items.Combinations[].Rooms[].MealTypeId",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Items.Combinations[].Rooms[].MealType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.Combinations[].Rooms[].MealTypeSubSystem",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.Combinations[].Rooms[].HotelItineraryPricingInfo.ItinTotalFare.Fare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.Combinations[].Rooms[].HotelItineraryPricingInfo.ItinTotalFare.Total",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.Combinations[].Rooms[].HotelItineraryPricingInfo.ItinTotalFare.ServiceTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.Combinations[].Rooms[].HotelItineraryPricingInfo.ItinTotalFare.Commission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.Combinations[].Rooms[].HotelItineraryPricingInfo.ItinTotalFare.Tax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.Combinations[].Rooms[].HotelItineraryPricingInfo.ItinTotalFare.Original",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.Combinations[].Rooms[].HotelItineraryPricingInfo.ItinTotalFare.Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.Combinations[].Rooms[].HotelItineraryPricingInfo.ItinTotalFare.ReservationState",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.Combinations[].Rooms[].HotelItineraryPricingInfo.PNR_FareBreakdowns",
+        "observed_type": "array"
+      },
+      {
+        "path": "Items[].serviceId",
+        "observed_type": "number"
+      }
+    ],
+    "parameters": [],
+    "source": "https://doc.citysoft.ir/",
+    "status": "Documentation inspected 2026-10-06; examples are not complete validation schemas; no operation executed"
+  },
+  {
+    "method": "POST",
+    "documentation_label": "/bookingengine/book#CIP",
+    "http_path": "/bookingengine/book",
+    "request_example_fields": [
+      {
+        "path": "Discount.CoponCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Owner.Contacts[].Email",
+        "observed_type": "null"
+      },
+      {
+        "path": "Owner.Contacts[].Telephone",
+        "observed_type": "null"
+      },
+      {
+        "path": "Owner.Contacts[].SendToProvider",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Owner.Contacts[].sendDetails",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Cip[].CipItinerary.SessionId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Cip[].CipItinerary.CombinationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Cip[].CipItinerary.RecommendationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Cip[].CipItinerary.SubsystemId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Cip[].CipItinerary.SubsystemName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Cip[].Ticketing.TicketType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Cip[].TravelerInfo.AirTraveler[].PersonName.GivenName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Cip[].TravelerInfo.AirTraveler[].PersonName.NamePrefix",
+        "observed_type": "string"
+      },
+      {
+        "path": "Cip[].TravelerInfo.AirTraveler[].PersonName.Surname",
+        "observed_type": "string"
+      },
+      {
+        "path": "Cip[].TravelerInfo.AirTraveler[].Document.DocID",
+        "observed_type": "string"
+      },
+      {
+        "path": "Cip[].TravelerInfo.AirTraveler[].Document.DocIssueCountry",
+        "observed_type": "string"
+      },
+      {
+        "path": "Cip[].TravelerInfo.AirTraveler[].Document.ExpireDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "Cip[].TravelerInfo.AirTraveler[].Document.InnerDocType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Cip[].TravelerInfo.AirTraveler[].NationalId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Cip[].TravelerInfo.AirTraveler[].BirthDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "Cip[].TravelerInfo.AirTraveler[].PassengerTypeCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Cip[].TravelerInfo.AirTraveler[].CurrencyCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Cip[].TravelerInfo.AirTraveler[].Email",
+        "observed_type": "string"
+      },
+      {
+        "path": "Cip[].FlightInfo.AirlineIata",
+        "observed_type": "string"
+      },
+      {
+        "path": "Cip[].FlightInfo.FlightNumber",
+        "observed_type": "string"
+      },
+      {
+        "path": "Cip[].FlightInfo.AirportCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Cip[].FlightInfo.DateTime",
+        "observed_type": "string"
+      },
+      {
+        "path": "Cip[].FlightInfo.FromList",
+        "observed_type": "number"
+      },
+      {
+        "path": "Cip[].Services",
+        "observed_type": "array"
+      }
+    ],
+    "response_example_fields": [
+      {
+        "path": "BookId",
+        "observed_type": "string"
+      },
+      {
+        "path": "ContractInfo.TTL",
+        "observed_type": "string"
+      },
+      {
+        "path": "ContractInfo.TwoPhase",
+        "observed_type": "number"
+      },
+      {
+        "path": "ContractInfo.ContractNo",
+        "observed_type": "number"
+      },
+      {
+        "path": "ContractInfo.Amount",
+        "observed_type": "number"
+      },
+      {
+        "path": "ContractInfo.Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Success",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items[].Items.CipInfo.CipId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.CipInfo.PriceId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.CipInfo.Title[].lang",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipInfo.Title[].name",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipInfo.Title[].type",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipInfo.Desciption[].lang",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipInfo.Desciption[].name",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipInfo.Desciption[].type",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipInfo.Notes",
+        "observed_type": "array"
+      },
+      {
+        "path": "Items[].Items.CipInfo.Rules.ADT[]",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipInfo.Rules.CHD[]",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipInfo.Rules.INF[]",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipInfo.Rules.ExtraRule",
+        "observed_type": "array"
+      },
+      {
+        "path": "Items[].Items.CipInfo.AirportCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipInfo.Airport[].lang",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipInfo.Airport[].name",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipInfo.FlightType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipInfo.TripType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipInfo.BoardInOtherLang",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.CipInfo.Image",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipInfo.Date",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipInfo.IsService",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.CipInfo.CipService",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipInfo.CipServiceId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.CipInfo.CipServiceDetailId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.CipInfo.CipGlobalId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.CipInfo.CipGlobalType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipInfo.ServiceInputLabel",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipInfo.SupportTimeStart1",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipInfo.SupportTimeEnd1",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipInfo.SupportTimeStart2",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipInfo.SupportTimeEnd2",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipInfo.HasList",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items[].Items.CipInfo.CloseSaleCip",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.CipInfo.PriceInclude",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Items.CipInfo.PriceExclude",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Items.CipInfo.FlightInfo.AirlineIata",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipInfo.FlightInfo.FlightNumber",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipInfo.FlightInfo.AirportCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipInfo.FlightInfo.DateTime",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipInfo.FlightInfo.FromList",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.CipInfo.FlightInfo.AirportFa",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipInfo.FlightInfo.AirportEn",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipInfo.FlightInfo.AirlineFa",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipInfo.FlightInfo.AirlineEn",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.SessionId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CombinationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.SubsystemName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.RecommendationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.CipItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.BaseFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.CipItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.TotalFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.CipItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.Commission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.CipItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.ServiceTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.CipItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.Original",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.CipItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.Taxes",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.CipItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipItineraryPricingInfo.PTC_FareBreakdowns[].PassengerTypeQuantity.Code",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipItineraryPricingInfo.PTC_FareBreakdowns[].PassengerTypeQuantity.Quantity",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.CipItineraryPricingInfo.ItinTotalFare.BaseFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.CipItineraryPricingInfo.ItinTotalFare.TotalFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.CipItineraryPricingInfo.ItinTotalFare.TotalCommission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.CipItineraryPricingInfo.ItinTotalFare.TotalTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.CipItineraryPricingInfo.ItinTotalFare.TotalOriginal",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.CipItineraryPricingInfo.ItinTotalFare.ServiceTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.CipItineraryPricingInfo.ItinTotalFare.Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipReservation.BookingReferenceID.TicketTimeLimit",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.CipReservation.BookingReferenceID.TicketType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipReservation.Ticketing.Type",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipReservation.Ticketing.ID_Context",
+        "observed_type": "null"
+      },
+      {
+        "path": "Items[].Items.ExtraService",
+        "observed_type": "array"
+      },
+      {
+        "path": "Items[].lri",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].serviceId",
+        "observed_type": "number"
+      }
+    ],
+    "parameters": [],
+    "source": "https://doc.citysoft.ir/",
+    "status": "Documentation inspected 2026-10-06; examples are not complete validation schemas; no operation executed"
+  },
+  {
+    "method": "POST",
+    "documentation_label": "/bookingengine/book#FlightAndHotel",
+    "http_path": "/bookingengine/book",
+    "request_example_fields": [],
+    "response_example_fields": [],
+    "parameters": [],
+    "source": "https://doc.citysoft.ir/",
+    "status": "Documentation inspected 2026-10-06; examples are not complete validation schemas; no operation executed"
+  },
+  {
+    "method": "POST",
+    "documentation_label": "/bookingengine/book#insurance",
+    "http_path": "/bookingengine/book",
+    "request_example_fields": [
+      {
+        "path": "Discount.CoponCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Owner.Contacts[].Email",
+        "observed_type": "null"
+      },
+      {
+        "path": "Owner.Contacts[].Telephone",
+        "observed_type": "null"
+      },
+      {
+        "path": "Owner.Contacts[].SendToProvider",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Owner.Contacts[].sendDetails",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Insurance.InsuranceItinerary.SessionId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Insurance.InsuranceItinerary.CombinationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Insurance.InsuranceItinerary.RecommendationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Insurance.InsuranceItinerary.SubsystemId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Insurance.InsuranceItinerary.SubsystemName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Insurance.Ticketing.TicketType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Insurance.Captcha",
+        "observed_type": "null"
+      },
+      {
+        "path": "Insurance.TravelerInfo.AirTraveler[].PersonName.GivenName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Insurance.TravelerInfo.AirTraveler[].PersonName.NamePrefix",
+        "observed_type": "string"
+      },
+      {
+        "path": "Insurance.TravelerInfo.AirTraveler[].PersonName.Surname",
+        "observed_type": "string"
+      },
+      {
+        "path": "Insurance.TravelerInfo.AirTraveler[].Document.DocID",
+        "observed_type": "number"
+      },
+      {
+        "path": "Insurance.TravelerInfo.AirTraveler[].Document.DocIssueCountry",
+        "observed_type": "string"
+      },
+      {
+        "path": "Insurance.TravelerInfo.AirTraveler[].Document.ExpireDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "Insurance.TravelerInfo.AirTraveler[].Document.InnerDocType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Insurance.TravelerInfo.AirTraveler[].NationalId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Insurance.TravelerInfo.AirTraveler[].BirthDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "Insurance.TravelerInfo.AirTraveler[].PassengerTypeCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Insurance.TravelerInfo.AirTraveler[].CurrencyCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Insurance.TravelerInfo.AirTraveler[].Email",
+        "observed_type": "string"
+      }
+    ],
+    "response_example_fields": [
+      {
+        "path": "BookId",
+        "observed_type": "string"
+      },
+      {
+        "path": "ContractInfo.TTL",
+        "observed_type": "string"
+      },
+      {
+        "path": "ContractInfo.TwoPhase",
+        "observed_type": "number"
+      },
+      {
+        "path": "ContractInfo.ContractNo",
+        "observed_type": "number"
+      },
+      {
+        "path": "ContractInfo.Amount",
+        "observed_type": "number"
+      },
+      {
+        "path": "ContractInfo.Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Success",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items[].Items.SessionId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CombinationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.InsuranceInfo.Code",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.InsuranceInfo.Covers[].CoverCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.InsuranceInfo.Covers[].CoverTitleEn",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.InsuranceInfo.Covers[].CoverTitleFa",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.InsuranceInfo.Covers[].PlanCoverLimit",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.InsuranceInfo.TitleEn",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.InsuranceInfo.TitleFa",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.InsuranceInfo.Duration",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.InsuranceInfo.PlanType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.InsuranceInfo.CoverLimit",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.InsuranceInfo.TravelKind",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.InsuranceInfo.CountryCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.InsuranceInfo.CountryNameEn",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.InsuranceInfo.CountryNameFa",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.InsuranceInfo.DurationOfStayWarning",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.SubsystemName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.RecommendationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.InsuranceItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.BaseFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.InsuranceItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.TotalFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.InsuranceItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.Commission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.InsuranceItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.Taxes",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.InsuranceItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.ServiceTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.InsuranceItineraryPricingInfo.PTC_FareBreakdowns[].PassengerFare.Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.InsuranceItineraryPricingInfo.PTC_FareBreakdowns[].PassengerBirthday",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.InsuranceItineraryPricingInfo.PTC_FareBreakdowns[].PassengerType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.InsuranceItineraryPricingInfo.ItinTotalFare.BaseFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.InsuranceItineraryPricingInfo.ItinTotalFare.TotalFare",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.InsuranceItineraryPricingInfo.ItinTotalFare.TotalCommission",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.InsuranceItineraryPricingInfo.ItinTotalFare.TotalTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.InsuranceItineraryPricingInfo.ItinTotalFare.ServiceTax",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.InsuranceItineraryPricingInfo.ItinTotalFare.Currency",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.SubsystemId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].serviceId",
+        "observed_type": "number"
+      }
+    ],
+    "parameters": [],
+    "source": "https://doc.citysoft.ir/",
+    "status": "Documentation inspected 2026-10-06; examples are not complete validation schemas; no operation executed"
+  },
+  {
+    "method": "GET",
+    "documentation_label": "/bookingengine/ticket",
+    "http_path": "/bookingengine/ticket",
+    "request_example_fields": [],
+    "response_example_fields": [
+      {
+        "path": "Items[].Success",
+        "observed_type": "boolean"
+      },
+      {
+        "path": "Items[].Items.CipItinerary.SessionId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipItinerary.CombinationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.CipItinerary.RecommendationId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.CipItinerary.SubsystemId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.CipItinerary.SubsystemName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipItinerary.pnr",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.CipItinerary.Eticket",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.TravelerInfo.AirTraveler[].Email",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.TravelerInfo.AirTraveler[].Gender",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.TravelerInfo.AirTraveler[].Document.DocID",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.TravelerInfo.AirTraveler[].Document.ExpireDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.TravelerInfo.AirTraveler[].Document.InnerDocType",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.TravelerInfo.AirTraveler[].Document.DocIssueCountry",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.TravelerInfo.AirTraveler[].PersonId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.TravelerInfo.AirTraveler[].BirthDate",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.TravelerInfo.AirTraveler[].NationalId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.TravelerInfo.AirTraveler[].PersonName.Surname",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.TravelerInfo.AirTraveler[].PersonName.GivenName",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.TravelerInfo.AirTraveler[].PersonName.NamePrefix",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.TravelerInfo.AirTraveler[].Nationality",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.TravelerInfo.AirTraveler[].PassengerId",
+        "observed_type": "number"
+      },
+      {
+        "path": "Items[].Items.TravelerInfo.AirTraveler[].ReferenceId",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.TravelerInfo.AirTraveler[].CurrencyCode",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.TravelerInfo.AirTraveler[].TicketNumber",
+        "observed_type": "string"
+      },
+      {
+        "path": "Items[].Items.TravelerInfo.AirTraveler[].PassengerTypeCode",
+        "observed_type": "string"
+      }
+    ],
+    "parameters": [
+      {
+        "name": "ContractNo",
+        "required_marker": true,
+        "in": "query"
+      },
+      {
+        "name": "Credit",
+        "required_marker": true,
+        "in": "query"
+      },
+      {
+        "name": "Wallet",
+        "required_marker": true,
+        "in": "query"
+      },
+      {
+        "name": "Currency",
+        "required_marker": true,
+        "in": "query"
+      }
+    ],
+    "source": "https://doc.citysoft.ir/",
+    "status": "Documentation inspected 2026-10-06; examples are not complete validation schemas; no operation executed"
+  }
+]
