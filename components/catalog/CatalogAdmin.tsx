@@ -199,10 +199,12 @@ export function CatalogAdmin() {
       <section><h2>تماس و منبع</h2><div className="cadm-grid">
         <Text label="تلفن" value={form.phone} onChange={v => set('phone', v)} ltr/><Text label="وب‌سایت (https)" value={form.website} onChange={v => set('website', v)} ltr/><Text label="ایمیل" value={form.email} onChange={v => set('email', v)} ltr/>
         <Text label="ارجاع منبع" value={form.source_ref} onChange={v => set('source_ref', v)} ltr/><Text label="تاریخ دریافت (YYYY-MM-DD)" value={form.retrieved_on} onChange={v => set('retrieved_on', v)} ltr/></div></section>
-      {meta && <section><h2>نگاشت تأمین‌کننده، اتاق و طرح نرخ <small>(پیش‌نیاز نرخ؛ بدون نگاشت تأییدشده نرخی نمایش داده نمی‌شود)</small></h2><ProviderMappings hotelId={meta.id}/></section>}
+
       {meta && <section><h2>سابقهٔ ممیزی</h2>{events.length ? <ul className="cadm-history">{events.map(e => <li key={e.id}><span dir="ltr">{e.at.slice(0, 16).replace('T', ' ')}</span><strong>{ACTION_FA[e.action] ?? e.action}</strong><em>{e.actor ?? '—'}</em>
         <small dir="auto">{Array.isArray(e.detail.changed) ? (e.detail.changed as string[]).join('، ') : e.detail.to ? `${String(e.detail.from)} → ${String(e.detail.to)}` : Array.isArray(e.detail.filled) ? (e.detail.filled as string[]).join('، ') : ''}</small></li>)}</ul> : <p className="cadm-hint">هنوز تغییری ثبت نشده است.</p>}</section>}
       <div className="cadm-actions"><button className="button primary" disabled={busy}>{busy ? 'در حال ذخیره…' : 'ذخیره'}</button></div>
     </form>}
+    {/* own forms: must live outside the hotel form (HTML forbids nested forms) */}
+    {editing && editing !== 'new' && meta && <div className="cadm-form"><section><h2>نگاشت تأمین‌کننده، اتاق و طرح نرخ <small>(پیش‌نیاز نرخ؛ بدون نگاشت تأییدشده نرخی نمایش داده نمی‌شود)</small></h2><ProviderMappings hotelId={meta.id}/></section></div>}
   </div>;
 }
