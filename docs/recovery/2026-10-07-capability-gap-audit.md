@@ -70,3 +70,22 @@
 - اثبات روی candidate: با همان مجوزهای گستردهٔ Production شروع شد، migration `20261010_41` اجرا شد، API با نقش محدود بالا آمد؛ ذخیرهٔ کامل هتل (جایگزینی ۴ تصویر و ۴ اتاق)، ثبت و تأیید رویداد سفر و QA مرورگر بدون هیچ `permission denied` روی جدول انجام شد؛ `DELETE catalog_hotels`، `UPDATE catalog_places`، `DELETE catalog_tours`، `DELETE catalog_hotel_provider_mappings` و `UPDATE catalog_tour_departures` با نقش API رد شدند.
 - Runbook برای Production (نیازمند مجوز): ۱) backup و ثبت `\dp catalog_*`؛ ۲) استقرار API این شاخه همراه migration 39→41 (migration 41 فقط GRANT/REVOKE است)؛ ۳) smoke: ذخیرهٔ یک هتل در پنل، `/catalog/summary`، نبود `permission denied` در log؛ ۴) rollback: `alembic downgrade 20261009_40` (مجوز گستردهٔ قبلی را برمی‌گرداند) یا `GRANT SELECT, INSERT, UPDATE, DELETE ON <table> TO karenseir_api`. importerها با نقش owner اجرا می‌شوند و اثری نمی‌بینند.
 - باقی‌مانده: default privileges خود Production تغییر نکرده، پس جدول‌های آینده هم باید در migration خودشان محدود شوند.
+
+## Update — round 2 (candidate, migration 42)
+Moved to WORKING (route + API + UI + RBAC + tenant/object isolation + desktop/mobile browser QA, 42 checks per viewport):
+- Finance — records for payments, refunds, settlements, invoices (with tax), ledger, credit accounts; overview by status; CSV export (`/finance/records`).
+- Support — desk workspace: customer/booking/trip context, SLA, history, human reply, internal note (never returned to the customer), escalation (`/backoffice/support`).
+- Agency — bookings, customers, commission statement, settlements, report (`/agency`). Attribution is only through `agencies.sales_channel_id`; visibility only through `agency_memberships`. Linking a channel and adding a member are tenant-admin API actions.
+- Supplier — own settlements and contracts (`/supplier/settlements`).
+- Notifications — delivery view per channel with template, status, attempt, link, read state; requeue of a dead-lettered delivery through the existing outbox retry (`/backoffice/notifications`).
+- Reference tours — list, edit of descriptive fields and itinerary, source dates shown as history (`/admin/tours`).
+
+Still not WORKING, with the real reason:
+- Agency quotes and agency credit — no data model links a quote or a credit account to an agency. Needs a product decision, not code alone.
+- Finance commissions as ledger postings, computed receivables/payables, tax reporting — need approved accounting rules; the commission shown in the agency panel is a calculation from the configured rate, not a posting.
+- Supplier inventory/rates/orders, organization employee/admin flows, white-label — exist from earlier work and were not re-verified or changed in these rounds (PARTIAL).
+- Supplier self-service provider mapping — no ownership link between a supplier and a catalog hotel.
+- Tour hotel linking and room/rate-plan mapping — API only, no screen.
+- Support: AI messages are not stored in the case thread, so the AI/human distinction is a label on what exists (customer, human support, internal note).
+- Push/SMS delivery, live hotel rates, flight search/issue, customer login by OTP, payments/refunds, future tour departures — EXTERNAL_BLOCKED (credentials, supplier contracts, tenant owner).
+Candidate-only test rows (prefixed «آزمون QA» / `QA-`) exist in the throwaway candidate database for browser QA; none are in production.
