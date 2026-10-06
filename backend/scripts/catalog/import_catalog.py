@@ -56,7 +56,9 @@ def main(data_dir: str, dry_run: bool, prune: bool = False) -> dict:
                 raise SystemExit(f"{name}: duplicate ids in data file")
             new = [r for r in rows if r["id"] not in existing]
             current = {r.id: r for r in db.scalars(select(model).where(model.id.in_(existing & incoming)))} if existing & incoming else {}
-            changed = [r for r in rows if r["id"] in existing and any(getattr(current[r["id"]], k) != v for k, v in r.items())]
+            # An empty incoming value never erases a stored one: another source or a reviewer may have completed it.
+            kept = lambda r: {k: v for k, v in r.items() if not (v is None and getattr(current[r["id"]], k) is not None)}  # noqa: E731
+            changed = [kept(r) for r in rows if r["id"] in existing and any(getattr(current[r["id"]], k) != v for k, v in kept(r).items())]
             db.expunge_all()
             stale = (existing - incoming) if prune else set()
             report[name] = {"inserted": len(new), "updated": len(changed), "removed": len(stale), "kept_absent": len(existing - incoming) - len(stale), "protected_skipped": len(skipped)}

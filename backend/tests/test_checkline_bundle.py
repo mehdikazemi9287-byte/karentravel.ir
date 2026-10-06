@@ -143,3 +143,15 @@ def test_bundle_reimport_keeps_reviewer_edits_and_other_sources(tmp_path, client
         assert (h.name_fa, h.description, h.status) == ("نام بازبینی‌شده", "متن بازبین", "hidden") and db.query(CatalogHotelImage).filter_by(hotel_id="cl-10").count() == 1     # reviewer's single image kept
         assert (db.get(CatalogHotel, "h1").description, db.get(CatalogHotel, "h1").name_fa) == osm_before and db.query(CatalogHotel).filter(CatalogHotel.source == "checkline").count() == 3
     assert report["hotels"]["inserted"] == 0 and client.get("/catalog/hotels/checkline-10").status_code == 404
+
+
+def test_reference_reimport_never_erases_what_the_bundle_filled(tmp_path, client):
+    """The OSM-derived importer owns its rows but has no description for Shiraz; the bundle filled it. A re-import must keep it."""
+    from scripts.catalog import import_catalog
+    _reset(); _load(tmp_path); root = _bundle(tmp_path); b.main(root, False)
+    with SessionLocal() as db:
+        before = (db.get(CatalogPlace, "ir-shiraz").description, db.get(CatalogPlace, "ir-shiraz").details_json)
+    report = import_catalog.main(str(tmp_path), False)
+    with SessionLocal() as db:
+        after = (db.get(CatalogPlace, "ir-shiraz").description, db.get(CatalogPlace, "ir-shiraz").details_json)
+    assert before[0] == "شهر شیراز" and after == before and report["places"]["updated"] == 0
