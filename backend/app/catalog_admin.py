@@ -17,7 +17,7 @@ from sqlalchemy import delete, func, or_, select
 from sqlalchemy.orm import Session
 
 from .catalog import (AMENITIES, BED_TYPES, HOTEL_STATUS, HOTEL_TYPES, POLICY_FIELDS, POLICY_VALUES, ROOM_VIEWS, STARS_STATUS, CatalogHotel, CatalogHotelImage, CatalogHotelMatch,
-                      CatalogHotelProviderMapping, CatalogHotelRoomType, CatalogPlace, _hotel, _places_for, content_is_complete, hotel_image, normalize_text, room_type)
+                      CatalogHotelProviderMapping, CatalogHotelRoomType, CatalogPlace, CatalogTour, CatalogTourDeparture, _hotel, _places_for, content_is_complete, hotel_image, normalize_text, room_type)
 
 Policy = Optional[Literal["allowed", "not_allowed", "on_request"]]
 _URL = r"^https://[^\s]+$"
@@ -277,5 +277,36 @@ def catalog_admin_router(get_db, guard: Callable, audit: Callable, history: Call
         audit(db, user, "catalog_hotel.provider_mapping_added", {"hotel_id": row.id, "provider": data.provider, "provider_hotel_id": data.provider_hotel_id})
         db.commit()
         return full(db, row)
+
+    @router.post("/provider-mappings/{mapping_id}/verify")
+    def verify_mapping(mapping_id: int, user=Depends(guard), db: Session = Depends(get_db)) -> dict:
+        """States that this supplier hotel id was checked against the supplier's own record. Still no rate until a rate source is registered."""
+        mapping = db.scalar(select(CatalogHotelProviderMapping).where(CatalogHotelProviderMapping.id == mapping_id).with_for_update())
+        if mapping is None: raise HTTPException(status_code=404, detail="نگاشت پیدا نشد")
+        mapping.status, mapping.verified_at, mapping.verified_by = "verified", datetime.now(timezone.utc), user.id
+        audit(db, user, "catalog_hotel.provider_mapping_verified", {"hotel_id": mapping.hotel_id, "provider": mapping.provider, "provider_hotel_id": mapping.provider_hotel_id})
+        db.commit()
+        return full(db, db.get(CatalogHotel, mapping.hotel_id))
+
+    def tour(row: CatalogTour, departures: list[CatalogTourDeparture]) -> dict:
+        return {"id": row.id, "title": row.title_fa, "status": row.status, "source": row.source, "source_ref": row.source_ref, "source_disabled": row.source_disabled, "source_soldout": row.source_soldout,
+                "sellable": False, "price": None, "departures_recorded": len(departures), "latest_departure": max((d.starts_on.isoformat() for d in departures if d.starts_on), default=None),
+                "departures": [{"starts_jalali": d.starts_jalali, "ends_jalali": d.ends_jalali, "starts_on": d.starts_on.isoformat() if d.starts_on else None, "ends_on": d.ends_on.isoformat() if d.ends_on else None} for d in departures]}
+
+    @router.get("/tours")
+    def list_tours(q: str = "", offset: int = Query(default=0, ge=0), limit: int = Query(default=30, ge=1, le=100), user=Depends(guard), db: Session = Depends(get_db)) -> dict:
+        stmt = select(CatalogTour)
+        for token in normalize_text(q).split()[:4]: stmt = stmt.where(CatalogTour.search_text.like(f"%{token}%"))
+        total = db.scalar(select(func.count()).select_from(stmt.subquery()))
+        rows = db.scalars(stmt.order_by(CatalogTour.id).offset(offset).limit(limit)).all()
+        by_tour: dict[str, list] = {}
+        for d in db.scalars(select(CatalogTourDeparture).where(CatalogTourDeparture.tour_id.in_({r.id for r in rows})).order_by(CatalogTourDeparture.source_row)): by_tour.setdefault(d.tour_id, []).append(d)
+        return {"total": total, "items": [{k: v for k, v in tour(r, by_tour.get(r.id, [])).items() if k != "departures"} for r in rows]}
+
+    @router.get("/tours/{tour_id}")
+    def get_tour(tour_id: str, user=Depends(guard), db: Session = Depends(get_db)) -> dict:
+        row = db.get(CatalogTour, tour_id)
+        if row is None: raise HTTPException(status_code=404, detail="تور پیدا نشد")
+        return tour(row, db.scalars(select(CatalogTourDeparture).where(CatalogTourDeparture.tour_id == row.id).order_by(CatalogTourDeparture.source_row)).all())
 
     return router

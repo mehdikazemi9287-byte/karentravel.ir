@@ -14,9 +14,9 @@ import unicodedata
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text, func, or_, select
+from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Index, Integer, String, Text, func, or_, select
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from .database import Base
@@ -254,9 +254,36 @@ class CatalogHotelProviderMapping(Base):
     __table_args__ = (Index("ux_catalog_hotel_provider_mappings", "provider", "provider_hotel_id", unique=True),)
 
 
+class CatalogTour(SourceMixin, Base):
+    """Reference description of a tour that was offered. Not a product: no price, capacity, supplier or tenant."""
+    __tablename__ = "catalog_tours"
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    title_fa: Mapped[str] = mapped_column(String(200))
+    status: Mapped[str] = mapped_column(String(16), default="draft", index=True)  # draft | published | hidden
+    source_disabled: Mapped[bool] = mapped_column(Boolean, default=False)  # flags exactly as the source had them
+    source_soldout: Mapped[bool] = mapped_column(Boolean, default=False)
+    search_text: Mapped[str] = mapped_column(Text, default="")
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    updated_by: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+
+class CatalogTourDeparture(Base):
+    """A date the source recorded for a tour. History/reference only; a sellable departure lives in tour_departures."""
+    __tablename__ = "catalog_tour_departures"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tour_id: Mapped[str] = mapped_column(ForeignKey("catalog_tours.id", ondelete="CASCADE"), index=True)
+    source_row: Mapped[int] = mapped_column(Integer)
+    starts_jalali: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)  # verbatim source text
+    ends_jalali: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    starts_on: Mapped[Optional[date]] = mapped_column(Date, nullable=True, index=True)  # only when the text is a valid calendar date
+    ends_on: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    __table_args__ = (Index("ux_catalog_tour_departures_row", "tour_id", "source_row", unique=True),)
+
+
 CATALOG_TABLES = tuple(m.__table__ for m in (CatalogPlace, CatalogHotel, CatalogAirline, CatalogAirport, CatalogRailOperator, CatalogRailStation, CatalogVenue))
 HOTEL_CONTENT_TABLES = (CatalogHotelImage.__table__, CatalogHotelRoomType.__table__)
 HOTEL_LINK_TABLES = (CatalogHotelMatch.__table__, CatalogHotelProviderMapping.__table__)
+TOUR_TABLES = (CatalogTour.__table__, CatalogTourDeparture.__table__)
 CATALOG_MODELS = {"places": CatalogPlace, "hotels": CatalogHotel, "airlines": CatalogAirline, "airports": CatalogAirport, "rail_operators": CatalogRailOperator, "rail_stations": CatalogRailStation, "venues": CatalogVenue}
 
 
@@ -268,10 +295,14 @@ def _place(row: Optional[CatalogPlace]) -> Optional[dict]:
             "description": row.description, "image_url": row.image_url, "image_credit": row.image_credit, "hotel_count": row.hotel_count}
 
 
-def hotel_state(row: CatalogHotel) -> dict:
-    """Explicit lifecycle flags. A rate exists only when a live supplier rate source reports one for a verified
-    provider mapping; no such source is connected to the catalog yet, so both commercial flags are false, never assumed."""
-    return {"catalogued": True, "content_complete": bool(row.content_complete), "rate_available": False, "bookable": False, "published": row.status == "published" and row.duplicate_of is None,
+BOOKING_FROM_CATALOG_ENABLED = False  # flips only with an approved booking flow for supplier-quoted catalog hotels
+
+
+def hotel_state(row: CatalogHotel, rateable: bool = False) -> dict:
+    """Explicit lifecycle flags. rate_available means a live rate can be requested (verified provider mapping to a
+    registered rate source, see hotel_rates.py); it is never assumed. bookable additionally needs the booking flow."""
+    published = row.status == "published" and row.duplicate_of is None
+    return {"catalogued": True, "content_complete": bool(row.content_complete), "rate_available": bool(rateable and published), "bookable": bool(rateable and published and BOOKING_FROM_CATALOG_ENABLED), "published": published,
             "source": row.source, "last_verified_at": row.last_verified_at.isoformat() if row.last_verified_at else None}
 
 
@@ -284,7 +315,7 @@ def _provenance(row) -> dict:
     return {"source": row.source, "source_ref": row.source_ref, "license": row.source_license, "retrieved_on": row.retrieved_on}
 
 
-def _hotel(row: CatalogHotel, places: dict[str, CatalogPlace], full: bool = False) -> dict:
+def _hotel(row: CatalogHotel, places: dict[str, CatalogPlace], full: bool = False, rateable: bool = False) -> dict:
     city, region = places.get(row.city_id or ""), places.get(row.region_id or "")
     data = {"id": row.id, "slug": row.slug, "name": row.name_fa or row.name_en or row.name_local, "name_fa": row.name_fa, "name_en": row.name_en, "name_local": row.name_local,
             "hotel_type": row.hotel_type, "hotel_type_fa": HOTEL_TYPES.get(row.hotel_type, row.hotel_type), "stars": row.stars, "country_code": row.country_code,
@@ -292,7 +323,7 @@ def _hotel(row: CatalogHotel, places: dict[str, CatalogPlace], full: bool = Fals
             "amenities": [{"key": a, "label": AMENITIES.get(a, a)} for a in json.loads(row.amenities_json or "[]")],
             "image_url": row.image_url, "image_credit": row.image_credit,
             # Commercial data is deliberately absent until a real supplier offer is mapped to this record.
-            "price": None, "price_status": "inquiry", "price_note": PRICE_NOTE_FA, "state": hotel_state(row)}
+            "price": None, "price_status": "inquiry", "price_note": PRICE_NOTE_FA, "state": hotel_state(row, rateable)}
     if full:
         data.update({"description": row.description, "checkin_time": row.checkin_time, "checkout_time": row.checkout_time, "phone": row.phone, "website": row.website,
                      "email": row.email, "provenance": _provenance(row), "rules_text": row.rules_text, "stars_status": row.stars_status,
@@ -404,7 +435,9 @@ def catalog_router(get_db) -> APIRouter:
         total = db.scalar(select(func.count()).select_from(base.subquery()))
         rows = db.scalars(base.order_by(CatalogHotel.quality.desc(), CatalogHotel.id).offset(offset).limit(limit)).all()
         places_map = _places_for(db, {r.city_id for r in rows} | {r.region_id for r in rows})
-        return {"total": total, "offset": offset, "limit": limit, "items": [_hotel(r, places_map) for r in rows], "price_status": "inquiry", "price_note": PRICE_NOTE_FA}
+        from .hotel_rates import rateable_hotel_ids
+        rateable = rateable_hotel_ids(db, {r.id for r in rows})
+        return {"total": total, "offset": offset, "limit": limit, "items": [_hotel(r, places_map, rateable=r.id in rateable) for r in rows], "price_status": "inquiry", "price_note": PRICE_NOTE_FA}
 
     @router.get("/hotels/facets")
     def hotel_facets(response: Response, country: Optional[str] = None, city: Optional[str] = None, db: Session = Depends(get_db)) -> dict:
@@ -431,7 +464,8 @@ def catalog_router(get_db) -> APIRouter:
         if row is None:
             raise HTTPException(status_code=404, detail="هتل پیدا نشد")
         places_map = _places_for(db, {row.city_id, row.region_id, row.country_code.lower()})
-        data = _hotel(row, places_map, full=True)
+        from .hotel_rates import rateable_hotel_ids
+        data = _hotel(row, places_map, full=True, rateable=bool(rateable_hotel_ids(db, {row.id})))
         data["country"] = _brief(places_map.get(row.country_code.lower()))
         data["images"] = [hotel_image(i) for i in db.scalars(select(CatalogHotelImage).where(CatalogHotelImage.hotel_id == row.id).order_by(CatalogHotelImage.sort_order, CatalogHotelImage.id))]
         data["room_types"] = [room_type(r) for r in db.scalars(select(CatalogHotelRoomType).where(CatalogHotelRoomType.hotel_id == row.id).order_by(CatalogHotelRoomType.sort_order, CatalogHotelRoomType.id))]
@@ -439,6 +473,17 @@ def catalog_router(get_db) -> APIRouter:
             data["nearby_airports"] = [_airport(a) for a in db.scalars(select(CatalogAirport).where(CatalogAirport.city_id == row.city_id).limit(4))]
             data["nearby_rail_stations"] = [_station(s) for s in db.scalars(select(CatalogRailStation).where(CatalogRailStation.city_id == row.city_id).limit(4))]
         return data
+
+    @router.get("/hotels/{slug}/rates")
+    def hotel_rates(slug: str, checkin: date, checkout: date, adults: int = Query(default=2, ge=1, le=12), children: int = Query(default=0, ge=0, le=8), db: Session = Depends(get_db)) -> dict:
+        """Live supplier quote for concrete dates. Never cached, never defaulted: without a rate source the answer says so."""
+        row = db.scalar(select(CatalogHotel).where(or_(CatalogHotel.slug == slug, CatalogHotel.id == slug), CatalogHotel.status == "published", CatalogHotel.duplicate_of.is_(None)))
+        if row is None:
+            raise HTTPException(status_code=404, detail="هتل پیدا نشد")
+        if checkout <= checkin or (checkout - checkin).days > 30:
+            raise HTTPException(status_code=422, detail="بازهٔ اقامت نامعتبر است")
+        from .hotel_rates import quote_hotel
+        return {"hotel_id": row.id, "checkin": checkin.isoformat(), "checkout": checkout.isoformat(), **quote_hotel(db, row, checkin, checkout, adults, children)}
 
     def _airport(a: CatalogAirport) -> dict:
         return {"iata": a.id, "icao": a.icao_code, "name": a.name_fa or a.name_en, "name_fa": a.name_fa, "name_en": a.name_en, "city_id": a.city_id, "city_name": a.city_name,
