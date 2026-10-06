@@ -2,14 +2,14 @@
 
 Files: 1891 — every file has a status. PRESERVED_AS_REFERENCE 1865, MAPPED 14, IMPLEMENTED 12.
 Usage by files: 1.4% of files (26 of 1891) carry content that is implemented or mapped; by bytes 19.1%. The remaining files are the old site code (1,758), evidence and audit documents.
-Usage by content records: 10,765 of 23,387 = 46.0% across all content datasets; 10,765 of 21,372 = 50.4% within datasets that are usable at all (excluding BLOCKED and INVALID ones).
+Usage by content records: 15,726 of 23,387 = 67.2% across all content datasets; 15,726 of 21,372 = 73.6% within datasets that are usable at all (excluding BLOCKED and INVALID ones).
 
 ## Datasets
 | Dataset | Records | Implemented | Status | Note |
 |---|---|---|---|---|
 | Hotels (location) | 800 | 777 | IMPLEMENTED | 23 held back: 13 without a resolvable country and 9 country/city conflicts (BLOCKED), 1 without a title (INVALID) |
 | Hotel descriptions | 621 | 605 | IMPLEMENTED | HTML reduced to text |
-| Hotel gallery references | 7,277 | 3,799 | IMPLEMENTED | broken references, byte-identical copies, galleries of non-hotel items and images beyond 12 per hotel are not attached |
+| Hotel gallery references | 7,277 | 6,254 | IMPLEMENTED | every existing, distinct image of an imported hotel is attached; broken references (296), byte-identical copies and galleries of held-back or non-hotel items are not |
 | Hotel room rows | 447 | 429 | IMPLEMENTED | hidden rooms and rooms of held-back hotels excluded |
 | Hotel facility groups 1–3 (numeric codes) | 586 | 0 | BLOCKED | the code→label lists are site options whose values are not in the bundle; raw codes stay in the bundle, nothing is guessed |
 | Hotel coordinates | 0 | 0 | BLOCKED | the source has no latitude/longitude for hotels (75 have a map embed without a text query) |
@@ -37,7 +37,7 @@ Usage by content records: 10,765 of 23,387 = 46.0% across all content datasets; 
 | Taxonomy: post_tag | 31 | 0 | BLOCKED | blog tags; no post text |
 | Taxonomy: term_translations | 27 | 0 | PRESERVED_AS_REFERENCE | translation links of the multilingual plugin |
 | Taxonomy: post_translations | 8 | 0 | PRESERVED_AS_REFERENCE | translation links |
-| Media library records | 11,152 | 4,132 | IMPLEMENTED | files referenced by imported hotels, rooms, places, tours and attractions; the rest are unreferenced, missing (454) or duplicate copies and stay PRESERVED in the bundle |
+| Media library records | 11,152 | 6,638 | IMPLEMENTED | files referenced by imported hotels, rooms, places, tours and attractions; the rest are unreferenced, missing (454) or duplicate copies and stay PRESERVED in the bundle |
 | Blog posts | 41 | 0 | BLOCKED | only counted in the bundle; no titles or text were exported |
 | Supplier API operations (Citysoft) | 32 | 26 | MAPPED | 26 distinct operations mapped to ports; request/response handling built for flight search and hotel rooms; no live connection |
 | Orders, wallet movements, users, roles, options | 0 | 0 | PRESERVED_AS_REFERENCE | audit aggregates without traveller export; not site content |

@@ -109,14 +109,14 @@ def main(bundle_dir: str, dry_run: bool, publish: bool = True) -> dict:
     meta_of = lambda x: {**(x["meta"] if isinstance(x["meta"], dict) else {}), **full_meta.get(str(x["id"]), {})}  # noqa: E731
     image_url = lambda att: MEDIA_BASE + quote(media[str(att)]["relative_file"]) if att is not None and str(att) in media else None  # noqa: E731
 
-    def gallery_urls(ids, limit=12) -> list[str]:
+    def gallery_urls(ids) -> list[str]:
         """Existing image files only, one per distinct file content (the library holds 858 byte-identical copies)."""
         seen, out = set(), []
         for g in ids:
             rec = media.get(str(g))
             if rec is None or (rec.get("sha256") or rec["relative_file"]) in seen: continue
             seen.add(rec.get("sha256") or rec["relative_file"]); out.append(MEDIA_BASE + quote(rec["relative_file"]))
-        return out[:limit]
+        return out
     report = {"places": {"countries_added": 0, "regions_added": 0, "cities_added": 0, "enriched": 0}, "hotels": {"input": 0, "inserted": 0, "updated": 0, "unchanged": 0, "admin_filled": 0, "published": 0, "kept_draft": 0, "quarantined": {}, "city_unresolved": 0,
                                                                                                                  "with_description": 0, "room_types": 0, "images": 0, "bad_image_refs": 0},
               "tours": {"input": 0, "inserted": 0, "updated": 0, "admin_skipped": 0, "hotel_links": 0, "published": 0}, "attractions": 0, "content": 0, "legacy_routes": 0, "skipped_commercial_fields": ["discount-amount", "start-price", "hotels-list prices", "holding-dates capacity", "price-percent"]}
@@ -152,7 +152,7 @@ def main(bundle_dir: str, dry_run: bool, publish: bool = True) -> dict:
             if img and not place.image_url: place.image_url, place.image_credit = img, IMAGE_LICENSE
             details = json.loads(place.details_json or "{}")
             details["checkline"] = {k: v for k, v in {"legacy_id": x["id"], "legacy_slug": unquote(x.get("slug") or ""), "source_status": x["status"], "categories": categories.get(str(x["id"])),
-                                                      "images": gallery_urls(ids_of(meta.get("gallery")), 8), "map_link": map_link(first(meta.get("map-embed"))), "flag_url": image_url(first(meta.get("flag"))), **extra}.items() if v not in EMPTY}
+                                                      "images": gallery_urls(ids_of(meta.get("gallery"))), "map_link": map_link(first(meta.get("map-embed"))), "flag_url": image_url(first(meta.get("flag"))), **extra}.items() if v not in EMPTY}
             place.details_json = json.dumps(details, ensure_ascii=False, sort_keys=True)
             if own:
                 missing = [n for n in (normalize_text(place.name_fa), normalize_text(place.name_en)) if n and n not in (place.search_text or "")]
@@ -311,7 +311,7 @@ def main(bundle_dir: str, dry_run: bool, publish: bool = True) -> dict:
                                          "services_text": text_of(first(meta.get("services"))), "inclusions": [TOUR_INCLUSION.get(c, c) for c in codes], "leave_duration": first(meta.get("leave-duration")), "difficulty": first(meta.get("difficulty")),
                                          "age_range": first(meta.get("age_range")), "moving_point": first(meta.get("moving-point")), "roadmap": text_of(first(meta.get("roadmap"))), "notice": text_of(first(meta.get("notice-text"))),
                                          "transport_legs": [{"mode": l["direction_title"], "origin": l["origin_title"], "destination": l["destination_title"], "departs": l["movement_time_title"], "arrives": l["arriving_time_title"], "carrier": l["company_name_title"]} for l in legs],
-                                         "images": gallery_urls([*ids_of(meta.get("gallery")), *ids_of(meta.get("places-gallery"))], 10), "carriers": [c for c in (first(meta.get(f"carrier_{i}_name")) for i in range(6)) if c],
+                                         "images": gallery_urls([*ids_of(meta.get("gallery")), *ids_of(meta.get("places-gallery"))]), "carriers": [c for c in (first(meta.get(f"carrier_{i}_name")) for i in range(6)) if c],
                                          "ribbon": first(meta.get("ribbon_title")), "booking_note": text_of(first(meta.get("packages-details"))), "title_en": first(meta.get("title-en")),
                                          "hotel_notes": [n for n in (text_of(first(meta.get(f"hotels-list_{i}_hl-description"))) for i in range(40)) if n][:10],
                                          "image_url": image_url(first(meta.get("top-image"))), "image_credit": IMAGE_LICENSE if image_url(first(meta.get("top-image"))) else None}.items() if v not in EMPTY}

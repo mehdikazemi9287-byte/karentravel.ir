@@ -158,6 +158,12 @@ export function HotelCatalog({presetTypes, title = 'هتل‌ها و اقامت�
   </section>;
 }
 
+// Every image of the record is available; the page starts with the first ones so a long gallery does not push the content away.
+function ExpandableGallery({figures, limit, label}: {figures: ReactNode[]; limit: number; label?: string}) {
+  const [all, setAll] = useState(false);
+  return <><div className="cat-gallery" aria-label={label}>{all ? figures : figures.slice(0, limit)}</div>{!all && figures.length > limit && <button type="button" className="button secondary cat-gallery-more" onClick={() => setAll(true)}>نمایش همهٔ {fa(figures.length)} تصویر</button>}</>;
+}
+
 export function HotelDetail({slug}: {slug: string}) {
   const {data: h, loading, error} = useCatalog<Hotel>(`/catalog/hotels/${encodeURIComponent(slug)}`);
   if (!h) return <main className="journey-main cat-detail"><Status loading={loading} error={false} empty>{error ? 'این هتل در فهرست مرجع پیدا نشد.' : undefined}</Status><Link className="button secondary" href="/hotels">بازگشت به هتل‌ها</Link></main>;
@@ -169,7 +175,7 @@ export function HotelDetail({slug}: {slug: string}) {
       {h.name_en && h.name_en !== h.name && <p className="cat-en" dir="ltr" lang="en">{h.name_en}</p>}{h.name_local && h.name_local !== h.name && <p className="cat-en">{h.name_local}</p>}<p className="cat-where">{summary}</p></header>
     <div className="cat-detail-grid">
       <div>
-        {h.images?.length ? <div className="cat-gallery">{h.images.map((im, i) => <figure key={im.id} className={i === 0 ? 'lead' : ''}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={im.url} alt={im.caption || h.name} loading={i ? 'lazy' : 'eager'}/><figcaption>{im.caption ? `${im.caption} — ` : ''}<a href={im.source_url} target="_blank" rel="noreferrer">{im.author || 'منبع'}</a> · {im.license_url ? <a href={im.license_url} target="_blank" rel="noreferrer">{im.license}</a> : im.license}</figcaption></figure>)}</div> : h.image_url ? <Thumb src={h.image_url} credit={h.image_credit} alt={h.name} label=""/> : <div className="cat-noimage">برای این اقامتگاه هنوز تصویر تأییدشده‌ای ثبت نشده است.</div>}
+        {h.images?.length ? <ExpandableGallery limit={12} figures={h.images.map((im, i) => <figure key={im.id} className={i === 0 ? 'lead' : ''}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={im.url} alt={im.caption || h.name} loading={i ? 'lazy' : 'eager'}/><figcaption>{im.caption ? `${im.caption} — ` : ''}<a href={im.source_url} target="_blank" rel="noreferrer">{im.author || 'منبع'}</a> · {im.license_url ? <a href={im.license_url} target="_blank" rel="noreferrer">{im.license}</a> : im.license}</figcaption></figure>)}/> : h.image_url ? <Thumb src={h.image_url} credit={h.image_credit} alt={h.name} label=""/> : <div className="cat-noimage">برای این اقامتگاه هنوز تصویر تأییدشده‌ای ثبت نشده است.</div>}
         {h.description && <section><h2>دربارهٔ اقامتگاه</h2>{h.description.split('\n').map((line, i) => <p key={i}>{line}</p>)}</section>}
         <section><h2>امکانات ثبت‌شده</h2>{h.amenities.length ? <ul className="cat-amen">{h.amenities.map(a => <li key={a.key}>{a.label}</li>)}</ul> : <p className="cat-muted">امکانات این اقامتگاه در منبع مرجع ثبت نشده است؛ هنگام استعلام اعلام می‌شود.</p>}</section>
         {h.room_types?.length ? <section><h2>انواع اتاق</h2><ul className="cat-rooms">{h.room_types.map(r => <li key={r.id}>{r.image_url && /* eslint-disable-next-line @next/next/no-img-element */ <img className="cat-room-img" src={r.image_url} alt={r.name_fa} loading="lazy"/>}<strong>{r.name_fa}</strong>{r.name_en && <span dir="ltr" lang="en"> {r.name_en}</span>}<p>{[r.bed_type_fa, r.max_adults ? `${fa(r.max_adults)} بزرگسال` : null, r.max_children ? `${fa(r.max_children)} کودک` : null, r.size_m2 ? `${fa(r.size_m2)} متر مربع` : null, r.view_fa ? `منظره: ${r.view_fa}` : null].filter(Boolean).join(' · ')}</p>{r.description && <p>{r.description}</p>}{r.amenities.length > 0 && <ul className="cat-amen">{r.amenities.map(a => <li key={a.key}>{a.label}</li>)}</ul>}</li>)}</ul><p className="cat-muted">این فهرست توصیف انواع اتاق است و به معنی موجودی یا قیمت نیست.</p></section> : null}
@@ -300,7 +306,7 @@ export function CatalogPlaceView({slug, fallback}: {slug: string; fallback: Reac
     {p.description && p.description.split('\n').map((line, i) => <p key={i}>{line}</p>)}
     {p.details && Object.keys(p.details).length > 0 && <section><h2>اطلاعات مقصد</h2><dl className="cat-dl">{([['پایتخت', p.details.capital], ['واحد پول', p.details.currency], ['زبان رسمی', p.details.official_language], ['جمعیت', p.details.population_text], ['برق شهری', p.details.voltage], ['اختلاف ساعت', p.details.time_zone]] as [string, string | undefined][]).filter(([, v]) => v).map(([k, v]) => <span key={k} style={{display: 'contents'}}><dt>{k}</dt><dd>{v}</dd></span>)}</dl>
       {p.details.guide && p.details.guide.split('\n').map((line, i) => <p key={i}>{line}</p>)}{p.details.visa_note && <><h3 className="cat-h3">ویزا</h3>{p.details.visa_note.split('\n').map((line, i) => <p key={i}>{line}</p>)}</>}</section>}
-    {p.details?.images && p.details.images.length > 1 && <div className="cat-gallery" aria-label="تصاویر مقصد">{p.details.images.slice(0, 6).map((src, i) => <figure key={src}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={src} alt={`${p.name} ${i + 1}`} loading="lazy"/></figure>)}</div>}
+    {p.details?.images && p.details.images.length > 1 && <ExpandableGallery limit={6} label="تصاویر مقصد" figures={p.details.images.map((src, i) => <figure key={src}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={src} alt={`${p.name} ${i + 1}`} loading="lazy"/></figure>)}/>}
     {p.details?.map_link && <p><a href={p.details.map_link} target="_blank" rel="noreferrer nofollow">نمایش {p.name} روی نقشه</a></p>}
     {p.details?.visa_note && <p><Link className="button secondary" href={`/visa/cl-visa-country-${p.country_code.toLowerCase()}`}>راهنمای کامل ویزای {p.name}</Link></p>}
     {p.reference_tours && p.reference_tours.length > 0 && <section><h2>تورهای برگزارشده به این مقصد</h2><div className="cat-grid">{p.reference_tours.map(t => <TourCard key={t.id} t={t}/>)}</div></section>}
@@ -368,7 +374,7 @@ export function TourReferenceDetail({id}: {id: string}) {
     <header className="cat-detail-head"><div><span className="cat-tag">تور برگزارشده</span></div><h1>{t.title}</h1>{d.long_title && d.long_title !== t.title && <p className="cat-where">{d.long_title}</p>}</header>
     <div className="cat-detail-grid">
       <div>
-        {d.images && d.images.length > 0 ? <div className="cat-gallery">{[...(t.image_url && !d.images.includes(t.image_url) ? [t.image_url] : []), ...d.images].map((src, i) => <figure key={src} className={i === 0 ? 'lead' : ''}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={src} alt={`${t.title} ${i + 1}`} loading={i ? 'lazy' : 'eager'}/></figure>)}</div>
+        {d.images && d.images.length > 0 ? <ExpandableGallery limit={11} figures={[...(t.image_url && !d.images.includes(t.image_url) ? [t.image_url] : []), ...d.images].map((src, i) => <figure key={src} className={i === 0 ? 'lead' : ''}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={src} alt={`${t.title} ${i + 1}`} loading={i ? 'lazy' : 'eager'}/></figure>)}/>
           : t.image_url ? <Thumb src={t.image_url} credit={t.image_credit} alt={t.title} label=""/> : <div className="cat-noimage">برای این تور تصویری ثبت نشده است.</div>}
         {t.categories.length > 0 && <ul className="cat-amen" aria-label="دسته‌بندی">{t.categories.map(c => <li key={c}><Link href={`/tours/search?category=${encodeURIComponent(c)}`}>{c}</Link></li>)}</ul>}
         {t.description && <section><h2>دربارهٔ تور</h2>{t.description.split('\n').map((line, i) => <p key={i}>{line}</p>)}</section>}
