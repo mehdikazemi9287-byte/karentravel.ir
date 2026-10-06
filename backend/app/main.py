@@ -440,6 +440,9 @@ def _resolve_transaction_provenance(db: Session, user: User, licensed_entity_id:
     if licensed_entity_id and entity is None: raise HTTPException(status_code=409, detail="Licensed Entity در tenant جاری معتبر نیست")
     if sales_channel_id and channel is None: raise HTTPException(status_code=409, detail="Sales Channel در tenant جاری معتبر نیست")
     if channel is not None:
+        from .partner_ops import agency_channel_allowed  # an agency's channel needs an accepted quote from that agency
+        if not agency_channel_allowed(db, user, channel): raise HTTPException(status_code=403, detail="رزرو روی کانال فروش آژانس فقط با پیشنهاد قیمت پذیرفته‌شدهٔ همان آژانس ممکن است")
+    if channel is not None:
         if entity is not None and channel.licensed_entity_id != entity.id: raise HTTPException(status_code=409, detail="Sales Channel با Licensed Entity منطبق نیست")
         entity = db.scalar(select(operational_models.LicensedEntity).where(operational_models.LicensedEntity.id == channel.licensed_entity_id, operational_models.LicensedEntity.tenant_id == user.tenant_id, operational_models.LicensedEntity.status == "active"))
     if entity is None:
@@ -5077,6 +5080,8 @@ def _platform_audit(db: Session, user: User, action: str, entity: str, detail: d
 
 from .platform_ops import platform_ops_router  # noqa: E402
 app.include_router(platform_ops_router(get_db, current_user, require_permission, role_has_permission, _supplier_scope, _platform_audit, User))
+from .partner_ops import partner_ops_router  # noqa: E402
+app.include_router(partner_ops_router(get_db, current_user, require_permission, role_has_permission, _supplier_scope, _platform_audit, User))
 from .catalog_admin import catalog_admin_router  # noqa: E402
 def _catalog_history(db: Session, hotel_id: str) -> list[dict]:
     needle = json.dumps({"hotel_id": hotel_id})[1:-1]  # '"hotel_id": "<id>"', exactly as _catalog_audit serialises it

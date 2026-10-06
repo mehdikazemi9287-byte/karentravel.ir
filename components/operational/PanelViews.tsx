@@ -6,22 +6,23 @@ import {FormEvent, ReactNode, useCallback, useEffect, useState} from 'react';
 import {useAuth} from '../../lib/api/auth-context';
 import {ApiError, newId} from '../../lib/api/karenseir-client';
 import {ErrorState} from './ConnectedViews';
+import {AgencyQuotes, TourHotels} from './PartnerViews';
 
 type Load<T> = {kind: 'loading'} | {kind: 'ready'; data: T} | {kind: 'error'; status: number};
 type Row = Record<string, unknown>;
-const fa = (n: number) => n.toLocaleString('fa-IR');
-const when = (iso?: string | null) => iso ? new Date(iso).toLocaleString('fa-IR', {dateStyle: 'medium', timeStyle: 'short'}) : '—';
+export const fa = (n: number) => n.toLocaleString('fa-IR');
+export const when = (iso?: string | null) => iso ? new Date(iso).toLocaleString('fa-IR', {dateStyle: 'medium', timeStyle: 'short'}) : '—';
 const statusOf = (e: unknown) => e instanceof ApiError ? e.status : 503;
-const detailOf = (e: unknown, fallback: string) => {
+export const detailOf = (e: unknown, fallback: string) => {
   if (!(e instanceof ApiError)) return fallback;
   if (e.status === 403) return 'نقش شما اجازهٔ این اقدام را ندارد.';
   const raw = e.detail && typeof e.detail === 'object' && 'detail' in (e.detail as object) ? (e.detail as {detail?: unknown}).detail : e.detail ?? e.message;
   return typeof raw === 'string' ? raw : Array.isArray(raw) ? raw.map((i: {loc?: unknown[]; msg?: string}) => `${(i.loc ?? []).slice(1).join('.')}: ${i.msg}`).join(' | ') : fallback;
 };
-const field = 'mt-1 w-full min-w-0 rounded-lg border border-slate-300 bg-white p-2 text-sm';
-const money = (v: unknown, c?: unknown) => typeof v === 'number' ? `${fa(v)} ${c === 'IRR' || !c ? 'ریال' : String(c)}` : '—';
+export const field = 'mt-1 w-full min-w-0 rounded-lg border border-slate-300 bg-white p-2 text-sm';
+export const money = (v: unknown, c?: unknown) => typeof v === 'number' ? `${fa(v)} ${c === 'IRR' || !c ? 'ریال' : String(c)}` : '—';
 
-function useLoad<T>(path: string | null) {
+export function useLoad<T>(path: string | null) {
   const {api, session} = useAuth();
   const [result, setResult] = useState<{key: string; state: Load<T>} | null>(null);
   const [tick, setTick] = useState(0);
@@ -36,26 +37,26 @@ function useLoad<T>(path: string | null) {
   const state: Load<T> = result && (result.key === key || result.key.split('#')[0] === path) ? result.state : {kind: 'loading'};
   return {state, reload: useCallback(() => setTick(t => t + 1), []), session, api};
 }
-const Loading = ({children = 'در حال دریافت اطلاعات معتبر…'}: {children?: ReactNode}) => <div role="status" className="my-4 animate-pulse rounded-2xl bg-white p-6 text-center text-slate-600">{children}</div>;
-const Empty = ({children}: {children: ReactNode}) => <div role="status" className="my-4 rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-slate-600">{children}</div>;
-const Failed = ({status}: {status: number}) => <div role="alert" className="my-4 rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center text-rose-800">{status === 403 ? 'نقش شما به این بخش دسترسی ندارد.' : status === 404 ? 'این مورد در دسترس حساب شما نیست.' : 'دریافت اطلاعات انجام نشد. دوباره تلاش کنید.'}</div>;
-const Notice = ({n}: {n: {ok: boolean; text: string} | null}) => n ? <p role={n.ok ? 'status' : 'alert'} className={`my-3 rounded-xl p-3 text-sm ${n.ok ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-800'}`}>{n.text}</p> : null;
+export const Loading = ({children = 'در حال دریافت اطلاعات معتبر…'}: {children?: ReactNode}) => <div role="status" className="my-4 animate-pulse rounded-2xl bg-white p-6 text-center text-slate-600">{children}</div>;
+export const Empty = ({children}: {children: ReactNode}) => <div role="status" className="my-4 rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-slate-600">{children}</div>;
+export const Failed = ({status}: {status: number}) => <div role="alert" className="my-4 rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center text-rose-800">{status === 403 ? 'نقش شما به این بخش دسترسی ندارد.' : status === 404 ? 'این مورد در دسترس حساب شما نیست.' : 'دریافت اطلاعات انجام نشد. دوباره تلاش کنید.'}</div>;
+export const Notice = ({n}: {n: {ok: boolean; text: string} | null}) => n ? <p role={n.ok ? 'status' : 'alert'} className={`my-3 rounded-xl p-3 text-sm ${n.ok ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-800'}`}>{n.text}</p> : null;
 
-function Shell({title, intro, back, children}: {title: string; intro: string; back?: [string, string]; children: ReactNode}) {
+export function Shell({title, intro, back, children}: {title: string; intro: string; back?: [string, string]; children: ReactNode}) {
   return <section className="container customer-page">{back && <Link href={back[1]}>{back[0]}</Link>}<h1>{title}</h1><p>{intro}</p>{children}</section>;
 }
-function Table({columns, rows, labels = {}, render = {}}: {columns: string[]; rows: Row[]; labels?: Record<string, string>; render?: Record<string, (r: Row) => ReactNode>}) {
+export function Table({columns, rows, labels = {}, render = {}}: {columns: string[]; rows: Row[]; labels?: Record<string, string>; render?: Record<string, (r: Row) => ReactNode>}) {
   return <div className="my-3 overflow-x-auto rounded-2xl bg-white"><table className="w-full min-w-[36rem] text-right text-sm"><thead><tr className="border-b border-slate-200 text-slate-500">{columns.map(c => <th key={c} className="p-3 font-bold">{labels[c] ?? c}</th>)}</tr></thead>
     <tbody>{rows.map((r, i) => <tr key={String(r.id ?? i)} className="border-b border-slate-100">{columns.map(c => <td key={c} className="max-w-[16rem] break-words p-3" dir="auto">{render[c] ? render[c](r) : r[c] === null || r[c] === undefined ? '—' : String(r[c])}</td>)}</tr>)}</tbody></table></div>;
 }
-function Tabs({value, onChange, options}: {value: string; onChange: (v: string) => void; options: Record<string, string>}) {
+export function Tabs({value, onChange, options}: {value: string; onChange: (v: string) => void; options: Record<string, string>}) {
   return <div className="my-3 flex flex-wrap gap-2" role="tablist">{Object.entries(options).map(([k, v]) => <button key={k} type="button" role="tab" aria-selected={value === k} className={`rounded-full border px-4 py-1.5 text-sm ${value === k ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-300 bg-white text-slate-700'}`} onClick={() => onChange(k)}>{v}</button>)}</div>;
 }
-function Gate({session, children}: {session: unknown; children: ReactNode}) {return session ? <>{children}</> : <ErrorState status={401} message="برای دسترسی به این بخش وارد شوید."/>;}
+export function Gate({session, children}: {session: unknown; children: ReactNode}) {return session ? <>{children}</> : <ErrorState status={401} message="برای دسترسی به این بخش وارد شوید."/>;}
 
 /* ------------------------------------------------------------------ Finance */
 const DATASETS: Record<string, string> = {payments: 'پرداخت‌ها', refunds: 'استردادها', settlements: 'تسویه‌ها', invoices: 'فاکتورها', ledger: 'دفتر مالی', 'credit-accounts': 'حساب‌های اعتباری'};
-const FIN_LABELS: Record<string, string> = {id: 'شناسه', reservation_id: 'رزرو', user_id: 'کاربر', amount: 'مبلغ', currency: 'ارز', status: 'وضعیت', provider_key: 'درگاه', provider_reference: 'مرجع درگاه', captured_amount: 'وصول‌شده', refunded_amount: 'مستردشده',
+export const FIN_LABELS: Record<string, string> = {id: 'شناسه', reservation_id: 'رزرو', user_id: 'کاربر', amount: 'مبلغ', currency: 'ارز', status: 'وضعیت', provider_key: 'درگاه', provider_reference: 'مرجع درگاه', captured_amount: 'وصول‌شده', refunded_amount: 'مستردشده',
   created_at: 'ثبت', payment_intent_id: 'پرداخت', supplier_id: 'تأمین‌کننده', external_reference: 'مرجع بیرونی', invoice_number: 'شمارهٔ فاکتور', subtotal_amount: 'جمع جزء', tax_amount: 'مالیات', total_amount: 'جمع کل', issued_at: 'صدور',
   wallet_id: 'کیف پول', credit_account_id: 'حساب اعتباری', entry_type: 'نوع ثبت', reversal_of_id: 'برگشتِ', organization_id: 'سازمان', limit_amount: 'سقف'};
 type Overview = Record<'payments' | 'refunds' | 'settlements' | 'invoices', {status: string; count: number; amount: number; currency: string | null}[]> & {credit_accounts: number; note: string};
@@ -136,12 +137,12 @@ export function SupportDesk() {
 
 /* ------------------------------------------------------------------ Agency */
 type AgencyRow = {id: string; name: string; status: string; markup_bps: number; commission_bps: number; sales_channel_linked: boolean};
-const AGENCY_TABS: Record<string, string> = {bookings: 'رزروها', customers: 'مشتریان', commissions: 'کمیسیون', settlements: 'تسویه', report: 'گزارش'};
+const AGENCY_TABS: Record<string, string> = {bookings: 'رزروها', quotes: 'پیشنهاد قیمت', customers: 'مشتریان', commissions: 'کمیسیون', 'commission-ledger': 'دفتر کمیسیون', settlements: 'تسویه', credit: 'اعتبار', report: 'گزارش'};
 
 export function AgencyWorkspace() {
   const list = useLoad<{agencies: AgencyRow[]}>('/agency/workspace');
   const [agency, setAgency] = useState(''); const [tab, setTab] = useState('bookings');
-  const data = useLoad<Record<string, unknown>>(agency ? `/agency/${agency}/${tab}` : null);
+  const data = useLoad<Record<string, unknown>>(agency && tab !== 'quotes' ? `/agency/${agency}/${tab}` : null);
   const current = list.state.kind === 'ready' ? list.state.data.agencies.find(a => a.id === agency) : undefined;
   const items = (data.state.kind === 'ready' ? (data.state.data.items as Row[] | undefined) : undefined) ?? [];
   return <Gate session={list.session}>{list.state.kind === 'error' ? <ErrorState status={list.state.status} message="دسترسی به پنل آژانس ممکن نیست."/> :
@@ -151,12 +152,12 @@ export function AgencyWorkspace() {
         {current && <><p className="flex flex-wrap gap-2 text-xs"><span className="rounded bg-slate-200 px-2 py-0.5">کمیسیون: {fa(current.commission_bps / 100)}٪</span><span className="rounded bg-slate-200 px-2 py-0.5">افزودهٔ قیمت: {fa(current.markup_bps / 100)}٪</span>
           <span className={`rounded px-2 py-0.5 ${current.sales_channel_linked ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>{current.sales_channel_linked ? 'کانال فروش متصل است' : 'کانال فروش متصل نشده؛ رزروی نسبت داده نمی‌شود'}</span></p>
           <Tabs value={tab} onChange={setTab} options={AGENCY_TABS}/>
-          {data.state.kind === 'loading' ? <Loading/> : data.state.kind === 'error' ? <Failed status={data.state.status}/> : tab === 'report' ? (r => <div className="grid gap-2 sm:grid-cols-3" data-report>
+          {tab === 'quotes' ? <AgencyQuotes agencyId={agency}/> : data.state.kind === 'loading' ? <Loading/> : data.state.kind === 'error' ? <Failed status={data.state.status}/> : tab === 'credit' ? (c => c.linked ? <div className="grid gap-2 sm:grid-cols-2" data-credit><div className="rounded-xl bg-white p-3"><h3 className="text-sm text-slate-500">سقف اعتبار</h3><p className="text-xl font-bold">{money(c.limit_amount, c.currency)}</p></div><div className="rounded-xl bg-white p-3 text-sm"><h3 className="text-slate-500">وضعیت دفتر اعتبار</h3>{Object.entries((c.balances ?? {}) as Record<string, number>).map(([k, v]) => <p key={k}><span dir="ltr">{k}</span>: {money(v, c.currency)}</p>)}</div></div> : <Empty>حساب اعتباری به این آژانس متصل نشده است.</Empty>)(data.state.data as {linked: boolean; limit_amount?: number; currency?: string; balances?: unknown}) : tab === 'report' ? (r => <div className="grid gap-2 sm:grid-cols-3" data-report>
             <div className="rounded-xl bg-white p-3"><h3 className="text-sm text-slate-500">تعداد رزرو</h3><p className="text-xl font-bold">{fa(r.bookings as number)}</p></div>
             <div className="rounded-xl bg-white p-3 text-sm"><h3 className="text-slate-500">به تفکیک وضعیت</h3>{Object.entries(r.by_status as Record<string, number>).map(([k, v]) => <p key={k} dir="ltr">{k}: {fa(v)}</p>)}{!Object.keys(r.by_status as object).length && <p>—</p>}</div>
             <div className="rounded-xl bg-white p-3 text-sm"><h3 className="text-slate-500">فروش تأییدشده</h3>{(r.confirmed_sales as {currency: string; amount: number}[]).map(s => <p key={s.currency}>{money(s.amount, s.currency)}</p>)}{!(r.confirmed_sales as unknown[]).length && <p>—</p>}</div></div>)(data.state.data)
             : <>{tab === 'commissions' && <p className="rounded-xl bg-white p-3 text-sm">{String(data.state.data.note)} {(data.state.data.totals as {currency: string; commission_amount: number}[]).map(t => <strong key={t.currency} className="mr-2">جمع: {money(t.commission_amount, t.currency)}</strong>)}</p>}
-              {items.length === 0 ? <Empty>{tab === 'bookings' ? 'رزروی به این آژانس نسبت داده نشده است.' : tab === 'customers' ? 'مشتری‌ای ثبت نشده است.' : tab === 'commissions' ? 'رزرو تأییدشدهٔ دارای مبلغ وجود ندارد.' : 'تسویه‌ای ثبت نشده است.'}</Empty>
+              {items.length === 0 ? <Empty>{tab === 'bookings' ? 'رزروی به این آژانس نسبت داده نشده است.' : tab === 'customers' ? 'مشتری‌ای ثبت نشده است.' : tab === 'commissions' ? 'رزرو تأییدشدهٔ دارای مبلغ وجود ندارد.' : tab === 'commission-ledger' ? 'هنوز کمیسیونی در دفتر مالی ثبت نشده است.' : 'تسویه‌ای ثبت نشده است.'}</Empty>
                 : <Table columns={Object.keys(items[0])} rows={items} labels={{...FIN_LABELS, booking_reference: 'کد رزرو', service_type: 'خدمت', customer_id: 'مشتری', confirmed_at: 'تأیید', name: 'نام', bookings: 'تعداد رزرو', base_amount: 'مبلغ پایه', commission_bps: 'نرخ', commission_amount: 'کمیسیون'}}
                   render={{created_at: r => when(r.created_at as string), confirmed_at: r => when(r.confirmed_at as string), total_amount: r => money(r.total_amount, r.currency), amount: r => money(r.amount, r.currency), base_amount: r => money(r.base_amount, r.currency), commission_amount: r => money(r.commission_amount, r.currency),
                     commission_bps: r => `${fa((r.commission_bps as number) / 100)}٪`, id: r => <span dir="ltr">{String(r.id).slice(0, 8)}</span>, reservation_id: r => <span dir="ltr">{String(r.reservation_id).slice(0, 8)}</span>}}/>}</>}</>}
@@ -257,6 +258,7 @@ export function TourReference() {
             <label className="text-sm">عنوان روز<input className={field} value={d.title} required minLength={2} onChange={e => set('itinerary', tour.itinerary.map((x, j) => j === i ? {...x, title: e.target.value} : x))}/></label>
             <button type="button" className="self-end text-sm text-rose-700" onClick={() => set('itinerary', tour.itinerary.filter((_, j) => j !== i))}>حذف روز</button></div>)}
           <button type="button" className="button secondary" onClick={() => set('itinerary', [...tour.itinerary, {day_no: Math.max(0, ...tour.itinerary.map(d => d.day_no)) + 1, title: '', description: null, place_id: null}])}>افزودن روز</button></div>
+        <TourHotels hotels={tour.hotels} onChange={h => set('hotels', h)}/>
         <div className="rounded-2xl bg-white p-4 text-sm"><h2 className="font-bold">تاریخ‌های ثبت‌شده در منبع <span className="font-normal text-slate-500">(فقط سابقه؛ قابل‌فروش نیست)</span></h2>
           {tour.departures.length ? <ul className="mt-2 flex flex-wrap gap-2">{tour.departures.map((d, i) => <li key={i} className="rounded bg-slate-100 px-2 py-1" dir="ltr">{d.starts_jalali ?? '—'}{d.starts_on ? '' : ' (نامعتبر)'}</li>)}</ul> : <p className="mt-1 text-slate-500">تاریخی در منبع ثبت نشده است.</p>}</div>
         <div className="flex justify-end"><button className="button primary" disabled={busy}>{busy ? 'در حال ذخیره…' : 'ذخیره'}</button></div>

@@ -187,6 +187,49 @@ class SupplierAsset(OperationalMixin, Base):
     __table_args__ = (Index("ix_supplier_assets_supplier_entity", "tenant_id", "supplier_id", "entity_type"),)
 
 
+class AgencyQuote(OperationalMixin, Base):
+    """A real supplier offer, at its own price, proposed by an agency to one customer. Never a price of its own."""
+    __tablename__ = "agency_quotes"
+    agency_id: Mapped[str] = mapped_column(ForeignKey("agencies.id"), index=True)
+    created_by_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    customer_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    offer_id: Mapped[str] = mapped_column(ForeignKey("offers.id"), index=True)
+    offer_title: Mapped[str] = mapped_column(String(200))
+    service_type: Mapped[str] = mapped_column(String(48))
+    amount: Mapped[int] = mapped_column(Integer)
+    currency: Mapped[str] = mapped_column(String(3))
+    valid_until: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    status: Mapped[str] = mapped_column(String(16), default="sent", index=True)  # sent | accepted | declined | expired | cancelled | booked
+    note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    decided_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    reservation_id: Mapped[Optional[str]] = mapped_column(ForeignKey("reservations.id"), nullable=True, index=True)
+
+
+class AgencyCommissionEntry(OperationalMixin, Base):
+    """One commission posting per confirmed reservation sold on an agency channel. Posted and moved only by finance."""
+    __tablename__ = "agency_commission_entries"
+    agency_id: Mapped[str] = mapped_column(ForeignKey("agencies.id"), index=True)
+    reservation_id: Mapped[str] = mapped_column(ForeignKey("reservations.id"), index=True)
+    base_amount: Mapped[int] = mapped_column(Integer)
+    commission_bps: Mapped[int] = mapped_column(Integer)
+    amount: Mapped[int] = mapped_column(Integer)
+    currency: Mapped[str] = mapped_column(String(3))
+    status: Mapped[str] = mapped_column(String(16), default="accrued", index=True)  # accrued | approved | settled | reversed
+    posted_by_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    external_reference: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
+    reversal_reason: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    settled_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    __table_args__ = (UniqueConstraint("tenant_id", "reservation_id", name="uq_agency_commission_reservation"),)
+
+
+class SupplierCatalogHotel(OperationalMixin, Base):
+    """Which master-catalog hotel a supplier is responsible for (assigned by tenant administration)."""
+    __tablename__ = "supplier_catalog_hotels"
+    supplier_id: Mapped[str] = mapped_column(ForeignKey("suppliers.id"), index=True)
+    hotel_id: Mapped[str] = mapped_column(String(40), index=True)
+    __table_args__ = (UniqueConstraint("tenant_id", "supplier_id", "hotel_id", name="uq_supplier_catalog_hotel"),)
+
+
 class AgencyMembership(OperationalMixin, Base):
     """Which user may see which agency. Without a row an agency user sees nothing (object-level isolation inside a tenant)."""
     __tablename__ = "agency_memberships"
@@ -199,6 +242,7 @@ class Agency(OperationalMixin, Base):
     __tablename__ = "agencies"
     # Attribution: a reservation belongs to an agency only through the sales channel it was sold on.
     sales_channel_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True, index=True)
+    credit_account_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
     display_name: Mapped[str] = mapped_column(String(180))
     status: Mapped[str] = mapped_column(String(32), default="sample")
     supplier_id: Mapped[Optional[str]] = mapped_column(ForeignKey("suppliers.id"), nullable=True)

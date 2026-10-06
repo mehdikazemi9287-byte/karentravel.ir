@@ -167,8 +167,10 @@ def catalog_admin_router(get_db, guard: Callable, audit: Callable, history: Call
             return None if h is None else {"id": h.id, "name": h.name_fa or h.name_en or h.name_local, "name_en": h.name_en, "source": h.source, "status": h.status, "address": h.address}
         data.update({"duplicate_of": brief(row.duplicate_of) if row.duplicate_of else None, "match_basis": row.match_basis,
                      "matches": [{"id": m.id, "basis": m.basis, "status": m.status, "rule_based": m.decided_by is None and m.status != "proposed", "duplicate": brief(m.hotel_id), "canonical": brief(m.candidate_id)} for m in matches],
-                     "provider_mappings": [{"id": pm.id, "provider": pm.provider, "provider_hotel_id": pm.provider_hotel_id, "status": pm.status, "verified_at": pm.verified_at.isoformat() if pm.verified_at else None}
-                                           for pm in db.scalars(select(CatalogHotelProviderMapping).where(CatalogHotelProviderMapping.hotel_id == row.id))]})
+                     "provider_mappings": [{"id": pm.id, "provider": pm.provider, "provider_hotel_id": pm.provider_hotel_id, "status": pm.status, "verified_at": pm.verified_at.isoformat() if pm.verified_at else None,
+                                            "rooms": [{"id": r.id, "room_type_id": r.room_type_id, "provider_room_id": r.provider_room_id} for r in db.scalars(select(CatalogHotelRoomMapping).where(CatalogHotelRoomMapping.mapping_id == pm.id))],
+                                            "rate_plans": [{"id": r.id, "provider_rate_plan_id": r.provider_rate_plan_id, "board": r.board, "refundable": r.refundable} for r in db.scalars(select(CatalogHotelRatePlanMapping).where(CatalogHotelRatePlanMapping.mapping_id == pm.id))]}
+                                           for pm in db.scalars(select(CatalogHotelProviderMapping).where(CatalogHotelProviderMapping.hotel_id == row.id).order_by(CatalogHotelProviderMapping.id))]})
         data.update({"status": row.status, "children_policy": row.children_policy, "pets_policy": row.pets_policy, "smoking_policy": row.smoking_policy,
                      "amenity_keys": json.loads(row.amenities_json or "[]"), "updated_at": row.updated_at.isoformat() if row.updated_at else None, "admin_owned": row.updated_by is not None,
                      "images": [hotel_image(i) for i in db.scalars(select(CatalogHotelImage).where(CatalogHotelImage.hotel_id == row.id).order_by(CatalogHotelImage.sort_order))],

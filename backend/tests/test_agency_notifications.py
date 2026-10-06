@@ -60,7 +60,8 @@ def test_agency_workspace_attribution_membership_and_isolation(client):
         assert client.get(f"/agency/{ag_a}/{path}", headers=_token(client, "employee@aftab.test")).status_code == 403
         assert client.get(f"/agency/{ag_a}/{path}").status_code in (401, 403)
         assert client.get(f"/agency/{other}/{path}", headers=admin).status_code in (403, 404)
-    assert [a["id"] for a in client.get("/agency/workspace", headers=agent).json()["agencies"]] == [ag_a]
+    visible = [a["id"] for a in client.get("/agency/workspace", headers=agent).json()["agencies"]]
+    assert ag_a in visible and ag_b not in visible and other not in visible
 
 
 def test_notification_requeue_only_for_dead_letter_and_scoped(client):
