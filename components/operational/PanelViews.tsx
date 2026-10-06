@@ -202,7 +202,7 @@ export function NotificationDeliveries() {
 }
 
 /* ------------------------------------------------------------------ Reference tours */
-type TourRow = {id: string; title: string; status: string; departures_recorded: number; latest_departure: string | null; duration_nights: number | null; duration_days: number | null};
+type TourRow = {id: string; title: string; status: string; departures_recorded: number; latest_departure: string | null; duration_nights: number | null; duration_days: number | null; missing?: string[]};
 type Tour = TourRow & {description: string | null; destination_place_id: string | null; origin_place_id: string | null; transport_mode: string | null; board: string | null; guide_included: boolean | null; transfer_included: boolean | null;
   documents_required: string | null; cancellation_policy_text: string | null; itinerary: {day_no: number; title: string; description: string | null; place_id: string | null}[]; hotels: {hotel_id: string; nights: number | null}[];
   departures: {starts_jalali: string | null; ends_jalali: string | null; starts_on: string | null}[]; options: {transport: Record<string, string>; board: Record<string, string>}; sellable: boolean};
@@ -234,7 +234,7 @@ export function TourReference() {
       {!id && <><form className="my-3 flex flex-wrap items-end gap-2" onSubmit={e => {e.preventDefault(); setApplied(q);}}><label className="grow text-sm">جست‌وجو<input className={field} value={q} onChange={e => setQ(e.target.value)}/></label><button className="button primary">اعمال</button></form>
         {list.state.kind === 'loading' ? <Loading/> : list.state.data.items.length === 0 ? <Empty>تور مرجعی با این شرایط ثبت نشده است.</Empty> : <><p className="text-sm text-slate-500">{fa(list.state.data.total)} تور</p>
           <ul className="my-3 grid gap-2">{list.state.data.items.map(t => <li key={t.id}><button type="button" className="grid w-full gap-1 rounded-xl border border-slate-200 bg-white p-3 text-right text-sm sm:grid-cols-[2fr_1fr_1fr]" onClick={() => {setId(t.id); setNotice(null);}}>
-            <strong>{t.title}</strong><span className="text-slate-500">{t.duration_nights !== null ? `${fa(t.duration_nights)} شب` : 'مدت نامشخص'} · {fa(t.departures_recorded)} تاریخ ثبت‌شده</span><span className="text-slate-500">{t.status === 'published' ? 'منتشرشده' : t.status === 'hidden' ? 'پنهان' : 'پیش‌نویس'} · غیرقابل‌فروش</span></button></li>)}</ul></>}</>}
+            <strong>{t.title}</strong><span className="text-slate-500">{t.duration_nights !== null ? `${fa(t.duration_nights)} شب` : 'مدت نامشخص'} · {fa(t.departures_recorded)} تاریخ ثبت‌شده</span><span className="text-slate-500">{t.status === 'published' ? 'منتشرشده' : t.status === 'hidden' ? 'پنهان' : 'پیش‌نویس'} · غیرقابل‌فروش{t.missing ? t.missing.length ? ` · خالی: ${t.missing.join('، ')}` : ' · محتوای کامل' : ''}</span></button></li>)}</ul></>}</>}
       {id && (detail.state.kind === 'loading' || !tour ? <Loading/> : detail.state.kind === 'error' ? <Failed status={detail.state.status}/> : <form className="my-3 grid gap-3" onSubmit={save} aria-label="ویرایش تور مرجع">
         <div className="flex flex-wrap justify-between gap-2"><button type="button" className="button secondary" onClick={() => {setId(''); setTour(null); setNotice(null);}}>بازگشت به فهرست</button><button className="button primary" disabled={busy}>{busy ? 'در حال ذخیره…' : 'ذخیره'}</button></div>
         <Notice n={notice}/>

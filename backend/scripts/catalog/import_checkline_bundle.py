@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import html
 import json
+import math
 import re
 import sys
 from datetime import datetime, timezone
@@ -30,6 +31,7 @@ from app.catalog import (AMENITIES, CatalogContent, CatalogHotel, CatalogHotelIm
                          content_is_complete, normalize_text)
 from app.database import SessionLocal  # noqa: E402
 from scripts.catalog.import_checkline import ISO, LICENSE, RETRIEVED, SOURCE, _match, clock, squash  # noqa: E402
+UNKNOWN_COUNTRY = "ZZ"  # ISO 3166 user-assigned: the source names no country; such a hotel is a draft until a reviewer sets it
 
 MEDIA_BASE = "https://checkline.travel/wp-content/uploads/"
 IMAGE_LICENSE = "CheckLine media library; rights unverified"
@@ -68,6 +70,35 @@ def map_link(embed) -> str | None:
     return f"https://www.google.com/maps/search/?api=1&query={m[1]}" if m else None
 
 
+def embed_position(embed) -> tuple[float, float] | None:
+    """Centre of a Google Maps embed (pb=…!2d<lng>!3d<lat>…), as the source editor placed it."""
+    m = re.search(r"!2d(-?\d+(?:\.\d+)?)!3d(-?\d+(?:\.\d+)?)", embed) if isinstance(embed, str) else None
+    if not m: return None
+    lat, lng = float(m[2]), float(m[1])
+    return (lat, lng) if abs(lat) <= 90 and abs(lng) <= 180 and (lat, lng) != (0.0, 0.0) else None
+
+
+def km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
+    a = math.sin(math.radians(lat2 - lat1) / 2) ** 2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(math.radians(lng2 - lng1) / 2) ** 2
+    return 12742 * math.asin(math.sqrt(a))
+
+
+def hotel_position(meta: dict, city, country_points=()) -> tuple[float, float, str] | None | bool:
+    """A hotel position is taken only when the source value lies within 80 km of the hotel's own city (or, when the city is not
+    known, of a city of the hotel's country): that rules out the swapped latitude/longitude fields and stray map centres found
+    in the source. False = the source has a value that could not be verified."""
+    found = []
+    try:
+        a, b = float(first(meta.get("latitude"))), float(first(meta.get("longitude"))); found += [(a, b, "source_fields"), (b, a, "source_fields_swapped")]
+    except (TypeError, ValueError): pass
+    pb = embed_position(first(meta.get("map-embed")))
+    if pb: found.append((*pb, "source_map_embed"))
+    if not found: return None
+    if city is None or city.latitude is None or city.longitude is None:
+        return next(((round(lat, 6), round(lng, 6), basis + "+country") for lat, lng, basis in found if abs(lat) <= 90 and abs(lng) <= 180 and any(km(lat, lng, a, b) <= 80 for a, b in country_points)), False)
+    return next(((round(lat, 6), round(lng, 6), basis) for lat, lng, basis in found if abs(lat) <= 90 and abs(lng) <= 180 and km(lat, lng, city.latitude, city.longitude) <= 80), False)
+
+
 def text_of(markup) -> str | None:
     if not markup or not isinstance(markup, str): return None
     t = re.sub(r"(?is)<(script|style|iframe)[^>]*>.*?</\1>", " ", markup)
@@ -99,8 +130,10 @@ def main(bundle_dir: str, dry_run: bool, publish: bool = True) -> dict:
     full_meta = {str(x["id"]): (x["meta"] if isinstance(x["meta"], dict) else {}) for x in controls["catalog_meta"]}
     term_names = {x["term_taxonomy_id"]: (x["taxonomy"], x["name"]) for x in deep["taxonomy"]}
     categories: dict[str, list[str]] = {}
+    region_terms: dict[str, list[str]] = {}  # the source's own "region" taxonomy: country and city names attached to a record
     for x in controls["catalog_taxonomy"]:
         tax, name = term_names.get(x["term_taxonomy_id"], (None, None))
+        if tax == "region" and name: region_terms.setdefault(str(x["post_id"]), []).append(name)
         if tax in ("location-category", "tour-category", "city-category", "country-category", "region", "visa-category", "attraction-category") and name:
             categories.setdefault(str(x["post_id"]), []).append(name)
     items: dict[str, list[dict]] = {}
@@ -117,7 +150,7 @@ def main(bundle_dir: str, dry_run: bool, publish: bool = True) -> dict:
             if rec is None or (rec.get("sha256") or rec["relative_file"]) in seen: continue
             seen.add(rec.get("sha256") or rec["relative_file"]); out.append(MEDIA_BASE + quote(rec["relative_file"]))
         return out
-    report = {"places": {"countries_added": 0, "regions_added": 0, "cities_added": 0, "enriched": 0}, "hotels": {"input": 0, "inserted": 0, "updated": 0, "unchanged": 0, "admin_filled": 0, "published": 0, "kept_draft": 0, "quarantined": {}, "city_unresolved": 0,
+    report = {"places": {"countries_added": 0, "regions_added": 0, "cities_added": 0, "enriched": 0, "cities_ambiguous": 0}, "hotels": {"input": 0, "inserted": 0, "updated": 0, "unchanged": 0, "admin_filled": 0, "published": 0, "kept_draft": 0, "quarantined": {}, "city_unresolved": 0, "needs_review": {}, "with_coordinates": 0, "coordinates_unverified": 0,
                                                                                                                  "with_description": 0, "room_types": 0, "images": 0, "bad_image_refs": 0},
               "tours": {"input": 0, "inserted": 0, "updated": 0, "admin_skipped": 0, "hotel_links": 0, "published": 0}, "attractions": 0, "content": 0, "legacy_routes": 0, "skipped_commercial_fields": ["discount-amount", "start-price", "hotels-list prices", "holding-dates capacity", "price-percent"]}
     now = datetime.now(timezone.utc)
@@ -137,7 +170,7 @@ def main(bundle_dir: str, dry_run: bool, publish: bool = True) -> dict:
             """Fill only what is empty on records of other sources; CheckLine-owned records follow the bundle."""
             if place.id in enriched_ids: return
             enriched_ids.add(place.id)
-            own = place.source == SOURCE or place.source == "iso3166-1"
+            own = (place.source == SOURCE or place.source == "iso3166-1") and place.updated_by is None
             body, mp = text_of(x.get("public_body")), first(meta.get("map"))
             before = (place.description, place.latitude, place.name_en, place.details_json, place.image_url)
             if body and (own or not place.description): place.description = body
@@ -146,6 +179,8 @@ def main(bundle_dir: str, dry_run: bool, publish: bool = True) -> dict:
                     lat, lng = float(mp.get("lat")), float(mp.get("lng"))
                     if -90 <= lat <= 90 and -180 <= lng <= 180 and (lat, lng) != (0.0, 0.0): place.latitude, place.longitude = lat, lng
                 except (TypeError, ValueError): pass
+            centre = embed_position(first(meta.get("map-embed")))
+            if centre and place.latitude is None: place.latitude, place.longitude = centre
             english = first(meta.get("title-en"))
             if english and not place.name_en: place.name_en = str(english).strip()[:160]
             img = image_url(first(meta.get("top-image"))) or next((image_url(g) for g in ids_of(meta.get("gallery")) if image_url(g)), None)
@@ -187,11 +222,16 @@ def main(bundle_dir: str, dry_run: bool, publish: bool = True) -> dict:
             geo_place[str(x["id"])] = place
             enrich(place, x, meta, {"population_text": first(meta.get("population")), "time_zone": first(meta.get("time_zone")), "guide": text_of(first(meta.get("guide")))})
         # ---- cities
+        city_country: dict[str, set[str]] = {}
+        for h in items.get("location", []):
+            hm = meta_of(h); hc = geo_place.get(str(first(hm.get("country")) or ""))
+            if hc is not None and hc.kind == "country" and first(hm.get("city")): city_country.setdefault(str(first(hm.get("city"))), set()).add(hc.country_code)
         for x in items.get("city", []):
             meta = meta_of(x); country = geo_place.get(str(first(meta.get("country")) or ""))
-            if country is None or x["status"] != "publish" or not (x.get("title") or "").strip(): continue
+            if country is None and len(city_country.get(str(x["id"]), ())) == 1: country = countries.get(next(iter(city_country[str(x["id"])])))
+            if country is None or x["status"] not in ("publish", "pending") or not (x.get("title") or "").strip(): continue  # pending = named by the source, awaiting its review
             found = {p.id: p for name in (x["title"], first(meta.get("title-en"))) for p in city_index.get((country.country_code, squash(name)), [])}
-            if len(found) > 1: continue  # ambiguous: left alone
+            if len(found) > 1: report["places"]["cities_ambiguous"] += 1; continue  # ambiguous: left alone
             place = next(iter(found.values())) if found else None
             if place is None:
                 place = new_place(f"cl-city-{x['id']}", "city", country.id, country.country_code, x, meta)
@@ -204,6 +244,13 @@ def main(bundle_dir: str, dry_run: bool, publish: bool = True) -> dict:
         if not dry_run: db.flush()
 
         # ---- hotels
+        country_by_name = {squash(p.name_fa): p for p in countries.values() if p.name_fa}
+        bundle_cities: dict[str, list[CatalogPlace]] = {}
+        for p in {id(v): v for v in geo_place.values()}.values():
+            if p.kind == "city": bundle_cities.setdefault(p.country_code, []).append(p)
+        country_points: dict[str, list[tuple[float, float]]] = {}
+        for p in places.values():
+            if p.kind == "city" and p.latitude is not None and p.longitude is not None: country_points.setdefault(p.country_code, []).append((p.latitude, p.longitude))
         touched: list[str] = []
         wanted: dict[str, bool] = {}
         for x in items.get("location", []):
@@ -211,12 +258,31 @@ def main(bundle_dir: str, dry_run: bool, publish: bool = True) -> dict:
             legacy, meta, title = str(x["id"]), meta_of(x), (x.get("title") or "").strip()
             q = lambda reason: report["hotels"]["quarantined"].__setitem__(reason, report["hotels"]["quarantined"].get(reason, 0) + 1)  # noqa: E731
             if not title: q("no_title"); continue
-            if legacy in conflicts: q("country_city_conflict"); continue
             country = geo_place.get(str(first(meta.get("country")) or ""))
-            if country is None or country.kind != "country": q("country_unresolved"); continue
+            if country is not None and country.kind != "country": country = None
             city = geo_place.get(str(first(meta.get("city")) or ""))
-            if city is not None and (city.kind != "city" or city.country_code != country.country_code): city = None
+            if city is not None and city.kind != "city": city = None
+            review, terms, place_basis = None, region_terms.get(legacy, []), None
+            if country is None and city is None:  # both references are dangling: the record's own region terms may still name the country
+                named = {country_by_name[squash(n)].country_code for n in terms if squash(n) in country_by_name}
+                if len(named) == 1: country, place_basis = countries[named.pop()], "source_taxonomy"
+            if city is None and country is not None:
+                named_cities = {p.id: p for n in terms for p in city_index.get((country.country_code, squash(n)), [])}
+                if len(named_cities) == 1: city, place_basis = next(iter(named_cities.values())), "source_taxonomy"
+            if city is None and country is not None:  # the hotel's own title, address or district may name one of the bundle's cities of that country
+                text = " " + re.sub(r"[^\w\u0600-\u06FF]+", " ", " ".join(str(v) for v in (title, first(meta.get("address")), first(meta.get("district"))) if v)).lower() + " "
+                mentioned = {p.id: p for p in bundle_cities.get(country.country_code, []) for n in (p.name_fa, p.name_en) if n and len(n) >= 4 and f" {n.lower()} " in text}
+                if len(mentioned) == 1: city, place_basis = next(iter(mentioned.values())), "source_text"
+            if city is not None and (country is None or city.country_code != country.country_code):
+                if country is not None: review = "country_city_conflict"  # the source names another country than the one its city belongs to
+                country = countries.get(city.country_code)
+            if country is None: review = "country_unresolved"
+            if review: report["hotels"]["needs_review"][review] = report["hotels"]["needs_review"].get(review, 0) + 1
+            code = country.country_code if country else UNKNOWN_COUNTRY
             if city is None: report["hotels"]["city_unresolved"] += 1
+            position = hotel_position(meta, city, country_points.get(code, ()))
+            if position: report["hotels"]["with_coordinates"] += 1
+            elif position is False: report["hotels"]["coordinates_unverified"] += 1
             english = re.search(r"\(([A-Za-z0-9][^()]*)\)\s*$", title); latin = not re.search(r"[؀-ۿ]", title)
             name_fa = None if latin else re.sub(r"\s*\([A-Za-z0-9][^()]*\)\s*$", "", title).strip()[:200]
             name_en = (title if latin else english[1].strip() if english else None)
@@ -232,15 +298,15 @@ def main(bundle_dir: str, dry_run: bool, publish: bool = True) -> dict:
             details = {k: v for k, v in {"legacy_id": x["id"], "legacy_slug": unquote(x.get("slug") or ""), "source_status": x["status"], "categories": categories.get(legacy), "district": first(meta.get("district")),
                                          "room_count": first(meta.get("room-count")), "bed_count": first(meta.get("bed-count")), "built_year_jalali": first(meta.get("built-year")), "floors": first(meta.get("step-count")),
                                          "hotel_view": (first(meta.get("hotel-view")) or "").strip() or None, "board_plans": [BOARD_FA[b] for b in boards], "review": text_of(first(meta.get("review"))),
-                                         "map_link": map_link(first(meta.get("map-embed"))), "traffic": text_of(first(meta.get("traffic-situation"))),
+                                         "map_link": map_link(first(meta.get("map-embed"))), "traffic": text_of(first(meta.get("traffic-situation"))), "review_note": review, "coordinates_basis": position[2] if position else None, "place_basis": place_basis,
                                          "nearby": [{"place": r["hdtbp-place"], "distance": r["hdtbp-distance"], "unit": r["hdtbp-unit"]} for r in rows_of(meta, "hotel-distance-to-bold-points", ("hdtbp-place", "hdtbp-distance", "hdtbp-unit")) if r["hdtbp-place"]],
                                          "restaurants": [{"name": r["cafe-name"], "capacity": r["cafe-capacity"], "hours": r["cafe-hours"]} for r in restaurants if r["cafe-name"]]}.items() if v not in EMPTY}
-            values = {"slug": f"checkline-{legacy}", "country_code": country.country_code, "region_id": city.parent_id if city and city.parent_id != country.id else None, "city_id": city.id if city else None, "name_fa": name_fa,
+            values = {"slug": f"checkline-{legacy}", "country_code": code, "region_id": city.parent_id if city and country and city.parent_id != country.id else None, "latitude": position[0] if position else None, "longitude": position[1] if position else None, "city_id": city.id if city else None, "name_fa": name_fa,
                       "name_en": name_en[:200] if name_en else None, "hotel_type": "guest_house" if first(meta.get("stay-type")) == "ecotourism" else "hotel", "stars": stars, "stars_status": "source_reported" if stars else None,
                       "address": (first(meta.get("address")) or "").strip()[:400] or None, "checkin_time": clock(first(meta.get("check-in-time"))), "checkout_time": clock(first(meta.get("check-out-time"))), "description": description,
                       "rules_text": rules, "phone": str(phone).strip()[:80] if phone else None, "website": str(site).strip()[:300] if site and str(site).startswith("https://") else None, "amenities_json": json.dumps(amenity_keys),
                       "details_json": json.dumps({"checkline": details}, ensure_ascii=False, sort_keys=True),
-                      "search_text": normalize_text(" ".join(filter(None, [name_fa, name_en, city.search_text if city else None, country.name_fa, first(meta.get("address")), first(meta.get("district"))])))[:2000],
+                      "search_text": normalize_text(" ".join(filter(None, [name_fa, name_en, city.search_text if city else None, country.name_fa if country else None, first(meta.get("address")), first(meta.get("district"))])))[:2000],
                       "source": SOURCE, "source_ref": f"hotel/{legacy}", "source_license": LICENSE, "retrieved_on": RETRIEVED}
             image_ids = list(dict.fromkeys(ids_of(meta.get("gallery"))))
             images = gallery_urls(image_ids)
@@ -267,7 +333,7 @@ def main(bundle_dir: str, dry_run: bool, publish: bool = True) -> dict:
             row.image_url, row.image_credit = (images[0], IMAGE_LICENSE) if images else (None, None)
             row.quality = sum(bool(v) for v in (name_fa, values["address"], description, images, rooms, amenity_keys, values["checkin_time"], stars))
             row.content_complete = content_is_complete(row, len(images), len(rooms))
-            wanted[row.id] = x["status"] == "publish"  # decided after duplicate matching
+            wanted[row.id] = x["status"] == "publish" and review is None  # decided after duplicate matching
             if not dry_run:
                 db.flush()
                 db.execute(delete(CatalogHotelImage).where(CatalogHotelImage.hotel_id == row.id)); db.execute(delete(CatalogHotelRoomType).where(CatalogHotelRoomType.hotel_id == row.id))
@@ -361,7 +427,7 @@ def main(bundle_dir: str, dry_run: bool, publish: bool = True) -> dict:
             cid = f"cl-visa-{x['id']}"; row = db.get(CatalogContent, cid)
             vals = {"kind": "visa", "title": x["title"].strip()[:200], "slug": unquote(x.get("slug") or "")[:200], "body": body, "status": "published", "source": SOURCE, "source_ref": f"visa/{x['id']}", "source_license": LICENSE, "retrieved_on": RETRIEVED}
             if row is None and not dry_run: db.add(CatalogContent(id=cid, **vals))
-            elif row is not None:
+            elif row is not None and row.updated_by is None:
                 for k, v in vals.items(): setattr(row, k, v)
             report["content"] += 1
         for code, place in countries.items():
@@ -370,10 +436,10 @@ def main(bundle_dir: str, dry_run: bool, publish: bool = True) -> dict:
             if not note: continue
             vals = {"kind": "visa_country", "title": f"ویزای {place.name_fa}", "slug": code.lower(), "body": note, "status": "published", "source": SOURCE, "source_ref": f"country/{code}", "source_license": LICENSE, "retrieved_on": RETRIEVED}
             if row is None and not dry_run: db.add(CatalogContent(id=cid, **vals))
-            elif row is not None:
+            elif row is not None and row.updated_by is None:
                 for k2, v2 in vals.items(): setattr(row, k2, v2)
             report["content"] += 1
-        STATIC = {"ثبت شکایت": "/support", "مشاوره گردشگری آنلاین": "/support", "چرا ما را انتخاب می کنید؟": "/about", "جاذبه های گردشگری": "/attractions", "صنایع دستی": "/handicrafts", "رزرو هتل خارجی": "/hotels",
+        STATIC = {"ثبت شکایت": "/support", "مشاوره گردشگری آنلاین": "/support", "چرا ما را انتخاب می کنید؟": "/contact", "جاذبه های گردشگری": "/attractions", "صنایع دستی": "/handicrafts", "رزرو هتل خارجی": "/hotels",
                   "راهنمای خرید هتل": "/hotels", "کشور": "/destinations", "تفریحات کیش": "/attractions", "تورهای ویژه BSI": "/tours/search", "bsi tour": "/tours/search", "بلاگ": "/travel-guides",
                   "اقامت و مهاجرت": "/visa", "گردشگری سلامت چیست؟": "/services", "اپلیکیشن چک‌لاین تراول": "/"}
         menu_targets = {str(mi.get("_menu_item_object_id")) for mi in deep["menu_items"] if mi.get("_menu_item_object") == "page"}
@@ -381,7 +447,7 @@ def main(bundle_dir: str, dry_run: bool, publish: bool = True) -> dict:
             if page["post_status"] != "publish": continue
             title, slug = (page["post_title"] or "").strip(), unquote(page.get("post_name") or "")
             norm = squash(title)
-            target = "/" if slug in ("صفحه-اصلی",) or "صفحه اصلی" in title else "/contact" if slug == "contact" else "/terms" if slug == "site-rules" else "/travel-guides" if slug in ("blog",) or "مجله" in title else "/about" if slug in ("about", "abouttazhban") else None
+            target = "/" if slug in ("صفحه-اصلی",) or "صفحه اصلی" in title else "/contact" if slug == "contact" else "/terms" if slug == "site-rules" else "/travel-guides" if slug in ("blog",) or "مجله" in title else "/contact" if slug in ("about", "abouttazhban") else None
             if target is None and norm.startswith(squash("هتل های")):
                 key = norm[len(squash("هتل های")):]
                 c = next((p for p in places.values() if p.kind == "city" and squash(p.name_fa) == key), None) or next((p for p in places.values() if p.kind == "country" and squash(p.name_fa) == key), None)

@@ -75,6 +75,8 @@ class CatalogPlace(SourceMixin, Base):
     hotel_count: Mapped[int] = mapped_column(Integer, default=0)
     search_text: Mapped[str] = mapped_column(Text, default="")
     details_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # source facts without a dedicated column, keyed by source
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    updated_by: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # set => admin-owned; bulk importers never overwrite
 
 
 class CatalogHotel(SourceMixin, Base):
@@ -164,6 +166,8 @@ class CatalogAirline(SourceMixin, Base):
     logo_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     logo_credit: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
     search_text: Mapped[str] = mapped_column(Text, default="")
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    updated_by: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # set => admin-owned; bulk importers never overwrite
 
 
 class CatalogAirport(SourceMixin, Base):
@@ -182,6 +186,8 @@ class CatalogAirport(SourceMixin, Base):
     airport_type: Mapped[Optional[str]] = mapped_column(String(24), nullable=True)
     scheduled_service: Mapped[Optional[bool]] = mapped_column(nullable=True)
     search_text: Mapped[str] = mapped_column(Text, default="")
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    updated_by: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # set => admin-owned; bulk importers never overwrite
 
 
 class CatalogRailOperator(SourceMixin, Base):
@@ -231,6 +237,8 @@ class CatalogVenue(SourceMixin, Base):
     quality: Mapped[int] = mapped_column(Integer, default=0)
     search_text: Mapped[str] = mapped_column(Text, default="")
     __table_args__ = (Index("ix_catalog_venues_kind_city", "kind", "city_id"),)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    updated_by: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # set => admin-owned; bulk importers never overwrite
 
 
 class CatalogHotelMatch(Base):
@@ -307,6 +315,8 @@ class CatalogContent(SourceMixin, Base):
     slug: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
     body: Mapped[str] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(16), default="published", index=True)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    updated_by: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # set => admin-owned; bulk importers never overwrite
 
 
 class CatalogLegacyRoute(SourceMixin, Base):

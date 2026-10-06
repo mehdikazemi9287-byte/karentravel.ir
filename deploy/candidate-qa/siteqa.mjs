@@ -83,6 +83,9 @@ for (const [vp, size] of [['desktop', {width: 1366, height: 900}], ['mobile', {w
   await page.goto(WEB + encodeURI(legacy[0]), {waitUntil: 'networkidle'}); await page.waitForURL(u => u.pathname.startsWith('/hotels'), {timeout: 12000}).catch(() => {});
   check('old-site URL is redirected to its KarenSeir page', decodeURIComponent(page.url()).includes(legacy[1].split('?')[0]) && /city=/.test(page.url()), decodeURIComponent(page.url()).replace(WEB, ''));
   for (const [title, target] of [['اقامت و مهاجرت', '/visa'], ['گردشگری سلامت چیست؟', '/services']]) {const lp = psql(`select legacy_path from catalog_legacy_routes where title='${title}'`); await page.goto(WEB + lp, {waitUntil: 'networkidle'}); await page.waitForURL(u => u.pathname === target, {timeout: 12000}).catch(() => {}); check(`decided old page «${title}» → ${target}`, new URL(page.url()).pathname === target, decodeURIComponent(lp));}
+  const targets = execSync(`docker exec -i ks-catalog-scratch-pg psql -U postgres -d ks_cand37 -At`, {input: "select distinct target_path from catalog_legacy_routes"}).toString().trim().split('\n'); const badTargets = [];
+  for (const tp of targets) {const st = (await ctx.request.get(WEB + encodeURI(tp), {maxRedirects: 3})).status(); if (st !== 200) badTargets.push(`${tp} ${st}`);}
+  check(`every old-page target is a live page (${targets.length})`, badTargets.length === 0, badTargets.join(' | '));
   const st404 = (await ctx.request.get(WEB + '/no-such-old-page-xyz/')).status(); check('unknown URL answers HTTP 404', st404 === 404, st404);
   await page.goto(WEB + '/no-such-old-page-xyz/', {waitUntil: 'networkidle'}); check('unknown URL stays a normal 404', /این صفحه پیدا نشد/.test(await page.locator('body').innerText()));
   // ---------- dead links reachable from these pages

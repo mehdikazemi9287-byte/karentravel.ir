@@ -2,23 +2,23 @@
 
 Files: 1891 — every file has a status. PRESERVED_AS_REFERENCE 1865, MAPPED 14, IMPLEMENTED 12.
 Usage by files: 1.4% of files (26 of 1891) carry content that is implemented or mapped; by bytes 19.1%. The remaining files are the old site code (1,758), evidence and audit documents.
-Usage by content records: 15,726 of 23,387 = 67.2% across all content datasets; 15,726 of 21,372 = 73.6% within datasets that are usable at all (excluding BLOCKED and INVALID ones).
+Usage by content records: 16,057 of 23,508 = 68.3% across all content datasets; 16,057 of 21,493 = 74.7% within datasets that are usable at all (excluding BLOCKED and INVALID ones).
 
 ## Datasets
 | Dataset | Records | Implemented | Status | Note |
 |---|---|---|---|---|
-| Hotels (location) | 800 | 777 | IMPLEMENTED | 23 held back: 13 without a resolvable country and 9 country/city conflicts (BLOCKED), 1 without a title (INVALID) |
-| Hotel descriptions | 621 | 605 | IMPLEMENTED | HTML reduced to text |
-| Hotel gallery references | 7,277 | 6,254 | IMPLEMENTED | every existing, distinct image of an imported hotel is attached; broken references (296), byte-identical copies and galleries of held-back or non-hotel items are not |
-| Hotel room rows | 447 | 429 | IMPLEMENTED | hidden rooms and rooms of held-back hotels excluded |
-| Hotel facility groups 1–3 (numeric codes) | 586 | 0 | BLOCKED | the code→label lists are site options whose values are not in the bundle; raw codes stay in the bundle, nothing is guessed |
-| Hotel coordinates | 0 | 0 | BLOCKED | the source has no latitude/longitude for hotels (75 have a map embed without a text query) |
+| Hotels (location) | 800 | 799 | IMPLEMENTED | 1 without a title is INVALID; 12 are drafts with a review note (country not named by the source, or a country that contradicts the city); 584 published on the candidate |
+| Hotel descriptions | 621 | 614 | IMPLEMENTED | HTML reduced to text |
+| Hotel gallery references | 7,277 | 6,340 | IMPLEMENTED | every existing, distinct image of an imported hotel is attached; broken references (296), byte-identical copies and galleries of held-back or non-hotel items are not |
+| Hotel room rows | 447 | 433 | IMPLEMENTED | hidden rooms and rooms of held-back hotels excluded |
+| Hotel facility groups 1–3 (numeric codes) | 586 | 0 | BLOCKED | labels are rows of the site options first-/secound-/third-group-facilities; the bundle lists those option names with byte counts only, never their values, and the theme code reads them at run time; nothing is guessed |
+| Hotel coordinates (latitude/longitude fields, map embeds) | 101 | 97 | IMPLEMENTED | taken only when within 80 km of the hotel's city (or a city of its country): swapped fields corrected, map centres far from the city refused and left empty |
 | Countries | 52 | 50 | IMPLEMENTED | 52 posts are 50 distinct countries (two duplicated in the source) |
 | Provinces (state) | 31 | 31 | IMPLEMENTED | matched to existing provinces or added |
-| Cities | 109 | 98 | IMPLEMENTED | published cities; drafts/pending, duplicates and ambiguous names are not separate places |
+| Cities | 109 | 103 | IMPLEMENTED | published and pending cities; several posts of one city are one place; 2 drafts (one without a country, one a country filed as a city) are INVALID |
 | Tours | 83 | 76 | IMPLEMENTED | 4 trashed and untitled items are INVALID; reference programmes only |
 | Tour dates | 165 | 165 | IMPLEMENTED | history only; 3 invalid Jalali dates kept as text |
-| Tour ↔ hotel references | 202 | 189 | IMPLEMENTED | references to hotels outside the imported set are dropped; repeated hotels count once per tour |
+| Tour ↔ hotel references | 202 | 193 | IMPLEMENTED | references to hotels outside the imported set are dropped; repeated hotels count once per tour |
 | Prices, discounts, capacities | 1,320 | 0 | INVALID | historical commercial values (past tours, old discounts): not provable as current, never published; price stays null |
 | Visa articles | 5 | 4 | IMPLEMENTED | 1 draft without text is INVALID |
 | Country visa notes | 13 | 11 | IMPLEMENTED | notes of duplicated country posts collapse into one |
@@ -37,7 +37,8 @@ Usage by content records: 15,726 of 23,387 = 67.2% across all content datasets; 
 | Taxonomy: post_tag | 31 | 0 | BLOCKED | blog tags; no post text |
 | Taxonomy: term_translations | 27 | 0 | PRESERVED_AS_REFERENCE | translation links of the multilingual plugin |
 | Taxonomy: post_translations | 8 | 0 | PRESERVED_AS_REFERENCE | translation links |
-| Media library records | 11,152 | 6,638 | IMPLEMENTED | files referenced by imported hotels, rooms, places, tours and attractions; the rest are unreferenced, missing (454) or duplicate copies and stay PRESERVED in the bundle |
+| Media library records | 11,152 | 6,724 | IMPLEMENTED | files referenced by imported hotels, rooms, places, tours and attractions; the rest are unreferenced, missing (454) or duplicate copies and stay PRESERVED in the bundle |
+| Default airport list of the booking plugin | 20 | 18 | MAPPED | each code resolved to a catalogue airport; the rest are city codes or airports of countries the catalogue does not cover |
 | Blog posts | 41 | 0 | BLOCKED | only counted in the bundle; no titles or text were exported |
 | Supplier API operations (Citysoft) | 32 | 26 | MAPPED | 26 distinct operations mapped to ports; request/response handling built for flight search and hotel rooms; no live connection |
 | Orders, wallet movements, users, roles, options | 0 | 0 | PRESERVED_AS_REFERENCE | audit aggregates without traveller export; not site content |
@@ -52,9 +53,9 @@ Usage by content records: 15,726 of 23,387 = 67.2% across all content datasets; 
 | هتل ها | location-category | اصلی | `/hotels` |
 | مجله گردشگری | page | اصلی | `/travel-guides` |
 | جاذبه های گردشگری | page | اصلی | `/attractions` |
-| چرا ما را انتخاب می کنید؟ | page | اصلی | `/about` |
+| چرا ما را انتخاب می کنید؟ | page | اصلی | `/contact` |
 | گردشگری سلامت چیست؟ | page | اصلی | `/services` |
-| تاژبان گشت پارس | page | اصلی | `/about` |
+| تاژبان گشت پارس | page | اصلی | `/contact` |
 | اقامت و مهاجرت | page | اصلی | `/visa` |
 | صفحه اصلی | page | اصلی | `/` |
 | بلاگ | page | اصلی | `/travel-guides` |
@@ -110,7 +111,7 @@ Usage by content records: 15,726 of 23,387 = 67.2% across all content datasets; 
 | هتل های آفریقا | location-category | زیرمنو | `/hotels` |
 | هتل های اروپا | location-category | زیرمنو | `/hotels` |
 | هتل‌های آمریکا و اقیانوسیه | location-category | زیرمنو | `/hotels` |
-| درباره ما | page | اصلی | `/about` |
+| درباره ما | page | اصلی | `/contact` |
 | اپلیکیشن چک‌لاین تراول | page | اصلی | `/` |
 | اپلیکیشن چک‌لاین تراول | page | اصلی | `/` |
 | اپلیکیشن چک‌لاین تراول | page | اصلی | `/` |
@@ -126,7 +127,7 @@ Usage by content records: 15,726 of 23,387 = 67.2% across all content datasets; 
 | `/اقامت-و-مهاجرت/` | اقامت و مهاجرت | yes | `/visa` |
 | `/اپلیکیشن-چکلاین-تراول/` | اپلیکیشن چک‌لاین تراول | yes | `/` |
 | `/blog/` | بلاگ | yes | `/travel-guides` |
-| `/abouttazhban/` | تاژبان گشت پارس | yes | `/about` |
+| `/abouttazhban/` | تاژبان گشت پارس | yes | `/contact` |
 | `/تفریحات-کیش/` | تفریحات کیش |  | `/attractions` |
 | `/contact/` | تماس با ما | yes | `/contact` |
 | `/تور/` | تور |  | `/tours/search?destination=iq-tahrawa` |
@@ -161,7 +162,7 @@ Usage by content records: 15,726 of 23,387 = 67.2% across all content datasets; 
 | `/ثبت-شکایت/` | ثبت شکایت |  | `/support` |
 | `/ثبت-شکایت-2/` | ثبت شکایت |  | `/support` |
 | `/راهنمای-خرید-بلیط-پرواز-خارجی/` | جاذبه های گردشگری | yes | `/attractions` |
-| `/about/` | درباره ما | yes | `/about` |
+| `/about/` | درباره ما | yes | `/contact` |
 | `/راهنمای-خرید-هتل/` | راهنمای خرید هتل |  | `/hotels` |
 | `/رزرو-هتل-خارجی/` | رزرو هتل خارجی |  | `/hotels` |
 | `/صفحه-اصلی/` | صفحه اصلی | yes | `/` |
@@ -187,7 +188,7 @@ Usage by content records: 15,726 of 23,387 = 67.2% across all content datasets; 
 | `/هتل-های-کیش/` | هتل های کیش |  | `/hotels?country=IR&city=cl-city-224` |
 | `/هتل-های-گرجستان/` | هتل های گرجستان |  | `/hotels?country=GE` |
 | `/هتل-های-یزد/` | هتل های یزد |  | `/hotels?country=IR&city=cl-city-8609` |
-| `/چرا-ما-را-انتخاب-کنید؟/` | چرا ما را انتخاب می کنید؟ | yes | `/about` |
+| `/چرا-ما-را-انتخاب-کنید؟/` | چرا ما را انتخاب می کنید؟ | yes | `/contact` |
 | `/کشور/` | کشور |  | `/destinations` |
 | `/گردشگری-سلامت/` | گردشگری سلامت چیست؟ | yes | `/services` |
 

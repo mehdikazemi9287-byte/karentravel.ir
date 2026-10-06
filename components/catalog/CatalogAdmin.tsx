@@ -8,7 +8,7 @@ import {ProviderMappings} from '../operational/PartnerViews';
 
 type Dict = Record<string, string>;
 type Options = {hotel_types: Dict; amenities: Dict; policy_fields: Dict; policy_values: Dict; bed_types: Dict; views: Dict; stars_status: Dict; status: Dict; countries: {code: string; name: string}[]};
-type Row = {id: string; slug: string; name: string; name_en: string | null; country_code: string; city: string | null; stars: number | null; status: string; source: string; admin_owned: boolean; content_complete: boolean; duplicate_of: string | null};
+type Row = {id: string; slug: string; name: string; name_en: string | null; country_code: string; city: string | null; stars: number | null; status: string; source: string; admin_owned: boolean; content_complete: boolean; duplicate_of: string | null; missing?: string[]};
 type Brief = {id: string; name: string; name_en: string | null; source: string; status: string; address: string | null} | null;
 type Meta = {id: string; slug: string; state: {catalogued: boolean; content_complete: boolean; rate_available: boolean; bookable: boolean; published: boolean; source: string; last_verified_at: string | null}; duplicate_of: Brief; match_basis: string | null;
   matches: {id: number; basis: string; status: string; rule_based: boolean; duplicate: Brief; canonical: Brief}[]; provider_mappings: {id: number; provider: string; provider_hotel_id: string; status: string}[]; provenance?: {source: string; source_ref: string | null; license: string | null; retrieved_on: string | null}};
@@ -140,7 +140,7 @@ export function CatalogAdmin() {
       <p className="cadm-count">{rows.total.toLocaleString('fa-IR')} هتل</p>
       <ul className="cadm-list">{rows.items.map(r => <li key={r.id}><button onClick={() => void open(r.id)}>
         <strong>{r.name}</strong><span>{[r.city, r.country_code, r.stars ? `${r.stars}★` : null].filter(Boolean).join(' · ')}</span>
-        <em className={`st-${r.status}`}>{opts.status[r.status] ?? r.status}</em><small>{r.source}{r.admin_owned ? ' · ویرایش‌شده' : ''}{r.duplicate_of ? ' · تکراری' : ''}{r.content_complete ? ' · محتوای کامل' : ''}</small></button></li>)}</ul>
+        <em className={`st-${r.status}`}>{opts.status[r.status] ?? r.status}</em><small>{r.source}{r.admin_owned ? ' · ویرایش‌شده' : ''}{r.duplicate_of ? ' · تکراری' : ''}{r.content_complete ? ' · محتوای کامل' : r.missing?.length ? ` · خالی: ${r.missing.join('، ')}` : ''}</small></button></li>)}</ul>
     </>}
     {editing && opts && <form className="cadm-form" onSubmit={e => {e.preventDefault(); void save();}}>
       <div className="cadm-actions"><button type="button" className="button secondary" onClick={() => {setEditing(null); setNotice(null);}}>بازگشت به فهرست</button><button className="button primary" disabled={busy}>{busy ? 'در حال ذخیره…' : 'ذخیره'}</button></div>

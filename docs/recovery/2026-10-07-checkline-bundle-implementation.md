@@ -45,3 +45,15 @@ API: `/catalog/hotels*`, `/catalog/places*`, `/catalog/tours*`, `/catalog/conten
 - Visual regression against 682f5eb found a real one: a global `.cat h3` rule changed card headings on `/hotels`, `/flights`, `/trains`, `/villas`, `/destinations`. Scoped to `.cat-h3`; those pages are pixel-identical to the baseline again. Remaining differences are the intended ones: `/tours` (programme section) and the hotel page side panel (rate/booking state and inquiry).
 - Not from the bundle and left as they are (approved UI, outside this scope): six editorial destination guides in `lib/customer-catalog.ts`, the inquiry-only `/cruises` page, three demo hotels with stock photos in the development seed of `backend/app/main.py`.
 - Image cap removed: the importer attached at most 12 images per hotel, which left valid images of 169 hotels out. Every existing, distinct image is now attached (3,799 → 6,254); galleries show the first ones and open the rest on request.
+
+## Completion round (after 09dea89)
+
+- Hotels: 799 of the 800 are in the catalogue (the one left has no title). Nothing is dropped for a missing country or a country/city contradiction any more: such a hotel is a draft with a `review_note`, visible and editable in the panel (`ZZ` = country not named by the source). Country and city are also resolved through the record's own `region` terms and, for the bundle's cities, through a single city named in the hotel's title/address (`place_basis`).
+- Hotel positions: the bundle does carry positions (latitude/longitude fields on 27 hotels, map embeds on 74). They are taken only when within 80 km of the hotel's city or a city of its country; swapped fields are corrected by that check and map centres far away are refused. The earlier note "no coordinates in the source" was wrong.
+- Cities with a missing country post take the one country all hotels referencing them agree on; pending cities are imported.
+- Migration 46: `updated_by`/`updated_at` on places, airlines, airports, venues and content; the API role gains UPDATE (no INSERT/DELETE) there. Every importer leaves an admin-edited record alone.
+- Admin: `/admin/catalog/reference` (places, attractions, airports, airlines, visa guidance) with search, filters, per-record completeness and edit; hotel and tour lists name the missing parts; `/admin/catalog/completeness` counts complete records per kind.
+- Reference coverage for the bundle's 50 countries (not bundle content): `import_airports_reference.py` (OurAirports, public domain) and `import_airlines_reference.py` (Wikidata CC0), additive only. Inputs: `ref/airports.csv`, `ref/airlines-wikidata.json`.
+- Destination guide pages (`/destinations/shiraz` …) are fed by the catalogue record; the fixed text in `lib/customer-catalog.ts` is only a fallback when the record cannot be loaded.
+- Found by QA and fixed: old pages mapped to a non-existent `/about` (now `/contact`), horizontal overflow of destination pages on phones.
+- Still blocked, with the exact reason: facility group labels (the bundle has the option names and byte counts, not the values), blog text, live rates.

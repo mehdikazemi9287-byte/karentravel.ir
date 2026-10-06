@@ -45,7 +45,7 @@ def main(data_dir: str, dry_run: bool, prune: bool = False) -> dict:
                 rows.sort(key=lambda r: KIND_RANK[r["kind"]])
             sources = {r.get("source") or "" for r in rows}
             owned = select(model.id).where(model.source.in_(sources))
-            if name == "hotels":
+            if hasattr(model, "updated_by"):
                 owned = owned.where(model.updated_by.is_(None))
             existing = set(db.scalars(owned))
             foreign = set(db.scalars(select(model.id))) - existing  # other source or admin-owned: never written here

@@ -16,11 +16,26 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.orm import Session
 
+from .catalog import CatalogAirline, CatalogAirport, CatalogContent, CatalogVenue  # noqa: I001
 from .catalog import (AMENITIES, BED_TYPES, HOTEL_STATUS, HOTEL_TYPES, POLICY_FIELDS, POLICY_VALUES, ROOM_VIEWS, STARS_STATUS, CatalogHotel, CatalogHotelImage, CatalogHotelMatch,
                       CatalogHotelProviderMapping, CatalogHotelRatePlanMapping, CatalogHotelRoomMapping, CatalogHotelRoomType, CatalogPlace, CatalogTour, CatalogTourDeparture, CatalogTourHotel, CatalogTourItineraryDay, TOUR_BOARD, TOUR_TRANSPORT, _hotel, _places_for, content_is_complete, hotel_image, normalize_text, room_type)
 
 Policy = Optional[Literal["allowed", "not_allowed", "on_request"]]
 _URL = r"^https://[^\s]+$"
+
+
+TOUR_REQUIRED = {"description": "معرفی تور", "destination_place_id": "مقصد", "duration_nights": "مدت", "transport_mode": "وسیلهٔ سفر", "cancellation_policy_text": "شرایط لغو"}
+
+
+def hotel_missing(row, images: int, rooms: int) -> list[str]:
+    """The parts content_is_complete() asks for that this hotel does not have yet."""
+    checks = (("نام", row.name_fa or row.name_en), ("شهر", row.city_id), ("نشانی", row.address), ("توضیحات", row.description), ("ساعت ورود", row.checkin_time), ("ساعت خروج", row.checkout_time), ("تصویر", images), ("نوع اتاق", rooms),
+              ("امکانات", json.loads(row.amenities_json or "[]")))
+    return [label for label, value in checks if not value]
+
+
+def tour_missing(row) -> list[str]:
+    return [label for field, label in TOUR_REQUIRED.items() if getattr(row, field) in (None, "")]
 
 
 class Strict(BaseModel):
@@ -150,6 +165,76 @@ class ProviderMappingIn(Strict):
     provider_hotel_id: str = Field(min_length=1, max_length=120)
 
 
+class ReferenceIn(Strict):
+    values: dict
+
+
+# Reference records editable from the panel. "required" drives the completeness figure; none of these has a price or availability field.
+REFERENCE: dict[str, dict] = {
+    "places": {"model": CatalogPlace, "label": "کشور، استان و شهر", "names": ("name_fa", "name_en"),
+               "fields": {"name_fa": ("نام فارسی", "str", 160), "name_en": ("نام انگلیسی", "str", 160), "description": ("توضیح مقصد", "text", 30000), "latitude": ("عرض جغرافیایی", "lat", None), "longitude": ("طول جغرافیایی", "lng", None),
+                          "population": ("جمعیت", "int", None), "image_url": ("نشانی تصویر", "url", 500), "image_credit": ("منبع و مجوز تصویر", "str", 300)},
+               "required": ("name_fa", "name_en", "description", "latitude", "image_url")},
+    "airlines": {"model": CatalogAirline, "label": "ایرلاین", "names": ("name_fa", "name_en"),
+                 "fields": {"name_fa": ("نام فارسی", "str", 160), "name_en": ("نام انگلیسی", "str", 160), "icao_code": ("کد ICAO", "str", 4), "airline_type": ("نوع", "str", 40), "website": ("وب‌سایت", "url", 300),
+                            "logo_url": ("نشانی نشان", "url", 500), "logo_credit": ("منبع و مجوز نشان", "str", 300)},
+                 "required": ("name_fa", "name_en", "icao_code", "website", "logo_url")},
+    "airports": {"model": CatalogAirport, "label": "فرودگاه", "names": ("name_fa", "name_en"),
+                 "fields": {"name_fa": ("نام فارسی", "str", 200), "name_en": ("نام انگلیسی", "str!", 200), "city_id": ("شناسهٔ شهر در فهرست مرجع", "city", None), "city_name": ("نام شهر", "str", 160), "timezone": ("منطقهٔ زمانی", "str", 40),
+                            "scope": ("دامنهٔ پرواز", "enum", ("international",))},
+                 "required": ("name_fa", "city_id", "city_name", "timezone")},
+    "attractions": {"model": CatalogVenue, "label": "جاذبه", "names": ("name_fa", "name_en"), "where": lambda m: m.kind.in_(("attraction", "historic", "museum")),
+                    "fields": {"name_fa": ("نام فارسی", "str", 200), "name_en": ("نام انگلیسی", "str", 200), "city_id": ("شناسهٔ شهر در فهرست مرجع", "city", None), "address": ("نشانی", "str", 400), "description": ("توضیح", "text", 20000),
+                               "opening_hours": ("ساعت بازدید", "str", 200), "phone": ("تلفن", "str", 80), "website": ("وب‌سایت", "url", 300), "image_url": ("نشانی تصویر", "url", 500), "image_credit": ("منبع و مجوز تصویر", "str", 300),
+                               "latitude": ("عرض جغرافیایی", "lat!", None), "longitude": ("طول جغرافیایی", "lng!", None)},
+                    "required": ("name_fa", "city_id", "description", "image_url", "address")},
+    "visa": {"model": CatalogContent, "label": "راهنمای ویزا", "names": ("title",), "where": lambda m: m.kind.in_(("visa", "visa_country")),
+             "fields": {"title": ("عنوان", "str!", 200), "body": ("متن راهنما", "text!", 60000), "status": ("وضعیت انتشار", "enum!", ("published", "draft"))},
+             "required": ("title", "body")},
+}
+
+
+def _missing(row, required) -> list[str]:
+    return [f for f in required if getattr(row, f) in (None, "")]
+
+
+def _completeness(row, spec: dict) -> dict:
+    missing = _missing(row, spec["required"])
+    return {"percent": round(100 * (len(spec["required"]) - len(missing)) / len(spec["required"])), "missing": [spec["fields"][f][0] for f in missing]}
+
+
+def _clean(kind: str, spec: dict, db: Session, values: dict) -> dict:
+    """Validate an edit against the field list of its kind. Unknown keys (a price, for instance) are refused."""
+    unknown = sorted(set(values) - set(spec["fields"]))
+    if unknown: raise HTTPException(status_code=422, detail=f"فیلد ناشناخته: {', '.join(unknown)}")
+    out = {}
+    for key, value in values.items():
+        label, kind_, limit = spec["fields"][key]; must = kind_.endswith("!"); kind_ = kind_.rstrip("!")
+        if isinstance(value, str): value = value.strip() or None
+        if value is None:
+            if must: raise HTTPException(status_code=422, detail=f"«{label}» نمی‌تواند خالی باشد")
+            out[key] = None; continue
+        try:
+            if kind_ in ("str", "text", "url"):
+                if not isinstance(value, str) or len(value) > limit: raise ValueError
+                if kind_ == "url" and not re.match(_URL, value): raise ValueError
+            elif kind_ == "int":
+                value = int(value)
+                if isinstance(values[key], bool) or value < 0: raise ValueError
+            elif kind_ in ("lat", "lng"):
+                value = float(value)
+                if isinstance(values[key], bool) or abs(value) > (90 if kind_ == "lat" else 180): raise ValueError
+            elif kind_ == "enum":
+                if value not in limit: raise ValueError
+            elif kind_ == "city":
+                place = db.get(CatalogPlace, value) if isinstance(value, str) else None
+                if place is None or place.kind != "city": raise ValueError
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=422, detail=f"مقدار «{label}» معتبر نیست") from None
+        out[key] = value
+    return out
+
+
 def _slugify(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")[:150] or "hotel"
 
@@ -177,6 +262,89 @@ def catalog_admin_router(get_db, guard: Callable, audit: Callable, history: Call
                      "room_types": [room_type(r) for r in db.scalars(select(CatalogHotelRoomType).where(CatalogHotelRoomType.hotel_id == row.id).order_by(CatalogHotelRoomType.sort_order))]})
         return data
 
+    def _reference(kind: str) -> dict:
+        if kind not in REFERENCE: raise HTTPException(status_code=404, detail="این نوع رکورد مرجع وجود ندارد")
+        return REFERENCE[kind]
+
+    def _ref_row(row, spec: dict, place_names: dict) -> dict:
+        model = spec["model"]
+        return {"id": row.id, "name": next((getattr(row, n) for n in spec["names"] if getattr(row, n)), row.id), "name_en": getattr(row, "name_en", None), "type": getattr(row, "kind", None),
+                "country_code": getattr(row, "country_code", None), "parent": place_names.get(getattr(row, "parent_id", None) or getattr(row, "city_id", None) or ""), "source": row.source,
+                "admin_owned": row.updated_by is not None, "status": getattr(row, "status", None) if model is CatalogContent else None, "completeness": _completeness(row, spec)}
+
+    @router.get("/completeness")
+    def completeness_summary(user=Depends(guard), db: Session = Depends(get_db)) -> dict:
+        """How many records of each kind have every field the panel treats as required. Counted in the database, not sampled."""
+        out = {}
+        for kind, spec in REFERENCE.items():
+            model = spec["model"]; base = [spec["where"](model)] if "where" in spec else []
+            gap = or_(*[or_(getattr(model, f).is_(None), getattr(model, f) == "") if isinstance(getattr(model, f).type.python_type(), str) else getattr(model, f).is_(None) for f in spec["required"]])
+            total = db.scalar(select(func.count()).select_from(model).where(*base)); incomplete = db.scalar(select(func.count()).select_from(model).where(*base, gap))
+            out[kind] = {"label": spec["label"], "total": total, "complete": total - incomplete}
+        hotels = db.scalar(select(func.count()).select_from(CatalogHotel)); tours = db.scalars(select(CatalogTour)).all()
+        out["hotels"] = {"label": "هتل", "total": hotels, "complete": db.scalar(select(func.count()).select_from(CatalogHotel).where(CatalogHotel.content_complete.is_(True)))}
+        out["tours"] = {"label": "تور", "total": len(tours), "complete": sum(1 for r in tours if not tour_missing(r))}
+        return out
+
+    @router.get("/reference/{kind}")
+    def list_reference(kind: str, q: str = "", incomplete: bool = False, country: Optional[str] = Query(default=None, pattern=r"^[A-Za-z]{2}$"), type: Optional[str] = Query(default=None, max_length=24), source: Optional[str] = Query(default=None, max_length=40),
+                       offset: int = Query(default=0, ge=0), limit: int = Query(default=30, ge=1, le=100), user=Depends(guard), db: Session = Depends(get_db)) -> dict:
+        spec = _reference(kind); model = spec["model"]
+        stmt = select(model).where(spec["where"](model)) if "where" in spec else select(model)
+        for token in normalize_text(q).split()[:4]:
+            stmt = stmt.where(or_(model.search_text.like(f"%{token}%"), model.id == q.strip())) if hasattr(model, "search_text") else stmt.where(or_(model.title.like(f"%{token}%"), model.id == q.strip()))
+        if country and hasattr(model, "country_code"): stmt = stmt.where(model.country_code == country.upper())
+        if type and hasattr(model, "kind"): stmt = stmt.where(model.kind == type)
+        if source: stmt = stmt.where(model.source == source)
+        if incomplete: stmt = stmt.where(or_(*[or_(getattr(model, f).is_(None), getattr(model, f) == "") if isinstance(getattr(model, f).type.python_type(), str) else getattr(model, f).is_(None) for f in spec["required"]]))
+        total = db.scalar(select(func.count()).select_from(stmt.subquery()))
+        order = [model.hotel_count.desc(), model.id] if model is CatalogPlace else [model.id]
+        rows = db.scalars(stmt.order_by(model.updated_at.desc().nulls_last(), *order).offset(offset).limit(limit)).all()
+        names = {pl.id: pl.name_fa or pl.name_en for pl in _places_for(db, {getattr(r, "parent_id", None) or getattr(r, "city_id", None) for r in rows}).values()}
+        return {"kind": kind, "label": spec["label"], "total": total, "items": [_ref_row(r, spec, names) for r in rows]}
+
+    def _ref_full(db: Session, kind: str, spec: dict, row) -> dict:
+        names = {pl.id: pl.name_fa or pl.name_en for pl in _places_for(db, {getattr(row, "parent_id", None) or getattr(row, "city_id", None)}).values()}
+        data = _ref_row(row, spec, names)
+        data.update({"kind": kind, "values": {f: getattr(row, f) for f in spec["fields"]}, "fields": [{"key": f, "label": lab, "type": typ.rstrip("!"), "required": typ.endswith("!"), "options": list(lim) if typ.rstrip("!") == "enum" else None,
+                                                                                                    "max": lim if isinstance(lim, int) else None, "counts": f in spec["required"]} for f, (lab, typ, lim) in spec["fields"].items()],
+                     "provenance": {"source": row.source, "source_ref": row.source_ref, "license": row.source_license, "retrieved_on": row.retrieved_on}, "updated_at": row.updated_at.isoformat() if row.updated_at else None})
+        if isinstance(row, CatalogPlace):  # the relations of the place, as stored
+            scope = CatalogHotel.city_id if row.kind == "city" else CatalogHotel.region_id if row.kind == "region" else CatalogHotel.country_code
+            key = row.id if row.kind != "country" else row.country_code
+            data["relations"] = {"children": db.scalar(select(func.count()).select_from(CatalogPlace).where(CatalogPlace.parent_id == row.id)), "hotels": db.scalar(select(func.count()).select_from(CatalogHotel).where(scope == key)),
+                                 "tours": db.scalar(select(func.count()).select_from(CatalogTour).where(CatalogTour.destination_place_id == row.id)),
+                                 "attractions": db.scalar(select(func.count()).select_from(CatalogVenue).where((CatalogVenue.city_id if row.kind == "city" else CatalogVenue.region_id if row.kind == "region" else CatalogVenue.country_code) == key, CatalogVenue.kind.in_(("attraction", "historic", "museum")))),
+                                 "airports": db.scalar(select(func.count()).select_from(CatalogAirport).where((CatalogAirport.city_id == row.id) if row.kind == "city" else (CatalogAirport.country_code == row.country_code)))}
+        return data
+
+    @router.get("/reference/{kind}/{record_id}")
+    def get_reference(kind: str, record_id: str, user=Depends(guard), db: Session = Depends(get_db)) -> dict:
+        spec = _reference(kind); row = db.get(spec["model"], record_id)
+        if row is None or ("where" in spec and db.scalar(select(func.count()).select_from(spec["model"]).where(spec["model"].id == record_id, spec["where"](spec["model"]))) == 0): raise HTTPException(status_code=404, detail="رکورد پیدا نشد")
+        return _ref_full(db, kind, spec, row)
+
+    @router.put("/reference/{kind}/{record_id}")
+    def save_reference(kind: str, record_id: str, data: ReferenceIn, user=Depends(guard), db: Session = Depends(get_db)) -> dict:
+        """Edits descriptive fields of one reference record and marks it admin-owned. Identity (id, codes, country, parent) is not editable here."""
+        spec = _reference(kind); model = spec["model"]
+        stmt = select(model).where(model.id == record_id).with_for_update()
+        row = db.scalar(stmt.where(spec["where"](model)) if "where" in spec else stmt)
+        if row is None: raise HTTPException(status_code=404, detail="رکورد پیدا نشد")
+        values = _clean(kind, spec, db, data.values)
+        merged = {f: values.get(f, getattr(row, f)) for f in spec["fields"]}
+        if "latitude" in merged and (merged["latitude"] is None) != (merged["longitude"] is None): raise HTTPException(status_code=422, detail="عرض و طول جغرافیایی باید با هم ثبت شوند")
+        if not any(merged.get(n) for n in spec["names"]): raise HTTPException(status_code=422, detail="دست‌کم یک نام لازم است")
+        changed = sorted(k for k, v in values.items() if getattr(row, k) != v)
+        for key, value in values.items(): setattr(row, key, value)
+        if hasattr(model, "search_text") and {"name_fa", "name_en", "city_name"} & set(changed):
+            extra = [getattr(row, a, None) for a in ("iata_code", "icao_code", "city_name")] + ([row.id] if model is CatalogAirport else [])
+            row.search_text = normalize_text(" ".join(filter(None, [row.name_fa, row.name_en, *extra])))[:2000]
+        row.updated_at, row.updated_by = datetime.now(timezone.utc), user.id
+        audit(db, user, "catalog_reference.updated", {"kind": kind, "record_id": row.id, "changed": changed})
+        db.commit()
+        return _ref_full(db, kind, spec, row)
+
     @router.get("/options")
     def options(user=Depends(guard), db: Session = Depends(get_db)) -> dict:
         countries = db.scalars(select(CatalogPlace).where(CatalogPlace.kind == "country").order_by(CatalogPlace.name_fa)).all()
@@ -203,10 +371,13 @@ def catalog_admin_router(get_db, guard: Callable, audit: Callable, history: Call
         for token in normalize_text(q).split()[:4]: stmt = stmt.where(or_(CatalogHotel.search_text.like(f"%{token}%"), CatalogHotel.id == q.strip()))
         total = db.scalar(select(func.count()).select_from(stmt.subquery()))
         rows = db.scalars(stmt.order_by(CatalogHotel.updated_at.desc().nulls_last(), CatalogHotel.quality.desc(), CatalogHotel.id).offset(offset).limit(limit)).all()
+        ids = [r.id for r in rows]
+        images = dict(db.execute(select(CatalogHotelImage.hotel_id, func.count()).where(CatalogHotelImage.hotel_id.in_(ids)).group_by(CatalogHotelImage.hotel_id)).all())
+        rooms = dict(db.execute(select(CatalogHotelRoomType.hotel_id, func.count()).where(CatalogHotelRoomType.hotel_id.in_(ids)).group_by(CatalogHotelRoomType.hotel_id)).all())
         places = _places_for(db, {r.city_id for r in rows})
         return {"total": total, "items": [{"id": r.id, "slug": r.slug, "name": r.name_fa or r.name_en or r.name_local, "name_en": r.name_en, "country_code": r.country_code,
                                            "city": (places[r.city_id].name_fa or places[r.city_id].name_en) if r.city_id in places else None, "stars": r.stars, "status": r.status,
-                                           "source": r.source, "admin_owned": r.updated_by is not None, "content_complete": bool(r.content_complete), "duplicate_of": r.duplicate_of} for r in rows]}
+                                           "source": r.source, "admin_owned": r.updated_by is not None, "content_complete": bool(r.content_complete), "duplicate_of": r.duplicate_of, "missing": hotel_missing(r, images.get(r.id, 0), rooms.get(r.id, 0))} for r in rows]}
 
     @router.get("/hotels/{hotel_id}")
     def get_hotel(hotel_id: str, user=Depends(guard), db: Session = Depends(get_db)) -> dict:
@@ -347,7 +518,7 @@ def catalog_admin_router(get_db, guard: Callable, audit: Callable, history: Call
         rows = db.scalars(stmt.order_by(CatalogTour.id).offset(offset).limit(limit)).all()
         by_tour: dict[str, list] = {}
         for d in db.scalars(select(CatalogTourDeparture).where(CatalogTourDeparture.tour_id.in_({r.id for r in rows})).order_by(CatalogTourDeparture.source_row)): by_tour.setdefault(d.tour_id, []).append(d)
-        return {"total": total, "items": [{k: v for k, v in tour(r, by_tour.get(r.id, [])).items() if k != "departures"} for r in rows]}
+        return {"total": total, "items": [{**{k: v for k, v in tour(r, by_tour.get(r.id, [])).items() if k != "departures"}, "missing": tour_missing(r), "admin_owned": r.updated_by is not None} for r in rows]}
 
     @router.get("/tours/{tour_id}")
     def get_tour(tour_id: str, user=Depends(guard), db: Session = Depends(get_db)) -> dict:
