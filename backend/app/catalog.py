@@ -109,6 +109,10 @@ class CatalogHotel(SourceMixin, Base):
     status: Mapped[str] = mapped_column(String(16), default="published", server_default="published", index=True)
     updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     updated_by: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # set => admin-owned; bulk importers never overwrite
+    last_verified_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)  # only an explicit reviewer action sets this
+    content_complete: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false", index=True)
+    duplicate_of: Mapped[Optional[str]] = mapped_column(ForeignKey("catalog_hotels.id"), nullable=True, index=True)  # set => never public; canonical record wins
+    match_basis: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
     __table_args__ = (Index("ix_catalog_hotels_country_city", "country_code", "city_id"),)
 
 
@@ -224,8 +228,35 @@ class CatalogVenue(SourceMixin, Base):
     __table_args__ = (Index("ix_catalog_venues_kind_city", "kind", "city_id"),)
 
 
+class CatalogHotelMatch(Base):
+    """A possible duplicate pair. Name similarity alone only ever yields status=proposed (human decision)."""
+    __tablename__ = "catalog_hotel_matches"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    hotel_id: Mapped[str] = mapped_column(ForeignKey("catalog_hotels.id", ondelete="CASCADE"), index=True)
+    candidate_id: Mapped[str] = mapped_column(ForeignKey("catalog_hotels.id", ondelete="CASCADE"), index=True)
+    basis: Mapped[str] = mapped_column(String(40))  # name+city | name+city+address
+    status: Mapped[str] = mapped_column(String(16), default="proposed", index=True)  # proposed | confirmed | rejected
+    decided_by: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # null => rule-based decision
+    decided_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    __table_args__ = (Index("ux_catalog_hotel_matches_pair", "hotel_id", "candidate_id", unique=True),)
+
+
+class CatalogHotelProviderMapping(Base):
+    """Links a catalog hotel to a supplier's own hotel id. Only a verified mapping may ever feed rates; none is guessed."""
+    __tablename__ = "catalog_hotel_provider_mappings"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    hotel_id: Mapped[str] = mapped_column(ForeignKey("catalog_hotels.id", ondelete="CASCADE"), index=True)
+    provider: Mapped[str] = mapped_column(String(40))
+    provider_hotel_id: Mapped[str] = mapped_column(String(120))
+    status: Mapped[str] = mapped_column(String(16), default="unverified")  # unverified | verified
+    verified_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    verified_by: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    __table_args__ = (Index("ux_catalog_hotel_provider_mappings", "provider", "provider_hotel_id", unique=True),)
+
+
 CATALOG_TABLES = tuple(m.__table__ for m in (CatalogPlace, CatalogHotel, CatalogAirline, CatalogAirport, CatalogRailOperator, CatalogRailStation, CatalogVenue))
 HOTEL_CONTENT_TABLES = (CatalogHotelImage.__table__, CatalogHotelRoomType.__table__)
+HOTEL_LINK_TABLES = (CatalogHotelMatch.__table__, CatalogHotelProviderMapping.__table__)
 CATALOG_MODELS = {"places": CatalogPlace, "hotels": CatalogHotel, "airlines": CatalogAirline, "airports": CatalogAirport, "rail_operators": CatalogRailOperator, "rail_stations": CatalogRailStation, "venues": CatalogVenue}
 
 
@@ -235,6 +266,18 @@ def _place(row: Optional[CatalogPlace]) -> Optional[dict]:
     return {"id": row.id, "kind": row.kind, "parent_id": row.parent_id, "country_code": row.country_code, "name_fa": row.name_fa, "name_en": row.name_en,
             "name": row.name_fa or row.name_en or row.name_local, "latitude": row.latitude, "longitude": row.longitude, "population": row.population,
             "description": row.description, "image_url": row.image_url, "image_credit": row.image_credit, "hotel_count": row.hotel_count}
+
+
+def hotel_state(row: CatalogHotel) -> dict:
+    """Explicit lifecycle flags. A rate exists only when a live supplier rate source reports one for a verified
+    provider mapping; no such source is connected to the catalog yet, so both commercial flags are false, never assumed."""
+    return {"catalogued": True, "content_complete": bool(row.content_complete), "rate_available": False, "bookable": False, "published": row.status == "published" and row.duplicate_of is None,
+            "source": row.source, "last_verified_at": row.last_verified_at.isoformat() if row.last_verified_at else None}
+
+
+def content_is_complete(row: CatalogHotel, images: int, room_types: int) -> bool:
+    return bool((row.name_fa or row.name_en) and row.city_id and row.address and row.description and row.checkin_time and row.checkout_time and images and room_types
+                and json.loads(row.amenities_json or "[]"))
 
 
 def _provenance(row) -> dict:
@@ -249,7 +292,7 @@ def _hotel(row: CatalogHotel, places: dict[str, CatalogPlace], full: bool = Fals
             "amenities": [{"key": a, "label": AMENITIES.get(a, a)} for a in json.loads(row.amenities_json or "[]")],
             "image_url": row.image_url, "image_credit": row.image_credit,
             # Commercial data is deliberately absent until a real supplier offer is mapped to this record.
-            "price": None, "price_status": "inquiry", "price_note": PRICE_NOTE_FA}
+            "price": None, "price_status": "inquiry", "price_note": PRICE_NOTE_FA, "state": hotel_state(row)}
     if full:
         data.update({"description": row.description, "checkin_time": row.checkin_time, "checkout_time": row.checkout_time, "phone": row.phone, "website": row.website,
                      "email": row.email, "provenance": _provenance(row), "rules_text": row.rules_text, "stars_status": row.stars_status,
@@ -334,7 +377,7 @@ def catalog_router(get_db) -> APIRouter:
                 "airports": [_airport(a) for a in airports], "rail_stations": [_station(s) for s in stations], "venue_counts": venue_counts, "provenance": _provenance(row)}
 
     def hotel_filters(stmt, country, region, city, stars, hotel_type, amenity, q, has_image, policy=None):
-        stmt = stmt.where(CatalogHotel.status == "published")
+        stmt = stmt.where(CatalogHotel.status == "published", CatalogHotel.duplicate_of.is_(None))
         for item in (policy or "").split(","):  # e.g. pets_policy:allowed
             key, _, value = item.partition(":")
             if key in POLICY_FIELDS and value in POLICY_VALUES: stmt = stmt.where(getattr(CatalogHotel, key) == value)
@@ -366,7 +409,7 @@ def catalog_router(get_db) -> APIRouter:
     @router.get("/hotels/facets")
     def hotel_facets(response: Response, country: Optional[str] = None, city: Optional[str] = None, db: Session = Depends(get_db)) -> dict:
         cached(response)
-        countries = db.execute(select(CatalogHotel.country_code, func.count()).where(CatalogHotel.status == "published").group_by(CatalogHotel.country_code).order_by(func.count().desc())).all()
+        countries = db.execute(select(CatalogHotel.country_code, func.count()).where(CatalogHotel.status == "published", CatalogHotel.duplicate_of.is_(None)).group_by(CatalogHotel.country_code).order_by(func.count().desc())).all()
         country_places = _places_for(db, {c.lower() for c, _ in countries})
         scoped = hotel_filters(select(CatalogHotel), country, None, city, None, None, None, None, False).subquery()
         city_rows = db.execute(select(scoped.c.city_id, func.count()).where(scoped.c.city_id.is_not(None)).group_by(scoped.c.city_id).order_by(func.count().desc()).limit(80)).all() if not city else []
@@ -384,7 +427,7 @@ def catalog_router(get_db) -> APIRouter:
     @router.get("/hotels/{slug}")
     def hotel_detail(slug: str, response: Response, db: Session = Depends(get_db)) -> dict:
         cached(response)
-        row = db.scalar(select(CatalogHotel).where(or_(CatalogHotel.slug == slug, CatalogHotel.id == slug), CatalogHotel.status == "published"))
+        row = db.scalar(select(CatalogHotel).where(or_(CatalogHotel.slug == slug, CatalogHotel.id == slug), CatalogHotel.status == "published", CatalogHotel.duplicate_of.is_(None)))
         if row is None:
             raise HTTPException(status_code=404, detail="هتل پیدا نشد")
         places_map = _places_for(db, {row.city_id, row.region_id, row.country_code.lower()})
@@ -489,7 +532,7 @@ def catalog_router(get_db) -> APIRouter:
             return 2 if term in p.search_text.split() or f" {term} " in f" {p.search_text} " else 3
         place_rows = sorted(candidates, key=rank)[:6]
         airport_rows = db.scalars(select(CatalogAirport).where(or_(CatalogAirport.search_text.like(f"%{term}%"), CatalogAirport.id == term.upper())).limit(4)).all()
-        hotel_stmt = select(CatalogHotel).where(CatalogHotel.status == "published")
+        hotel_stmt = select(CatalogHotel).where(CatalogHotel.status == "published", CatalogHotel.duplicate_of.is_(None))
         for token in tokens[:4]:
             hotel_stmt = hotel_stmt.where(CatalogHotel.search_text.like(f"%{token}%"))
         hotel_rows = db.scalars(hotel_stmt.order_by(CatalogHotel.quality.desc()).limit(6)).all()

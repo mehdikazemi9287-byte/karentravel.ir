@@ -3,7 +3,7 @@ import json
 
 from sqlalchemy import delete
 
-from app.catalog import CatalogHotel, CatalogHotelImage, CatalogHotelRoomType
+from app.catalog import CatalogHotel, CatalogHotelImage, CatalogHotelMatch, CatalogHotelProviderMapping, CatalogHotelRoomType, CatalogPlace
 from app.main import SessionLocal
 from scripts.catalog import import_checkline
 from tests.test_catalog_master_data import HOTELS, _load
@@ -35,18 +35,22 @@ VALID = {"name_fa": "هتل ویرایش‌شده", "name_en": "Edited Hotel", "
 
 def _reset():
     with SessionLocal() as db:
-        db.execute(delete(CatalogHotelImage)); db.execute(delete(CatalogHotelRoomType)); db.execute(delete(CatalogHotel)); db.commit()
+        for model in (CatalogHotelMatch, CatalogHotelProviderMapping, CatalogHotelImage, CatalogHotelRoomType, CatalogHotel): db.execute(delete(model))
+        db.execute(delete(CatalogPlace).where(CatalogPlace.source.in_(("checkline", "iso3166-1")))); db.commit()
 
 
 def test_checkline_import_is_draft_idempotent_and_never_guesses(tmp_path, client):
     _reset(); _load(tmp_path); staged = _stage(tmp_path, CL)
     first = import_checkline.main(staged, False)
-    assert first["inserted"] == 1 and first["quarantined"] == {"country_not_in_master_catalog": 1}
+    assert first["inserted"] == 2 and first["quarantined"] == {} and first["countries_added"] == ["TH"] and first["city_unresolved"] == 1
     second = import_checkline.main(staged, False)
-    assert (second["inserted"], second["updated"], second["unchanged"]) == (0, 0, 1)
+    assert (second["inserted"], second["updated"], second["unchanged"], second["countries_added"]) == (0, 0, 2, [])
     with SessionLocal() as db:
         row = db.get(CatalogHotel, "cl-901")
-        assert db.query(CatalogHotel).filter(CatalogHotel.source == "checkline").count() == 1
+        assert db.query(CatalogHotel).filter(CatalogHotel.source == "checkline").count() == 2
+        thailand, bangkok = db.get(CatalogPlace, "th"), db.get(CatalogHotel, "cl-902")
+        assert (thailand.kind, thailand.source, thailand.source_ref, thailand.latitude) == ("country", "iso3166-1", "TH", None)
+        assert bangkok.country_code == "TH" and bangkok.city_id is None and bangkok.stars is None  # no city row in the source: unresolved, not invented
         assert (row.status, row.city_id, row.stars, row.stars_status, row.checkin_time, row.checkout_time) == ("draft", "ir-shiraz", 4, "source_reported", "14:00", None)
         assert row.latitude is None and row.image_url is None and row.amenities_json == "[]" and row.name_en == "Sample Checkline Hotel"
     # drafts are invisible publicly
@@ -113,3 +117,70 @@ def test_admin_api_auth_validation_roundtrip_and_public_view(tmp_path, client):
     assert client.get("/catalog/hotels/checkline-901").status_code == 404
     created = client.post("/admin/catalog/hotels", json={**VALID, "name_en": "Brand New"}, headers=admin)
     assert created.status_code == 201 and created.json()["provenance"]["source"] == "karenseir"
+
+
+def test_duplicates_are_linked_only_on_address_evidence_and_reviewer_decides_the_rest(tmp_path, client):
+    _reset(); _load(tmp_path)
+    with SessionLocal() as db:  # canonical reference records the CheckLine rows may collide with
+        h1, h2 = db.get(CatalogHotel, "h1"), db.get(CatalogHotel, "h2")
+        h1.name_en, h1.address = "Zand Palace", "Zand Boulevard 12, Shiraz"
+        h2.name_en, h2.name_fa, h2.address = "Eram Garden Inn", None, None
+        db.commit()
+    base = {"country_id": "1", "country": "ایران", "city_id": "2", "city": "شیراز", "rating_current_unverified": "3"}
+    staged = _stage(tmp_path, [{**base, "hotel_id": 911, "title": "Zand Palace Hotel", "address_current": "No 12 Zand Boulevard"},      # name + city + address -> linked
+                               {**base, "hotel_id": 912, "title": "Eram Garden Inn", "address_current": "Eram street 5"},                # name + city only -> proposed
+                               {**base, "hotel_id": 913, "title": "Zand Palace", "address_current": "Airport road 40"},                  # same name, different address -> proposed
+                               {**base, "hotel_id": 914, "title": "Unrelated Lodge", "address_current": "No 12 Zand Boulevard"}])        # same address, different name -> nothing
+    report = import_checkline.main(staged, False)
+    assert report["inserted"] == 4
+    with SessionLocal() as db:
+        assert (db.get(CatalogHotel, "cl-911").duplicate_of, db.get(CatalogHotel, "cl-911").match_basis) == ("h1", "name+city+address")
+        assert db.get(CatalogHotel, "cl-912").duplicate_of is None and db.get(CatalogHotel, "cl-913").duplicate_of is None and db.get(CatalogHotel, "cl-914").duplicate_of is None
+        pairs = {(m.hotel_id, m.candidate_id): (m.basis, m.status) for m in db.query(CatalogHotelMatch)}
+        assert pairs[("cl-912", "h2")] == ("name+city", "proposed") and pairs[("cl-913", "h1")] == ("name+city", "proposed") and not any(k[0] == "cl-914" for k in pairs)
+        assert db.query(CatalogHotel).count() == 7  # nothing merged away or deleted
+        match_id = db.query(CatalogHotelMatch).filter_by(hotel_id="cl-912").one().id
+        reject_id = db.query(CatalogHotelMatch).filter_by(hotel_id="cl-913").one().id
+    admin = _token(client, "platform-admin@aftab.test")
+    assert client.post(f"/admin/catalog/matches/{match_id}", json={"decision": "confirm", "merge_fields": True}).status_code in (401, 403)
+    assert client.post(f"/admin/catalog/matches/{match_id}", json={"decision": "merge"}, headers=admin).status_code == 422
+    assert client.post("/admin/catalog/hotels/cl-911/status", json={"status": "published"}, headers=admin).status_code == 422  # a linked duplicate is never public
+    confirmed = client.post(f"/admin/catalog/matches/{match_id}", json={"decision": "confirm", "merge_fields": True}, headers=admin).json()
+    assert confirmed["duplicate_of"]["id"] == "h2"
+    assert client.post(f"/admin/catalog/matches/{reject_id}", json={"decision": "reject"}, headers=admin).status_code == 200
+    with SessionLocal() as db:
+        canonical = db.get(CatalogHotel, "h2")
+        assert canonical.address == "Eram street 5" and canonical.stars == 3 and canonical.stars_status == "source_reported" and canonical.hotel_type == "hostel"  # only empty fields were filled
+        assert canonical.updated_by is not None and db.get(CatalogHotel, "h1").address == "Zand Boulevard 12, Shiraz"
+    rerun = import_checkline.main(staged, False)
+    assert rerun["inserted"] == 0 and rerun["matches"]["kept_decisions"] == 2
+    with SessionLocal() as db:
+        assert db.query(CatalogHotelMatch).filter_by(id=reject_id).one().status == "rejected" and db.get(CatalogHotel, "cl-913").duplicate_of is None
+        assert db.query(CatalogHotelMatch).count() == 3
+    history = client.get("/admin/catalog/hotels/cl-912/history", headers=admin).json()
+    assert history[0]["action"] == "catalog_hotel.match_confirmed" and history[0]["actor"]
+
+
+def test_state_flags_publish_unpublish_and_verification(tmp_path, client):
+    _reset(); _load(tmp_path); import_checkline.main(_stage(tmp_path, CL), False)
+    admin = _token(client, "backoffice@aftab.test")
+    draft = client.get("/admin/catalog/hotels/cl-901", headers=admin).json()
+    assert draft["state"] == {"catalogued": True, "content_complete": False, "rate_available": False, "bookable": False, "published": False, "source": "checkline", "last_verified_at": None}
+    assert client.post("/admin/catalog/hotels/cl-902/status", json={"status": "published"}, headers=admin).status_code == 422  # no city
+    assert client.post("/admin/catalog/hotels/cl-901/status", json={"status": "published"}, headers=_token(client, "employee@aftab.test")).status_code == 403
+    assert client.post("/admin/catalog/hotels/cl-901/status", json={"status": "published"}, headers=admin).json()["state"]["published"] is True
+    public = client.get("/catalog/hotels/checkline-901").json()
+    assert public["state"]["bookable"] is False and public["state"]["rate_available"] is False and public["price"] is None and public["state"]["content_complete"] is False
+    assert client.post("/admin/catalog/hotels/cl-901/status", json={"status": "hidden"}, headers=admin).status_code == 200
+    assert client.get("/catalog/hotels/checkline-901").status_code == 404
+    saved = client.put("/admin/catalog/hotels/cl-901", json={**VALID, "mark_verified": True}, headers=admin).json()
+    assert saved["state"]["content_complete"] is True and saved["state"]["last_verified_at"] and saved["state"]["bookable"] is False
+    assert client.put("/admin/catalog/hotels/cl-901", json={**VALID, "images": []}, headers=admin).json()["state"]["content_complete"] is False
+    listed = client.get("/admin/catalog/hotels", params={"review": "no_city", "source": "checkline"}, headers=admin).json()
+    assert [i["id"] for i in listed["items"]] == ["cl-902"]
+    mapping = {"provider": "grs", "provider_hotel_id": "H-1"}
+    assert client.post("/admin/catalog/hotels/cl-901/provider-mappings", json=mapping, headers=admin).json()["provider_mappings"][0]["status"] == "unverified"
+    assert client.post("/admin/catalog/hotels/cl-902/provider-mappings", json=mapping, headers=admin).status_code == 409
+    assert client.get("/admin/catalog/hotels/cl-901", headers=admin).json()["state"]["rate_available"] is False  # an unverified mapping is not a rate
+    actions = [e["action"] for e in client.get("/admin/catalog/hotels/cl-901/history", headers=admin).json()]
+    assert "catalog_hotel.status_changed" in actions and "catalog_hotel.updated" in actions and "catalog_hotel.provider_mapping_added" in actions

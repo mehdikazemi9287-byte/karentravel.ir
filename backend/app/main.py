@@ -5071,4 +5071,10 @@ def _catalog_audit(db: Session, user: User, action: str, detail: dict) -> None:
 
 
 from .catalog_admin import catalog_admin_router  # noqa: E402
-app.include_router(catalog_admin_router(get_db, require_role("platform_admin", "backoffice_expert"), _catalog_audit))
+def _catalog_history(db: Session, hotel_id: str) -> list[dict]:
+    needle = json.dumps({"hotel_id": hotel_id})[1:-1]  # '"hotel_id": "<id>"', exactly as _catalog_audit serialises it
+    rows = db.execute(select(AuditEvent, User.name).join(User, User.id == AuditEvent.actor_id, isouter=True).where(AuditEvent.entity == "catalog_hotel", AuditEvent.detail.contains(needle, autoescape=True)).order_by(AuditEvent.id.desc()).limit(50)).all()
+    return [{"id": e.id, "action": e.action, "actor": name, "at": e.created_at.isoformat(), "detail": json.loads(e.detail)} for e, name in rows]
+
+
+app.include_router(catalog_admin_router(get_db, require_role("platform_admin", "backoffice_expert"), _catalog_audit, _catalog_history))

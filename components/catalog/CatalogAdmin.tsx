@@ -7,15 +7,21 @@ import {ApiError} from '../../lib/api/karenseir-client';
 
 type Dict = Record<string, string>;
 type Options = {hotel_types: Dict; amenities: Dict; policy_fields: Dict; policy_values: Dict; bed_types: Dict; views: Dict; stars_status: Dict; status: Dict; countries: {code: string; name: string}[]};
-type Row = {id: string; slug: string; name: string; name_en: string | null; country_code: string; city: string | null; stars: number | null; status: string; source: string; admin_owned: boolean};
+type Row = {id: string; slug: string; name: string; name_en: string | null; country_code: string; city: string | null; stars: number | null; status: string; source: string; admin_owned: boolean; content_complete: boolean; duplicate_of: string | null};
+type Brief = {id: string; name: string; name_en: string | null; source: string; status: string; address: string | null} | null;
+type Meta = {id: string; slug: string; state: {catalogued: boolean; content_complete: boolean; rate_available: boolean; bookable: boolean; published: boolean; source: string; last_verified_at: string | null}; duplicate_of: Brief; match_basis: string | null;
+  matches: {id: number; basis: string; status: string; rule_based: boolean; duplicate: Brief; canonical: Brief}[]; provider_mappings: {id: number; provider: string; provider_hotel_id: string; status: string}[]; provenance?: {source: string; source_ref: string | null; license: string | null; retrieved_on: string | null}};
+type Event = {id: number; action: string; actor: string | null; at: string; detail: Record<string, unknown>};
+const ACTION_FA: Record<string, string> = {'catalog_hotel.updated': 'ویرایش', 'catalog_hotel.created': 'ایجاد', 'catalog_hotel.status_changed': 'تغییر وضعیت انتشار', 'catalog_hotel.match_confirmed': 'تأیید تکراری‌بودن', 'catalog_hotel.match_rejected': 'رد تکراری‌بودن', 'catalog_hotel.merged_fields': 'تکمیل از رکورد تکراری', 'catalog_hotel.provider_mapping_added': 'افزودن نگاشت تأمین‌کننده'};
+const yes = (v: boolean) => (v ? 'بله' : 'خیر');
 type Image = {url: string; caption: string; author: string; license: string; license_url: string; source_url: string};
 type Room = {name_fa: string; name_en: string; bed_type: string; max_adults: string; max_children: string; size_m2: string; view: string; amenities: string[]; description: string};
 type Form = {name_fa: string; name_en: string; name_local: string; country_code: string; city_id: string; hotel_type: string; stars: string; stars_status: string; address: string; latitude: string; longitude: string;
   amenities: string[]; description: string; rules_text: string; checkin_time: string; checkout_time: string; children_policy: string; pets_policy: string; smoking_policy: string; phone: string; website: string; email: string;
-  status: string; source_ref: string; retrieved_on: string; images: Image[]; room_types: Room[]};
+  status: string; source_ref: string; retrieved_on: string; images: Image[]; room_types: Room[]; mark_verified: boolean};
 
 const EMPTY: Form = {name_fa: '', name_en: '', name_local: '', country_code: 'IR', city_id: '', hotel_type: 'hotel', stars: '', stars_status: '', address: '', latitude: '', longitude: '', amenities: [], description: '', rules_text: '',
-  checkin_time: '', checkout_time: '', children_policy: '', pets_policy: '', smoking_policy: '', phone: '', website: '', email: '', status: 'draft', source_ref: '', retrieved_on: '', images: [], room_types: []};
+  checkin_time: '', checkout_time: '', children_policy: '', pets_policy: '', smoking_policy: '', phone: '', website: '', email: '', status: 'draft', source_ref: '', retrieved_on: '', images: [], room_types: [], mark_verified: false};
 const NEW_IMAGE: Image = {url: '', caption: '', author: '', license: '', license_url: '', source_url: ''};
 const NEW_ROOM: Room = {name_fa: '', name_en: '', bed_type: '', max_adults: '', max_children: '', size_m2: '', view: '', amenities: [], description: ''};
 const s = (v: unknown) => (v === null || v === undefined ? '' : String(v));
@@ -35,7 +41,7 @@ function toForm(h: any): Form {
   return {name_fa: s(h.name_fa), name_en: s(h.name_en), name_local: s(h.name_local), country_code: h.country_code, city_id: s(h.city?.id), hotel_type: h.hotel_type, stars: s(h.stars), stars_status: s(h.stars_status), address: s(h.address),
     latitude: s(h.latitude), longitude: s(h.longitude), amenities: h.amenity_keys ?? [], description: s(h.description), rules_text: s(h.rules_text), checkin_time: s(h.checkin_time), checkout_time: s(h.checkout_time),
     children_policy: s(h.children_policy), pets_policy: s(h.pets_policy), smoking_policy: s(h.smoking_policy), phone: s(h.phone), website: s(h.website), email: s(h.email), status: h.status, source_ref: s(h.provenance?.source_ref),
-    retrieved_on: s(h.provenance?.retrieved_on), images: (h.images ?? []).map((i: any) => ({url: i.url, caption: s(i.caption), author: s(i.author), license: i.license, license_url: s(i.license_url), source_url: i.source_url})),
+    retrieved_on: s(h.provenance?.retrieved_on), mark_verified: false, images: (h.images ?? []).map((i: any) => ({url: i.url, caption: s(i.caption), author: s(i.author), license: i.license, license_url: s(i.license_url), source_url: i.source_url})),
     room_types: (h.room_types ?? []).map((r: any) => ({name_fa: r.name_fa, name_en: s(r.name_en), bed_type: s(r.bed_type), max_adults: s(r.max_adults), max_children: s(r.max_children), size_m2: s(r.size_m2), view: s(r.view),
       amenities: (r.amenities ?? []).map((a: any) => a.key), description: s(r.description)}))};
 }
@@ -44,7 +50,7 @@ function toBody(f: Form) {
   return {name_fa: nul(f.name_fa), name_en: nul(f.name_en), name_local: nul(f.name_local), country_code: f.country_code, city_id: nul(f.city_id), hotel_type: f.hotel_type, stars: num(f.stars), stars_status: nul(f.stars_status),
     address: nul(f.address), latitude: num(f.latitude), longitude: num(f.longitude), amenities: f.amenities, description: nul(f.description), rules_text: nul(f.rules_text), checkin_time: nul(f.checkin_time),
     checkout_time: nul(f.checkout_time), children_policy: nul(f.children_policy), pets_policy: nul(f.pets_policy), smoking_policy: nul(f.smoking_policy), phone: nul(f.phone), website: nul(f.website), email: nul(f.email),
-    status: f.status, source_ref: nul(f.source_ref), retrieved_on: nul(f.retrieved_on),
+    status: f.status, source_ref: nul(f.source_ref), retrieved_on: nul(f.retrieved_on), mark_verified: f.mark_verified,
     images: f.images.map(i => ({url: i.url.trim(), caption: nul(i.caption), author: nul(i.author), license: i.license.trim(), license_url: nul(i.license_url), source_url: i.source_url.trim()})),
     room_types: f.room_types.map(r => ({name_fa: r.name_fa.trim(), name_en: nul(r.name_en), bed_type: nul(r.bed_type), max_adults: num(r.max_adults), max_children: num(r.max_children), size_m2: num(r.size_m2), view: nul(r.view),
       amenities: r.amenities, description: nul(r.description)}))};
@@ -65,7 +71,9 @@ export function CatalogAdmin() {
   const {api, session} = useAuth();
   const [opts, setOpts] = useState<Options | null>(null);
   const [rows, setRows] = useState<{total: number; items: Row[]}>({total: 0, items: []});
-  const [filter, setFilter] = useState({q: '', status: '', source: ''});
+  const [filter, setFilter] = useState({q: '', status: '', source: '', review: ''});
+  const [meta, setMeta] = useState<Meta | null>(null);
+  const [events, setEvents] = useState<Event[]>([]);
   const [editing, setEditing] = useState<string | null>(null);  // hotel id, 'new' or null
   const [form, setForm] = useState<Form>(EMPTY);
   const [cities, setCities] = useState<{id: string; name: string}[]>([]);
@@ -74,7 +82,7 @@ export function CatalogAdmin() {
   const set = <K extends keyof Form>(key: K, value: Form[K]) => setForm(f => ({...f, [key]: value}));
 
   const load = useCallback(async (f = filter) => {
-    const query = new URLSearchParams(); if (f.q) query.set('q', f.q); if (f.status) query.set('status', f.status); if (f.source) query.set('source', f.source);
+    const query = new URLSearchParams(); if (f.q) query.set('q', f.q); if (f.status) query.set('status', f.status); if (f.source) query.set('source', f.source); if (f.review) query.set('review', f.review);
     try {setRows(await api.get(`/admin/catalog/hotels?${query}`));} catch (e) {setNotice({kind: 'error', text: message(e)});}
   }, [api, filter]);
   useEffect(() => {
@@ -91,16 +99,26 @@ export function CatalogAdmin() {
     return () => {active = false;};
   }, [api, session, editing, form.country_code]);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async function show(h: any) {
+    setForm(toForm(h)); setMeta(h as Meta); setEditing(h.id);
+    try {setEvents(await api.get<Event[]>(`/admin/catalog/hotels/${encodeURIComponent(h.id)}/history`));} catch {setEvents([]);}
+  }
   async function open(id: string) {
     setNotice(null);
-    try {setForm(toForm(await api.get(`/admin/catalog/hotels/${encodeURIComponent(id)}`))); setEditing(id);} catch (e) {setNotice({kind: 'error', text: message(e)});}
+    try {await show(await api.get(`/admin/catalog/hotels/${encodeURIComponent(id)}`));} catch (e) {setNotice({kind: 'error', text: message(e)});}
+  }
+  async function act(path: string, body: unknown, done: string) {
+    setBusy(true); setNotice(null);
+    try {await api.post(path, body); if (editing && editing !== 'new') await show(await api.get(`/admin/catalog/hotels/${encodeURIComponent(editing)}`)); setNotice({kind: 'ok', text: done}); await load();}
+    catch (e) {setNotice({kind: 'error', text: message(e)});} finally {setBusy(false);}
   }
   async function save() {
     if (!editing) return;
     setBusy(true); setNotice(null);
     try {
       const saved = editing === 'new' ? await api.post<{id: string}>('/admin/catalog/hotels', toBody(form)) : await api.put<{id: string}>(`/admin/catalog/hotels/${encodeURIComponent(editing)}`, toBody(form));
-      setForm(toForm(saved)); setEditing(saved.id); setNotice({kind: 'ok', text: 'ذخیره شد و در سابقهٔ ممیزی ثبت گردید.'}); await load();
+      await show(saved); setNotice({kind: 'ok', text: 'ذخیره شد و در سابقهٔ ممیزی ثبت گردید.'}); await load();
     } catch (e) {setNotice({kind: 'error', text: message(e)});} finally {setBusy(false);}
   }
 
@@ -113,17 +131,36 @@ export function CatalogAdmin() {
       <form className="cadm-bar" onSubmit={e => {e.preventDefault(); void load();}}>
         <Text label="جست‌وجو" value={filter.q} onChange={v => setFilter({...filter, q: v})}/>
         <Select label="وضعیت" value={filter.status} onChange={v => setFilter({...filter, status: v})} options={opts.status} empty="همه"/>
+        <Select label="بازبینی" value={filter.review} onChange={v => setFilter({...filter, review: v})} options={{duplicates: 'تکراری‌های احتمالی', no_city: 'بدون شهر', incomplete: 'محتوای ناقص', complete: 'محتوای کامل'}} empty="همه"/>
         <Select label="منبع" value={filter.source} onChange={v => setFilter({...filter, source: v})} options={{checkline: 'CheckLine', openstreetmap: 'OpenStreetMap', karenseir: 'کارن‌سیر'}} empty="همه"/>
         <button className="button primary" type="submit">اعمال</button>
-        <button className="button secondary" type="button" onClick={() => {setForm(EMPTY); setEditing('new'); setNotice(null);}}>هتل جدید</button>
+        <button className="button secondary" type="button" onClick={() => {setForm(EMPTY); setMeta(null); setEvents([]); setEditing('new'); setNotice(null);}}>هتل جدید</button>
       </form>
       <p className="cadm-count">{rows.total.toLocaleString('fa-IR')} هتل</p>
       <ul className="cadm-list">{rows.items.map(r => <li key={r.id}><button onClick={() => void open(r.id)}>
         <strong>{r.name}</strong><span>{[r.city, r.country_code, r.stars ? `${r.stars}★` : null].filter(Boolean).join(' · ')}</span>
-        <em className={`st-${r.status}`}>{opts.status[r.status] ?? r.status}</em><small>{r.source}{r.admin_owned ? ' · ویرایش‌شده' : ''}</small></button></li>)}</ul>
+        <em className={`st-${r.status}`}>{opts.status[r.status] ?? r.status}</em><small>{r.source}{r.admin_owned ? ' · ویرایش‌شده' : ''}{r.duplicate_of ? ' · تکراری' : ''}{r.content_complete ? ' · محتوای کامل' : ''}</small></button></li>)}</ul>
     </>}
     {editing && opts && <form className="cadm-form" onSubmit={e => {e.preventDefault(); void save();}}>
       <div className="cadm-actions"><button type="button" className="button secondary" onClick={() => {setEditing(null); setNotice(null);}}>بازگشت به فهرست</button><button className="button primary" disabled={busy}>{busy ? 'در حال ذخیره…' : 'ذخیره'}</button></div>
+      {meta && <section aria-label="وضعیت هتل"><h2>وضعیت</h2><dl className="cadm-state">
+        <div><dt>Catalogued</dt><dd>{yes(meta.state.catalogued)}</dd></div><div><dt>ContentComplete</dt><dd>{yes(meta.state.content_complete)}</dd></div>
+        <div><dt>RateAvailable</dt><dd>{yes(meta.state.rate_available)}</dd></div><div><dt>Bookable</dt><dd>{yes(meta.state.bookable)}</dd></div>
+        <div><dt>Published</dt><dd>{yes(meta.state.published)}</dd></div><div><dt>Source</dt><dd dir="ltr">{meta.state.source}{meta.provenance?.source_ref ? ` · ${meta.provenance.source_ref}` : ''}</dd></div>
+        <div><dt>LastVerifiedAt</dt><dd dir="ltr">{meta.state.last_verified_at ? meta.state.last_verified_at.slice(0, 16).replace('T', ' ') : '—'}</dd></div></dl>
+        <p className="cadm-hint">نرخ فقط از تأمین‌کنندهٔ متصل و نگاشت تأییدشده می‌آید؛ تا آن زمان هتل «قابل رزرو» نیست و در سایت فقط استعلام نمایش داده می‌شود.</p>
+        {meta.duplicate_of && <p className="cadm-note error">این رکورد تکراریِ «{meta.duplicate_of.name}» ({meta.duplicate_of.source}) است و منتشر نمی‌شود. مبنا: <span dir="ltr">{meta.match_basis}</span></p>}
+        <div className="cadm-actions start">
+          {meta.state.published ? <button type="button" className="button secondary" disabled={busy} onClick={() => void act(`/admin/catalog/hotels/${encodeURIComponent(meta.id)}/status`, {status: 'hidden'}, 'از انتشار خارج شد.')}>خروج از انتشار</button>
+            : <button type="button" className="button secondary" disabled={busy || !!meta.duplicate_of} onClick={() => void act(`/admin/catalog/hotels/${encodeURIComponent(meta.id)}/status`, {status: 'published'}, 'منتشر شد.')}>انتشار</button>}
+          <label className="cadm-inline"><input type="checkbox" checked={form.mark_verified} onChange={e => set('mark_verified', e.target.checked)}/>محتوا را هم‌اکنون با منبع تطبیق دادم (با ذخیره ثبت می‌شود)</label></div>
+      </section>}
+      {meta && meta.matches.length > 0 && <section><h2>تکراری‌های احتمالی <small>(نام یکسان به‌تنهایی ادغام نمی‌شود؛ تصمیم با بازبین است)</small></h2>
+        {meta.matches.map(m => <div className="cadm-item" key={m.id}><p className="cadm-hint"><strong>{m.duplicate?.name}</strong> <span dir="ltr">({m.duplicate?.source})</span> ← رکورد اصلی: <strong>{m.canonical?.name}</strong> <span dir="ltr">({m.canonical?.source})</span></p>
+          <p className="cadm-hint">نشانی‌ها: <span dir="auto">{m.duplicate?.address ?? '—'}</span> | <span dir="auto">{m.canonical?.address ?? '—'}</span></p>
+          <p className="cadm-hint">مبنا: <span dir="ltr">{m.basis}</span> · وضعیت: {m.status === 'proposed' ? 'در انتظار تصمیم' : m.status === 'confirmed' ? (m.rule_based ? 'پیوند خودکار (نام + شهر + نشانی)' : 'تأییدشده') : 'ردشده'}</p>
+          <div className="cadm-actions start"><button type="button" className="button secondary" disabled={busy} onClick={() => void act(`/admin/catalog/matches/${m.id}`, {decision: 'confirm', merge_fields: true}, 'تکراری تأیید شد و فیلدهای خالی رکورد اصلی تکمیل گردید.')}>تأیید و تکمیل فیلدهای خالی رکورد اصلی</button>
+            <button type="button" className="button secondary" disabled={busy} onClick={() => void act(`/admin/catalog/matches/${m.id}`, {decision: 'reject'}, 'ثبت شد: این دو رکورد یکی نیستند.')}>تکراری نیست</button></div></div>)}</section>}
       <section><h2>شناسه و طبقه‌بندی</h2><div className="cadm-grid">
         <Text label="نام فارسی" value={form.name_fa} onChange={v => set('name_fa', v)}/><Text label="نام انگلیسی" value={form.name_en} onChange={v => set('name_en', v)} ltr/><Text label="نام محلی" value={form.name_local} onChange={v => set('name_local', v)}/>
         <Select label="نوع اقامتگاه" value={form.hotel_type} onChange={v => set('hotel_type', v)} options={opts.hotel_types}/>
@@ -161,6 +198,10 @@ export function CatalogAdmin() {
       <section><h2>تماس و منبع</h2><div className="cadm-grid">
         <Text label="تلفن" value={form.phone} onChange={v => set('phone', v)} ltr/><Text label="وب‌سایت (https)" value={form.website} onChange={v => set('website', v)} ltr/><Text label="ایمیل" value={form.email} onChange={v => set('email', v)} ltr/>
         <Text label="ارجاع منبع" value={form.source_ref} onChange={v => set('source_ref', v)} ltr/><Text label="تاریخ دریافت (YYYY-MM-DD)" value={form.retrieved_on} onChange={v => set('retrieved_on', v)} ltr/></div></section>
+      {meta && <section><h2>نگاشت تأمین‌کننده <small>(پیش‌نیاز نرخ؛ بدون نگاشت تأییدشده نرخی نمایش داده نمی‌شود)</small></h2>
+        {meta.provider_mappings.length ? <ul className="cadm-history">{meta.provider_mappings.map(p => <li key={p.id}><span dir="ltr">{p.provider} · {p.provider_hotel_id}</span><em>{p.status === 'verified' ? 'تأییدشده' : 'تأییدنشده'}</em></li>)}</ul> : <p className="cadm-hint">نگاشتی ثبت نشده است.</p>}</section>}
+      {meta && <section><h2>سابقهٔ ممیزی</h2>{events.length ? <ul className="cadm-history">{events.map(e => <li key={e.id}><span dir="ltr">{e.at.slice(0, 16).replace('T', ' ')}</span><strong>{ACTION_FA[e.action] ?? e.action}</strong><em>{e.actor ?? '—'}</em>
+        <small dir="auto">{Array.isArray(e.detail.changed) ? (e.detail.changed as string[]).join('، ') : e.detail.to ? `${String(e.detail.from)} → ${String(e.detail.to)}` : Array.isArray(e.detail.filled) ? (e.detail.filled as string[]).join('، ') : ''}</small></li>)}</ul> : <p className="cadm-hint">هنوز تغییری ثبت نشده است.</p>}</section>}
       <div className="cadm-actions"><button className="button primary" disabled={busy}>{busy ? 'در حال ذخیره…' : 'ذخیره'}</button></div>
     </form>}
   </div>;

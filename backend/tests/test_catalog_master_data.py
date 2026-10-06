@@ -30,8 +30,8 @@ VENUES = [{"id": "v1", "kind": "restaurant", "name_fa": "رستوران آزمو
 def _load(tmp_path):
     with SessionLocal() as db:  # the importer is additive; tests start from an empty hotel table explicitly
         from sqlalchemy import delete
-        from app.catalog import CatalogHotel, CatalogHotelImage, CatalogHotelRoomType
-        for model in (CatalogHotelImage, CatalogHotelRoomType, CatalogHotel): db.execute(delete(model))
+        from app.catalog import CatalogHotel, CatalogHotelImage, CatalogHotelMatch, CatalogHotelProviderMapping, CatalogHotelRoomType
+        for model in (CatalogHotelMatch, CatalogHotelProviderMapping, CatalogHotelImage, CatalogHotelRoomType, CatalogHotel): db.execute(delete(model))
         db.commit()
     data = {"places": PLACES, "hotels": HOTELS, "airlines": AIRLINES, "airports": AIRPORTS, "rail_operators": [], "rail_stations": [], "venues": VENUES}
     for name, rows in data.items():

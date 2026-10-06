@@ -16,8 +16,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.orm import Session
 
-from .catalog import (AMENITIES, BED_TYPES, HOTEL_STATUS, HOTEL_TYPES, POLICY_FIELDS, POLICY_VALUES, ROOM_VIEWS, STARS_STATUS, CatalogHotel, CatalogHotelImage,
-                      CatalogHotelRoomType, CatalogPlace, _hotel, _places_for, hotel_image, normalize_text, room_type)
+from .catalog import (AMENITIES, BED_TYPES, HOTEL_STATUS, HOTEL_TYPES, POLICY_FIELDS, POLICY_VALUES, ROOM_VIEWS, STARS_STATUS, CatalogHotel, CatalogHotelImage, CatalogHotelMatch,
+                      CatalogHotelProviderMapping, CatalogHotelRoomType, CatalogPlace, _hotel, _places_for, content_is_complete, hotel_image, normalize_text, room_type)
 
 Policy = Optional[Literal["allowed", "not_allowed", "on_request"]]
 _URL = r"^https://[^\s]+$"
@@ -87,6 +87,7 @@ class HotelIn(Strict):
     retrieved_on: Optional[str] = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     images: list[ImageIn] = Field(default_factory=list, max_length=40)
     room_types: list[RoomTypeIn] = Field(default_factory=list, max_length=40)
+    mark_verified: bool = False  # reviewer states the content was checked against its source now
 
     @field_validator("amenities")
     @classmethod
@@ -94,15 +95,39 @@ class HotelIn(Strict):
         return _known_amenities(v)
 
 
+class StatusIn(Strict):
+    status: Literal[tuple(HOTEL_STATUS)]  # type: ignore[valid-type]
+
+
+class MatchDecisionIn(Strict):
+    decision: Literal["confirm", "reject"]
+    merge_fields: bool = False  # on confirm: copy the duplicate's values into the canonical record's EMPTY fields only
+
+
+class ProviderMappingIn(Strict):
+    provider: str = Field(pattern=r"^[a-z0-9_-]{2,40}$")
+    provider_hotel_id: str = Field(min_length=1, max_length=120)
+
+
 def _slugify(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")[:150] or "hotel"
 
 
-def catalog_admin_router(get_db, guard: Callable, audit: Callable) -> APIRouter:
+def catalog_admin_router(get_db, guard: Callable, audit: Callable, history: Callable) -> APIRouter:
     router = APIRouter(prefix="/admin/catalog", tags=["catalog-admin"])
 
     def full(db: Session, row: CatalogHotel) -> dict:
         data = _hotel(row, _places_for(db, {row.city_id, row.region_id, row.country_code.lower()}), full=True)
+        matches = db.scalars(select(CatalogHotelMatch).where(or_(CatalogHotelMatch.hotel_id == row.id, CatalogHotelMatch.candidate_id == row.id)).order_by(CatalogHotelMatch.id)).all()
+        others = {h.id: h for h in db.scalars(select(CatalogHotel).where(CatalogHotel.id.in_({m.hotel_id for m in matches} | {m.candidate_id for m in matches} | {row.duplicate_of or ""})))}
+
+        def brief(hid):
+            h = others.get(hid)
+            return None if h is None else {"id": h.id, "name": h.name_fa or h.name_en or h.name_local, "name_en": h.name_en, "source": h.source, "status": h.status, "address": h.address}
+        data.update({"duplicate_of": brief(row.duplicate_of) if row.duplicate_of else None, "match_basis": row.match_basis,
+                     "matches": [{"id": m.id, "basis": m.basis, "status": m.status, "rule_based": m.decided_by is None and m.status != "proposed", "duplicate": brief(m.hotel_id), "canonical": brief(m.candidate_id)} for m in matches],
+                     "provider_mappings": [{"id": pm.id, "provider": pm.provider, "provider_hotel_id": pm.provider_hotel_id, "status": pm.status, "verified_at": pm.verified_at.isoformat() if pm.verified_at else None}
+                                           for pm in db.scalars(select(CatalogHotelProviderMapping).where(CatalogHotelProviderMapping.hotel_id == row.id))]})
         data.update({"status": row.status, "children_policy": row.children_policy, "pets_policy": row.pets_policy, "smoking_policy": row.smoking_policy,
                      "amenity_keys": json.loads(row.amenities_json or "[]"), "updated_at": row.updated_at.isoformat() if row.updated_at else None, "admin_owned": row.updated_by is not None,
                      "images": [hotel_image(i) for i in db.scalars(select(CatalogHotelImage).where(CatalogHotelImage.hotel_id == row.id).order_by(CatalogHotelImage.sort_order))],
@@ -122,10 +147,14 @@ def catalog_admin_router(get_db, guard: Callable, audit: Callable) -> APIRouter:
         return [{"id": c.id, "name": c.name_fa or c.name_en, "name_en": c.name_en} for c in db.scalars(stmt.order_by(CatalogPlace.hotel_count.desc(), CatalogPlace.population.desc().nulls_last()).limit(50))]
 
     @router.get("/hotels")
-    def list_hotels(q: str = "", status: Optional[str] = None, source: Optional[str] = None, country: Optional[str] = None, offset: int = Query(default=0, ge=0),
+    def list_hotels(q: str = "", status: Optional[str] = None, review: Optional[str] = None, source: Optional[str] = None, country: Optional[str] = None, offset: int = Query(default=0, ge=0),
                     limit: int = Query(default=30, ge=1, le=100), user=Depends(guard), db: Session = Depends(get_db)) -> dict:
         stmt = select(CatalogHotel)
         if status: stmt = stmt.where(CatalogHotel.status == status)
+        if review == "duplicates": stmt = stmt.where(or_(CatalogHotel.duplicate_of.is_not(None), CatalogHotel.id.in_(select(CatalogHotelMatch.hotel_id).where(CatalogHotelMatch.status == "proposed"))))
+        elif review == "no_city": stmt = stmt.where(CatalogHotel.city_id.is_(None))
+        elif review == "complete": stmt = stmt.where(CatalogHotel.content_complete.is_(True))
+        elif review == "incomplete": stmt = stmt.where(CatalogHotel.content_complete.is_(False))
         if source: stmt = stmt.where(CatalogHotel.source == source)
         if country: stmt = stmt.where(CatalogHotel.country_code == country.upper())
         for token in normalize_text(q).split()[:4]: stmt = stmt.where(or_(CatalogHotel.search_text.like(f"%{token}%"), CatalogHotel.id == q.strip()))
@@ -134,7 +163,7 @@ def catalog_admin_router(get_db, guard: Callable, audit: Callable) -> APIRouter:
         places = _places_for(db, {r.city_id for r in rows})
         return {"total": total, "items": [{"id": r.id, "slug": r.slug, "name": r.name_fa or r.name_en or r.name_local, "name_en": r.name_en, "country_code": r.country_code,
                                            "city": (places[r.city_id].name_fa or places[r.city_id].name_en) if r.city_id in places else None, "stars": r.stars, "status": r.status,
-                                           "source": r.source, "admin_owned": r.updated_by is not None} for r in rows]}
+                                           "source": r.source, "admin_owned": r.updated_by is not None, "content_complete": bool(r.content_complete), "duplicate_of": r.duplicate_of} for r in rows]}
 
     @router.get("/hotels/{hotel_id}")
     def get_hotel(hotel_id: str, user=Depends(guard), db: Session = Depends(get_db)) -> dict:
@@ -149,9 +178,12 @@ def catalog_admin_router(get_db, guard: Callable, audit: Callable) -> APIRouter:
         city = db.get(CatalogPlace, data.city_id) if data.city_id else None
         if data.city_id and (city is None or city.kind != "city" or city.country_code != data.country_code): raise HTTPException(status_code=422, detail="شهر با کشور انتخاب‌شده هم‌خوان نیست")
         if data.status == "published" and city is None: raise HTTPException(status_code=422, detail="برای انتشار، شهر الزامی است")
-        for key, value in data.model_dump(exclude={"images", "room_types", "amenities"}).items(): setattr(row, key, value)
+        if data.status == "published" and row.duplicate_of: raise HTTPException(status_code=422, detail="این رکورد تکراری یک هتل دیگر است و منتشر نمی‌شود")
+        for key, value in data.model_dump(exclude={"images", "room_types", "amenities", "mark_verified"}).items(): setattr(row, key, value)
+        if data.mark_verified: row.last_verified_at = datetime.now(timezone.utc)
         row.region_id = city.parent_id if city and city.parent_id and city.parent_id != data.country_code.lower() else None
         row.amenities_json = json.dumps(data.amenities)
+        row.content_complete = content_is_complete(row, len(data.images), len(data.room_types))
         row.image_url = data.images[0].url if data.images else None
         row.image_credit = f"{data.images[0].author or ''} · {data.images[0].license}".strip(" ·") if data.images else None
         names = " ".join(filter(None, [data.name_fa, data.name_en, data.name_local, city.search_text if city else "", data.address]))
@@ -170,7 +202,7 @@ def catalog_admin_router(get_db, guard: Callable, audit: Callable) -> APIRouter:
         if row is None: raise HTTPException(status_code=404, detail="هتل پیدا نشد")
         before = full(db, row)
         apply(db, row, data, user)
-        changed = sorted(k for k, v in data.model_dump().items() if before.get(k if k != "amenities" else "amenity_keys") != v)
+        changed = sorted(k for k, v in data.model_dump(exclude={"mark_verified"}).items() if before.get(k if k != "amenities" else "amenity_keys") != v) + (["verified"] if data.mark_verified else [])
         audit(db, user, "catalog_hotel.updated", {"hotel_id": row.id, "changed": changed})
         db.commit()
         return full(db, row)
@@ -184,6 +216,65 @@ def catalog_admin_router(get_db, guard: Callable, audit: Callable) -> APIRouter:
         db.add(row)
         apply(db, row, data, user)
         audit(db, user, "catalog_hotel.created", {"hotel_id": row.id})
+        db.commit()
+        return full(db, row)
+
+    @router.post("/hotels/{hotel_id}/status")
+    def set_status(hotel_id: str, data: StatusIn, user=Depends(guard), db: Session = Depends(get_db)) -> dict:
+        row = db.scalar(select(CatalogHotel).where(CatalogHotel.id == hotel_id).with_for_update())
+        if row is None: raise HTTPException(status_code=404, detail="هتل پیدا نشد")
+        if data.status == "published":
+            if row.duplicate_of: raise HTTPException(status_code=422, detail="این رکورد تکراری یک هتل دیگر است و منتشر نمی‌شود")
+            if not row.city_id: raise HTTPException(status_code=422, detail="برای انتشار، شهر الزامی است")
+            if row.stars is not None and row.stars_status is None: raise HTTPException(status_code=422, detail="وضعیت تأیید درجهٔ ستاره را مشخص کنید")
+        previous, row.status = row.status, data.status
+        row.updated_at, row.updated_by = datetime.now(timezone.utc), user.id
+        audit(db, user, "catalog_hotel.status_changed", {"hotel_id": row.id, "from": previous, "to": data.status})
+        db.commit()
+        return full(db, row)
+
+    @router.get("/hotels/{hotel_id}/history")
+    def hotel_history(hotel_id: str, user=Depends(guard), db: Session = Depends(get_db)) -> list[dict]:
+        if db.get(CatalogHotel, hotel_id) is None: raise HTTPException(status_code=404, detail="هتل پیدا نشد")
+        return history(db, hotel_id)
+
+    @router.post("/matches/{match_id}")
+    def decide_match(match_id: int, data: MatchDecisionIn, user=Depends(guard), db: Session = Depends(get_db)) -> dict:
+        match = db.scalar(select(CatalogHotelMatch).where(CatalogHotelMatch.id == match_id).with_for_update())
+        if match is None: raise HTTPException(status_code=404, detail="مورد تطبیق پیدا نشد")
+        dup, canonical = db.get(CatalogHotel, match.hotel_id), db.get(CatalogHotel, match.candidate_id)
+        now, filled = datetime.now(timezone.utc), []
+        if data.decision == "reject":
+            match.status = "rejected"
+            if dup.duplicate_of == canonical.id: dup.duplicate_of, dup.match_basis = None, None
+        else:
+            if canonical.duplicate_of: raise HTTPException(status_code=409, detail="رکورد اصلی خودش تکراری رکورد دیگری است")
+            if dup.status == "published": raise HTTPException(status_code=409, detail="ابتدا رکورد تکراری را از انتشار خارج کنید")
+            match.status, dup.duplicate_of, dup.match_basis = "confirmed", canonical.id, f"{match.basis}+reviewed"
+            if data.merge_fields:
+                for key in ("name_fa", "name_en", "address", "checkin_time", "checkout_time"):
+                    if getattr(canonical, key) in (None, "") and getattr(dup, key):
+                        setattr(canonical, key, getattr(dup, key)); filled.append(key)
+                if canonical.stars is None and dup.stars is not None:
+                    canonical.stars, canonical.stars_status = dup.stars, dup.stars_status; filled.append("stars")
+                if filled:
+                    canonical.search_text = normalize_text(" ".join(filter(None, [canonical.search_text, dup.name_fa, dup.name_en])))
+                    canonical.updated_at, canonical.updated_by = now, user.id
+        match.decided_by, match.decided_at = user.id, now
+        dup.updated_at, dup.updated_by = now, user.id
+        audit(db, user, f"catalog_hotel.match_{match.status}", {"hotel_id": dup.id, "canonical_id": canonical.id, "basis": match.basis, "filled": filled})
+        if filled: audit(db, user, "catalog_hotel.merged_fields", {"hotel_id": canonical.id, "from": dup.id, "filled": filled})
+        db.commit()
+        return full(db, dup)
+
+    @router.post("/hotels/{hotel_id}/provider-mappings", status_code=201)
+    def add_mapping(hotel_id: str, data: ProviderMappingIn, user=Depends(guard), db: Session = Depends(get_db)) -> dict:
+        row = db.get(CatalogHotel, hotel_id)
+        if row is None: raise HTTPException(status_code=404, detail="هتل پیدا نشد")
+        if db.scalar(select(CatalogHotelProviderMapping.id).where(CatalogHotelProviderMapping.provider == data.provider, CatalogHotelProviderMapping.provider_hotel_id == data.provider_hotel_id)):
+            raise HTTPException(status_code=409, detail="این شناسهٔ تأمین‌کننده قبلاً به هتل دیگری یا همین هتل نگاشت شده است")
+        db.add(CatalogHotelProviderMapping(hotel_id=row.id, provider=data.provider, provider_hotel_id=data.provider_hotel_id, status="unverified"))
+        audit(db, user, "catalog_hotel.provider_mapping_added", {"hotel_id": row.id, "provider": data.provider, "provider_hotel_id": data.provider_hotel_id})
         db.commit()
         return full(db, row)
 
