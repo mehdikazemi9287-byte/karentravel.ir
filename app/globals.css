@@ -677,3 +677,27 @@ a.cat-card:hover{box-shadow:0 12px 28px rgba(8,37,61,.12);transform:translateY(-
 .cat-thumb-empty+.cat-card-body .cat-card-top .cat-tag{display:none}
 .cat-thumb-empty+.cat-card-body .cat-card-top:not(:has(.cat-stars,.cat-detail-tag)){display:none}
 @media(max-width:480px){.cat-thumb-empty{height:52px}}
+
+/* catalog hotel content + admin editor */
+.cat-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.cat-gallery figure{margin:0;display:grid;gap:4px}.cat-gallery figure.lead{grid-column:1/-1}
+.cat-gallery img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:12px;background:#eef2f5}.cat-gallery .lead img{aspect-ratio:16/9}
+.cat-gallery figcaption{font-size:10.5px;color:var(--muted);overflow-wrap:anywhere}
+.cat-rooms{list-style:none;margin:0;padding:0;display:grid;gap:10px}.cat-rooms li{border:1px solid var(--line);border-radius:12px;padding:10px 12px}.cat-rooms p{margin:4px 0;font-size:13px}
+.cadm{display:grid;gap:16px;max-width:1080px;margin:0 auto;padding:16px}.cadm h1{font-size:22px;margin:0}.cadm header p{color:var(--muted);font-size:13px;margin:6px 0 0}
+.cadm-note{border-radius:12px;padding:10px 14px;font-size:13px;margin:0}.cadm-note.ok{background:#e8f7ef;color:#11613a}.cadm-note.error{background:#fdecec;color:#9b1c1c;overflow-wrap:anywhere}
+.cadm-bar,.cadm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;align-items:end}
+.cadm label{display:grid;gap:4px;font-size:12px;font-weight:600;color:var(--muted)}.cadm label.wide{grid-column:1/-1}
+.cadm input,.cadm select,.cadm textarea{border:1px solid var(--line);border-radius:10px;padding:9px 10px;font:inherit;font-size:14px;color:var(--ink);background:#fff;width:100%;min-width:0}
+.cadm-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.cadm-list button{width:100%;display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.5fr) auto auto;gap:10px;align-items:center;text-align:start;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font:inherit;cursor:pointer}
+.cadm-list span,.cadm-list small{font-size:12px;color:var(--muted)}.cadm-list em{font-style:normal;font-size:11px;border-radius:999px;padding:2px 10px;background:#eef2f5}
+.cadm-list em.st-published{background:#e8f7ef;color:#11613a}.cadm-list em.st-draft{background:#fff5df;color:#8a5a00}.cadm-count{font-size:12px;color:var(--muted);margin:0}
+.cadm-form{display:grid;gap:14px}.cadm-form section{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;display:grid;gap:10px}
+.cadm-form h2{font-size:15px;margin:0}.cadm-form h2 small{font-weight:400;color:var(--muted);font-size:12px}
+.cadm-checks{border:0;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}.cadm-checks legend{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;padding:0}
+.cadm-checks label{display:inline-flex;grid-template-columns:none;gap:6px;align-items:center;border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-weight:400;color:var(--ink);cursor:pointer}
+.cadm-checks label.on{border-color:var(--ocean);background:#e9f6f8}.cadm-checks input{width:auto;accent-color:var(--ocean)}
+.cadm-item{border:1px dashed var(--line);border-radius:12px;padding:10px;display:grid;gap:8px}.cadm-item img{width:100%;max-width:220px;aspect-ratio:4/3;object-fit:cover;border-radius:10px}
+.cadm-remove{justify-self:start;background:none;border:0;color:#9b1c1c;font:inherit;font-size:12px;cursor:pointer;padding:0}.cadm-actions{display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap}
+@media(max-width:640px){.cadm{padding:10px}.cadm-list button{grid-template-columns:1fr auto}.cadm-list span,.cadm-list small{grid-column:1/-1}}

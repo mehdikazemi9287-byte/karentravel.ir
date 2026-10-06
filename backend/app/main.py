@@ -5064,3 +5064,11 @@ from .enterprise import router as enterprise_router
 app.include_router(enterprise_router(current_user, get_db, User))
 from .catalog import catalog_router  # noqa: E402  (global master data; registers catalog tables)
 app.include_router(catalog_router(get_db))
+
+
+def _catalog_audit(db: Session, user: User, action: str, detail: dict) -> None:
+    db.add(AuditEvent(tenant_id=user.tenant_id, actor_id=user.id, action=action, entity="catalog_hotel", entity_id=0, detail=json.dumps(detail, sort_keys=True, ensure_ascii=False)))
+
+
+from .catalog_admin import catalog_admin_router  # noqa: E402
+app.include_router(catalog_admin_router(get_db, require_role("platform_admin", "backoffice_expert"), _catalog_audit))

@@ -1,8 +1,10 @@
 """Master/catalog data: real, relatively static reference records shared by all tenants.
 
 Strictly separated from commercial data: nothing here carries a price, offer, availability,
-inventory, room, seat, rating or review. Supplier offers attach later by catalog id.
-Tables are global (no tenant_id) and read-only for the API role.
+inventory, seat or review. Supplier offers attach later by catalog id.
+Hotel content (room *types*, policies, licensed images) is descriptive only: it never implies a
+rate or free room. Tables are global (no tenant_id); the API role may edit hotel content only
+through the audited admin endpoints in catalog_admin.py (ADR-028 addendum).
 """
 from __future__ import annotations
 
@@ -12,7 +14,9 @@ import unicodedata
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
-from sqlalchemy import Float, ForeignKey, Index, Integer, String, Text, func, or_, select
+from datetime import datetime
+
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text, func, or_, select
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from .database import Base
@@ -20,7 +24,16 @@ from .database import Base
 PRICE_NOTE_FA = "قیمت پس از انتخاب تاریخ و استعلام"
 VENUE_PRICE_NOTE_FA = "قیمت پس از استعلام"
 HOTEL_TYPES = {"hotel": "هتل", "motel": "متل", "guest_house": "مهمان‌پذیر و اقامتگاه", "hostel": "هاستل", "apartment": "هتل‌آپارتمان و سوئیت", "chalet": "ویلا و کلبه", "resort": "ریزورت"}
-AMENITIES = {"wifi": "اینترنت", "parking": "پارکینگ", "pool": "استخر", "restaurant": "رستوران", "bar": "کافه/بار", "air_conditioning": "تهویه مطبوع", "accessible": "دسترسی ویلچر", "breakfast": "صبحانه", "spa": "اسپا", "fitness": "سالن ورزش", "pets": "پذیرش حیوان خانگی"}
+AMENITIES = {"wifi": "اینترنت", "parking": "پارکینگ", "pool": "استخر", "restaurant": "رستوران", "bar": "کافه/بار", "air_conditioning": "تهویه مطبوع", "accessible": "دسترسی ویلچر", "breakfast": "صبحانه", "spa": "اسپا", "fitness": "سالن ورزش", "pets": "پذیرش حیوان خانگی",
+             "elevator": "آسانسور", "reception_24h": "پذیرش ۲۴ ساعته", "room_service": "سرویس اتاق", "laundry": "خشک‌شویی", "airport_shuttle": "ترانسفر فرودگاهی",
+             "family_rooms": "اتاق خانوادگی", "non_smoking_rooms": "اتاق‌های غیرسیگاری", "safe": "گاوصندوق", "minibar": "یخچال/مینی‌بار", "tv": "تلویزیون",
+             "kitchen": "آشپزخانه", "meeting_room": "سالن جلسات", "prayer_room": "نمازخانه", "currency_exchange": "صرافی", "tour_desk": "میز تور"}
+POLICY_VALUES = {"allowed": "مجاز", "not_allowed": "غیرمجاز", "on_request": "با هماهنگی"}
+POLICY_FIELDS = {"children_policy": "پذیرش کودک", "pets_policy": "حیوان خانگی", "smoking_policy": "استعمال دخانیات"}
+BED_TYPES = {"single": "یک‌تخته", "double": "دوتخته دبل", "twin": "دوتخته توئین", "triple": "سه‌تخته", "quad": "چهارتخته", "family": "خانوادگی", "suite": "سوئیت", "apartment": "آپارتمان"}
+ROOM_VIEWS = {"city": "شهر", "sea": "دریا", "garden": "باغ", "mountain": "کوه", "courtyard": "حیاط", "none": "بدون منظره"}
+STARS_STATUS = {"source_reported": "اعلام‌شده توسط منبع", "verified": "تأییدشده با منبع رسمی"}
+HOTEL_STATUS = {"draft": "پیش‌نویس", "published": "منتشرشده", "hidden": "پنهان"}
 VENUE_KINDS = {"restaurant": "رستوران", "cafe": "کافه", "attraction": "جاذبه گردشگری", "museum": "موزه", "historic": "بنای تاریخی", "pool_sport": "استخر و ورزش", "event_venue": "تالار و رویداد", "car_rental": "اجاره خودرو", "handicraft": "صنایع‌دستی", "travel_agency": "آژانس و تور", "tourist_info": "راهنمای گردشگری", "transport_terminal": "پایانه حمل‌ونقل"}
 _ARABIC_MAP = str.maketrans({"ي": "ی", "ى": "ی", "ك": "ک", "ة": "ه", "ۀ": "ه", "أ": "ا", "إ": "ا", "آ": "ا", "ؤ": "و", "‌": " ", "‏": "", "ـ": ""})
 
@@ -74,8 +87,8 @@ class CatalogHotel(SourceMixin, Base):
     hotel_type: Mapped[str] = mapped_column(String(24), index=True)
     stars: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
     address: Mapped[Optional[str]] = mapped_column(String(400), nullable=True)
-    latitude: Mapped[float] = mapped_column(Float)
-    longitude: Mapped[float] = mapped_column(Float)
+    latitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)  # unknown stays null; never a city centroid
+    longitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     amenities_json: Mapped[str] = mapped_column(Text, default="[]")
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     checkin_time: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
@@ -88,7 +101,45 @@ class CatalogHotel(SourceMixin, Base):
     wikidata_id: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     quality: Mapped[int] = mapped_column(Integer, default=0, index=True)  # completeness score, used only for ordering
     search_text: Mapped[str] = mapped_column(Text, default="")
+    rules_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    children_policy: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
+    pets_policy: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
+    smoking_policy: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
+    stars_status: Mapped[Optional[str]] = mapped_column(String(24), nullable=True)
+    status: Mapped[str] = mapped_column(String(16), default="published", server_default="published", index=True)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    updated_by: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # set => admin-owned; bulk importers never overwrite
     __table_args__ = (Index("ix_catalog_hotels_country_city", "country_code", "city_id"),)
+
+
+class CatalogHotelImage(Base):
+    __tablename__ = "catalog_hotel_images"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    hotel_id: Mapped[str] = mapped_column(ForeignKey("catalog_hotels.id", ondelete="CASCADE"), index=True)
+    url: Mapped[str] = mapped_column(String(500))
+    caption: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    author: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    license: Mapped[str] = mapped_column(String(80))  # required: no licence, no image
+    license_url: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
+    source_url: Mapped[str] = mapped_column(String(500))
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class CatalogHotelRoomType(Base):
+    """Descriptive room type (bedding, occupancy, view). Never a rate, allotment or free room."""
+    __tablename__ = "catalog_hotel_room_types"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    hotel_id: Mapped[str] = mapped_column(ForeignKey("catalog_hotels.id", ondelete="CASCADE"), index=True)
+    name_fa: Mapped[str] = mapped_column(String(160))
+    name_en: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
+    bed_type: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
+    max_adults: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    max_children: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    size_m2: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    view: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
+    amenities_json: Mapped[str] = mapped_column(Text, default="[]")
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
 
 
 class CatalogAirline(SourceMixin, Base):
@@ -174,6 +225,7 @@ class CatalogVenue(SourceMixin, Base):
 
 
 CATALOG_TABLES = tuple(m.__table__ for m in (CatalogPlace, CatalogHotel, CatalogAirline, CatalogAirport, CatalogRailOperator, CatalogRailStation, CatalogVenue))
+HOTEL_CONTENT_TABLES = (CatalogHotelImage.__table__, CatalogHotelRoomType.__table__)
 CATALOG_MODELS = {"places": CatalogPlace, "hotels": CatalogHotel, "airlines": CatalogAirline, "airports": CatalogAirport, "rail_operators": CatalogRailOperator, "rail_stations": CatalogRailStation, "venues": CatalogVenue}
 
 
@@ -200,8 +252,20 @@ def _hotel(row: CatalogHotel, places: dict[str, CatalogPlace], full: bool = Fals
             "price": None, "price_status": "inquiry", "price_note": PRICE_NOTE_FA}
     if full:
         data.update({"description": row.description, "checkin_time": row.checkin_time, "checkout_time": row.checkout_time, "phone": row.phone, "website": row.website,
-                     "email": row.email, "provenance": _provenance(row)})
+                     "email": row.email, "provenance": _provenance(row), "rules_text": row.rules_text, "stars_status": row.stars_status,
+                     "stars_status_fa": STARS_STATUS.get(row.stars_status or ""),
+                     "policies": [{"key": k, "label": label, "value": getattr(row, k), "value_fa": POLICY_VALUES[getattr(row, k)]} for k, label in POLICY_FIELDS.items() if getattr(row, k) in POLICY_VALUES]})
     return data
+
+
+def hotel_image(i: CatalogHotelImage) -> dict:
+    return {"id": i.id, "url": i.url, "caption": i.caption, "author": i.author, "license": i.license, "license_url": i.license_url, "source_url": i.source_url, "sort_order": i.sort_order}
+
+
+def room_type(r: CatalogHotelRoomType) -> dict:
+    return {"id": r.id, "name_fa": r.name_fa, "name_en": r.name_en, "bed_type": r.bed_type, "bed_type_fa": BED_TYPES.get(r.bed_type or ""), "max_adults": r.max_adults,
+            "max_children": r.max_children, "size_m2": r.size_m2, "view": r.view, "view_fa": ROOM_VIEWS.get(r.view or ""), "description": r.description, "sort_order": r.sort_order,
+            "amenities": [{"key": a, "label": AMENITIES.get(a, a)} for a in json.loads(r.amenities_json or "[]")]}
 
 
 def _brief(place: Optional[CatalogPlace]) -> Optional[dict]:
@@ -269,7 +333,11 @@ def catalog_router(get_db) -> APIRouter:
                 "hotels": row.hotel_count if scope is not None else db.scalar(select(func.count()).select_from(CatalogHotel).where(CatalogHotel.country_code == row.country_code)),
                 "airports": [_airport(a) for a in airports], "rail_stations": [_station(s) for s in stations], "venue_counts": venue_counts, "provenance": _provenance(row)}
 
-    def hotel_filters(stmt, country, region, city, stars, hotel_type, amenity, q, has_image):
+    def hotel_filters(stmt, country, region, city, stars, hotel_type, amenity, q, has_image, policy=None):
+        stmt = stmt.where(CatalogHotel.status == "published")
+        for item in (policy or "").split(","):  # e.g. pets_policy:allowed
+            key, _, value = item.partition(":")
+            if key in POLICY_FIELDS and value in POLICY_VALUES: stmt = stmt.where(getattr(CatalogHotel, key) == value)
         if country: stmt = stmt.where(CatalogHotel.country_code == country.upper())
         if region: stmt = stmt.where(CatalogHotel.region_id == region)
         if city: stmt = stmt.where(CatalogHotel.city_id == city)
@@ -286,10 +354,10 @@ def catalog_router(get_db) -> APIRouter:
 
     @router.get("/hotels")
     def hotels(response: Response, country: Optional[str] = None, region: Optional[str] = None, city: Optional[str] = None, stars: Optional[int] = Query(default=None, ge=1, le=5),
-               hotel_type: Optional[str] = None, amenity: Optional[str] = None, q: Optional[str] = None, has_image: bool = False,
+               hotel_type: Optional[str] = None, amenity: Optional[str] = None, q: Optional[str] = None, has_image: bool = False, policy: Optional[str] = None,
                offset: int = Query(default=0, ge=0), limit: int = Query(default=24, ge=1, le=60), db: Session = Depends(get_db)) -> dict:
         cached(response)
-        base = hotel_filters(select(CatalogHotel), country, region, city, stars, hotel_type, amenity, q, has_image)
+        base = hotel_filters(select(CatalogHotel), country, region, city, stars, hotel_type, amenity, q, has_image, policy)
         total = db.scalar(select(func.count()).select_from(base.subquery()))
         rows = db.scalars(base.order_by(CatalogHotel.quality.desc(), CatalogHotel.id).offset(offset).limit(limit)).all()
         places_map = _places_for(db, {r.city_id for r in rows} | {r.region_id for r in rows})
@@ -298,7 +366,7 @@ def catalog_router(get_db) -> APIRouter:
     @router.get("/hotels/facets")
     def hotel_facets(response: Response, country: Optional[str] = None, city: Optional[str] = None, db: Session = Depends(get_db)) -> dict:
         cached(response)
-        countries = db.execute(select(CatalogHotel.country_code, func.count()).group_by(CatalogHotel.country_code).order_by(func.count().desc())).all()
+        countries = db.execute(select(CatalogHotel.country_code, func.count()).where(CatalogHotel.status == "published").group_by(CatalogHotel.country_code).order_by(func.count().desc())).all()
         country_places = _places_for(db, {c.lower() for c, _ in countries})
         scoped = hotel_filters(select(CatalogHotel), country, None, city, None, None, None, None, False).subquery()
         city_rows = db.execute(select(scoped.c.city_id, func.count()).where(scoped.c.city_id.is_not(None)).group_by(scoped.c.city_id).order_by(func.count().desc()).limit(80)).all() if not city else []
@@ -309,17 +377,21 @@ def catalog_router(get_db) -> APIRouter:
         return {"countries": [{"code": c, "name": (country_places.get(c.lower()).name_fa if country_places.get(c.lower()) else c), "count": n} for c, n in countries],
                 "cities": [{"id": c, "name": city_places[c].name_fa or city_places[c].name_en, "count": n} for c, n in city_rows if c in city_places],
                 "stars": [{"value": s, "count": n} for s, n in stars], "types": [{"key": t, "label": HOTEL_TYPES.get(t, t), "count": n} for t, n in types],
-                "amenities": [a for a in amenities if a["count"]]}
+                "amenities": [a for a in amenities if a["count"]],
+                "policies": [{"key": f"{k}:{v}", "label": f"{label}: {vfa}", "count": n} for k, label in POLICY_FIELDS.items() for v, vfa in POLICY_VALUES.items()
+                             for n in [db.scalar(select(func.count()).select_from(scoped).where(getattr(scoped.c, k) == v))] if n]}
 
     @router.get("/hotels/{slug}")
     def hotel_detail(slug: str, response: Response, db: Session = Depends(get_db)) -> dict:
         cached(response)
-        row = db.scalar(select(CatalogHotel).where(or_(CatalogHotel.slug == slug, CatalogHotel.id == slug)))
+        row = db.scalar(select(CatalogHotel).where(or_(CatalogHotel.slug == slug, CatalogHotel.id == slug), CatalogHotel.status == "published"))
         if row is None:
             raise HTTPException(status_code=404, detail="هتل پیدا نشد")
         places_map = _places_for(db, {row.city_id, row.region_id, row.country_code.lower()})
         data = _hotel(row, places_map, full=True)
         data["country"] = _brief(places_map.get(row.country_code.lower()))
+        data["images"] = [hotel_image(i) for i in db.scalars(select(CatalogHotelImage).where(CatalogHotelImage.hotel_id == row.id).order_by(CatalogHotelImage.sort_order, CatalogHotelImage.id))]
+        data["room_types"] = [room_type(r) for r in db.scalars(select(CatalogHotelRoomType).where(CatalogHotelRoomType.hotel_id == row.id).order_by(CatalogHotelRoomType.sort_order, CatalogHotelRoomType.id))]
         if row.city_id:
             data["nearby_airports"] = [_airport(a) for a in db.scalars(select(CatalogAirport).where(CatalogAirport.city_id == row.city_id).limit(4))]
             data["nearby_rail_stations"] = [_station(s) for s in db.scalars(select(CatalogRailStation).where(CatalogRailStation.city_id == row.city_id).limit(4))]
@@ -417,7 +489,7 @@ def catalog_router(get_db) -> APIRouter:
             return 2 if term in p.search_text.split() or f" {term} " in f" {p.search_text} " else 3
         place_rows = sorted(candidates, key=rank)[:6]
         airport_rows = db.scalars(select(CatalogAirport).where(or_(CatalogAirport.search_text.like(f"%{term}%"), CatalogAirport.id == term.upper())).limit(4)).all()
-        hotel_stmt = select(CatalogHotel)
+        hotel_stmt = select(CatalogHotel).where(CatalogHotel.status == "published")
         for token in tokens[:4]:
             hotel_stmt = hotel_stmt.where(CatalogHotel.search_text.like(f"%{token}%"))
         hotel_rows = db.scalars(hotel_stmt.order_by(CatalogHotel.quality.desc()).limit(6)).all()

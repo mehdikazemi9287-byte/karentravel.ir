@@ -8,11 +8,14 @@ import {useAuth} from '../../lib/api/auth-context';
 
 type Brief = {id: string; name: string; name_en?: string | null} | null;
 type Hotel = {id: string; slug: string; name: string; name_fa: string | null; name_en: string | null; name_local: string | null; hotel_type: string; hotel_type_fa: string; stars: number | null; country_code: string;
-  city: Brief; region: Brief; country?: Brief; address: string | null; latitude: number; longitude: number; amenities: {key: string; label: string}[]; image_url: string | null; image_credit: string | null; price_note: string;
+  city: Brief; region: Brief; country?: Brief; address: string | null; latitude: number | null; longitude: number | null; amenities: {key: string; label: string}[]; image_url: string | null; image_credit: string | null; price_note: string;
+  rules_text?: string | null; stars_status?: string | null; stars_status_fa?: string | null; policies?: {key: string; label: string; value_fa: string}[];
+  images?: {id: number; url: string; caption: string | null; author: string | null; license: string; license_url: string | null; source_url: string}[];
+  room_types?: {id: number; name_fa: string; name_en: string | null; bed_type_fa: string | null; max_adults: number | null; max_children: number | null; size_m2: number | null; view_fa: string | null; description: string | null; amenities: {key: string; label: string}[]}[];
   description?: string | null; checkin_time?: string | null; checkout_time?: string | null; phone?: string | null; website?: string | null; email?: string | null;
   provenance?: Provenance; nearby_airports?: Airport[]; nearby_rail_stations?: Station[]};
 type Provenance = {source: string; source_ref: string | null; license: string | null; retrieved_on: string | null};
-type Facets = {countries: {code: string; name: string; count: number}[]; cities: {id: string; name: string; count: number}[]; stars: {value: number; count: number}[]; types: {key: string; label: string; count: number}[]; amenities: {key: string; label: string; count: number}[]};
+type Facets = {countries: {code: string; name: string; count: number}[]; cities: {id: string; name: string; count: number}[]; stars: {value: number; count: number}[]; types: {key: string; label: string; count: number}[]; amenities: {key: string; label: string; count: number}[]; policies?: {key: string; label: string; count: number}[]};
 type Page<T> = {total: number; offset: number; limit: number; items: T[]; price_note: string};
 type Venue = {id: string; kind: string; kind_fa: string; name: string; name_en: string | null; city: Brief; region: Brief; address: string | null; latitude: number; longitude: number; phone: string | null; website: string | null;
   opening_hours: string | null; detail: string | null; description: string | null; image_url: string | null; image_credit: string | null; price_note: string};
@@ -99,19 +102,19 @@ const PAGE = 24;
 export function HotelCatalog({presetTypes, title = 'هتل‌ها و اقامتگاه‌های ثبت‌شده', intro}: {presetTypes?: string[]; title?: string; intro?: string}) {
   const {params, set} = useQueryState();
   const country = params.get('country') || '', city = params.get('city') || '', region = params.get('region') || '', stars = params.get('stars') || '';
-  const type = params.get('hotel_type') || '', amenity = params.get('amenity') || '', q = params.get('q') || '', page = Math.max(1, Number(params.get('page')) || 1);
+  const type = params.get('hotel_type') || '', amenity = params.get('amenity') || '', policy = params.get('policy') || '', q = params.get('q') || '', page = Math.max(1, Number(params.get('page')) || 1);
   const scope = new URLSearchParams();
   if (country) scope.set('country', country);
   const facets = useCatalog<Facets>(`/catalog/hotels/facets${scope.size ? '?' + scope : ''}`);
   const query = new URLSearchParams(scope);
   if (city) query.set('city', city); if (region) query.set('region', region); if (stars) query.set('stars', stars);
-  if (type || presetTypes) query.set('hotel_type', type || presetTypes!.join(',')); if (amenity) query.set('amenity', amenity); if (q) query.set('q', q);
+  if (type || presetTypes) query.set('hotel_type', type || presetTypes!.join(',')); if (amenity) query.set('amenity', amenity); if (policy) query.set('policy', policy); if (q) query.set('q', q);
   query.set('limit', String(PAGE)); query.set('offset', String((page - 1) * PAGE));
   const list = useCatalog<Page<Hotel>>(`/catalog/hotels?${query}`);
   const data = list.data ?? list.stale; const f = facets.data ?? facets.stale;
   const amen = amenity ? amenity.split(',') : [];
   const types = f?.types.filter(t => !presetTypes || presetTypes.includes(t.key)) ?? [];
-  const active = city || region || stars || type || amenity || q;
+  const active = city || region || stars || type || amenity || policy || q;
   return <section className="cat" id="catalog" aria-labelledby="cat-hotels-title">
     <header className="cat-head"><div><h2 id="cat-hotels-title">{title}</h2><p>{intro ?? 'نام، موقعیت، درجه و امکانات هر اقامتگاه از منابع مرجع ثبت شده است. قیمت و ظرفیت پس از انتخاب تاریخ و استعلام از تأمین‌کننده اعلام می‌شود.'}</p></div>
       <SearchBox value={q} onSubmit={v => set({q: v || null})} placeholder="نام هتل، شهر یا کشور"/></header>
@@ -121,9 +124,10 @@ export function HotelCatalog({presetTypes, title = 'هتل‌ها و اقامت�
       <label>شهر<select value={city} onChange={e => set({city: e.target.value || null, region: null})}><option value="">همهٔ شهرها</option>{f?.cities.map(c => <option key={c.id} value={c.id}>{c.name} ({fa(c.count)})</option>)}</select></label>
       <label>درجه<select value={stars} onChange={e => set({stars: e.target.value || null})}><option value="">همه</option>{f?.stars.map(s => <option key={s.value} value={s.value}>{fa(s.value)} ستاره ({fa(s.count)})</option>)}</select></label>
       <label>نوع اقامتگاه<select value={type} onChange={e => set({hotel_type: e.target.value || null})}><option value="">همه</option>{types.map(t => <option key={t.key} value={t.key}>{t.label} ({fa(t.count)})</option>)}</select></label>
-      <fieldset><legend>امکانات</legend>{f?.amenities.slice(0, 8).map(a => <label key={a.key} className={amen.includes(a.key) ? 'on' : ''}><input type="checkbox" checked={amen.includes(a.key)} onChange={() => set({amenity: (amen.includes(a.key) ? amen.filter(x => x !== a.key) : [...amen, a.key]).join(',') || null})}/>{a.label}</label>)}</fieldset>
+      {f?.policies?.length ? <label>قوانین<select value={policy} onChange={e => set({policy: e.target.value || null})}><option value="">همه</option>{f.policies.map(p => <option key={p.key} value={p.key}>{p.label} ({fa(p.count)})</option>)}</select></label> : null}
+      <fieldset><legend>امکانات</legend>{f?.amenities.slice(0, 12).map(a => <label key={a.key} className={amen.includes(a.key) ? 'on' : ''}><input type="checkbox" checked={amen.includes(a.key)} onChange={() => set({amenity: (amen.includes(a.key) ? amen.filter(x => x !== a.key) : [...amen, a.key]).join(',') || null})}/>{a.label}</label>)}</fieldset>
     </div>
-    <div className="cat-meta"><span aria-live="polite">{data ? `${fa(data.total)} اقامتگاه` : ''}</span>{active && <button onClick={() => set({city: null, region: null, stars: null, hotel_type: null, amenity: null, q: null})}>حذف فیلترها</button>}</div>
+    <div className="cat-meta"><span aria-live="polite">{data ? `${fa(data.total)} اقامتگاه` : ''}</span>{active && <button onClick={() => set({city: null, region: null, stars: null, hotel_type: null, amenity: null, policy: null, q: null})}>حذف فیلترها</button>}</div>
     <Status loading={list.loading} error={list.error} empty={!data || data.items.length === 0}>اقامتگاهی با این شرایط ثبت نشده است. فیلترها را تغییر دهید.</Status>
     {data && data.items.length > 0 && <div className={`cat-grid${list.loading ? ' is-loading' : ''}`}>{data.items.map(h => <HotelCard key={h.id} h={h}/>)}</div>}
     {data && <Pager total={data.total} limit={PAGE} page={page} onPage={p => {set({page: p > 1 ? String(p) : null}); document.getElementById('catalog')?.scrollIntoView();}}/>}
@@ -138,17 +142,18 @@ export function HotelDetail({slug}: {slug: string}) {
   const summary = `${h.hotel_type_fa}${h.stars ? ` ${fa(h.stars)} ستاره` : ''}${where ? ` در ${where}` : ''}`;
   return <main className="journey-main cat-detail">
     <nav className="cat-crumbs" aria-label="مسیر"><Link href="/hotels">هتل‌ها</Link>{h.country && <Link href={`/hotels?country=${h.country_code}`}>{h.country.name}</Link>}{h.city && <Link href={`/hotels?country=${h.country_code}&city=${h.city.id}`}>{h.city.name}</Link>}</nav>
-    <header className="cat-detail-head"><div><span className="cat-tag">{h.hotel_type_fa}</span><Stars value={h.stars}/></div><h1>{h.name}</h1>
+    <header className="cat-detail-head"><div><span className="cat-tag">{h.hotel_type_fa}</span><Stars value={h.stars}/></div><h1>{h.name}</h1>{h.stars && h.stars_status_fa ? <p className="cat-muted">درجه: {h.stars_status_fa}</p> : null}
       {h.name_en && h.name_en !== h.name && <p className="cat-en" dir="ltr" lang="en">{h.name_en}</p>}{h.name_local && h.name_local !== h.name && <p className="cat-en">{h.name_local}</p>}<p className="cat-where">{summary}</p></header>
     <div className="cat-detail-grid">
       <div>
-        {h.image_url ? <Thumb src={h.image_url} credit={h.image_credit} alt={h.name} label=""/> : <div className="cat-noimage">برای این اقامتگاه هنوز تصویر تأییدشده‌ای ثبت نشده است.</div>}
+        {h.images?.length ? <div className="cat-gallery">{h.images.map((im, i) => <figure key={im.id} className={i === 0 ? 'lead' : ''}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={im.url} alt={im.caption || h.name} loading={i ? 'lazy' : 'eager'}/><figcaption>{im.caption ? `${im.caption} — ` : ''}<a href={im.source_url} target="_blank" rel="noreferrer">{im.author || 'منبع'}</a> · {im.license_url ? <a href={im.license_url} target="_blank" rel="noreferrer">{im.license}</a> : im.license}</figcaption></figure>)}</div> : h.image_url ? <Thumb src={h.image_url} credit={h.image_credit} alt={h.name} label=""/> : <div className="cat-noimage">برای این اقامتگاه هنوز تصویر تأییدشده‌ای ثبت نشده است.</div>}
         {h.description && <section><h2>دربارهٔ اقامتگاه</h2><p>{h.description}</p></section>}
         <section><h2>امکانات ثبت‌شده</h2>{h.amenities.length ? <ul className="cat-amen">{h.amenities.map(a => <li key={a.key}>{a.label}</li>)}</ul> : <p className="cat-muted">امکانات این اقامتگاه در منبع مرجع ثبت نشده است؛ هنگام استعلام اعلام می‌شود.</p>}</section>
-        <section><h2>ورود و خروج</h2><p className={h.checkin_time || h.checkout_time ? '' : 'cat-muted'}>{h.checkin_time || h.checkout_time ? <>ورود: {h.checkin_time ?? '—'} · خروج: {h.checkout_time ?? '—'}</> : 'ساعت ورود و خروج و قوانین اقامت هنگام استعلام از اقامتگاه تأیید می‌شود.'}</p></section>
+        {h.room_types?.length ? <section><h2>انواع اتاق</h2><ul className="cat-rooms">{h.room_types.map(r => <li key={r.id}><strong>{r.name_fa}</strong>{r.name_en && <span dir="ltr" lang="en"> {r.name_en}</span>}<p>{[r.bed_type_fa, r.max_adults ? `${fa(r.max_adults)} بزرگسال` : null, r.max_children ? `${fa(r.max_children)} کودک` : null, r.size_m2 ? `${fa(r.size_m2)} متر مربع` : null, r.view_fa ? `منظره: ${r.view_fa}` : null].filter(Boolean).join(' · ')}</p>{r.description && <p>{r.description}</p>}{r.amenities.length > 0 && <ul className="cat-amen">{r.amenities.map(a => <li key={a.key}>{a.label}</li>)}</ul>}</li>)}</ul><p className="cat-muted">این فهرست توصیف انواع اتاق است و به معنی موجودی یا قیمت نیست.</p></section> : null}
+        <section><h2>ورود و خروج</h2><p className={h.checkin_time || h.checkout_time ? '' : 'cat-muted'}>{h.checkin_time || h.checkout_time ? <>ورود: {h.checkin_time ?? '—'} · خروج: {h.checkout_time ?? '—'}</> : 'ساعت ورود و خروج و قوانین اقامت هنگام استعلام از اقامتگاه تأیید می‌شود.'}</p>{h.policies?.length ? <dl className="cat-dl">{h.policies.map(p => <span key={p.key} style={{display: 'contents'}}><dt>{p.label}</dt><dd>{p.value_fa}</dd></span>)}</dl> : null}{h.rules_text && <p>{h.rules_text}</p>}</section>
         <section><h2>موقعیت و تماس</h2><dl className="cat-dl">
           {h.address && <><dt>نشانی</dt><dd>{h.address}</dd></>}
-          <dt>مختصات</dt><dd><a href={osmLink(h.latitude, h.longitude)} target="_blank" rel="noreferrer" dir="ltr">{h.latitude.toFixed(5)}, {h.longitude.toFixed(5)}</a> (نمایش روی نقشه)</dd>
+          {h.latitude !== null && h.longitude !== null && <><dt>مختصات</dt><dd><a href={osmLink(h.latitude, h.longitude)} target="_blank" rel="noreferrer" dir="ltr">{h.latitude.toFixed(5)}, {h.longitude.toFixed(5)}</a> (نمایش روی نقشه)</dd></>}
           {h.phone && <><dt>تلفن</dt><dd><a href={`tel:${h.phone.replace(/[^\d+]/g, '')}`} dir="ltr">{h.phone}</a></dd></>}
           {h.website && <><dt>وب‌سایت</dt><dd><a href={h.website} target="_blank" rel="noreferrer nofollow" dir="ltr">{h.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}</a></dd></>}
           {h.email && <><dt>ایمیل</dt><dd><a href={`mailto:${h.email}`} dir="ltr">{h.email}</a></dd></>}

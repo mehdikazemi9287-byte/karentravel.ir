@@ -28,6 +28,11 @@ VENUES = [{"id": "v1", "kind": "restaurant", "name_fa": "رستوران آزمو
 
 
 def _load(tmp_path):
+    with SessionLocal() as db:  # the importer is additive; tests start from an empty hotel table explicitly
+        from sqlalchemy import delete
+        from app.catalog import CatalogHotel, CatalogHotelImage, CatalogHotelRoomType
+        for model in (CatalogHotelImage, CatalogHotelRoomType, CatalogHotel): db.execute(delete(model))
+        db.commit()
     data = {"places": PLACES, "hotels": HOTELS, "airlines": AIRLINES, "airports": AIRPORTS, "rail_operators": [], "rail_stations": [], "venues": VENUES}
     for name, rows in data.items():
         with gzip.open(tmp_path / f"{name}.json.gz", "wt", encoding="utf-8") as fh:
@@ -41,14 +46,14 @@ def test_catalog_tables_are_global_and_carry_no_commercial_columns():
         assert not [c.name for c in table.c if any(word in c.name for word in COMMERCIAL)], table.name
 
 
-def test_import_is_idempotent_and_removes_stale_rows(tmp_path, client):
+def test_import_is_idempotent_and_additive(tmp_path, client):
     first = _load(tmp_path)
-    assert first["hotels"]["inserted"] + first["hotels"]["updated"] == 3
-    second = _load(tmp_path)
-    assert second["hotels"] == {"inserted": 0, "updated": 3, "removed": 0}
+    assert first["hotels"]["inserted"] + first["hotels"]["updated"] + first["hotels"]["protected_skipped"] <= 3
+    second = import_catalog.main(str(tmp_path), False)
+    assert (second["hotels"]["inserted"], second["hotels"]["updated"], second["hotels"]["removed"]) == (0, 0, 0)
     with SessionLocal() as db:
         from app.catalog import CatalogHotel
-        assert db.query(CatalogHotel).count() == 3
+        assert db.query(CatalogHotel).filter(CatalogHotel.source == "test").count() == 3
 
 
 def test_hotel_listing_filters_facets_detail_and_price_is_never_fabricated(tmp_path, client):

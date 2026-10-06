@@ -1,4 +1,8 @@
-"""Load catalog files into the catalog_* tables (idempotent upsert, stale rows removed).
+"""Load catalog files into the catalog_* tables (additive, idempotent upsert).
+
+Source ownership: a row is only written by the source that created it. Hotels edited in the admin
+panel (updated_by set) are never touched. Rows absent from the input are kept; removal needs the
+explicit --prune flag and is still limited to unedited rows of the sources present in the input.
 
 Run with a role that may write the catalog tables (the API role only has SELECT):
   DATABASE_URL=... python scripts/catalog/import_catalog.py [catalog_data_dir] [--dry-run]
@@ -21,7 +25,7 @@ ORDER = ["places", "hotels", "airlines", "airports", "rail_operators", "rail_sta
 KIND_RANK = {"country": 0, "region": 1, "city": 2}
 
 
-def main(data_dir: str, dry_run: bool) -> dict:
+def main(data_dir: str, dry_run: bool, prune: bool = False) -> dict:
     report = {}
     with SessionLocal() as db:
         for name in ORDER:
@@ -39,14 +43,23 @@ def main(data_dir: str, dry_run: bool) -> dict:
                     row["image_credit"] = None
             if name == "places":  # parents before children for the self-reference
                 rows.sort(key=lambda r: KIND_RANK[r["kind"]])
-            existing = set(db.scalars(select(model.id)))
+            sources = {r.get("source") or "" for r in rows}
+            owned = select(model.id).where(model.source.in_(sources))
+            if name == "hotels":
+                owned = owned.where(model.updated_by.is_(None))
+            existing = set(db.scalars(owned))
+            foreign = set(db.scalars(select(model.id))) - existing  # other source or admin-owned: never written here
+            skipped = [r for r in rows if r["id"] in foreign]
+            rows = [r for r in rows if r["id"] not in foreign]
             incoming = {r["id"] for r in rows}
             if len(incoming) != len(rows):
                 raise SystemExit(f"{name}: duplicate ids in data file")
             new = [r for r in rows if r["id"] not in existing]
-            changed = [r for r in rows if r["id"] in existing]
-            stale = existing - incoming
-            report[name] = {"inserted": len(new), "updated": len(changed), "removed": len(stale)}
+            current = {r.id: r for r in db.scalars(select(model).where(model.id.in_(existing & incoming)))} if existing & incoming else {}
+            changed = [r for r in rows if r["id"] in existing and any(getattr(current[r["id"]], k) != v for k, v in r.items())]
+            db.expunge_all()
+            stale = (existing - incoming) if prune else set()
+            report[name] = {"inserted": len(new), "updated": len(changed), "removed": len(stale), "kept_absent": len(existing - incoming) - len(stale), "protected_skipped": len(skipped)}
             if dry_run:
                 continue
             for i in range(0, len(new), 1000):
@@ -66,4 +79,4 @@ def main(data_dir: str, dry_run: bool) -> dict:
 
 if __name__ == "__main__":
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
-    main(args[0] if args else str(Path(__file__).resolve().parents[2] / "catalog_data"), "--dry-run" in sys.argv)
+    main(args[0] if args else str(Path(__file__).resolve().parents[2] / "catalog_data"), "--dry-run" in sys.argv, "--prune" in sys.argv)
