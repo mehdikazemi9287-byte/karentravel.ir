@@ -106,7 +106,7 @@ export function TripOpsCenter() {
       key.current = newId(); form.reset(); setCategory('schedule_change'); setState({kind: 'ready', data: await load()});
       setNotice({ok: true, text: 'تغییر ثبت شد و در خط زمانی سفر، پشتیبانی و اعلان‌های مشتری از همین رکورد خوانده می‌شود. تحویل پیامک یا پوش تضمین نشده است.'});
     } catch (err) {
-      const detail = err instanceof ApiError ? (err.detail as {detail?: unknown} | undefined)?.detail : null;
+      const raw = err instanceof ApiError ? err.detail : null; const detail = raw && typeof raw === "object" && "detail" in (raw as object) ? (raw as {detail?: unknown}).detail : raw ?? (err instanceof ApiError ? err.message : null);
       setNotice({ok: false, text: err instanceof ApiError && err.status === 403 ? 'اجازهٔ ثبت تغییر برای این حساب وجود ندارد.' : typeof detail === 'string' ? detail : 'ثبت تغییر تأیید نشد؛ ورودی‌ها را بررسی کنید.'});
       if (err instanceof ApiError && err.status < 500 && err.status !== 409) key.current = newId();
     } finally {setBusy(false);}
