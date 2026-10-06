@@ -58,6 +58,14 @@ class NoteIn(Strict):
     body: str = Field(min_length=2, max_length=4000)
 
 
+class AgencyMemberIn(Strict):
+    user_id: int = Field(gt=0)
+
+
+class AgencyChannelIn(Strict):
+    sales_channel_id: Optional[str] = Field(default=None, min_length=36, max_length=36)
+
+
 class EscalateIn(Strict):
     reason: str = Field(min_length=3, max_length=500)
     severity: Literal["HIGH", "CRITICAL"] = "HIGH"
@@ -305,5 +313,114 @@ def platform_ops_router(get_db, current_user, require_permission, role_has_permi
         contracts = db.scalars(select(m.ProviderContract).where(m.ProviderContract.tenant_id == user.tenant_id, m.ProviderContract.supplier_id.in_(scope))).all() if scope else []
         return {"suppliers": [{"id": s.id, "name": s.display_name, "type": s.supplier_type, "status": s.status, "lifecycle_status": s.lifecycle_status} for s in suppliers],
                 "contracts": [{"id": c.id, "supplier_id": c.supplier_id, "provider_key": c.provider_key, "mode": c.mode, "configured": bool(c.config_reference)} for c in contracts]}
+
+    # ---- Notifications: manual requeue of a dead-lettered delivery (uses the existing outbox retry machinery) -----
+    @router.post("/operations/notification-deliveries/{attempt_id}/requeue")
+    def requeue(attempt_id: str, user=Depends(require_permission("trip:event:create")), db: Session = Depends(get_db)) -> dict:
+        attempt = db.scalar(select(m.NotificationDeliveryAttempt).where(m.NotificationDeliveryAttempt.id == attempt_id, m.NotificationDeliveryAttempt.tenant_id == user.tenant_id).with_for_update())
+        if attempt is None: raise HTTPException(status_code=404, detail="تلاش تحویل پیدا نشد")
+        if attempt.status not in ("dead_letter", "failed"): raise HTTPException(status_code=409, detail="فقط تحویل ناموفقِ متوقف‌شده دوباره در صف قرار می‌گیرد")
+        notification = db.scalar(select(m.NotificationRecord).where(m.NotificationRecord.id == attempt.notification_id, m.NotificationRecord.tenant_id == user.tenant_id))
+        event = db.scalar(select(m.TripEventRecord).where(m.TripEventRecord.id == notification.trip_event_id, m.TripEventRecord.tenant_id == user.tenant_id)) if notification and notification.trip_event_id else None
+        outbox = db.scalar(select(m.OutboxEvent).where(m.OutboxEvent.tenant_id == user.tenant_id, m.OutboxEvent.idempotency_key == event.event_key, m.OutboxEvent.event_type == "trip.event.recorded").with_for_update()) if event else None
+        if outbox is None: raise HTTPException(status_code=409, detail="رویداد ارسال مرتبط پیدا نشد")
+        outbox.status, outbox.available_at, outbox.attempts, outbox.last_error = "retry", datetime.now(timezone.utc), 0, None
+        attempt.status, attempt.error_code = "retry", None
+        audit(db, user, "notification.requeued", "notification_delivery", {"attempt_id": attempt.id, "notification_id": attempt.notification_id, "channel": attempt.channel})
+        db.commit()
+        return {"id": attempt.id, "delivery_status": attempt.status, "channel": attempt.channel}
+
+    # ---- Agency workspace: attribution only through the agency's sales channel --------------------------------------
+    def can_admin_agencies(user) -> bool:
+        return role_has_permission(user.role, "tenant:manage")
+
+    def my_agency(db: Session, agency_id: str, user) -> m.Agency:
+        row = db.scalar(select(m.Agency).where(m.Agency.id == agency_id, m.Agency.tenant_id == user.tenant_id))
+        member = row is not None and (can_admin_agencies(user) or db.scalar(select(m.AgencyMembership.id).where(m.AgencyMembership.tenant_id == user.tenant_id, m.AgencyMembership.user_id == user.id, m.AgencyMembership.agency_id == agency_id)))
+        if not member: raise HTTPException(status_code=404, detail="آژانس در دسترس این حساب نیست")
+        return row
+
+    def agency_reservations(db: Session, agency: m.Agency, user):
+        if not agency.sales_channel_id: return []
+        return db.scalars(select(m.Reservation).where(m.Reservation.tenant_id == user.tenant_id, m.Reservation.sales_channel_id == agency.sales_channel_id).order_by(m.Reservation.created_at.desc()).limit(500)).all()
+
+    def total_of(r: m.Reservation):
+        snap = json.loads(r.price_snapshot_json or "{}")
+        amount = snap.get("total_amount")
+        return (amount, snap.get("currency") or "IRR") if isinstance(amount, int) and not isinstance(amount, bool) and amount > 0 else (None, None)
+
+    agency_user = require_permission("agency:manage")
+
+    @router.get("/agency/workspace")
+    def agency_workspace(user=Depends(agency_user), db: Session = Depends(get_db)) -> dict:
+        stmt = select(m.Agency).where(m.Agency.tenant_id == user.tenant_id)
+        if not can_admin_agencies(user): stmt = stmt.where(m.Agency.id.in_(select(m.AgencyMembership.agency_id).where(m.AgencyMembership.tenant_id == user.tenant_id, m.AgencyMembership.user_id == user.id)))
+        rows = db.scalars(stmt.order_by(m.Agency.created_at.desc())).all()
+        return {"agencies": [{"id": a.id, "name": a.display_name, "status": a.status, "markup_bps": a.markup_bps, "commission_bps": a.commission_bps, "sales_channel_linked": bool(a.sales_channel_id)} for a in rows], "can_administer": can_admin_agencies(user)}
+
+    @router.get("/agency/{agency_id}/bookings")
+    def agency_bookings(agency_id: str, user=Depends(agency_user), db: Session = Depends(get_db)) -> dict:
+        agency = my_agency(db, agency_id, user)
+        rows = agency_reservations(db, agency, user)
+        return {"sales_channel_linked": bool(agency.sales_channel_id), "items": [{"id": r.id, "booking_reference": r.booking_reference, "service_type": r.service_type, "status": r.status, "customer_id": r.user_id,
+                                                                                 "total_amount": total_of(r)[0], "currency": total_of(r)[1], "created_at": r.created_at.isoformat(), "confirmed_at": r.confirmed_at.isoformat() if r.confirmed_at else None} for r in rows]}
+
+    @router.get("/agency/{agency_id}/customers")
+    def agency_customers(agency_id: str, user=Depends(agency_user), db: Session = Depends(get_db)) -> dict:
+        rows = agency_reservations(db, my_agency(db, agency_id, user), user)
+        counts: dict[int, int] = {}
+        for r in rows: counts[r.user_id] = counts.get(r.user_id, 0) + 1
+        names = {u.id: u.name for u in db.scalars(select(User).where(User.id.in_(set(counts)), User.tenant_id == user.tenant_id))} if counts else {}
+        return {"items": [{"customer_id": uid, "name": names.get(uid), "bookings": n} for uid, n in sorted(counts.items(), key=lambda x: -x[1])]}
+
+    @router.get("/agency/{agency_id}/commissions")
+    def agency_commissions(agency_id: str, user=Depends(agency_user), db: Session = Depends(get_db)) -> dict:
+        agency = my_agency(db, agency_id, user)
+        items, totals = [], {}
+        for r in agency_reservations(db, agency, user):
+            amount, currency = total_of(r)
+            if r.confirmed_at is None or amount is None: continue
+            commission = amount * agency.commission_bps // 10000
+            items.append({"reservation_id": r.id, "booking_reference": r.booking_reference, "confirmed_at": r.confirmed_at.isoformat(), "base_amount": amount, "currency": currency, "commission_bps": agency.commission_bps, "commission_amount": commission})
+            totals[currency] = totals.get(currency, 0) + commission
+        return {"basis": "configured_rate_on_confirmed_reservations", "settled": False, "commission_bps": agency.commission_bps, "items": items, "totals": [{"currency": c, "commission_amount": v} for c, v in totals.items()],
+                "note": "محاسبه بر اساس نرخ کمیسیون ثبت‌شده و مبلغ رزروهای تأییدشده است؛ پرداخت‌شده بودن آن فقط در بخش تسویه مشخص می‌شود."}
+
+    @router.get("/agency/{agency_id}/settlements")
+    def agency_settlements(agency_id: str, user=Depends(agency_user), db: Session = Depends(get_db)) -> dict:
+        ids = [r.id for r in agency_reservations(db, my_agency(db, agency_id, user), user)]
+        rows = db.scalars(select(m.SettlementRecord).where(m.SettlementRecord.tenant_id == user.tenant_id, m.SettlementRecord.reservation_id.in_(ids)).order_by(m.SettlementRecord.created_at.desc())).all() if ids else []
+        return {"items": [{"id": s.id, "reservation_id": s.reservation_id, "amount": s.amount, "currency": s.currency, "status": s.status, "external_reference": s.external_reference, "created_at": s.created_at.isoformat()} for s in rows]}
+
+    @router.get("/agency/{agency_id}/report")
+    def agency_report(agency_id: str, user=Depends(agency_user), db: Session = Depends(get_db)) -> dict:
+        rows = agency_reservations(db, my_agency(db, agency_id, user), user)
+        by_status, by_service, confirmed = {}, {}, {}
+        for r in rows:
+            by_status[r.status] = by_status.get(r.status, 0) + 1; by_service[r.service_type] = by_service.get(r.service_type, 0) + 1
+            amount, currency = total_of(r)
+            if r.confirmed_at is not None and amount is not None: confirmed[currency] = confirmed.get(currency, 0) + amount
+        return {"bookings": len(rows), "by_status": by_status, "by_service_type": by_service, "confirmed_sales": [{"currency": c, "amount": v} for c, v in confirmed.items()]}
+
+    @router.post("/agency/{agency_id}/members", status_code=201)
+    def add_agency_member(agency_id: str, data: AgencyMemberIn, user=Depends(require_permission("tenant:manage")), db: Session = Depends(get_db)) -> dict:
+        agency = my_agency(db, agency_id, user)
+        target = db.scalar(select(User).where(User.id == data.user_id, User.tenant_id == user.tenant_id))
+        if target is None or not role_has_permission(target.role, "agency:manage"): raise HTTPException(status_code=422, detail="کاربر باید در همین مجموعه و با نقش آژانس باشد")
+        if db.scalar(select(m.AgencyMembership.id).where(m.AgencyMembership.tenant_id == user.tenant_id, m.AgencyMembership.user_id == target.id, m.AgencyMembership.agency_id == agency.id)) is None:
+            db.add(m.AgencyMembership(tenant_id=user.tenant_id, user_id=target.id, agency_id=agency.id))
+            audit(db, user, "agency.member_added", "agency", {"agency_id": agency.id, "user_id": target.id}); db.commit()
+        return {"agency_id": agency.id, "user_id": target.id}
+
+    @router.put("/agency/{agency_id}/sales-channel")
+    def link_agency_channel(agency_id: str, data: AgencyChannelIn, user=Depends(require_permission("tenant:manage")), db: Session = Depends(get_db)) -> dict:
+        agency = my_agency(db, agency_id, user)
+        if data.sales_channel_id:
+            channel = db.scalar(select(m.SalesChannel).where(m.SalesChannel.id == data.sales_channel_id, m.SalesChannel.tenant_id == user.tenant_id))
+            if channel is None: raise HTTPException(status_code=422, detail="کانال فروش در این مجموعه وجود ندارد")
+            if db.scalar(select(m.Agency.id).where(m.Agency.tenant_id == user.tenant_id, m.Agency.sales_channel_id == channel.id, m.Agency.id != agency.id)): raise HTTPException(status_code=409, detail="این کانال فروش به آژانس دیگری متصل است")
+        previous, agency.sales_channel_id = agency.sales_channel_id, data.sales_channel_id
+        audit(db, user, "agency.sales_channel_linked", "agency", {"agency_id": agency.id, "from": previous, "to": data.sales_channel_id}); db.commit()
+        return {"agency_id": agency.id, "sales_channel_id": agency.sales_channel_id}
 
     return router

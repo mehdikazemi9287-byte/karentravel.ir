@@ -5,7 +5,9 @@ export function roleLinks(role:string):Array<[string,string]>{
  const home=roleHome[role];if(home&&home!=='/account')links.push(['پنل کاری من',home]);
  if(['organization_admin','tenant_admin','platform_admin'].includes(role))links.push(['مدیریت کاربران','/admin']);
  if(['tenant_admin','platform_admin'].includes(role))links.push(['عملیات سفر','/backoffice']);
- if(['platform_admin','backoffice_expert'].includes(role))links.push(['مدیریت هتل‌ها','/admin/catalog'],['مرکز عملیات سفر','/backoffice/trip-events']);
+ if(['platform_admin','backoffice_expert'].includes(role))links.push(['مدیریت هتل‌ها','/admin/catalog'],['تورهای مرجع','/admin/tours'],['مرکز عملیات سفر','/backoffice/trip-events'],['میز پشتیبانی','/backoffice/support'],['وضعیت اعلان‌ها','/backoffice/notifications']);
+ if(['platform_admin','finance_operator'].includes(role))links.push(['رکوردهای مالی','/finance/records']);
+ if(['platform_admin','supplier'].includes(role))links.push(['تسویه و قراردادها','/supplier/settlements']);
  if(role==='platform_admin')links.push(['امور مالی','/finance'],['تأمین‌کنندگان','/supplier']);
  return links.filter((item,index,all)=>all.findIndex(x=>x[1]===item[1])===index);
 }

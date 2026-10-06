@@ -187,8 +187,18 @@ class SupplierAsset(OperationalMixin, Base):
     __table_args__ = (Index("ix_supplier_assets_supplier_entity", "tenant_id", "supplier_id", "entity_type"),)
 
 
+class AgencyMembership(OperationalMixin, Base):
+    """Which user may see which agency. Without a row an agency user sees nothing (object-level isolation inside a tenant)."""
+    __tablename__ = "agency_memberships"
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    agency_id: Mapped[str] = mapped_column(ForeignKey("agencies.id"), index=True)
+    __table_args__ = (UniqueConstraint("tenant_id", "user_id", "agency_id", name="uq_agency_membership"),)
+
+
 class Agency(OperationalMixin, Base):
     __tablename__ = "agencies"
+    # Attribution: a reservation belongs to an agency only through the sales channel it was sold on.
+    sales_channel_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True, index=True)
     display_name: Mapped[str] = mapped_column(String(180))
     status: Mapped[str] = mapped_column(String(32), default="sample")
     supplier_id: Mapped[Optional[str]] = mapped_column(ForeignKey("suppliers.id"), nullable=True)
