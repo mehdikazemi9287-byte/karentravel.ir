@@ -1,0 +1,11 @@
+{
+  "CURRENT_PRODUCTION": "d2ba674; frontend image d27e90f03dc9; unchanged",
+  "LAST_KNOWN_GOOD_UI": "76bea5c historical reference; recovery remains separate",
+  "CURRENT_CANDIDATE": "existing Source catalog files; no application writes permitted by drift gate",
+  "FILES_CHANGED": [
+    "docs/recovery/evidence/hotel-catalog-20261005/audit.json",
+    "docs/recovery/evidence/hotel-catalog-20261005/checkpoint.json",
+    "docs/recovery/2026-10-05-hotel-catalog-gate.md"
+  ],
+  "NEXT_STEP": "Obtain explicit scoped Source/Preview drift exception, then patch current importer/API/provenance with QA; no Production import or migration."
+}

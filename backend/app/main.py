@@ -5062,3 +5062,5 @@ def supplier_ready_reservations(user:User=Depends(require_permission("inventory:
 # Enterprise pre-booking domain reuses the existing authentication and DB boundary.
 from .enterprise import router as enterprise_router
 app.include_router(enterprise_router(current_user, get_db, User))
+from .catalog import catalog_router  # noqa: E402  (global master data; registers catalog tables)
+app.include_router(catalog_router(get_db))

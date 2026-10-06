@@ -6,6 +6,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app ./app
 COPY alembic ./alembic
 COPY alembic.ini ./alembic.ini
+COPY catalog_data ./catalog_data
+COPY scripts/catalog ./scripts/catalog
 COPY entrypoint.sh ./entrypoint.sh
 ARG GIT_COMMIT=unknown
 ARG BUILD_TIMESTAMP=unknown

@@ -1,0 +1,52 @@
+{
+  "environment": "existing scratch PostgreSQL ks; artifact audit; not Production",
+  "records": 16079,
+  "by_country": {
+    "AE": 1574,
+    "AM": 1082,
+    "GE": 3277,
+    "TR": 6609,
+    "IQ": 3537
+  },
+  "hotel_only_by_country": {
+    "AE": 1039,
+    "AM": 540,
+    "GE": 1807,
+    "TR": 5382,
+    "IQ": 1585
+  },
+  "duplicate_ids": 0,
+  "duplicate_slugs": 0,
+  "missing_provenance": 0,
+  "invalid_coordinates": 0,
+  "commercial_non_null": 0,
+  "source_snapshot_sha256": "de39d33bb4c2e2a95ff3c57042177f33dfa561b95d1de7a60f3417a96f998bb6",
+  "source_ref_invalid": 0,
+  "last_verified_at": "UNKNOWN; retrieved_on is assigned on build date, not verification evidence",
+  "country_coverage": "TR restricted to 13 provinces in current fetcher; others not independently proven complete",
+  "provider_mappings": "not implemented in catalog schema; no fabricated mappings",
+  "limitations": [
+    "existence and field correctness not independently verified per hotel",
+    "city assignment inferred via nearest-city heuristic, not authoritative address validation",
+    "source-reported stars are not official accreditation proof",
+    "aliases lost after transient dedup set; per-field merged source provenance missing",
+    "image_credit exists but no structured permission metadata",
+    "current import deletes stale rows and unconditionally overwrites existing fields"
+  ],
+  "places": {
+    "count": 1035,
+    "kinds": {
+      "country": 5,
+      "region": 62,
+      "city": 968
+    }
+  },
+  "airports": {
+    "count": 97,
+    "kinds": null
+  },
+  "airlines": {
+    "count": 42,
+    "kinds": null
+  }
+}
