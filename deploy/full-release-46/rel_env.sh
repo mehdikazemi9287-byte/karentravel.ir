@@ -1,0 +1,21 @@
+# Shared by the full release scripts (sourced). Secrets are read from running containers and never printed.
+W=~/ks-checkline-work; SHA=$(git -C $W/src rev-parse --short HEAD); NEWAPI=karenseir-current-api:release-$SHA; NEWWEB=karenseir-current-web:release-$SHA
+NET=karenseir_default; PREVAPI=karenseir-api-1-prev-352684d; PREVWEB=karenseir-frontend-1-prev-d2ba674; STAGED=~/karenseir-current/artifacts/checkline-pretransfer-20261006
+B=$(cat $W/release46_backup_dir 2>/dev/null || true)
+OWNER_URL=$(docker inspect karenseir-db-1 --format '{{range .Config.Env}}{{println .}}{{end}}' | python3 -c "
+import sys,urllib.parse
+e=dict(l.rstrip('\n').split('=',1) for l in sys.stdin if '=' in l)
+print('postgresql+psycopg://%s:%s@db:5432/%s' % (e['POSTGRES_USER'], urllib.parse.quote(e['POSTGRES_PASSWORD'], safe=''), e.get('POSTGRES_DB', e['POSTGRES_USER'])))")
+owner() { docker run --rm --network $NET -e DATABASE_URL="$OWNER_URL" -e ENVIRONMENT=production -v $W/zip:/bundle:ro -v $W/ref:/ref:ro -v $STAGED:/staged:ro $NEWAPI "$@"; }
+sql() { docker exec -i karenseir-db-1 psql -U karenseir -d karenseir -v ON_ERROR_STOP=1 -At -F ' | ' "$@"; }
+ROWS="select (select count(*) from users)||'/'||(select count(*) from bookings)||'/'||(select count(*) from tenants)||'/'||(select count(*) from audit_events)||'/'||(select count(*) from catalog_hotels where source<>'checkline')||'/'||(select count(*) from catalog_venues where source<>'checkline')"
+# the import sequence, identical in rehearsal and production: $1 = runner function name
+imports() {
+  local r=$1
+  $r python scripts/catalog/import_catalog.py | python3 -c "import json,sys;d=json.load(sys.stdin);print('reference', {k:(v['inserted'],v['updated'],v['removed']) for k,v in d.items() if isinstance(v,dict)})"
+  $r python scripts/catalog/import_checkline_tours.py /staged | cut -c1-200
+  for i in 1 2; do $r python scripts/catalog/import_checkline_bundle.py /bundle --publish | python3 -c "import json,sys;d=json.load(sys.stdin);h=d['hotels'];print('bundle', {k:h[k] for k in ('inserted','updated','unchanged','published','kept_draft','with_coordinates')}, 'tours', {k:d['tours'][k] for k in ('inserted','updated','published')}, 'places', d['places'])"; done
+  for i in 1 2; do $r python scripts/catalog/import_airports_reference.py /ref/airports.csv | cut -c1-150; $r python scripts/catalog/import_airlines_reference.py /ref/airlines-wikidata.json | cut -c1-150; done
+  $r python scripts/catalog/import_checkline_bundle.py /bundle --publish | python3 -c "import json,sys;d=json.load(sys.stdin);h=d['hotels'];print('bundle final', {k:h[k] for k in ('inserted','updated','unchanged','published')}, 'tours', {k:d['tours'][k] for k in ('inserted','updated','published')}, 'places', d['places'])"
+}
+SUMMARY="select 'hotels cl', count(*), count(*) filter (where status='published'), count(city_id), count(latitude) from catalog_hotels where source='checkline'; select 'hotels all/published', count(*), count(*) filter (where status='published' and duplicate_of is null) from catalog_hotels; select 'tours', count(*), count(*) filter (where status='published'), count(destination_place_id) from catalog_tours; select 'departures', count(*) from catalog_tour_departures; select 'images', count(*) from catalog_hotel_images; select 'rooms', count(*) from catalog_hotel_room_types; select 'content', kind, count(*) from catalog_content group by 2; select 'routes', count(*), count(target_path) from catalog_legacy_routes; select 'airports/airlines', (select count(*) from catalog_airports), (select count(*) from catalog_airlines); select 'countries', count(*) from catalog_places where kind='country'; select 'price-like columns', count(*) from information_schema.columns where table_name like 'catalog_%' and column_name ~ '(price|amount|capacity|inventory)'; select 'city/country mismatch', count(*) from catalog_hotels h join catalog_places p on p.id=h.city_id where h.country_code<>p.country_code; select 'published without city', count(*) from catalog_hotels where status='published' and city_id is null and source='checkline'; select 'published duplicates', count(*) from catalog_hotels where status='published' and duplicate_of is not null; select 'dup slugs', count(*)-count(distinct slug) from catalog_hotels; select 'tour dup slugs', count(slug)-count(distinct slug) from catalog_tours"
