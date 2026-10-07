@@ -1,3 +1,4 @@
-import { JourneyShell } from '../../components/journey/JourneyShell';
-import { CustomerAccount } from '../../components/operational/CustomerAccount';
-export default function AccountPage(){return <JourneyShell><main className="journey-main"><h1>حساب کاربری</h1><CustomerAccount/></main></JourneyShell>}
+import {PanelShell} from '../../components/panel/PanelKit';
+import {CustomerOverview} from '../../components/panel/CustomerPanel';
+export const metadata = {title: 'حساب من | کارن‌سیر', robots: {index: false}};
+export default function Page() {return <PanelShell area="customer" title="حساب من" intro="رزروها، پرداخت‌ها و پیام‌های شما در یک جا."><CustomerOverview/></PanelShell>;}

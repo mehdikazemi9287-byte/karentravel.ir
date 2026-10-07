@@ -179,7 +179,7 @@ def router(current_user,get_db,User):
         perms=permissions(db,user,org)
         if not ({'roles.manage','policy.manage','requests.on_behalf','benefits.manage'}&perms):raise HTTPException(403,'مجوز مشاهدهٔ فهرست کارکنان ندارید')
         users=db.scalars(select(User).join(m.EmployeeAssignment,m.EmployeeAssignment.user_id==User.id).where(User.tenant_id==user.tenant_id,m.EmployeeAssignment.tenant_id==user.tenant_id,m.EmployeeAssignment.organization_id==org)).all()
-        return [{'id':u.id,'name':u.name,'role':u.role} for u in users]
+        return [{'id':u.id,'name':u.name,'email':u.email,'role':u.role} for u in users]
 
     @api.put('/organizations/{org}/grants')
     def grants(org:str,data:GrantIn,user=Depends(current_user),db:Session=Depends(get_db)):
@@ -353,5 +353,74 @@ def router(current_user,get_db,User):
         require(db,user,org,'benefits.manage')
         rows=db.scalars(select(e.BenefitCampaign).where(e.BenefitCampaign.tenant_id==user.tenant_id,e.BenefitCampaign.organization_id==org).order_by(e.BenefitCampaign.created_at.desc()).limit(200)).all()
         return [campaign_output(row) for row in rows]
+
+    # ---- organization administration for the organization panel: which organizations exist, who belongs, the policy in force, real counts
+    TENANT_ADMINS=('tenant_admin','platform_admin')
+    class OrgIn(BaseModel):
+        model_config=ConfigDict(extra='forbid')
+        name:str=Field(min_length=2,max_length=160)
+    class MemberIn(BaseModel):
+        model_config=ConfigDict(extra='forbid')
+        email:str=Field(min_length=5,max_length=200)
+    def org_row(db,user,org):
+        row=db.scalar(select(m.Organization).where(m.Organization.tenant_id==user.tenant_id,m.Organization.id==org))
+        if row is None:raise HTTPException(404,'سازمان پیدا نشد')
+        return row
+    def manage_members(db,user,org):
+        if user.role in TENANT_ADMINS:org_row(db,user,org)
+        else:require(db,user,org,'roles.manage')
+    def member_list(db,user,org):
+        users=db.scalars(select(User).join(m.EmployeeAssignment,m.EmployeeAssignment.user_id==User.id).where(User.tenant_id==user.tenant_id,m.EmployeeAssignment.tenant_id==user.tenant_id,m.EmployeeAssignment.organization_id==org).order_by(User.name)).all()
+        return [{'id':u.id,'name':u.name,'email':u.email,'role':u.role} for u in users]
+    @api.get('/organizations')
+    def organizations(user=Depends(current_user),db:Session=Depends(get_db)):
+        if user.role not in TENANT_ADMINS:raise HTTPException(403,'فهرست همهٔ سازمان‌ها فقط برای مدیر مجموعه است')
+        counts=dict(db.execute(select(m.EmployeeAssignment.organization_id,func.count()).where(m.EmployeeAssignment.tenant_id==user.tenant_id).group_by(m.EmployeeAssignment.organization_id)).all())
+        rows=db.scalars(select(m.Organization).where(m.Organization.tenant_id==user.tenant_id).order_by(m.Organization.name)).all()
+        return [{'id':r.id,'name':r.name,'status':r.status,'members':counts.get(r.id,0)} for r in rows]
+    @api.post('/organizations',status_code=201)
+    def create_organization(data:OrgIn,user=Depends(current_user),db:Session=Depends(get_db)):
+        if user.role not in TENANT_ADMINS:raise HTTPException(403,'ایجاد سازمان فقط برای مدیر مجموعه است')
+        name=' '.join(data.name.split())
+        if db.scalar(select(m.Organization.id).where(m.Organization.tenant_id==user.tenant_id,m.Organization.name==name)):raise HTTPException(409,'سازمانی با این نام وجود دارد')
+        row=m.Organization(tenant_id=user.tenant_id,name=name,status='active');db.add(row);db.commit()
+        return {'id':row.id,'name':row.name,'status':row.status,'members':0}
+    @api.post('/organizations/{org}/members',status_code=201)
+    def add_member(org:str,data:MemberIn,user=Depends(current_user),db:Session=Depends(get_db)):
+        manage_members(db,user,org);org_lock(db,user,org)
+        target=db.scalar(select(User).where(User.tenant_id==user.tenant_id,func.lower(User.email)==data.email.strip().lower()))
+        if target is None:raise HTTPException(404,'کاربری با این ایمیل در این مجموعه ثبت نشده است')
+        if db.scalar(select(m.EmployeeAssignment.id).where(m.EmployeeAssignment.tenant_id==user.tenant_id,m.EmployeeAssignment.user_id==target.id,m.EmployeeAssignment.organization_id==org)) is None:
+            db.add(m.EmployeeAssignment(tenant_id=user.tenant_id,user_id=target.id,organization_id=org));db.commit()
+        return member_list(db,user,org)
+    @api.post('/organizations/{org}/members/{uid}/remove')
+    def remove_member(org:str,uid:int,user=Depends(current_user),db:Session=Depends(get_db)):
+        manage_members(db,user,org)
+        if uid==user.id:raise HTTPException(409,'نمی‌توانید عضویت خودتان را حذف کنید')
+        row=db.scalar(select(m.EmployeeAssignment).where(m.EmployeeAssignment.tenant_id==user.tenant_id,m.EmployeeAssignment.user_id==uid,m.EmployeeAssignment.organization_id==org))
+        if row is None:raise HTTPException(404,'این کاربر عضو سازمان نیست')
+        grant=db.scalar(select(e.EnterpriseGrant).where(e.EnterpriseGrant.tenant_id==user.tenant_id,e.EnterpriseGrant.organization_id==org,e.EnterpriseGrant.user_id==uid))
+        if grant is not None:db.delete(grant)
+        db.delete(row);db.commit()
+        return member_list(db,user,org)
+    @api.get('/organizations/{org}/policy')
+    def current_policy(org:str,user=Depends(current_user),db:Session=Depends(get_db)):
+        permissions(db,user,org)
+        row=db.scalar(select(e.EnterprisePolicy).where(e.EnterprisePolicy.tenant_id==user.tenant_id,e.EnterprisePolicy.organization_id==org).order_by(e.EnterprisePolicy.version.desc()))
+        return {'version':row.version,'rules':json.loads(row.rules_json)} if row else {'version':None,'rules':None}
+    @api.get('/organizations/{org}/summary')
+    def summary(org:str,user=Depends(current_user),db:Session=Depends(get_db)):
+        """Counts taken from the records themselves. No amount is estimated: money figures live in the credit and invoice records."""
+        perms=permissions(db,user,org)
+        if not ({'requests.read_all','policy.manage','roles.manage'}&perms):raise HTTPException(403,'مجوز مشاهدهٔ گزارش سازمان ندارید')
+        t=user.tenant_id;R=e.EnterpriseRequest
+        by_status=dict(db.execute(select(R.status,func.count()).where(R.tenant_id==t,R.organization_id==org).group_by(R.status)).all())
+        by_use=dict(db.execute(select(R.use_case,func.count()).where(R.tenant_id==t,R.organization_id==org).group_by(R.use_case)).all())
+        by_policy=dict(db.execute(select(R.policy_result,func.count()).where(R.tenant_id==t,R.organization_id==org).group_by(R.policy_result)).all())
+        linked=db.scalar(select(func.count()).select_from(e.EnterpriseBookingLink).join(R,R.id==e.EnterpriseBookingLink.request_id).where(e.EnterpriseBookingLink.tenant_id==t,R.organization_id==org))
+        return {'organization':{'id':org,'name':org_row(db,user,org).name},'members':db.scalar(select(func.count()).select_from(m.EmployeeAssignment).where(m.EmployeeAssignment.tenant_id==t,m.EmployeeAssignment.organization_id==org)),
+                'departments':db.scalar(select(func.count()).select_from(m.Department).where(m.Department.tenant_id==t,m.Department.organization_id==org)),'cost_centers':db.scalar(select(func.count()).select_from(m.CostCenter).where(m.CostCenter.tenant_id==t,m.CostCenter.organization_id==org)),
+                'requests':{'total':sum(by_status.values()),'by_status':by_status,'by_use_case':by_use,'by_policy_result':by_policy},'linked_bookings':linked,
+                'credit_accounts':db.scalar(select(func.count()).select_from(m.CreditAccount).where(m.CreditAccount.tenant_id==t,m.CreditAccount.organization_id==org))}
 
     return api

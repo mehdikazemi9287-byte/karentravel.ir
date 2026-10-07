@@ -1,1 +1,2 @@
-export { default } from '../page';
+export { default } from '../account/notifications/page';
+export { metadata } from '../account/notifications/page';

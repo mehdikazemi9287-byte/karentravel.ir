@@ -41,3 +41,12 @@
 
 ## Continue after /clear
 «checkpoint را از ~/ks-checkline-work/CHECKPOINT.md روی ubuntu@95.38.184.209 بخوان و از همان‌جا ادامه بده»
+
+## Panels round (2026-10-08, candidate only — Production untouched)
+- Shared panel kit: `components/panel/PanelKit.tsx` + `panel.css` (shell, loader, table, states; site palette), `CustomerPanel.tsx`, `OrganizationPanel.tsx`.
+- Customer routes: `/account` (overview), `/account/profile|bookings|visa|payments|refunds|wallet|notifications|support`. Organization routes: `/organization` (overview), `/organization/members|requests|policy|structure|credit|bookings|billing|reports`, `/employee` inside the same shell.
+- Backend added in `app/enterprise.py` (no migration): `GET/POST /enterprise/organizations` (tenant admins), `POST /enterprise/organizations/{org}/members`, `POST …/members/{uid}/remove`, `GET …/policy`, `GET …/summary`; members list now returns e-mail. Tests `tests/test_org_panel.py`.
+- Removed an invented figure: `/me/dashboard` returned a constant `credit_available`; it is now null.
+- QA: `deploy/candidate-qa/panelqa2.mjs` (26 checks × desktop/mobile). Candidate web image `checkline-cand50`.
+- Marked unavailable (no real model/credential): online visa application (no visa product), wallet top-up (no gateway), SMS/push, payroll deduction, organization-level statement/settlement, cost report.
+- NEXT: Partner/Agency and Supplier panels into the same shell (`/agency`, `/supplier` exist as single pages); organization credit account creation UI for finance; then release decision.

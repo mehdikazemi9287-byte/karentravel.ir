@@ -828,7 +828,7 @@ def hotels(city: Optional[str] = None, db: Session = Depends(get_db)) -> list[di
 @app.get("/me/dashboard")
 def dashboard(user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
     bookings = db.scalars(select(Booking).where(Booking.tenant_id == user.tenant_id).order_by(Booking.id.desc())).all()
-    return {"tenant":db.get(Tenant,user.tenant_id).name,"user":{"name":user.name,"role":user.role},"credit_available":48000000,"bookings":[booking_out(b,db.get(Hotel,b.hotel_id)) for b in bookings]}
+    return {"tenant":db.get(Tenant,user.tenant_id).name,"user":{"name":user.name,"role":user.role},"credit_available":None,"bookings":[booking_out(b,db.get(Hotel,b.hotel_id)) for b in bookings]}
 @app.post("/bookings", status_code=status.HTTP_201_CREATED)
 def create_booking(data: BookingIn, idempotency_key: str = Header(alias="Idempotency-Key", min_length=8, max_length=120), user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
     request_hash = hashlib.sha256(data.model_dump_json().encode("utf-8")).hexdigest()

@@ -1,3 +1,4 @@
-import { JourneyShell } from '../../../components/journey/JourneyShell';
-import { OrganizationStructure } from '../../../components/operational/OrganizationStructure';
-export default function Page(){return <JourneyShell><OrganizationStructure/></JourneyShell>}
+import {PanelShell} from '../../../components/panel/PanelKit';
+import {OrganizationStructure} from '../../../components/operational/OrganizationStructure';
+export const metadata = {title: 'واحدها و مراکز هزینه | کارن‌سیر', robots: {index: false}};
+export default function Page() {return <PanelShell area="organization" title="واحدها و مراکز هزینه" intro="ساختار سازمان برای تخصیص درخواست و هزینه."><OrganizationStructure/></PanelShell>;}
