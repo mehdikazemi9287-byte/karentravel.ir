@@ -107,3 +107,4 @@
 @media(min-width:1200px){.kh-hero .approved-search-card{left:462px;right:auto;width:min(760px,calc(100% - 462px));max-width:none}.approved-search-card .fs-field{min-height:62px}.approved-search-card .fs-tabs button{min-height:54px;font-size:16px}}
 @media(max-width:700px){.kh-org-art{flex:0 0 auto;max-width:100%}.kh-ai{padding:26px 20px}}
 .approved-figma-home{overflow-x:clip}
+@media(max-width:600px){.approved-figma-home [data-node-id="45:7"],.approved-site [data-node-id="45:7"]{flex-wrap:nowrap;gap:10px;zoom:.84;justify-content:center}}
