@@ -7,9 +7,9 @@ import {supportPhone} from '../../lib/site-contact';
 
 const A = '/images/approved-figma/';
 const TRIPS = [
-  {href: '/destinations/masuleh', img: A + 'imgImage2.jpg', title: ['مسیر سبز', 'شمال'], nights: '۳ روز و ۲ شب'},
-  {href: '/destinations/qeshm', img: A + 'imgImage1.jpg', title: ['آرامش در', 'جزیره قشم'], nights: '۴ روز و ۳ شب'},
-  {href: '/destinations/shiraz', img: A + 'imgImage.jpg', title: ['سه روز در', 'شیراز'], nights: '۳ روز و ۲ شب'},
+  {href: '/destinations/masuleh', img: A + 'refTripNorth.jpg', title: ['مسیر سبز', 'شمال'], nights: '۳ روز و ۲ شب'},
+  {href: '/destinations/qeshm', img: A + 'refTripQeshm.jpg', title: ['آرامش در', 'جزیره قشم'], nights: '۴ روز و ۳ شب'},
+  {href: '/destinations/shiraz', img: A + 'refTripShiraz.jpg', title: ['سه روز در', 'شیراز'], nights: '۳ روز و ۲ شب'},
 ];
 const PROMPTS = ['با ۲۰ میلیون کجا برم؟', 'سفر خانوادگی ۴ روزه', 'بهترین مقصد پاییزی'];
 const svg = (children: ReactNode, size = 44) => <svg width={size} height={size} viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{children}</svg>;
@@ -47,7 +47,7 @@ export function ApprovedHomeLower() {
         {[{name: 'هتل زندیه شیراز', img: A + 'imgThumb1.jpg'}, {name: 'هتل عباسی اصفهان', img: A + 'imgThumb.jpg'}].map(h => <div key={h.name} className="kh-cmp-hotel">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={h.img} alt="" loading="lazy"/><div><b>{h.name}</b><span>قیمت پس از استعلام</span></div></div>)}
-        <Link href="/compare" className="kh-cmp-cta">مقایسه کن</Link>
+        <Link href="/compare" className="kh-cmp-cta"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 4v16M6 20h12M5 8h14M5 8l-3 7a3 3 0 0 0 6 0zM19 8l-3 7a3 3 0 0 0 6 0z"/></svg>مقایسه کن</Link>
       </div>
     </section>
     <section className="kh-sec" aria-labelledby="kh-org-title">
@@ -61,7 +61,7 @@ export function ApprovedHomeLower() {
         </div>
         <div className="kh-org-art" aria-hidden="true">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={A + 'imgLaptopScreen.svg'} alt=""/>
+          <img src={A + 'refOrgDevices.jpg'} alt=""/>
         </div>
       </div>
     </section>
@@ -81,8 +81,52 @@ export function ApprovedFooterLight() {
       </div>
       <div className="kh-foot-col"><h3>پشتیبانی</h3><Link href="/support">مرکز راهنمایی</Link><Link href="/support">پرسش‌های متداول</Link><Link href="/terms">شرایط استرداد</Link><Link href="/support">گزارش تخلف</Link></div>
       <div className="kh-foot-col"><h3>کارن‌سیر</h3><Link href="/contact">درباره ما</Link><Link href="/contact">تماس با ما</Link><Link href="/terms">قوانین و مقررات</Link><Link href="/privacy">حریم خصوصی</Link></div>
-      <div className="kh-foot-col"><h3>خدمات</h3><Link href="/flights">پرواز</Link><Link href="/hotels">هتل و اقامت</Link><Link href="/trains">قطار</Link><Link href="/tours">تور</Link><Link href="/visa">راهنمای ویزا</Link></div>
+      <div className="kh-foot-col kh-foot-app"><h3>دانلود اپلیکیشن کارن‌سیر</h3><div className="kh-badges" aria-label="به‌زودی"><span>بازار</span><span dir="ltr">Google Play</span></div><small>به‌زودی</small></div>
     </div>
     <p className="kh-foot-copy">© کارن‌سیر. همهٔ حقوق محفوظ است.</p>
   </div>;
+}
+
+/* ---- hero and destination mosaic, after the approved reference render */
+const Ornament = ({className}: {className: string}) => <svg className={className} viewBox="0 0 100 100" fill="none" stroke="#e2a93b" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+  {Array.from({length: 16}, (_, i) => {const a = (i * Math.PI) / 8, c = Math.cos(a), s = Math.sin(a); return <g key={i}><path d={`M${(50 + c * 14).toFixed(1)} ${(50 + s * 14).toFixed(1)}L${(50 + c * 36).toFixed(1)} ${(50 + s * 36).toFixed(1)}`}/><circle cx={(50 + c * 43).toFixed(1)} cy={(50 + s * 43).toFixed(1)} r="2.6"/></g>;})}
+  <circle cx="50" cy="50" r="8"/></svg>;
+
+export function ApprovedHomeHero({search}: {search: ReactNode}) {
+  return <div className="kh kh-hero">
+    <Ornament className="kh-orn kh-orn-1"/><Ornament className="kh-orn kh-orn-2"/>
+    <div className="kh-hero-photo">
+      <picture><source media="(min-width:1200px)" srcSet={A + 'refHero.jpg'}/>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={A + 'refHeroTop.jpg'} alt="مسافری که از زیر طاقی آجری به بام‌های شهر نگاه می‌کند"/></picture>
+      {[['شیراز', '/destinations/shiraz', 'imgThumb2.jpg'], ['کیش', '/destinations/kish', 'imgThumb3.jpg']].map(([name, href, img], i) => <Link key={href} href={href} className={`kh-mini kh-mini-${i + 1}`}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={A + img} alt=""/><span><b>{name}</b><Arrow/></span></Link>)}
+    </div>
+    <div className="kh-hero-text">
+      <h1>سفر را<br/>زندگی کن</h1>
+      <p>از اولین جست‌وجو تا آخرین خاطره،<br/>همه‌چیز در کارن‌سیر کنار هم است.</p>
+      <ul>
+        <li><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 14v-2a8 8 0 0 1 16 0v2M4 14a2 2 0 0 1 2-2h1v6H6a2 2 0 0 1-2-2zM20 14a2 2 0 0 0-2-2h-1v6h1a2 2 0 0 0 2-2zM17 18v1a3 3 0 0 1-3 3h-2"/></svg><span>پشتیبانی<small>همراه شما</small></span></li>
+        <li><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.8 2.8L16 9.5"/></svg><span>رزرو<small>قابل پیگیری</small></span></li>
+      </ul>
+    </div>
+    {search}
+  </div>;
+}
+
+const TILES = [
+  {href: '/destinations/qeshm', img: A + 'imgImage1.jpg', name: 'قشم', cls: 'kh-tile-qeshm'},
+  {href: '/destinations/shiraz', img: A + 'imgThumb2.jpg', name: 'شیراز', cls: 'kh-tile-shiraz'},
+  {href: '/destinations/masuleh', img: A + 'imgTileMasuleh.jpg', name: 'ماسوله', cls: 'kh-tile-masuleh'},
+  {href: '/destinations/isfahan', img: A + 'imgTileIsfahan.jpg', name: 'اصفهان', cls: 'kh-tile-isfahan'},
+];
+export function ApprovedHomeBento() {
+  return <div className="kh"><section className="kh-sec kh-bento" aria-labelledby="kh-bento-title">
+    <Ornament className="kh-orn kh-orn-3"/>
+    <h2 id="kh-bento-title">کجای ایران<br/>صدایت می‌زند؟</h2>
+    {TILES.map(t => <Link key={t.href} href={t.href} className={`kh-tile ${t.cls}`}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={t.img} alt="" loading="lazy"/><b>{t.name}</b></Link>)}
+  </section></div>;
 }

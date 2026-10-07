@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import './approved-figma.css';
-import {ApprovedHomeLower, ApprovedFooterLight} from './ApprovedHomeLower';
+import {ApprovedHomeLower, ApprovedFooterLight, ApprovedHomeHero, ApprovedHomeBento} from './ApprovedHomeLower';
 import {Suspense, type ReactNode} from 'react';
 import {HomeSearchExperience} from '../search/HomeSearchExperience';
 import {supportPhone} from '../../lib/site-contact';
@@ -201,132 +201,9 @@ export default function ApprovedFigmaHome() {
             </p>
           </div>
         </div>
-        <div className="content-stretch flex gap-[56px] items-start overflow-clip relative shrink-0 w-full" data-node-id="46:2" data-name="Hero Row">
-          <div className="h-[560px] overflow-clip relative rounded-[32px] shrink-0 w-[600px]" data-node-id="46:3" data-name="Hero Image / Yazd">
-            <img alt="" className="absolute inset-0 max-w-none object-cover pointer-events-none rounded-[32px] size-full" src={imgHeroImageYazd} />
-            <div className="absolute bg-gradient-to-b from-[rgba(26,13,20,0.35)] h-[560px] left-0 to-[rgba(26,13,20,0)] top-0 w-[600px]" data-node-id="46:4" data-name="Scrim" />
-          </div>
-          <div className="content-stretch flex flex-[1_0_0] flex-col gap-[24px] items-end min-w-px overflow-clip relative" data-node-id="46:5" data-name="Hero Text">
-            <div className="[word-break:break-word] font-[Vazirmatn] font-black leading-[0] min-w-full relative shrink-0 text-[#2a1530] text-[64px] text-right w-[min-content]" data-node-id="46:6">
-              <p className="leading-[1.18] mb-0" dir="auto">
-                سفر را
-              </p>
-              <p className="leading-[1.18]" dir="auto">
-                زندگی کن
-              </p>
-            </div>
-            <div className="[word-break:break-word] font-[Vazirmatn] font-normal leading-[0] relative shrink-0 text-[#6e5e70] text-[17px] text-right w-[420px]" data-node-id="46:7">
-              <p className="leading-[1.6] mb-0" dir="auto">
-                از اولین جست‌وجو تا آخرین خاطره،
-              </p>
-              <p className="leading-[1.6]" dir="auto">
-                همه‌چیز در کارن سیر کنار هم است.
-              </p>
-            </div>
-            <div className="content-stretch flex gap-[32px] items-center overflow-clip relative shrink-0" data-node-id="46:8" data-name="Trust Badges">
-              <div className="content-stretch flex gap-[10px] items-center overflow-clip relative shrink-0" data-node-id="46:9" data-name="Frame">
-                <div className="relative shrink-0 size-[18px]" data-node-id="68:58" data-name="Icon / Support">
-                  <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgIconSupport} />
-                </div>
-                <div className="relative shrink-0 size-[40px]" data-node-id="46:10" data-name="Ellipse">
-                  <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgEllipse} />
-                </div>
-                <div className="[word-break:break-word] content-stretch flex flex-col gap-[2px] items-end leading-[normal] overflow-clip relative shrink-0 whitespace-nowrap" data-node-id="46:11" data-name="Frame">
-                  <p className="font-[Vazirmatn] font-semibold relative shrink-0 text-[#2a1530] text-[14px]" dir="auto" data-node-id="46:12">
-                    پشتیبانی
-                  </p>
-                  <p className="font-[Vazirmatn] font-normal relative shrink-0 text-[#6e5e70] text-[12px]" dir="auto" data-node-id="46:13">
-                    همراه شما
-                  </p>
-                </div>
-              </div>
-              <div className="content-stretch flex gap-[10px] items-center overflow-clip relative shrink-0" data-node-id="46:14" data-name="Frame">
-                <div className="relative shrink-0 size-[18px]" data-node-id="68:62" data-name="Icon / Check">
-                  <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgIconCheck} />
-                </div>
-                <div className="relative shrink-0 size-[40px]" data-node-id="46:15" data-name="Ellipse">
-                  <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgEllipse} />
-                </div>
-                <div className="[word-break:break-word] content-stretch flex flex-col gap-[2px] items-end leading-[normal] overflow-clip relative shrink-0 whitespace-nowrap" data-node-id="46:16" data-name="Frame">
-                  <p className="font-[Vazirmatn] font-semibold relative shrink-0 text-[#2a1530] text-[14px]" dir="auto" data-node-id="46:17">
-                    رزرو
-                  </p>
-                  <p className="font-[Vazirmatn] font-normal relative shrink-0 text-[#6e5e70] text-[12px]" dir="auto" data-node-id="46:18">
-                    قابل پیگیری
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <Link href="/destinations/shiraz" className="absolute bg-white content-stretch flex gap-[10px] items-center left-[44px] overflow-clip pl-[14px] pr-[8px] py-[8px] rounded-[16px] shadow-[0px_6px_16px_0px_rgba(77,51,38,0.15)] top-[171px]" data-node-id="48:2" data-name="Mini Card / Shiraz">
-          <p className="[word-break:break-word] font-[Vazirmatn] font-semibold leading-[normal] relative shrink-0 text-[#2a1530] text-[14px] whitespace-nowrap" dir="auto" data-node-id="48:3">
-            شیراز
-          </p>
-          <div className="relative rounded-[12px] shrink-0 size-[48px]" data-node-id="48:4" data-name="thumb">
-            <img alt="" className="absolute inset-0 max-w-none object-cover pointer-events-none rounded-[12px] size-full" src={imgThumb2} />
-          </div>
-          <div className="relative shrink-0 size-[14px]" data-node-id="72:118" data-name="Icon / ArrowLeft">
-            <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgIconArrowLeft} />
-          </div>
-        </Link>
-        <Link href="/destinations/kish" className="absolute bg-white content-stretch flex gap-[10px] items-center left-[44px] overflow-clip pl-[14px] pr-[8px] py-[8px] rounded-[16px] shadow-[0px_6px_16px_0px_rgba(77,51,38,0.15)] top-[241px]" data-node-id="48:6" data-name="Mini Card / Kish">
-          <p className="[word-break:break-word] font-[Vazirmatn] font-semibold leading-[normal] relative shrink-0 text-[#2a1530] text-[14px] whitespace-nowrap" dir="auto" data-node-id="48:7">
-            کیش
-          </p>
-          <div className="relative rounded-[12px] shrink-0 size-[48px]" data-node-id="48:8" data-name="thumb">
-            <img alt="" className="absolute inset-0 max-w-none object-cover pointer-events-none rounded-[12px] size-full" src={imgThumb3} />
-          </div>
-          <div className="relative shrink-0 size-[14px]" data-node-id="72:120" data-name="Icon / ArrowLeft">
-            <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgIconArrowLeft} />
-          </div>
-        </Link>
-        
-<div className="approved-search-card" data-node-id="48:10" data-name="Search Card"><Suspense fallback={<p role="status">در حال آماده‌سازی جست‌وجو…</p>}><HomeSearchExperience presentation="approved"/></Suspense></div>
-        <div className="h-[144px] relative shrink-0 w-full" data-node-id="49:2" data-name="Spacer / Search Card Overlap" />
+        <ApprovedHomeHero search={<div className="approved-search-card" data-node-id="48:10" data-name="Search Card"><Suspense fallback={<p role="status">در حال آماده‌سازی جست‌وجو…</p>}><HomeSearchExperience presentation="approved"/></Suspense></div>}/>
       </div>
-      <div className="bg-white content-stretch flex flex-col gap-[32px] items-end overflow-clip px-[64px] py-[40px] relative shrink-0 w-full" data-node-id="50:2" data-name="Section / Bento Destinations">
-        <div className="[word-break:break-word] font-[Vazirmatn] font-black leading-[0] relative shrink-0 text-[#2a1530] text-[34px] text-right whitespace-nowrap" data-node-id="50:3">
-          <p className="leading-[1.3] mb-0" dir="auto">
-            کجای ایران
-          </p>
-          <p className="leading-[1.3]" dir="auto">
-            صدایت می‌زند؟
-          </p>
-        </div>
-        <div className="content-stretch flex gap-[20px] items-start overflow-clip relative shrink-0 w-full" data-node-id="50:7" data-name="Bento Row">
-          <Link href="/destinations/qeshm" className="h-[420px] overflow-clip relative rounded-[28px] shrink-0 w-[404px]" data-node-id="50:8" data-name="Tile / Qeshm">
-            <img alt="" className="absolute inset-0 max-w-none object-cover pointer-events-none rounded-[28px] size-full" src={imgTileQeshm} />
-            <div className="absolute bg-gradient-to-b from-[rgba(0,0,0,0.55)] inset-0 to-[55%] to-[rgba(0,0,0,0)]" data-node-id="I50:8;50:5" data-name="Scrim" />
-            <p className="[word-break:break-word] absolute bottom-[65px] font-[Vazirmatn] font-bold leading-[normal] left-[24px] text-[26px] text-white translate-y-full whitespace-nowrap" dir="auto" data-node-id="I50:8;50:6">
-              قشم
-            </p>
-          </Link>
-          <Link href="/destinations/shiraz" className="h-[420px] overflow-clip relative rounded-[28px] shrink-0 w-[404px]" data-node-id="50:11" data-name="Tile / Shiraz">
-            <img alt="" className="absolute inset-0 max-w-none object-cover pointer-events-none rounded-[28px] size-full" src={imgTileShiraz} />
-            <div className="absolute bg-gradient-to-b from-[rgba(0,0,0,0.55)] inset-0 to-[55%] to-[rgba(0,0,0,0)]" data-node-id="I50:11;50:5" data-name="Scrim" />
-            <p className="[word-break:break-word] absolute bottom-[65px] font-[Vazirmatn] font-bold leading-[normal] left-[24px] text-[26px] text-white translate-y-full whitespace-nowrap" dir="auto" data-node-id="I50:11;50:6">
-              شیراز
-            </p>
-          </Link>
-          <div className="content-stretch flex flex-[1_0_0] flex-col gap-[20px] items-start min-w-px overflow-clip relative" data-node-id="50:14" data-name="Bento Right Col">
-            <Link href="/destinations/masuleh" className="h-[200px] overflow-clip relative rounded-[28px] shrink-0 w-full" data-node-id="50:15" data-name="Tile / Masuleh">
-              <img alt="" className="absolute inset-0 max-w-none object-cover pointer-events-none rounded-[28px] size-full" src={imgTileMasuleh} />
-              <div className="absolute bg-gradient-to-b from-[rgba(0,0,0,0.55)] inset-0 to-[55%] to-[rgba(0,0,0,0)]" data-node-id="I50:15;50:5" data-name="Scrim" />
-              <p className="[word-break:break-word] absolute bottom-[65px] font-[Vazirmatn] font-bold leading-[normal] left-[24px] text-[26px] text-white translate-y-full whitespace-nowrap" dir="auto" data-node-id="I50:15;50:6">
-                ماسوله
-              </p>
-            </Link>
-            <Link href="/destinations/isfahan" className="h-[200px] overflow-clip relative rounded-[28px] shrink-0 w-full" data-node-id="50:18" data-name="Tile / Isfahan">
-              <img alt="" className="absolute inset-0 max-w-none object-cover pointer-events-none rounded-[28px] size-full" src={imgTileIsfahan} />
-              <div className="absolute bg-gradient-to-b from-[rgba(0,0,0,0.55)] inset-0 to-[55%] to-[rgba(0,0,0,0)]" data-node-id="I50:18;50:5" data-name="Scrim" />
-              <p className="[word-break:break-word] absolute bottom-[65px] font-[Vazirmatn] font-bold leading-[normal] left-[24px] text-[26px] text-white translate-y-full whitespace-nowrap" dir="auto" data-node-id="I50:18;50:6">
-                اصفهان
-              </p>
-            </Link>
-          </div>
-        </div>
-      </div>
+      <ApprovedHomeBento/>
       <ApprovedHomeLower/>
       <ApprovedFooterLight/>
     </div>

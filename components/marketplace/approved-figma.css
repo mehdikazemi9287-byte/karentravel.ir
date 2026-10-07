@@ -63,3 +63,47 @@
 .kh-foot{border-radius:30px 30px 0 0;padding:30px 18px 18px}.kh-foot-grid{grid-template-columns:1fr 1fr;gap:22px}.kh-foot-brand{grid-column:1/-1}}
 .approved-search-card .fs-tabs button{order:0!important}.kh-foot{width:100%;align-self:stretch}
 @media(min-width:1200px){.approved-figma-home [data-node-id="49:2"]{height:56px}}
+
+/* ---- hero + mosaic after the reference render; search form look */
+.approved-figma-home,.approved-figma-home [data-node-id="45:2"],.kh{background-color:#fdf5ea}.kh-foot{background:#fffaf2}
+.kh-hero{position:relative;width:100%;background:transparent}.kh-hero-photo{position:relative;border-radius:24px;overflow:hidden}.kh-hero-photo img{display:block;width:100%;height:auto}
+.kh-mini{position:absolute;left:5.5%;width:28%;height:23.5%;top:19.8%;background:#fffcf9;border-radius:16px;box-shadow:0 6px 16px rgba(77,51,38,.2);display:flex;align-items:center;gap:8px;padding:6px 8px;direction:rtl}
+.kh-mini-2{top:47.1%}.kh-mini img{width:auto!important;height:100%!important;aspect-ratio:1;object-fit:cover;border-radius:12px;flex:0 0 auto}.kh-mini span{display:grid;gap:2px;font-size:14px;color:#2a1530;line-height:1.3}.kh-mini b{font-weight:700}
+.kh-hero-text{display:grid;gap:18px;justify-items:start;text-align:right}.kh-hero-text h1{margin:0;font-size:56px;font-weight:900;line-height:1.22;color:#2a1530;letter-spacing:0}
+.kh-hero-text p{font-size:17px;color:#4d3f52;line-height:1.75}.kh-hero-text ul{list-style:none;display:flex;gap:0;color:#3a1b3d}.kh-hero-text li{display:flex;gap:10px;align-items:center;font-size:15px;font-weight:600;padding:0 22px}
+.kh-hero-text li:first-child{padding-inline-start:0}.kh-hero-text li+li{border-inline-start:1px solid #e0cdb4}.kh-hero-text li small{display:block;font-size:13px;font-weight:400;color:#6e5e70}
+.kh-orn{position:absolute;pointer-events:none;opacity:.9;z-index:0}.kh-orn-1{width:96px;height:96px;right:-98px;top:210px}.kh-orn-2{width:70px;height:70px;right:-84px;top:480px}.kh-orn-3{width:84px;height:84px;right:-30px;top:6px}
+.kh-hero .approved-search-card{position:relative;left:auto;top:auto;width:100%;margin:0;z-index:3}
+.approved-search-card .fs-tabs{border:1px solid #e3d8cc;border-radius:16px;gap:0;overflow:hidden}
+.approved-search-card .fs-tabs button{flex:1 1 0;border-radius:0;gap:8px;min-height:50px;font-size:15px;padding:10px 8px}
+.approved-search-card .fs-tabs button+button{border-inline-start:1px solid #e3d8cc}
+.approved-search-card .fs-tabs button>svg{display:block;width:22px;height:22px;flex:0 0 auto}
+.approved-search-card .fs-tabs button.is-active{background:#3a1b3d;color:#fff;border-radius:13px;border-color:transparent}
+.approved-search-card .fs-field{background:#fff;border:1px solid #d9cdc0}.approved-search-card .fs-field:focus-within{border-color:#ef5b3d}
+.approved-search-card .fs-nl-toggle,.approved-search-card [aria-expanded].fs-nl-toggle{color:#2779b8}
+.kh-bento{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:12px;padding-top:26px;padding-bottom:10px}
+.kh-bento h2{grid-column:1/-1;font-size:28px;font-weight:900;line-height:1.5;color:#2a1530}
+.kh-tile{position:relative;display:block;overflow:hidden;border-radius:24px;min-height:170px;box-shadow:0 10px 22px -14px rgba(42,21,48,.5)}
+.kh-tile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .4s}.kh-tile:hover img{transform:scale(1.04)}
+.kh-tile::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,8,24,0) 40%,rgba(20,8,24,.6) 100%)}
+.kh-tile b{position:absolute;z-index:1;bottom:10px;inset-inline-end:16px;color:#fff;font-size:30px;font-weight:900;text-shadow:0 2px 10px rgba(0,0,0,.45);line-height:1.3}
+.kh-tile-shiraz{box-shadow:0 0 0 2px #fdf5ea,0 0 0 4px #c9a24a,0 10px 22px -12px rgba(42,21,48,.5)}
+@media(min-width:1200px){
+.approved-figma-home [data-node-id="45:2"]{padding-bottom:28px}
+.kh-hero{height:800px;max-width:1312px}
+.kh-hero-photo{position:absolute;left:-64px;top:-22px;width:612px;border-radius:0}.kh-hero-photo img{width:612px}
+.kh-mini{top:11.3%;height:13.4%;gap:10px;padding:8px 10px}.kh-mini-2{top:26.9%}.kh-mini span{font-size:16px}
+.kh-hero-text{position:absolute;right:0;top:34px;width:560px;gap:22px}.kh-hero-text h1{font-size:92px;line-height:1.16}.kh-hero-text p{font-size:21px}.kh-hero-text li{font-size:17px}
+.kh-hero .approved-search-card{position:absolute;left:452px;right:0;top:446px;width:auto;max-width:700px}
+.kh-bento{grid-template-columns:1.2fr .72fr 1.35fr 1fr;grid-template-rows:200px 200px;gap:16px;direction:ltr;padding-top:34px}
+.kh-bento h2{grid-column:4;grid-row:1/3;align-self:center;font-size:40px;direction:rtl;text-align:right;padding-inline-start:8px}
+.kh-tile-qeshm{grid-column:1;grid-row:1/3;border-radius:64px 28px 28px 28px}.kh-tile-shiraz{grid-column:2;grid-row:1/3;border-radius:28px 56px 28px 28px}
+.kh-tile-masuleh{grid-column:3;grid-row:1;border-radius:28px 70px 28px 28px;margin-inline-end:56px}.kh-tile-isfahan{grid-column:3;grid-row:2;border-radius:28px 28px 70px 28px}
+.kh-tile b{font-size:52px;bottom:14px;inset-inline-end:auto;right:24px}.kh-tile-shiraz b{right:50%;transform:translateX(50%)}.kh-tile-masuleh b{bottom:auto;top:50%;transform:translateY(-50%);right:26px;font-size:44px}.kh-tile-isfahan b{right:auto;left:26px;font-size:46px}}
+@media(max-width:1199px){.kh-hero{display:grid;gap:22px}.kh-hero-photo{order:2}.kh-hero .approved-search-card{order:3}.kh-orn{display:none}.kh-hero-text h1{font-size:64px}}
+@media(max-width:700px){.kh-hero-text h1{font-size:48px}.kh-hero-text li{padding:0 14px;font-size:14px}.kh-mini span{font-size:13px}.kh-tile b{font-size:28px}.kh-tile-shiraz{margin:4px}}
+.kh-cmp-cta{display:inline-flex;gap:8px;align-items:center}.kh-org-art{flex:0 1 460px}.kh-org-art img{border-radius:18px;filter:none;mix-blend-mode:multiply}.kh-badges{display:flex;gap:8px;flex-wrap:wrap}.kh-badges span{border:1px solid #cdbfb0;border-radius:10px;padding:6px 14px;font-size:13px;font-weight:700;color:#3a1b3d;background:#fff}.kh-foot-app small{color:#6e5e70}
+.kh-ai{padding:44px 48px}
+@media(min-width:1200px){.kh-hero .approved-search-card{left:462px;right:auto;width:min(760px,calc(100% - 462px));max-width:none}.approved-search-card .fs-field{min-height:62px}.approved-search-card .fs-tabs button{min-height:54px;font-size:16px}}
+@media(max-width:700px){.kh-org-art{flex:0 0 auto;max-width:100%}.kh-ai{padding:26px 20px}}
+.approved-figma-home{overflow-x:clip}
