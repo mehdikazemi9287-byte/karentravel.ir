@@ -24,7 +24,7 @@ for (const [vp, size] of [['desktop', {width: 1366, height: 900}], ['mobile', {w
   // ---------- home, RTL, navigation
   let res = await open('/'); const html = await page.evaluate(() => ({dir: document.documentElement.dir || getComputedStyle(document.body).direction, lang: document.documentElement.lang, font: getComputedStyle(document.body).fontFamily}));
   check('home 200, RTL, Persian, Vazirmatn', res.status() === 200 && html.dir === 'rtl' && html.lang.startsWith('fa') && /vazir/i.test(html.font), JSON.stringify(html).slice(0, 120));
-  check('home: header navigation and footer links', (await page.locator('header a[href^="/"], nav a[href^="/"]').count()) >= 4 && (await page.locator('footer a').count()) >= 3);
+  check('home: header navigation and footer links', (await page.locator('[data-name="Nav Links"] a').count()) >= 6 && (await page.locator('.kh-foot a').count()) >= 8 && (await page.locator('.kh-strip a').count()) === 5);
   check('home: no horizontal overflow, no broken image', await fits() && (await broken()).length === 0, (await broken()).join(' | ')); await collect(); await page.screenshot({path: `${OUT}/prod-home-${vp}.png`, fullPage: true});
   await page.locator('.fs-tabs button:has-text("هتل")').first().click(); await page.waitForTimeout(400);
   const box = page.locator('input[role=combobox][aria-controls="destination-suggestions"]').first(); await box.click(); await box.fill(hotel[1]); await page.waitForTimeout(2000);
