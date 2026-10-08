@@ -1,3 +1,4 @@
-import {JourneyShell} from '../../../components/journey/JourneyShell';
+import {PanelShell} from '../../../components/panel/PanelKit';
 import {SupplierAdmission} from '../../../components/operational/SupplierAdmission';
-export default function Page(){return <JourneyShell><main className="journey-main"><SupplierAdmission/></main></JourneyShell>}
+export const metadata = {title: 'کنترل بلیت و پذیرش | کارن‌سیر', robots: {index: false}};
+export default function Page() {return <PanelShell area="supplier" title="کنترل بلیت و پذیرش" intro=""><SupplierAdmission/></PanelShell>;}

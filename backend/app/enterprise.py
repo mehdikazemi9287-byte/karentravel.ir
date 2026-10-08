@@ -179,7 +179,7 @@ def router(current_user,get_db,User):
         perms=permissions(db,user,org)
         if not ({'roles.manage','policy.manage','requests.on_behalf','benefits.manage'}&perms):raise HTTPException(403,'مجوز مشاهدهٔ فهرست کارکنان ندارید')
         users=db.scalars(select(User).join(m.EmployeeAssignment,m.EmployeeAssignment.user_id==User.id).where(User.tenant_id==user.tenant_id,m.EmployeeAssignment.tenant_id==user.tenant_id,m.EmployeeAssignment.organization_id==org)).all()
-        return [{'id':u.id,'name':u.name,'email':u.email,'role':u.role} for u in users]
+        return member_list(db,user,org)
 
     @api.put('/organizations/{org}/grants')
     def grants(org:str,data:GrantIn,user=Depends(current_user),db:Session=Depends(get_db)):
@@ -371,7 +371,8 @@ def router(current_user,get_db,User):
         else:require(db,user,org,'roles.manage')
     def member_list(db,user,org):
         users=db.scalars(select(User).join(m.EmployeeAssignment,m.EmployeeAssignment.user_id==User.id).where(User.tenant_id==user.tenant_id,m.EmployeeAssignment.tenant_id==user.tenant_id,m.EmployeeAssignment.organization_id==org).order_by(User.name)).all()
-        return [{'id':u.id,'name':u.name,'email':u.email,'role':u.role} for u in users]
+        grants=dict(db.execute(select(e.EnterpriseGrant.user_id,e.EnterpriseGrant.permissions_json).where(e.EnterpriseGrant.tenant_id==user.tenant_id,e.EnterpriseGrant.organization_id==org)).all())
+        return [{'id':u.id,'name':u.name,'email':u.email,'role':u.role,'permissions':sorted(PERMISSIONS) if u.role=='organization_admin' else json.loads(grants.get(u.id,'[]'))} for u in users]
     @api.get('/organizations')
     def organizations(user=Depends(current_user),db:Session=Depends(get_db)):
         if user.role not in TENANT_ADMINS:raise HTTPException(403,'فهرست همهٔ سازمان‌ها فقط برای مدیر مجموعه است')
@@ -422,5 +423,34 @@ def router(current_user,get_db,User):
                 'departments':db.scalar(select(func.count()).select_from(m.Department).where(m.Department.tenant_id==t,m.Department.organization_id==org)),'cost_centers':db.scalar(select(func.count()).select_from(m.CostCenter).where(m.CostCenter.tenant_id==t,m.CostCenter.organization_id==org)),
                 'requests':{'total':sum(by_status.values()),'by_status':by_status,'by_use_case':by_use,'by_policy_result':by_policy},'linked_bookings':linked,
                 'credit_accounts':db.scalar(select(func.count()).select_from(m.CreditAccount).where(m.CreditAccount.tenant_id==t,m.CreditAccount.organization_id==org))}
+
+    def org_reader(db,user,org):
+        """Organization-wide records are for its managers and for the tenant's own administrators and finance desk."""
+        if user.role in TENANT_ADMINS+('finance_operator',):org_row(db,user,org);return
+        if not ({'requests.read_all','policy.manage','roles.manage'}&permissions(db,user,org)):raise HTTPException(403,'مجوز مشاهدهٔ سوابق سازمان ندارید')
+    @api.get('/organizations/{org}/audit')
+    def audit_trail(org:str,user=Depends(current_user),db:Session=Depends(get_db)):
+        org_reader(db,user,org)
+        rows=db.execute(select(e.EnterpriseRequestEvent,User.name,e.EnterpriseRequest.title).join(User,User.id==e.EnterpriseRequestEvent.actor_id).outerjoin(e.EnterpriseRequest,e.EnterpriseRequest.id==e.EnterpriseRequestEvent.request_id)
+                        .where(e.EnterpriseRequestEvent.tenant_id==user.tenant_id,e.EnterpriseRequestEvent.organization_id==org).order_by(e.EnterpriseRequestEvent.created_at.desc()).limit(300)).all()
+        return [{'id':ev.id,'type':ev.event_type,'at':ev.created_at.isoformat(),'actor':name,'request_id':ev.request_id,'request_title':title} for ev,name,title in rows]
+    @api.get('/organizations/{org}/statement')
+    def statement(org:str,user=Depends(current_user),db:Session=Depends(get_db)):
+        """Invoices of the reservations that were linked to this organization's approved requests. Totals are sums of those invoices, nothing else."""
+        org_reader(db,user,org);t=user.tenant_id
+        rows=db.execute(select(m.Invoice,m.Reservation,e.EnterpriseRequest.title).join(m.Reservation,m.Reservation.id==m.Invoice.reservation_id).join(e.EnterpriseBookingLink,e.EnterpriseBookingLink.reservation_id==m.Reservation.id)
+                        .join(e.EnterpriseRequest,e.EnterpriseRequest.id==e.EnterpriseBookingLink.request_id).where(m.Invoice.tenant_id==t,e.EnterpriseBookingLink.tenant_id==t,e.EnterpriseRequest.organization_id==org).order_by(m.Invoice.issued_at.desc()).limit(500)).all()
+        totals={}
+        for inv,_,_ in rows:
+            key=(inv.currency,inv.status);totals[key]=totals.get(key,0)+inv.total_amount
+        linked=db.scalar(select(func.count()).select_from(e.EnterpriseBookingLink).join(e.EnterpriseRequest,e.EnterpriseRequest.id==e.EnterpriseBookingLink.request_id).where(e.EnterpriseBookingLink.tenant_id==t,e.EnterpriseRequest.organization_id==org))
+        return {'linked_bookings':linked,'items':[{'invoice_number':inv.invoice_number,'request_title':title,'booking_reference':res.booking_reference,'service_type':res.service_type,'subtotal_amount':inv.subtotal_amount,'tax_amount':inv.tax_amount,'total_amount':inv.total_amount,
+                                                   'currency':inv.currency,'status':inv.status,'issued_at':inv.issued_at.isoformat() if inv.issued_at else None} for inv,res,title in rows],
+                'totals':[{'currency':c,'status':s,'amount':a} for (c,s),a in sorted(totals.items())]}
+    @api.get('/organizations/{org}/credit')
+    def org_credit(org:str,user=Depends(current_user),db:Session=Depends(get_db)):
+        org_reader(db,user,org)
+        rows=db.scalars(select(m.CreditAccount).where(m.CreditAccount.tenant_id==user.tenant_id,m.CreditAccount.organization_id==org).order_by(m.CreditAccount.created_at)).all()
+        return [{'id':r.id,'currency':r.currency,**m.credit_balances(db,tenant_id=user.tenant_id,credit_account_id=r.id)} for r in rows]
 
     return api

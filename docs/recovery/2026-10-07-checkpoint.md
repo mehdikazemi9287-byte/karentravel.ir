@@ -50,3 +50,10 @@
 - QA: `deploy/candidate-qa/panelqa2.mjs` (26 checks × desktop/mobile). Candidate web image `checkline-cand50`.
 - Marked unavailable (no real model/credential): online visa application (no visa product), wallet top-up (no gateway), SMS/push, payroll deduction, organization-level statement/settlement, cost report.
 - NEXT: Partner/Agency and Supplier panels into the same shell (`/agency`, `/supplier` exist as single pages); organization credit account creation UI for finance; then release decision.
+
+## Panels round 2 (2026-10-08, candidate only — Production untouched)
+- All five areas share `PanelShell`: customer (12 sections), organization (11), agency (10, `components/panel/AgencyPanel.tsx`), supplier (10, `SupplierPanel.tsx`), admin (`AdminPanel.tsx`: `/admin/organizations`, `/admin/audit`; `/admin`, `/admin/partners` re-housed).
+- Backend added (no migration): `GET /enterprise/organizations/{org}/audit|statement|credit`, member permissions in the members list, `GET /admin/audit-events`.
+- QA: `deploy/candidate-qa/panelqa3.mjs` — 20 checks × desktop/tablet/mobile incl. API authorisation matrix. Candidate web image `checkline-cand51`. `panelqa2.mjs` is superseded (its credit expectation predates the credit account now on the QA organization).
+- Still unavailable by design (no real model / credential): online visa application, wallet top-up and online settlement (gateway), SMS/push, payroll deduction, agency copies of customer vouchers, hotel rates for catalogue hotels.
+- Signed-in panel QA has not been run on Production (no dev login there).

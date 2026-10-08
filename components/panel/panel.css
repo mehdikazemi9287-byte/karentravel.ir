@@ -27,3 +27,4 @@
 .pn .dashboard.container,.pn .container{max-width:none;padding:0;margin:0}
 @media(max-width:900px){.pn{grid-template-columns:1fr;padding:14px 14px 40px;gap:14px}.pn-nav{position:static;display:flex;overflow-x:auto;gap:6px;padding:8px;border-radius:16px;scrollbar-width:none}.pn-nav-title,.pn-nav-foot{display:none}.pn-nav a{white-space:nowrap;padding:7px 12px;font-size:13px}.pn-head h1{font-size:22px}
 .pn-table thead{display:none}.pn-table tr{display:grid;gap:2px;padding:10px 0;border-bottom:1px solid #f1e8dc}.pn-table td{border:0;padding:1px 0;display:flex;gap:8px;justify-content:space-between}.pn-table td::before{content:attr(data-label);color:var(--pn-muted);font-size:12px;flex:0 0 auto}}
+.pn-main>*{min-width:0;max-width:100%}.pn-main :where(table):not(.pn-table){display:block;max-width:100%;overflow-x:auto}.pn-main :where(input,select,textarea,img){max-width:100%}.pn-main :where(.grid,form,section,div){min-width:0}

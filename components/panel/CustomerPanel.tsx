@@ -1,7 +1,7 @@
 'use client';
 /* Customer / passenger panel. Every list is the signed-in user's own records from /me/* and /support/*. */
 import Link from 'next/link';
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import {type Load, Async, Badge, Card, Empty, Stats, Table, Unavailable, dateFa, errorOf, fa, money, serviceFa, useLoad} from './PanelKit';
 
 type Reservation = {id: string; booking_reference: string | null; service_type: string; status: string; price_snapshot?: {total_amount?: number; currency?: string} | null; created_at: string; manage_link: string; provider_connected?: boolean};
@@ -110,4 +110,49 @@ export function CustomerSupport() {
   const cases = useLoad<Case[]>('/support/cases');
   return <Card title="پرونده‌های پشتیبانی" action={<Link className="pn-btn" href="/support">ثبت درخواست جدید</Link>}>
     <Async state={cases.state}>{rows => <Table rows={rows} rowKey={c => c.id} empty="پرونده‌ای ثبت نکرده‌اید." cols={[{label: 'موضوع', cell: c => c.subject}, {label: 'وضعیت', cell: c => <Badge status={c.status}/>}, {label: 'اولویت', cell: c => c.priority}, {label: 'مهلت پاسخ', cell: c => dateFa(c.sla_due_at)}, {label: '', cell: c => <Link className="pn-link" href={`/support?case=${c.id}`}>گفت‌وگو</Link>}]}/>}</Async></Card>;
+}
+
+/* ---- trip changes, saved items and organization benefits */
+type Change = {id: string; category_fa: string; severity: string; title: string; message: string; requires_action: boolean; deep_link: string | null; created_at: string; acknowledged: boolean};
+type TripChanges = {trip: {id: string; title: string; destination: string | null; status: string}; unacknowledged: number; changes: Change[]};
+export function CustomerChanges() {
+  const trips = useLoad<Trip[]>('/me/trips'); const [data, setData] = useState<TripChanges[] | null>(null); const [error, setError] = useState(''); const [tick, setTick] = useState(0);
+  const list = trips.state.kind === 'ready' ? trips.state.data : null; const api = trips.api;
+  useEffect(() => {
+    if (!list) return; let active = true;
+    Promise.all(list.slice(0, 12).map(t => api.get<TripChanges>(`/trips/${t.id}/changes`))).then(all => {if (active) setData(all);}).catch(e => {if (active) setError(errorOf(e).message);});
+    return () => {active = false;};
+  }, [list, api, tick]);
+  async function seen(tripId: string, id: string) {setError(''); try {await api.post(`/trips/${tripId}/events/${id}/acknowledge`, {}); setTick(t => t + 1);} catch (e) {setError(errorOf(e).message);}}
+  if (trips.state.kind !== 'ready') return <Async state={trips.state}>{() => null}</Async>;
+  if (error) return <div className="pn-note error" role="alert">{error}</div>; if (data === null) return <p className="pn-muted" role="status">در حال دریافت…</p>;
+  if (data.length === 0) return <Empty>سفری در حساب شما نیست؛ تغییرات هر سفر (زمان، سکو، هتل، مدارک) پس از ثبت سفر اینجا می‌آید.</Empty>;
+  return <>{data.map(t => <Card key={t.trip.id} title={`${t.trip.title}${t.trip.destination ? ' — ' + t.trip.destination : ''}`} action={<Link className="pn-link" href={`/trips/${t.trip.id}`}>برنامهٔ کامل سفر</Link>}>
+    {t.changes.length === 0 ? <Empty>تغییری برای این سفر ثبت نشده است.</Empty> : <><p className="pn-muted">{t.unacknowledged > 0 ? `${fa(t.unacknowledged)} تغییر دیده‌نشده` : 'همهٔ تغییرات دیده شده است.'}</p>
+      <ul className="pn-list">{t.changes.map(c => <li key={c.id}><span><span className={`pn-badge ${c.requires_action ? 'bad' : c.acknowledged ? '' : 'warn'}`}>{c.category_fa}</span> <b>{c.title}</b> — {c.message} <span className="pn-muted">· {dateFa(c.created_at)}</span></span>
+        <span>{c.acknowledged ? <span className="pn-badge ok">دیده‌شد</span> : <button type="button" className="pn-btn ghost" onClick={() => void seen(t.trip.id, c.id)}>دیدم</button>}</span></li>)}</ul></>}</Card>)}</>;
+}
+
+type Quote = {id: string; offer_title: string; agency_name: string; service_type: string; amount: number; currency: string; valid_until: string | null; status: string};
+export function CustomerSaved() {
+  const saved = useLoad<{id: string; title?: string; name?: string; items?: unknown[]}[]>('/me/saved-trips'); const itin = useLoad<{id: string; title?: string; status?: string}[]>('/me/itineraries');
+  const quotes = useLoad<{items: Quote[]}>('/me/agency-quotes'); const reviews = useLoad<{id: string; title?: string; rating?: number; status?: string}[]>('/me/reviews');
+  return <>
+    <Card title="سفرهای ذخیره‌شده"><Async state={saved.state}>{rows => rows.length === 0 ? <Empty>چیزی ذخیره نکرده‌اید. در نتایج جست‌وجو می‌توانید گزینه‌ها را برای مقایسه ذخیره کنید. <Link className="pn-link" href="/saved-trips">سفرهای ذخیره‌شده</Link></Empty>
+      : <ul className="pn-list">{rows.map(s => <li key={s.id}><span>{s.title ?? s.name ?? 'سفر ذخیره‌شده'}{s.items ? ` · ${fa(s.items.length)} گزینه` : ''}</span><Link className="pn-link" href="/saved-trips">مشاهده</Link></li>)}</ul>}</Async></Card>
+    <Card title="برنامه‌های سفر"><Async state={itin.state}>{rows => rows.length === 0 ? <Empty>برنامهٔ سفری نساخته‌اید.</Empty> : <ul className="pn-list">{rows.map(i => <li key={i.id}><span>{i.title ?? 'برنامهٔ سفر'}</span><Badge status={i.status}/></li>)}</ul>}</Async></Card>
+    <Card title="پیشنهادهای قیمت دریافتی" action={<Link className="pn-link" href="/quotes">پاسخ به پیشنهادها</Link>}><Async state={quotes.state}>{q => <Table rows={q.items} rowKey={x => x.id} empty="پیشنهاد قیمتی از آژانس‌ها دریافت نکرده‌اید."
+      cols={[{label: 'خدمت', cell: x => x.offer_title}, {label: 'آژانس', cell: x => x.agency_name}, {label: 'مبلغ پیشنهاد', cell: x => money(x.amount, x.currency)}, {label: 'اعتبار تا', cell: x => dateFa(x.valid_until)}, {label: 'وضعیت', cell: x => <Badge status={x.status}/>}]}/>}</Async></Card>
+    <Card title="نظرهای من"><Async state={reviews.state}>{rows => rows.length === 0 ? <Empty>نظری ثبت نکرده‌اید؛ پس از پایان هر سفر می‌توانید دربارهٔ همان رزرو نظر بدهید.</Empty> : <ul className="pn-list">{rows.map(r => <li key={r.id}><span>{r.title ?? 'نظر'}{r.rating ? ` · ${fa(r.rating)} از ۵` : ''}</span><Badge status={r.status}/></li>)}</ul>}</Async></Card>
+  </>;
+}
+
+export function CustomerBenefits() {
+  const ctx = useLoad<{organizations: {id: string; name: string; permissions: string[]}[]}>('/enterprise/context'); const credit = useLoad<Credit[]>('/me/organization-credit');
+  return <>
+    <Card title="سازمان‌های من"><Async state={ctx.state}>{c => c.organizations.length === 0 ? <Empty>حساب شما به سازمانی متصل نیست؛ مزایا و اعتبار سازمانی فقط برای اعضای سازمان‌ها فعال می‌شود.</Empty>
+      : <ul className="pn-list">{c.organizations.map(o => <li key={o.id}><span><b>{o.name}</b></span><span><Link className="pn-link" href="/employee">درخواست سفر و مزایا</Link> · <Link className="pn-link" href="/organization/policy">سیاست سفر</Link></span></li>)}</ul>}</Async></Card>
+    <Card title="اعتبار سازمانی من"><Async state={credit.state}>{rows => rows.length === 0 ? <Empty>اعتباری به نام شما تخصیص داده نشده است.</Empty>
+      : <>{rows.map(c => <dl className="pn-dl" key={c.id}><dt>سقف اعتبار</dt><dd>{money(c.limit_amount, c.currency)}</dd><dt>قابل استفاده</dt><dd>{money(c.available, c.currency)}</dd><dt>مصرف‌شده</dt><dd>{money(c.consumed, c.currency)}</dd></dl>)}</>}</Async></Card>
+  </>;
 }

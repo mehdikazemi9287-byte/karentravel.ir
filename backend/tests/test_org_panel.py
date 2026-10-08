@@ -36,6 +36,18 @@ def test_organization_admin_flow_and_isolation(client):
         summary = client.get(base + "/summary", headers=org_admin).json()
         assert summary["members"] == 2 and summary["requests"] == {"total": 0, "by_status": {}, "by_use_case": {}, "by_policy_result": {}} and summary["linked_bookings"] == 0 and summary["credit_accounts"] == 0
         assert client.get(base + "/summary", headers=employee).status_code == 403 and client.get(base + "/summary", headers=outsider).status_code == 403
+        members = client.get(base + "/members", headers=org_admin).json()
+        assert {u["email"]: u["permissions"] for u in members}["employee@aftab.test"] == [] and len({u["email"]: u["permissions"] for u in members}["org-admin@aftab.test"]) == 7
+        assert client.put(base + "/grants", json={"command_id": str(uuid4()), "user_id": emp_id, "permissions": ["requests.read_all"]}, headers=org_admin).status_code == 200
+        assert client.get(base + "/summary", headers=employee).status_code == 200                                                          # the grant opens the organization report
+        trail = client.get(base + "/audit", headers=org_admin).json()
+        assert {ev["type"] for ev in trail} >= {"grant.changed"} and all(ev["actor"] for ev in trail) and client.get(base + "/audit", headers=outsider).status_code == 403
+        assert client.put(base + "/grants", json={"command_id": str(uuid4()), "user_id": emp_id, "permissions": []}, headers=org_admin).status_code == 200
+        assert client.get(base + "/audit", headers=employee).status_code == 403 and client.get(base + "/statement", headers=employee).status_code == 403
+        assert client.get(base + "/statement", headers=org_admin).json() == {"linked_bookings": 0, "items": [], "totals": []}
+        assert client.get(base + "/credit", headers=org_admin).json() == [] and client.get(base + "/credit", headers=tenant_admin).json() == [] and client.get(base + "/credit", headers=outsider).status_code in (403, 404)
+        events = client.get("/admin/audit-events", headers=tenant_admin)
+        assert events.status_code == 200 and isinstance(events.json(), list) and client.get("/admin/audit-events", headers=employee).status_code == 403 and client.get("/admin/audit-events", headers=org_admin).status_code in (200, 403)
         assert org["id"] in {o["id"] for o in client.get("/enterprise/context", headers=employee).json()["organizations"]}
         assert client.post(f"{base}/members/{admin_id}/remove", headers=org_admin).status_code == 409                                     # nobody removes itself
         assert client.post(f"{base}/members/{emp_id}/remove", headers=employee).status_code == 403
@@ -45,5 +57,5 @@ def test_organization_admin_flow_and_isolation(client):
     finally:
         with SessionLocal() as db:
             from app import enterprise_models as e
-            for model in (e.EnterprisePolicy, e.EnterpriseGrant): db.execute(delete(model).where(model.organization_id == org["id"]))
+            for model in (e.EnterpriseRequestEvent, e.EnterprisePolicy, e.EnterpriseGrant): db.execute(delete(model).where(model.organization_id == org["id"]))
             db.execute(delete(EmployeeAssignment).where(EmployeeAssignment.organization_id == org["id"])); db.execute(delete(Organization).where(Organization.id == org["id"])); db.commit()

@@ -9,12 +9,13 @@ import {ApiError} from '../../lib/api/karenseir-client';
 import {JourneyShell} from '../journey/JourneyShell';
 import './panel.css';
 
-export type Area = 'customer' | 'organization' | 'agency' | 'supplier';
+export type Area = 'customer' | 'organization' | 'agency' | 'supplier' | 'admin';
 const NAV: Record<Area, {title: string; links: [string, string][]}> = {
-  customer: {title: 'حساب من', links: [['نمای کلی', '/account'], ['پروفایل و مسافران', '/account/profile'], ['رزروها و سفرها', '/account/bookings'], ['ویزا', '/account/visa'], ['پرداخت و فاکتور', '/account/payments'], ['لغو و استرداد', '/account/refunds'], ['کیف پول و اعتبار', '/account/wallet'], ['اعلان‌ها', '/account/notifications'], ['پشتیبانی', '/account/support']]},
-  organization: {title: 'پنل سازمان', links: [['نمای کلی', '/organization'], ['میز کار کارمند', '/employee'], ['کارکنان', '/organization/members'], ['درخواست و تأیید سفر', '/organization/requests'], ['سیاست سفر', '/organization/policy'], ['واحدها و مراکز هزینه', '/organization/structure'], ['اعتبار و اقساط', '/organization/credit'], ['رزروهای سازمان', '/organization/bookings'], ['صورتحساب و تسویه', '/organization/billing'], ['گزارش', '/organization/reports']]},
-  agency: {title: 'پنل همکار', links: [['میز کار آژانس', '/agency']]},
-  supplier: {title: 'پنل تأمین‌کننده', links: [['میز کار تأمین‌کننده', '/supplier']]},
+  customer: {title: 'حساب من', links: [['نمای کلی', '/account'], ['پروفایل و مسافران', '/account/profile'], ['رزروها و سفرها', '/account/bookings'], ['تغییرات سفر', '/account/changes'], ['ویزا', '/account/visa'], ['پرداخت و فاکتور', '/account/payments'], ['لغو و استرداد', '/account/refunds'], ['کیف پول و اعتبار', '/account/wallet'], ['مزایای سازمانی', '/account/benefits'], ['ذخیره‌شده‌ها و پیشنهادها', '/account/saved'], ['اعلان‌ها', '/account/notifications'], ['پشتیبانی', '/account/support']]},
+  organization: {title: 'پنل سازمان', links: [['نمای کلی', '/organization'], ['میز کار کارمند', '/employee'], ['کارکنان و دسترسی‌ها', '/organization/members'], ['درخواست و تأیید سفر', '/organization/requests'], ['سیاست سفر', '/organization/policy'], ['واحدها و مراکز هزینه', '/organization/structure'], ['اعتبار و اقساط', '/organization/credit'], ['رزروهای سازمان', '/organization/bookings'], ['صورتحساب و تسویه', '/organization/billing'], ['گزارش', '/organization/reports'], ['سوابق و گردش تأیید', '/organization/audit']]},
+  agency: {title: 'پنل همکار', links: [['نمای کلی', '/agency'], ['فروش و پیشنهاد قیمت', '/agency/sales'], ['رزروها', '/agency/bookings'], ['مشتریان', '/agency/customers'], ['کمیسیون', '/agency/commissions'], ['اعتبار و حساب', '/agency/credit'], ['تسویه و اسناد', '/agency/documents'], ['گزارش', '/agency/reports'], ['میز کار کامل', '/agency/workspace'], ['پشتیبانی', '/agency/support']]},
+  supplier: {title: 'پنل تأمین‌کننده', links: [['نمای کلی', '/supplier'], ['خدمات، نرخ و ظرفیت', '/supplier/services'], ['هتل‌های من', '/supplier/hotels'], ['اقامتگاه و تقویم', '/supplier/accommodation'], ['سفارش‌ها و تأیید', '/supplier/fulfillment'], ['کنترل بلیت', '/supplier/admission'], ['درخواست‌های سازمانی', '/supplier/rfqs'], ['تسویه و قرارداد', '/supplier/settlements'], ['گزارش', '/supplier/reports'], ['پشتیبانی', '/supplier/support']]},
+  admin: {title: 'مدیریت مجموعه', links: [['کاربران و نقش‌ها', '/admin'], ['سازمان‌ها', '/admin/organizations'], ['تأمین‌کنندگان و آژانس‌ها', '/admin/partners'], ['سوابق ممیزی', '/admin/audit'], ['هتل‌ها', '/admin/catalog'], ['داده‌های مرجع', '/admin/catalog/reference'], ['تورها', '/admin/tours'], ['عملیات و پشتیبانی', '/backoffice'], ['مالی', '/finance']]},
 };
 const ORG_ROLES = ['manager', 'welfare_manager', 'organization_admin', 'tenant_admin', 'platform_admin', 'employee'];
 export const fa = (n: number) => n.toLocaleString('fa-IR');

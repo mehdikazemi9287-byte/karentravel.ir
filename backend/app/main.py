@@ -3948,6 +3948,14 @@ def post_settlement(reservation_id: str, user: User = Depends(require_permission
     db.add(operational_models.IdempotencyKey(tenant_id=user.tenant_id, scope="settlement.post", key=idempotency_key, request_hash=_secure_hash(reservation.id), response_json=json.dumps(response))); db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="settlement", aggregate_id=row.id, event_type="settlement.posted_pending", payload_json=json.dumps(response), correlation_id=str(uuid.uuid4()), idempotency_key=idempotency_key)); db.commit(); return response
 
 
+@app.get("/admin/audit-events")
+def admin_audit_events(action: Optional[str] = Query(default=None, max_length=80), limit: int = Query(default=100, ge=1, le=300), user: User = Depends(require_permission("member:manage")), db: Session = Depends(get_db)) -> list[dict]:
+    """Audit trail of the caller's own tenant, newest first."""
+    stmt = select(AuditEvent, User.name).join(User, User.id == AuditEvent.actor_id).where(AuditEvent.tenant_id == user.tenant_id)
+    if action: stmt = stmt.where(AuditEvent.action.like(action.replace("%", "") + "%"))
+    return [{"id": ev.id, "action": ev.action, "entity": ev.entity, "entity_id": ev.entity_id, "detail": ev.detail[:500], "actor": name, "at": ev.created_at.isoformat()} for ev, name in db.execute(stmt.order_by(AuditEvent.id.desc()).limit(limit)).all()]
+
+
 @app.get("/admin/users")
 def admin_users(user: User = Depends(require_permission("member:manage")), db: Session = Depends(get_db)) -> list[dict]:
     rows = db.scalars(select(User).where(User.tenant_id == user.tenant_id).order_by(User.id)).all(); return [{"id": row.id, "name": row.name, "email": row.email, "role": row.role, "mutable": row.role != "platform_admin" and row.id != user.id} for row in rows]
