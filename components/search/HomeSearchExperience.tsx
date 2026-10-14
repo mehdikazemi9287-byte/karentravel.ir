@@ -10,6 +10,9 @@ import { formatJalali, gregorianToJalali, jalaliMonths, jalaliMonthLength, jalal
 import { JalaliCalendar } from './JalaliCalendar';
 type Suggestion={id:string;title:string;subtitle:string;entity_type:string;city?:string;country?:string;code?:string;source:string};
 type AutocompleteResponse={suggestions:Suggestion[]};
+type CatalogSuggestResponse={items:{type:string;id:string;title:string;subtitle:string;country_code:string}[]};
+/* Master-catalog places, airports and hotels (reference data only) complement the geo catalog; hotels only for stay searches. */
+function catalogSuggestions(response:CatalogSuggestResponse,vertical:string,existing:Suggestion[]):Suggestion[]{const seen=new Set(existing.map(item=>item.title));const stay=vertical==='hotel'||vertical==='vacation_rental';return response.items.filter(item=>item.title&&!seen.has(item.title)&&(item.type==='city'||(item.type==='airport'&&vertical==='flight')||(item.type==='hotel'&&stay))).map(item=>({id:'catalog-'+item.id,title:item.title,subtitle:item.subtitle,entity_type:item.type,country:item.country_code,code:item.type==='airport'?item.id:undefined,source:'karenseir_master_catalog'}))}
 type TripType='round_trip'|'one_way'|'multi_city';
 type Popover='origin'|'destination'|'dates'|'passengers'|null;
 type SpeechRecognitionResultLike={0:{transcript:string}};
@@ -79,8 +82,11 @@ function EntityInput({kind,label,value,onChange,onSelect,open,setOpen,vertical}:
     if(!open||query.length<2)return;
     let cancelled=false;
     const timer=window.setTimeout(async()=>{
-      try{const response=await api.publicGet<AutocompleteResponse>(`/search/autocomplete/v3/public?q=${encodeURIComponent(query)}`);if(!cancelled)setLookup({query,items:response.suggestions,failed:false})}
-      catch{if(!cancelled)setLookup({query,items:[],failed:true})}
+      const [geo,master]=await Promise.allSettled([api.publicGet<AutocompleteResponse>(`/search/autocomplete/v3/public?q=${encodeURIComponent(query)}`),api.publicGet<CatalogSuggestResponse>(`/catalog/suggest?q=${encodeURIComponent(query)}`)]);
+      if(cancelled)return;
+      const base=geo.status==='fulfilled'?geo.value.suggestions:[];
+      const extra=master.status==='fulfilled'?catalogSuggestions(master.value,vertical,base):[];
+      setLookup({query,items:[...base,...extra].slice(0,10),failed:geo.status==='rejected'&&master.status==='rejected'})
     },180);
     return()=>{window.clearTimeout(timer);cancelled=true};
   },[api,open,query,vertical]);
@@ -95,7 +101,7 @@ function EntityInput({kind,label,value,onChange,onSelect,open,setOpen,vertical}:
 }
 
 const defaultDestinationFor=(vertical:string)=>vertical==='hotel'||vertical==='vacation_rental'?'یزد':vertical==='cruise'?'دبی':vertical==='visa'?'فرانسه':vertical==='car_rental'?'شیراز':vertical==='tour'?'استانبول':vertical==='attraction'?'شیراز':vertical==='pool_sport'||vertical==='restaurant'||vertical==='event_hall'?'تهران':'شیراز';
-export function HomeSearchExperience({defaultVertical="flight"}:{defaultVertical?:string}={}){
+export function HomeSearchExperience({defaultVertical="flight",presentation}:{defaultVertical?:string;presentation?:"approved"}={}){
   const router=useRouter(); const params=useSearchParams();
   // Previously this form always mounted with hardcoded defaults (flight/تهران/شیراز)
   // regardless of the URL - confirmed live: loading /?vertical=cruise&destination=دبی
@@ -215,10 +221,10 @@ export function HomeSearchExperience({defaultVertical="flight"}:{defaultVertical
   const discoveryRoute:Record<string,string>={restaurant:'/restaurants',attraction:'/attractions',pool_sport:'/pools-sports',event_hall:'/events-venues'};
   return <section ref={searchRef} className="fs" id="search" aria-label="جست‌وجوی یکپارچه سفر" onKeyDown={event=>{if(event.key==='Escape')setPopover(null)}}>
 
-    <div className="fs-tabs" role="tablist" aria-label="نوع خدمت">{primaryServices.map((tab,index)=>tab.vertical==='more'?<div className="fs-more" key={tab.name}><button type="button" aria-expanded={moreOpen} onClick={()=>setMoreOpen(value=>!value)} className={moreOpen||moreServices.some(item=>item.vertical===service.vertical)?'is-active':''}><Icon name={tab.icon}/>{tab.name}</button></div>:<button type="button" role="tab" aria-selected={active===services.findIndex(item=>item.vertical===tab.vertical)} aria-controls="service-search-panel" onClick={()=>changeService(services.findIndex(item=>item.vertical===tab.vertical))} className={service.vertical===tab.vertical?'is-active':''} key={tab.name}><Icon name={tab.icon}/>{tab.name}</button>)}</div>
+    <div className="fs-tabs" role="tablist" aria-label="نوع خدمت">{(presentation==='approved'?primaryServices.filter(tab=>['flight','hotel','package'].includes(tab.vertical)):primaryServices).map((tab,index)=>tab.vertical==='more'?<div className="fs-more" key={tab.name}><button type="button" aria-expanded={moreOpen} onClick={()=>setMoreOpen(value=>!value)} className={moreOpen||moreServices.some(item=>item.vertical===service.vertical)?'is-active':''}><Icon name={tab.icon}/>{tab.name}</button></div>:<button type="button" role="tab" aria-selected={active===services.findIndex(item=>item.vertical===tab.vertical)} aria-controls="service-search-panel" onClick={()=>changeService(services.findIndex(item=>item.vertical===tab.vertical))} className={service.vertical===tab.vertical?'is-active':''} key={tab.name}><Icon name={tab.icon}/>{tab.name}</button>)}{presentation==='approved'&&<a className="approved-cip-tab" href="/services?service=cip">تشریفات فرودگاه</a>}</div>
     {moreOpen&&<div className="fs-more-menu" role="menu">{moreServices.map(item=>{const index=services.findIndex(x=>x.vertical===item.vertical);return <button type="button" role="menuitem" onClick={()=>changeService(index)} key={item.vertical}><Icon name={item.icon}/>{item.name}</button>})}</div>}
     {discoveryRoute[service.vertical]?<div className="fs-box fs-unavailable"><b>{service.name}</b><p>در صفحهٔ این خدمت، مقصد، تاریخ و شرایط اختصاصی مراجعه را انتخاب کنید.</p><a className="button primary" href={discoveryRoute[service.vertical]}>انتخاب {service.name}</a></div>:service.vertical==='tourist_transportation'||service.vertical==='travel_guide'?<div className="fs-box fs-unavailable"><b>{service.name}</b><p>زمان، ظرفیت و شرایط عرضه‌های ثبت‌شده را در جست‌وجوی این خدمت بررسی کنید.</p><a className="button primary" href={service.vertical==='travel_guide'?'/travel-guides':'/tourist-transport'}>جست‌وجوی {service.name}</a></div>:service.vertical==='bus'?<div className="fs-box fs-unavailable" role="status"><b>{service.name}</b><p>استعلام آنلاین این خدمت هنوز در دسترس نیست. برای بررسی امکان ارائهٔ خدمت تماس بگیرید.</p><ContactOptions/></div>:service.vertical==='package'?<div className="fs-box fs-unavailable" role="status"><b>پرواز + هتل</b><p>رزرو یک‌جای پرواز و هتل هنوز در دسترس نیست. برای راهنمایی برنامه‌ریزی سفر تماس بگیرید.</p><ContactOptions/></div>:<form onSubmit={event=>{event.preventDefault();submit()}} className="fs-box" id="service-search-panel" role="tabpanel" aria-label={`فرم جست‌وجوی ${service.name}`}>
-      {service.vertical==='flight'&&<div className="fs-seg" role="group" aria-label="نوع سفر">{([['round_trip','رفت‌وبرگشت'],['one_way','یک‌طرفه'],['multi_city','چندمسیره']] as const).map(([value,label])=><button type="button" aria-pressed={tripType===value} className={tripType===value?'is-active':''} onClick={()=>{if(value==='multi_city'){setTripType(value);router.push('/?vertical=flight&trip_type=multi_city&edit=1')}else setTripType(value)}} key={value}>{label}</button>)}</div>}
+      {service.vertical==='flight'&&presentation!=='approved'&&<div className="fs-seg" role="group" aria-label="نوع سفر">{([['round_trip','رفت‌وبرگشت'],['one_way','یک‌طرفه'],['multi_city','چندمسیره']] as const).map(([value,label])=><button type="button" aria-pressed={tripType===value} className={tripType===value?'is-active':''} onClick={()=>{if(value==='multi_city'){setTripType(value);router.push('/?vertical=flight&trip_type=multi_city&edit=1')}else setTripType(value)}} key={value}>{label}</button>)}</div>}
       <div className="fs-row">
         <div className={service.origin?'fs-places fs-places--swap':'fs-places'}>
           {service.origin&&<><EntityInput kind="origin" label={originLabel} value={origin} onChange={setOrigin} onSelect={item=>{setOrigin(item.title);setPopover(null)}} open={popover==='origin'} setOpen={()=>setPopover('origin')} vertical={service.vertical}/><button type="button" className="fs-swap" aria-label="جابجایی مبدا و مقصد" onClick={()=>{setOrigin(destination);setDestination(origin)}}><Icon name="swap"/></button></>}
@@ -227,10 +233,10 @@ export function HomeSearchExperience({defaultVertical="flight"}:{defaultVertical
         <div className="fs-field fs-field--dates">
           <span className="fs-field-ic"><Icon name="calendar"/></span>
           <button type="button" className="fs-field-body fs-field-body--split" aria-label={dateLabel} aria-expanded={popover==='dates'} onClick={()=>setPopover(popover==='dates'?null:'dates')}>
-            <span className="fs-datecol"><span className="fs-field-label">{departLabel}</span><span className="fs-field-value">{depart?formatJalali(depart):'انتخاب تاریخ'}</span></span>
-            <span className={showReturn?'fs-datecol':'fs-datecol is-disabled'}><span className="fs-field-label">{returnLabel}</span><span className="fs-field-value">{showReturn?(returnDate?formatJalali(returnDate):'انتخاب تاریخ'):'—'}</span></span>
+            <span className="fs-datecol"><span className="fs-field-label">{departLabel}</span><span className={depart?'fs-field-value':'fs-field-value is-empty'}>{depart?formatJalali(depart):'انتخاب تاریخ'}</span></span>
+            <span className={showReturn?'fs-datecol':'fs-datecol is-disabled'}><span className="fs-field-label">{returnLabel}</span><span className={showReturn&&returnDate?'fs-field-value':'fs-field-value is-empty'}>{showReturn?(returnDate?formatJalali(returnDate):'انتخاب تاریخ'):'—'}</span></span>
           </button>
-          {popover==='dates'&&<div className="fs-pop fs-pop--date" aria-label="انتخاب تاریخ">
+          {popover==='dates'&&<div className="fs-pop fs-pop--date" aria-label="انتخاب تاریخ">{service.vertical==='flight'&&presentation==='approved'&&<div className="fs-seg" role="group" aria-label="نوع سفر">{([['round_trip','رفت‌وبرگشت'],['one_way','یک‌طرفه'],['multi_city','چندمسیره']] as const).map(([value,label])=><button type="button" aria-pressed={tripType===value} className={tripType===value?'is-active':''} onClick={()=>{if(value==='multi_city'){setTripType(value);router.push('/?vertical=flight&trip_type=multi_city&edit=1')}else setTripType(value)}} key={value}>{label}</button>)}</div>}
             <header><b>{dateLabel}</b><small>قیمت فقط پس از اتصال داده معتبر نمایش داده می‌شود.</small></header>
             <JalaliCalendar depart={depart} returnDate={returnDate} showReturn={showReturn} minIso={todayIso()} onDepart={iso=>{setDepart(iso);if(returnDate<iso)setReturnDate('')}} onReturn={setReturnDate}/>
             <fieldset className="fs-flex"><legend>تاریخ منعطف</legend>{[['exact','دقیق'],['plus_minus_1','±۱ روز'],['plus_minus_3','±۳ روز']].map(([value,label])=><button type="button" aria-pressed={flexibility===value} className={flexibility===value?'is-active':''} onClick={()=>setFlexibility(value)} key={value}>{label}</button>)}</fieldset>
@@ -250,11 +256,11 @@ export function HomeSearchExperience({defaultVertical="flight"}:{defaultVertical
             <button type="button" className="fs-pop-done" onClick={()=>setPopover(null)}>تأیید مسافران</button>
           </div>}
         </div>
-        <button type="submit" className="fs-go"><Icon name="search"/>جست‌وجو</button>
+        <button type="submit" className="fs-go"><Icon name="search"/>{presentation==='approved'?'پیدا کن':'جست‌وجو'}</button>
       </div>
     </form>}
     {searchError&&<p className="fs-validation" role="alert">{searchError}</p>}
-    <div className="fs-tools"><span>قیمت و موجودی نیازمند استعلام</span><span>استعلام مجدد پیش از خرید</span><button type="button" className="nl-toggle" onClick={()=>setNlOpen(value=>!value)} aria-expanded={nlOpen}><Icon name="chat"/> با زبان خودت بگو</button></div>
+    <div className="fs-tools"><span>قیمت و موجودی نیازمند استعلام</span><span>استعلام مجدد پیش از خرید</span><button type="button" className="nl-toggle" onClick={()=>setNlOpen(value=>!value)} aria-expanded={nlOpen}><Icon name="chat"/> {presentation==='approved'?'✦ با دستیار هوشمند برنامه‌ریزی کن':'با زبان خودت بگو'}</button></div>
     {nlOpen&&<div className="nl-panel" aria-label="جست‌وجوی زبان طبیعی">
       <div className="nl-input-row">
         <textarea aria-label="سفرت را با جمله فارسی توصیف کن" placeholder="مثلاً: آخر شهریور برای دو نفر از تهران یه سفر چهار روزه به شیراز می‌خوام" value={nlText} onChange={event=>{setNlText(event.target.value);setNlIntent(null)}} rows={2}/>

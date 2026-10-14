@@ -1,0 +1,2048 @@
+[
+  {
+    "name": "production",
+    "width": 390,
+    "overflow": false,
+    "rtl": "rtl",
+    "headings": [
+      "یک مقصد تازه،هزار تجربهٔ ماندگار",
+      "تمام سفر، در یک مسیر",
+      "از «کجا بریم؟»تا یک برنامهٔ روشن",
+      "مقصد بعدی‌ات را کشف کن",
+      "از خانهٔ سنتی تا ویلای کنار دریا",
+      "سفرت فقط رسیدن به مقصد نیست",
+      "از مأموریت کاریتا حال خوب یک تیم"
+    ],
+    "sections": [],
+    "images": [
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=3840&q=75",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#marketplace-services",
+      "#discover",
+      "/assistant",
+      "/organization",
+      "/trips",
+      "/login",
+      "#discover",
+      "/support",
+      "/services",
+      "/?vertical=flight#search",
+      "/?vertical=hotel#search",
+      "/?vertical=train#search",
+      "/?vertical=tour#search",
+      "/villas",
+      "/car-rental",
+      "/restaurants",
+      "/attractions",
+      "/pools-sports",
+      "/events-venues",
+      "/events-venues",
+      "/travel-guides",
+      "/tourist-transport",
+      "/handicrafts",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%D9%85%20%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87%E2%80%8C%D8%B1%DB%8C%D8%B2%DB%8C%20%DA%A9%D9%86%DB%8C%D9%85",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D8%B1%D8%AF%D9%86%20%DA%AF%D8%B2%DB%8C%D9%86%D9%87%E2%80%8C%D9%87%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%85%DA%A9%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/compare",
+      "/itineraries",
+      "/trips",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%B4%D9%85%D8%A7%D9%84%20%DA%A9%D8%AC%D8%A7%20%D8%A8%D8%B1%DB%8C%D9%85%D8%9F",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%DB%B4%20%D9%86%D9%81%D8%B1%20%D9%88%DB%8C%D9%84%D8%A7%20%D8%A8%D8%A7%20%D8%A7%D8%B3%D8%AA%D8%AE%D8%B1%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D9%86",
+      "/assistant?prompt=%D9%BE%D8%B1%D9%88%D8%A7%D8%B2%20%D8%B5%D8%A8%D8%AD%20%D8%AA%D9%87%D8%B1%D8%A7%D9%86%20%D9%85%D8%B4%D9%87%D8%AF%20%D9%88%20%D9%87%D8%AA%D9%84%20%D9%86%D8%B2%D8%AF%DB%8C%DA%A9%20%D8%AD%D8%B1%D9%85%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/villas",
+      "/?vertical=hotel#search",
+      "/villas?property_type=villa",
+      "/villas?property_type=apartment",
+      "/villas?property_type=suite",
+      "/villas?property_type=ecolodge",
+      "/villas?property_type=cabin",
+      "/villas?property_type=traditional_house",
+      "/villas?property_type=pool_property",
+      "/villas?property_type=forest",
+      "/villas?property_type=coastal",
+      "/assistant?prompt=%DB%8C%DA%A9%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%88%D8%AA%D8%A7%D9%87%20%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%85%D9%86%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A7%DB%8C%D9%86%20%D9%81%D8%B5%D9%84%20%D9%88%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%A2%D8%A8%E2%80%8C%D9%88%D9%87%D9%88%D8%A7%20%DB%8C%DA%A9%20%D8%A7%DB%8C%D8%AF%D9%87%D9%94%20%D8%B3%D9%81%D8%B1%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87%D8%9B%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%88%20%D8%AA%D8%A7%D8%B1%DB%8C%D8%AE%20%D8%B1%D8%A7%20%D8%A7%D8%B2%20%D9%85%D9%86%20%D8%A8%D9%BE%D8%B1%D8%B3",
+      "/tours",
+      "/experiences",
+      "/organization",
+      "/organization/requests",
+      "/employee",
+      "/trips",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/support",
+      "/integrations",
+      "/terms",
+      "/privacy"
+    ],
+    "errors": []
+  },
+  {
+    "name": "production",
+    "width": 768,
+    "overflow": false,
+    "rtl": "rtl",
+    "headings": [
+      "یک مقصد تازه،هزار تجربهٔ ماندگار",
+      "تمام سفر، در یک مسیر",
+      "از «کجا بریم؟»تا یک برنامهٔ روشن",
+      "مقصد بعدی‌ات را کشف کن",
+      "از خانهٔ سنتی تا ویلای کنار دریا",
+      "سفرت فقط رسیدن به مقصد نیست",
+      "از مأموریت کاریتا حال خوب یک تیم"
+    ],
+    "sections": [],
+    "images": [
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=3840&q=75",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#marketplace-services",
+      "#discover",
+      "/assistant",
+      "/organization",
+      "/trips",
+      "/login",
+      "#discover",
+      "/support",
+      "/services",
+      "/?vertical=flight#search",
+      "/?vertical=hotel#search",
+      "/?vertical=train#search",
+      "/?vertical=tour#search",
+      "/villas",
+      "/car-rental",
+      "/restaurants",
+      "/attractions",
+      "/pools-sports",
+      "/events-venues",
+      "/events-venues",
+      "/travel-guides",
+      "/tourist-transport",
+      "/handicrafts",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%D9%85%20%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87%E2%80%8C%D8%B1%DB%8C%D8%B2%DB%8C%20%DA%A9%D9%86%DB%8C%D9%85",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D8%B1%D8%AF%D9%86%20%DA%AF%D8%B2%DB%8C%D9%86%D9%87%E2%80%8C%D9%87%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%85%DA%A9%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/compare",
+      "/itineraries",
+      "/trips",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%B4%D9%85%D8%A7%D9%84%20%DA%A9%D8%AC%D8%A7%20%D8%A8%D8%B1%DB%8C%D9%85%D8%9F",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%DB%B4%20%D9%86%D9%81%D8%B1%20%D9%88%DB%8C%D9%84%D8%A7%20%D8%A8%D8%A7%20%D8%A7%D8%B3%D8%AA%D8%AE%D8%B1%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D9%86",
+      "/assistant?prompt=%D9%BE%D8%B1%D9%88%D8%A7%D8%B2%20%D8%B5%D8%A8%D8%AD%20%D8%AA%D9%87%D8%B1%D8%A7%D9%86%20%D9%85%D8%B4%D9%87%D8%AF%20%D9%88%20%D9%87%D8%AA%D9%84%20%D9%86%D8%B2%D8%AF%DB%8C%DA%A9%20%D8%AD%D8%B1%D9%85%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/villas",
+      "/?vertical=hotel#search",
+      "/villas?property_type=villa",
+      "/villas?property_type=apartment",
+      "/villas?property_type=suite",
+      "/villas?property_type=ecolodge",
+      "/villas?property_type=cabin",
+      "/villas?property_type=traditional_house",
+      "/villas?property_type=pool_property",
+      "/villas?property_type=forest",
+      "/villas?property_type=coastal",
+      "/assistant?prompt=%DB%8C%DA%A9%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%88%D8%AA%D8%A7%D9%87%20%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%85%D9%86%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A7%DB%8C%D9%86%20%D9%81%D8%B5%D9%84%20%D9%88%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%A2%D8%A8%E2%80%8C%D9%88%D9%87%D9%88%D8%A7%20%DB%8C%DA%A9%20%D8%A7%DB%8C%D8%AF%D9%87%D9%94%20%D8%B3%D9%81%D8%B1%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87%D8%9B%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%88%20%D8%AA%D8%A7%D8%B1%DB%8C%D8%AE%20%D8%B1%D8%A7%20%D8%A7%D8%B2%20%D9%85%D9%86%20%D8%A8%D9%BE%D8%B1%D8%B3",
+      "/tours",
+      "/experiences",
+      "/organization",
+      "/organization/requests",
+      "/employee",
+      "/trips",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/support",
+      "/integrations",
+      "/terms",
+      "/privacy"
+    ],
+    "errors": []
+  },
+  {
+    "name": "production",
+    "width": 1440,
+    "overflow": false,
+    "rtl": "rtl",
+    "headings": [
+      "یک مقصد تازه،هزار تجربهٔ ماندگار",
+      "تمام سفر، در یک مسیر",
+      "از «کجا بریم؟»تا یک برنامهٔ روشن",
+      "مقصد بعدی‌ات را کشف کن",
+      "از خانهٔ سنتی تا ویلای کنار دریا",
+      "سفرت فقط رسیدن به مقصد نیست",
+      "از مأموریت کاریتا حال خوب یک تیم"
+    ],
+    "sections": [],
+    "images": [
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=3840&q=75",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#marketplace-services",
+      "#discover",
+      "/assistant",
+      "/organization",
+      "/trips",
+      "/login",
+      "#discover",
+      "/support",
+      "/services",
+      "/?vertical=flight#search",
+      "/?vertical=hotel#search",
+      "/?vertical=train#search",
+      "/?vertical=tour#search",
+      "/villas",
+      "/car-rental",
+      "/restaurants",
+      "/attractions",
+      "/pools-sports",
+      "/events-venues",
+      "/events-venues",
+      "/travel-guides",
+      "/tourist-transport",
+      "/handicrafts",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%D9%85%20%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87%E2%80%8C%D8%B1%DB%8C%D8%B2%DB%8C%20%DA%A9%D9%86%DB%8C%D9%85",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D8%B1%D8%AF%D9%86%20%DA%AF%D8%B2%DB%8C%D9%86%D9%87%E2%80%8C%D9%87%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%85%DA%A9%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/compare",
+      "/itineraries",
+      "/trips",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%B4%D9%85%D8%A7%D9%84%20%DA%A9%D8%AC%D8%A7%20%D8%A8%D8%B1%DB%8C%D9%85%D8%9F",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%DB%B4%20%D9%86%D9%81%D8%B1%20%D9%88%DB%8C%D9%84%D8%A7%20%D8%A8%D8%A7%20%D8%A7%D8%B3%D8%AA%D8%AE%D8%B1%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D9%86",
+      "/assistant?prompt=%D9%BE%D8%B1%D9%88%D8%A7%D8%B2%20%D8%B5%D8%A8%D8%AD%20%D8%AA%D9%87%D8%B1%D8%A7%D9%86%20%D9%85%D8%B4%D9%87%D8%AF%20%D9%88%20%D9%87%D8%AA%D9%84%20%D9%86%D8%B2%D8%AF%DB%8C%DA%A9%20%D8%AD%D8%B1%D9%85%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/villas",
+      "/?vertical=hotel#search",
+      "/villas?property_type=villa",
+      "/villas?property_type=apartment",
+      "/villas?property_type=suite",
+      "/villas?property_type=ecolodge",
+      "/villas?property_type=cabin",
+      "/villas?property_type=traditional_house",
+      "/villas?property_type=pool_property",
+      "/villas?property_type=forest",
+      "/villas?property_type=coastal",
+      "/assistant?prompt=%DB%8C%DA%A9%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%88%D8%AA%D8%A7%D9%87%20%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%85%D9%86%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A7%DB%8C%D9%86%20%D9%81%D8%B5%D9%84%20%D9%88%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%A2%D8%A8%E2%80%8C%D9%88%D9%87%D9%88%D8%A7%20%DB%8C%DA%A9%20%D8%A7%DB%8C%D8%AF%D9%87%D9%94%20%D8%B3%D9%81%D8%B1%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87%D8%9B%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%88%20%D8%AA%D8%A7%D8%B1%DB%8C%D8%AE%20%D8%B1%D8%A7%20%D8%A7%D8%B2%20%D9%85%D9%86%20%D8%A8%D9%BE%D8%B1%D8%B3",
+      "/tours",
+      "/experiences",
+      "/organization",
+      "/organization/requests",
+      "/employee",
+      "/trips",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/support",
+      "/integrations",
+      "/terms",
+      "/privacy"
+    ],
+    "errors": []
+  },
+  {
+    "name": "production",
+    "width": 1920,
+    "overflow": false,
+    "rtl": "rtl",
+    "headings": [
+      "یک مقصد تازه،هزار تجربهٔ ماندگار",
+      "تمام سفر، در یک مسیر",
+      "از «کجا بریم؟»تا یک برنامهٔ روشن",
+      "مقصد بعدی‌ات را کشف کن",
+      "از خانهٔ سنتی تا ویلای کنار دریا",
+      "سفرت فقط رسیدن به مقصد نیست",
+      "از مأموریت کاریتا حال خوب یک تیم"
+    ],
+    "sections": [],
+    "images": [
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=3840&q=75",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#marketplace-services",
+      "#discover",
+      "/assistant",
+      "/organization",
+      "/trips",
+      "/login",
+      "#discover",
+      "/support",
+      "/services",
+      "/?vertical=flight#search",
+      "/?vertical=hotel#search",
+      "/?vertical=train#search",
+      "/?vertical=tour#search",
+      "/villas",
+      "/car-rental",
+      "/restaurants",
+      "/attractions",
+      "/pools-sports",
+      "/events-venues",
+      "/events-venues",
+      "/travel-guides",
+      "/tourist-transport",
+      "/handicrafts",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%D9%85%20%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87%E2%80%8C%D8%B1%DB%8C%D8%B2%DB%8C%20%DA%A9%D9%86%DB%8C%D9%85",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D8%B1%D8%AF%D9%86%20%DA%AF%D8%B2%DB%8C%D9%86%D9%87%E2%80%8C%D9%87%D8%A7%DB%8C%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%85%DA%A9%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/compare",
+      "/itineraries",
+      "/trips",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%B4%D9%85%D8%A7%D9%84%20%DA%A9%D8%AC%D8%A7%20%D8%A8%D8%B1%DB%8C%D9%85%D8%9F",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%DB%B4%20%D9%86%D9%81%D8%B1%20%D9%88%DB%8C%D9%84%D8%A7%20%D8%A8%D8%A7%20%D8%A7%D8%B3%D8%AA%D8%AE%D8%B1%20%D9%BE%DB%8C%D8%AF%D8%A7%20%DA%A9%D9%86",
+      "/assistant?prompt=%D9%BE%D8%B1%D9%88%D8%A7%D8%B2%20%D8%B5%D8%A8%D8%AD%20%D8%AA%D9%87%D8%B1%D8%A7%D9%86%20%D9%85%D8%B4%D9%87%D8%AF%20%D9%88%20%D9%87%D8%AA%D9%84%20%D9%86%D8%B2%D8%AF%DB%8C%DA%A9%20%D8%AD%D8%B1%D9%85%20%D9%85%DB%8C%E2%80%8C%D8%AE%D9%88%D8%A7%D9%87%D9%85",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/villas",
+      "/?vertical=hotel#search",
+      "/villas?property_type=villa",
+      "/villas?property_type=apartment",
+      "/villas?property_type=suite",
+      "/villas?property_type=ecolodge",
+      "/villas?property_type=cabin",
+      "/villas?property_type=traditional_house",
+      "/villas?property_type=pool_property",
+      "/villas?property_type=forest",
+      "/villas?property_type=coastal",
+      "/assistant?prompt=%DB%8C%DA%A9%20%D8%B3%D9%81%D8%B1%20%DA%A9%D9%88%D8%AA%D8%A7%D9%87%20%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A2%D8%AE%D8%B1%20%D9%87%D9%81%D8%AA%D9%87%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%85%D9%86%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87",
+      "/assistant?prompt=%D8%A8%D8%B1%D8%A7%DB%8C%20%D8%A7%DB%8C%D9%86%20%D9%81%D8%B5%D9%84%20%D9%88%20%D8%A8%D8%A7%20%D8%AA%D9%88%D8%AC%D9%87%20%D8%A8%D9%87%20%D8%A2%D8%A8%E2%80%8C%D9%88%D9%87%D9%88%D8%A7%20%DB%8C%DA%A9%20%D8%A7%DB%8C%D8%AF%D9%87%D9%94%20%D8%B3%D9%81%D8%B1%20%D9%BE%DB%8C%D8%B4%D9%86%D9%87%D8%A7%D8%AF%20%D8%A8%D8%AF%D9%87%D8%9B%20%D8%B4%D9%87%D8%B1%20%D9%85%D8%A8%D8%AF%D8%A3%20%D9%88%20%D8%AA%D8%A7%D8%B1%DB%8C%D8%AE%20%D8%B1%D8%A7%20%D8%A7%D8%B2%20%D9%85%D9%86%20%D8%A8%D9%BE%D8%B1%D8%B3",
+      "/tours",
+      "/experiences",
+      "/organization",
+      "/organization/requests",
+      "/employee",
+      "/trips",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/support",
+      "/integrations",
+      "/terms",
+      "/privacy"
+    ],
+    "errors": []
+  },
+  {
+    "name": "historical",
+    "width": 390,
+    "overflow": false,
+    "rtl": "rtl",
+    "headings": [
+      "سفر رازندگی کن",
+      "خدمات کارن‌سیر",
+      "ایران، پر از جاهای دیدنی",
+      "ایده‌هایی برای مقصد بعدی تو",
+      "دستیار هوشمند سفر کارن‌سیر",
+      "قبل از انتخاب، کنار هم ببین.",
+      "تجربه‌های مقصد را کامل کن",
+      "حال خوب کارکنان،مدیریت ساده برای شما",
+      "با خیال راحت سفر کن"
+    ],
+    "sections": [
+      {
+        "class": "ref-header",
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 66
+      },
+      {
+        "class": "ref-hero",
+        "x": 0,
+        "y": 66,
+        "width": 390,
+        "height": 520
+      },
+      {
+        "class": "ref-search-shell",
+        "x": 24,
+        "y": 558,
+        "width": 342,
+        "height": 563.078125
+      },
+      {
+        "class": "home-services-hub",
+        "x": 0,
+        "y": 1121.078125,
+        "width": 390,
+        "height": 834.34375
+      },
+      {
+        "class": "ref-section ref-container",
+        "x": 16,
+        "y": 1955.421875,
+        "width": 358,
+        "height": 813.390625
+      },
+      {
+        "class": "ref-section selected-section",
+        "x": 0,
+        "y": 2768.8125,
+        "width": 390,
+        "height": 730.3125
+      },
+      {
+        "class": "ref-section ref-container ai-travel-section",
+        "x": 16,
+        "y": 3499.125,
+        "width": 358,
+        "height": 818.984375
+      },
+      {
+        "class": "compare-band",
+        "x": 0,
+        "y": 4318.109375,
+        "width": 390,
+        "height": 575.03125
+      },
+      {
+        "class": "ref-section ref-container",
+        "x": 16,
+        "y": 4893.140625,
+        "width": 358,
+        "height": 566.390625
+      },
+      {
+        "class": "ref-org",
+        "x": 0,
+        "y": 5459.53125,
+        "width": 390,
+        "height": 937.5625
+      },
+      {
+        "class": "trust-section",
+        "x": 0,
+        "y": 6397.09375,
+        "width": 390,
+        "height": 906.09375
+      },
+      {
+        "class": "service-ribbon",
+        "x": 0,
+        "y": 7303.1875,
+        "width": 390,
+        "height": 96
+      },
+      {
+        "class": "ref-footer",
+        "x": 0,
+        "y": 7399.1875,
+        "width": 390,
+        "height": 495
+      }
+    ],
+    "images": [
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=3840&q=75",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#home-services",
+      "/trips",
+      "/nearby",
+      "/organization",
+      "/support",
+      "/login",
+      "/support?channel=expert",
+      "/services",
+      "/services?group=0",
+      "/services?group=1",
+      "/services?group=2",
+      "/services?group=3",
+      "/services?group=4",
+      "/services?group=5",
+      "/destinations",
+      "/destinations/qeshm",
+      "/destinations/shiraz",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/masuleh",
+      "/assistant",
+      "/compare",
+      "/experiences",
+      "/restaurants",
+      "/events-venues",
+      "/pools-sports",
+      "/attractions",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "/contact",
+      "/contact",
+      "/contact",
+      "/contact",
+      "#home-services",
+      "/trips",
+      "/nearby",
+      "/organization",
+      "/support",
+      "/",
+      "/contact",
+      "/hotels",
+      "/compare",
+      "/assistant",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/terms",
+      "/privacy"
+    ],
+    "errors": []
+  },
+  {
+    "name": "historical",
+    "width": 768,
+    "overflow": false,
+    "rtl": "rtl",
+    "headings": [
+      "سفر رازندگی کن",
+      "خدمات کارن‌سیر",
+      "ایران، پر از جاهای دیدنی",
+      "ایده‌هایی برای مقصد بعدی تو",
+      "دستیار هوشمند سفر کارن‌سیر",
+      "قبل از انتخاب، کنار هم ببین.",
+      "تجربه‌های مقصد را کامل کن",
+      "حال خوب کارکنان،مدیریت ساده برای شما",
+      "با خیال راحت سفر کن"
+    ],
+    "sections": [
+      {
+        "class": "ref-header",
+        "x": 0,
+        "y": 0,
+        "width": 768,
+        "height": 76
+      },
+      {
+        "class": "ref-hero",
+        "x": 0,
+        "y": 76,
+        "width": 768,
+        "height": 590
+      },
+      {
+        "class": "ref-search-shell",
+        "x": 24,
+        "y": 604,
+        "width": 720,
+        "height": 330.4375
+      },
+      {
+        "class": "home-services-hub",
+        "x": 0,
+        "y": 934.4375,
+        "width": 768,
+        "height": 557.375
+      },
+      {
+        "class": "ref-section ref-container",
+        "x": 24,
+        "y": 1491.8125,
+        "width": 720,
+        "height": 783.390625
+      },
+      {
+        "class": "ref-section selected-section",
+        "x": 0,
+        "y": 2275.203125,
+        "width": 768,
+        "height": 724.421875
+      },
+      {
+        "class": "ref-section ref-container ai-travel-section",
+        "x": 24,
+        "y": 2999.625,
+        "width": 720,
+        "height": 725.078125
+      },
+      {
+        "class": "compare-band",
+        "x": 0,
+        "y": 3724.703125,
+        "width": 768,
+        "height": 426.25
+      },
+      {
+        "class": "ref-section ref-container",
+        "x": 24,
+        "y": 4150.953125,
+        "width": 720,
+        "height": 428.390625
+      },
+      {
+        "class": "ref-org",
+        "x": 0,
+        "y": 4579.34375,
+        "width": 768,
+        "height": 596.5625
+      },
+      {
+        "class": "trust-section",
+        "x": 0,
+        "y": 5175.90625,
+        "width": 768,
+        "height": 636.4375
+      },
+      {
+        "class": "service-ribbon",
+        "x": 0,
+        "y": 5812.34375,
+        "width": 768,
+        "height": 96
+      },
+      {
+        "class": "ref-footer",
+        "x": 0,
+        "y": 5908.34375,
+        "width": 768,
+        "height": 327.25
+      }
+    ],
+    "images": [
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=3840&q=75",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#home-services",
+      "/trips",
+      "/nearby",
+      "/organization",
+      "/support",
+      "/login",
+      "/support?channel=expert",
+      "/services",
+      "/services?group=0",
+      "/services?group=1",
+      "/services?group=2",
+      "/services?group=3",
+      "/services?group=4",
+      "/services?group=5",
+      "/destinations",
+      "/destinations/qeshm",
+      "/destinations/shiraz",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/masuleh",
+      "/assistant",
+      "/compare",
+      "/experiences",
+      "/restaurants",
+      "/events-venues",
+      "/pools-sports",
+      "/attractions",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "/contact",
+      "/contact",
+      "/contact",
+      "/contact",
+      "#home-services",
+      "/trips",
+      "/nearby",
+      "/organization",
+      "/support",
+      "/",
+      "/contact",
+      "/hotels",
+      "/compare",
+      "/assistant",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/terms",
+      "/privacy",
+      "/assistant"
+    ],
+    "errors": []
+  },
+  {
+    "name": "historical",
+    "width": 1440,
+    "overflow": false,
+    "rtl": "rtl",
+    "headings": [
+      "سفر رازندگی کن",
+      "خدمات کارن‌سیر",
+      "ایران، پر از جاهای دیدنی",
+      "ایده‌هایی برای مقصد بعدی تو",
+      "دستیار هوشمند سفر کارن‌سیر",
+      "قبل از انتخاب، کنار هم ببین.",
+      "تجربه‌های مقصد را کامل کن",
+      "حال خوب کارکنان،مدیریت ساده برای شما",
+      "با خیال راحت سفر کن"
+    ],
+    "sections": [
+      {
+        "class": "ref-header",
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 76
+      },
+      {
+        "class": "ref-hero",
+        "x": 0,
+        "y": 76,
+        "width": 1440,
+        "height": 650
+      },
+      {
+        "class": "ref-search-shell",
+        "x": 160,
+        "y": 671,
+        "width": 1120,
+        "height": 266.4375
+      },
+      {
+        "class": "home-services-hub",
+        "x": 0,
+        "y": 937.4375,
+        "width": 1440,
+        "height": 467.578125
+      },
+      {
+        "class": "ref-section ref-container",
+        "x": 128,
+        "y": 1405.015625,
+        "width": 1184,
+        "height": 874.390625
+      },
+      {
+        "class": "ref-section selected-section",
+        "x": 0,
+        "y": 2279.40625,
+        "width": 1440,
+        "height": 731.921875
+      },
+      {
+        "class": "ref-section ref-container ai-travel-section",
+        "x": 128,
+        "y": 3011.328125,
+        "width": 1184,
+        "height": 569.546875
+      },
+      {
+        "class": "compare-band",
+        "x": 0,
+        "y": 3580.875,
+        "width": 1440,
+        "height": 343
+      },
+      {
+        "class": "ref-section ref-container",
+        "x": 128,
+        "y": 3923.875,
+        "width": 1184,
+        "height": 360.390625
+      },
+      {
+        "class": "ref-org",
+        "x": 0,
+        "y": 4284.265625,
+        "width": 1440,
+        "height": 553
+      },
+      {
+        "class": "trust-section",
+        "x": 0,
+        "y": 4837.265625,
+        "width": 1440,
+        "height": 511.90625
+      },
+      {
+        "class": "service-ribbon",
+        "x": 0,
+        "y": 5349.171875,
+        "width": 1440,
+        "height": 96
+      },
+      {
+        "class": "ref-footer",
+        "x": 0,
+        "y": 5445.171875,
+        "width": 1440,
+        "height": 327
+      }
+    ],
+    "images": [
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=3840&q=75",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#home-services",
+      "/trips",
+      "/nearby",
+      "/organization",
+      "/support",
+      "/login",
+      "/support?channel=expert",
+      "/services",
+      "/services?group=0",
+      "/services?group=1",
+      "/services?group=2",
+      "/services?group=3",
+      "/services?group=4",
+      "/services?group=5",
+      "/destinations",
+      "/destinations/qeshm",
+      "/destinations/shiraz",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/masuleh",
+      "/assistant",
+      "/compare",
+      "/experiences",
+      "/restaurants",
+      "/events-venues",
+      "/pools-sports",
+      "/attractions",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "/contact",
+      "/contact",
+      "/contact",
+      "/contact",
+      "#home-services",
+      "/trips",
+      "/nearby",
+      "/organization",
+      "/support",
+      "/",
+      "/contact",
+      "/hotels",
+      "/compare",
+      "/assistant",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/terms",
+      "/privacy",
+      "/assistant"
+    ],
+    "errors": []
+  },
+  {
+    "name": "historical",
+    "width": 1920,
+    "overflow": false,
+    "rtl": "rtl",
+    "headings": [
+      "سفر رازندگی کن",
+      "خدمات کارن‌سیر",
+      "ایران، پر از جاهای دیدنی",
+      "ایده‌هایی برای مقصد بعدی تو",
+      "دستیار هوشمند سفر کارن‌سیر",
+      "قبل از انتخاب، کنار هم ببین.",
+      "تجربه‌های مقصد را کامل کن",
+      "حال خوب کارکنان،مدیریت ساده برای شما",
+      "با خیال راحت سفر کن"
+    ],
+    "sections": [
+      {
+        "class": "ref-header",
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 76
+      },
+      {
+        "class": "ref-hero",
+        "x": 0,
+        "y": 76,
+        "width": 1920,
+        "height": 650
+      },
+      {
+        "class": "ref-search-shell",
+        "x": 400,
+        "y": 671,
+        "width": 1120,
+        "height": 266.4375
+      },
+      {
+        "class": "home-services-hub",
+        "x": 0,
+        "y": 937.4375,
+        "width": 1920,
+        "height": 467.578125
+      },
+      {
+        "class": "ref-section ref-container",
+        "x": 368,
+        "y": 1405.015625,
+        "width": 1184,
+        "height": 874.390625
+      },
+      {
+        "class": "ref-section selected-section",
+        "x": 0,
+        "y": 2279.40625,
+        "width": 1920,
+        "height": 731.921875
+      },
+      {
+        "class": "ref-section ref-container ai-travel-section",
+        "x": 368,
+        "y": 3011.328125,
+        "width": 1184,
+        "height": 569.546875
+      },
+      {
+        "class": "compare-band",
+        "x": 0,
+        "y": 3580.875,
+        "width": 1920,
+        "height": 343
+      },
+      {
+        "class": "ref-section ref-container",
+        "x": 368,
+        "y": 3923.875,
+        "width": 1184,
+        "height": 360.390625
+      },
+      {
+        "class": "ref-org",
+        "x": 0,
+        "y": 4284.265625,
+        "width": 1920,
+        "height": 553
+      },
+      {
+        "class": "trust-section",
+        "x": 0,
+        "y": 4837.265625,
+        "width": 1920,
+        "height": 511.90625
+      },
+      {
+        "class": "service-ribbon",
+        "x": 0,
+        "y": 5349.171875,
+        "width": 1920,
+        "height": 96
+      },
+      {
+        "class": "ref-footer",
+        "x": 0,
+        "y": 5445.171875,
+        "width": 1920,
+        "height": 327
+      }
+    ],
+    "images": [
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=3840&q=75",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#home-services",
+      "/trips",
+      "/nearby",
+      "/organization",
+      "/support",
+      "/login",
+      "/support?channel=expert",
+      "/services",
+      "/services?group=0",
+      "/services?group=1",
+      "/services?group=2",
+      "/services?group=3",
+      "/services?group=4",
+      "/services?group=5",
+      "/destinations",
+      "/destinations/qeshm",
+      "/destinations/shiraz",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/masuleh",
+      "/assistant",
+      "/compare",
+      "/experiences",
+      "/restaurants",
+      "/events-venues",
+      "/pools-sports",
+      "/attractions",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "/contact",
+      "/contact",
+      "/contact",
+      "/contact",
+      "#home-services",
+      "/trips",
+      "/nearby",
+      "/organization",
+      "/support",
+      "/",
+      "/contact",
+      "/hotels",
+      "/compare",
+      "/assistant",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/terms",
+      "/privacy",
+      "/assistant"
+    ],
+    "errors": []
+  },
+  {
+    "name": "candidate",
+    "width": 390,
+    "overflow": false,
+    "rtl": "rtl",
+    "headings": [
+      "سفر رازندگی کن",
+      "خدمات کارن‌سیر",
+      "ایران، پر از جاهای دیدنی",
+      "ایده‌هایی برای مقصد بعدی تو",
+      "دستیار هوشمند سفر کارن‌سیر",
+      "قبل از انتخاب، کنار هم ببین.",
+      "تجربه‌های مقصد را کامل کن",
+      "حال خوب کارکنان،مدیریت ساده برای شما",
+      "با خیال راحت سفر کن"
+    ],
+    "sections": [
+      {
+        "class": "ref-header",
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 66
+      },
+      {
+        "class": "ref-hero",
+        "x": 0,
+        "y": 66,
+        "width": 390,
+        "height": 520
+      },
+      {
+        "class": "ref-search-shell",
+        "x": 24,
+        "y": 558,
+        "width": 342,
+        "height": 563.078125
+      },
+      {
+        "class": "home-services-hub",
+        "x": 0,
+        "y": 1121.078125,
+        "width": 390,
+        "height": 834.34375
+      },
+      {
+        "class": "ref-section ref-container",
+        "x": 16,
+        "y": 1955.421875,
+        "width": 358,
+        "height": 813.390625
+      },
+      {
+        "class": "ref-section selected-section",
+        "x": 0,
+        "y": 2768.8125,
+        "width": 390,
+        "height": 730.3125
+      },
+      {
+        "class": "ref-section ref-container ai-travel-section",
+        "x": 16,
+        "y": 3499.125,
+        "width": 358,
+        "height": 818.984375
+      },
+      {
+        "class": "compare-band",
+        "x": 0,
+        "y": 4318.109375,
+        "width": 390,
+        "height": 575.03125
+      },
+      {
+        "class": "ref-section ref-container",
+        "x": 16,
+        "y": 4893.140625,
+        "width": 358,
+        "height": 566.390625
+      },
+      {
+        "class": "ref-org",
+        "x": 0,
+        "y": 5459.53125,
+        "width": 390,
+        "height": 937.5625
+      },
+      {
+        "class": "trust-section",
+        "x": 0,
+        "y": 6397.09375,
+        "width": 390,
+        "height": 906.09375
+      },
+      {
+        "class": "service-ribbon",
+        "x": 0,
+        "y": 7303.1875,
+        "width": 390,
+        "height": 96
+      },
+      {
+        "class": "ref-footer",
+        "x": 0,
+        "y": 7399.1875,
+        "width": 390,
+        "height": 495
+      }
+    ],
+    "images": [
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=3840&q=75",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#home-services",
+      "/trips",
+      "/nearby",
+      "/organization",
+      "/support",
+      "/login",
+      "/support?channel=expert",
+      "/services",
+      "/services?group=0",
+      "/services?group=1",
+      "/services?group=2",
+      "/services?group=3",
+      "/services?group=4",
+      "/services?group=5",
+      "/destinations",
+      "/destinations/qeshm",
+      "/destinations/shiraz",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/masuleh",
+      "/assistant",
+      "/compare",
+      "/experiences",
+      "/restaurants",
+      "/events-venues",
+      "/pools-sports",
+      "/attractions",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "/contact",
+      "/contact",
+      "/contact",
+      "/contact",
+      "#home-services",
+      "/trips",
+      "/nearby",
+      "/organization",
+      "/support",
+      "/",
+      "/contact",
+      "/hotels",
+      "/compare",
+      "/assistant",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/terms",
+      "/privacy"
+    ],
+    "errors": []
+  },
+  {
+    "name": "candidate",
+    "width": 768,
+    "overflow": false,
+    "rtl": "rtl",
+    "headings": [
+      "سفر رازندگی کن",
+      "خدمات کارن‌سیر",
+      "ایران، پر از جاهای دیدنی",
+      "ایده‌هایی برای مقصد بعدی تو",
+      "دستیار هوشمند سفر کارن‌سیر",
+      "قبل از انتخاب، کنار هم ببین.",
+      "تجربه‌های مقصد را کامل کن",
+      "حال خوب کارکنان،مدیریت ساده برای شما",
+      "با خیال راحت سفر کن"
+    ],
+    "sections": [
+      {
+        "class": "ref-header",
+        "x": 0,
+        "y": 0,
+        "width": 768,
+        "height": 76
+      },
+      {
+        "class": "ref-hero",
+        "x": 0,
+        "y": 76,
+        "width": 768,
+        "height": 590
+      },
+      {
+        "class": "ref-search-shell",
+        "x": 24,
+        "y": 604,
+        "width": 720,
+        "height": 330.4375
+      },
+      {
+        "class": "home-services-hub",
+        "x": 0,
+        "y": 934.4375,
+        "width": 768,
+        "height": 557.375
+      },
+      {
+        "class": "ref-section ref-container",
+        "x": 24,
+        "y": 1491.8125,
+        "width": 720,
+        "height": 783.390625
+      },
+      {
+        "class": "ref-section selected-section",
+        "x": 0,
+        "y": 2275.203125,
+        "width": 768,
+        "height": 724.421875
+      },
+      {
+        "class": "ref-section ref-container ai-travel-section",
+        "x": 24,
+        "y": 2999.625,
+        "width": 720,
+        "height": 725.078125
+      },
+      {
+        "class": "compare-band",
+        "x": 0,
+        "y": 3724.703125,
+        "width": 768,
+        "height": 426.25
+      },
+      {
+        "class": "ref-section ref-container",
+        "x": 24,
+        "y": 4150.953125,
+        "width": 720,
+        "height": 428.390625
+      },
+      {
+        "class": "ref-org",
+        "x": 0,
+        "y": 4579.34375,
+        "width": 768,
+        "height": 596.5625
+      },
+      {
+        "class": "trust-section",
+        "x": 0,
+        "y": 5175.90625,
+        "width": 768,
+        "height": 636.4375
+      },
+      {
+        "class": "service-ribbon",
+        "x": 0,
+        "y": 5812.34375,
+        "width": 768,
+        "height": 96
+      },
+      {
+        "class": "ref-footer",
+        "x": 0,
+        "y": 5908.34375,
+        "width": 768,
+        "height": 327.25
+      }
+    ],
+    "images": [
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=3840&q=75",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#home-services",
+      "/trips",
+      "/nearby",
+      "/organization",
+      "/support",
+      "/login",
+      "/support?channel=expert",
+      "/services",
+      "/services?group=0",
+      "/services?group=1",
+      "/services?group=2",
+      "/services?group=3",
+      "/services?group=4",
+      "/services?group=5",
+      "/destinations",
+      "/destinations/qeshm",
+      "/destinations/shiraz",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/masuleh",
+      "/assistant",
+      "/compare",
+      "/experiences",
+      "/restaurants",
+      "/events-venues",
+      "/pools-sports",
+      "/attractions",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "/contact",
+      "/contact",
+      "/contact",
+      "/contact",
+      "#home-services",
+      "/trips",
+      "/nearby",
+      "/organization",
+      "/support",
+      "/",
+      "/contact",
+      "/hotels",
+      "/compare",
+      "/assistant",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/terms",
+      "/privacy",
+      "/assistant"
+    ],
+    "errors": []
+  },
+  {
+    "name": "candidate",
+    "width": 1440,
+    "overflow": false,
+    "rtl": "rtl",
+    "headings": [
+      "سفر رازندگی کن",
+      "خدمات کارن‌سیر",
+      "ایران، پر از جاهای دیدنی",
+      "ایده‌هایی برای مقصد بعدی تو",
+      "دستیار هوشمند سفر کارن‌سیر",
+      "قبل از انتخاب، کنار هم ببین.",
+      "تجربه‌های مقصد را کامل کن",
+      "حال خوب کارکنان،مدیریت ساده برای شما",
+      "با خیال راحت سفر کن"
+    ],
+    "sections": [
+      {
+        "class": "ref-header",
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 76
+      },
+      {
+        "class": "ref-hero",
+        "x": 0,
+        "y": 76,
+        "width": 1440,
+        "height": 650
+      },
+      {
+        "class": "ref-search-shell",
+        "x": 160,
+        "y": 671,
+        "width": 1120,
+        "height": 266.4375
+      },
+      {
+        "class": "home-services-hub",
+        "x": 0,
+        "y": 937.4375,
+        "width": 1440,
+        "height": 467.578125
+      },
+      {
+        "class": "ref-section ref-container",
+        "x": 128,
+        "y": 1405.015625,
+        "width": 1184,
+        "height": 874.390625
+      },
+      {
+        "class": "ref-section selected-section",
+        "x": 0,
+        "y": 2279.40625,
+        "width": 1440,
+        "height": 731.921875
+      },
+      {
+        "class": "ref-section ref-container ai-travel-section",
+        "x": 128,
+        "y": 3011.328125,
+        "width": 1184,
+        "height": 569.546875
+      },
+      {
+        "class": "compare-band",
+        "x": 0,
+        "y": 3580.875,
+        "width": 1440,
+        "height": 343
+      },
+      {
+        "class": "ref-section ref-container",
+        "x": 128,
+        "y": 3923.875,
+        "width": 1184,
+        "height": 360.390625
+      },
+      {
+        "class": "ref-org",
+        "x": 0,
+        "y": 4284.265625,
+        "width": 1440,
+        "height": 553
+      },
+      {
+        "class": "trust-section",
+        "x": 0,
+        "y": 4837.265625,
+        "width": 1440,
+        "height": 511.90625
+      },
+      {
+        "class": "service-ribbon",
+        "x": 0,
+        "y": 5349.171875,
+        "width": 1440,
+        "height": 96
+      },
+      {
+        "class": "ref-footer",
+        "x": 0,
+        "y": 5445.171875,
+        "width": 1440,
+        "height": 327
+      }
+    ],
+    "images": [
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=3840&q=75",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#home-services",
+      "/trips",
+      "/nearby",
+      "/organization",
+      "/support",
+      "/login",
+      "/support?channel=expert",
+      "/services",
+      "/services?group=0",
+      "/services?group=1",
+      "/services?group=2",
+      "/services?group=3",
+      "/services?group=4",
+      "/services?group=5",
+      "/destinations",
+      "/destinations/qeshm",
+      "/destinations/shiraz",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/masuleh",
+      "/assistant",
+      "/compare",
+      "/experiences",
+      "/restaurants",
+      "/events-venues",
+      "/pools-sports",
+      "/attractions",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "/contact",
+      "/contact",
+      "/contact",
+      "/contact",
+      "#home-services",
+      "/trips",
+      "/nearby",
+      "/organization",
+      "/support",
+      "/",
+      "/contact",
+      "/hotels",
+      "/compare",
+      "/assistant",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/terms",
+      "/privacy",
+      "/assistant"
+    ],
+    "errors": []
+  },
+  {
+    "name": "candidate",
+    "width": 1920,
+    "overflow": false,
+    "rtl": "rtl",
+    "headings": [
+      "سفر رازندگی کن",
+      "خدمات کارن‌سیر",
+      "ایران، پر از جاهای دیدنی",
+      "ایده‌هایی برای مقصد بعدی تو",
+      "دستیار هوشمند سفر کارن‌سیر",
+      "قبل از انتخاب، کنار هم ببین.",
+      "تجربه‌های مقصد را کامل کن",
+      "حال خوب کارکنان،مدیریت ساده برای شما",
+      "با خیال راحت سفر کن"
+    ],
+    "sections": [
+      {
+        "class": "ref-header",
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 76
+      },
+      {
+        "class": "ref-hero",
+        "x": 0,
+        "y": 76,
+        "width": 1920,
+        "height": 650
+      },
+      {
+        "class": "ref-search-shell",
+        "x": 400,
+        "y": 671,
+        "width": 1120,
+        "height": 266.4375
+      },
+      {
+        "class": "home-services-hub",
+        "x": 0,
+        "y": 937.4375,
+        "width": 1920,
+        "height": 467.578125
+      },
+      {
+        "class": "ref-section ref-container",
+        "x": 368,
+        "y": 1405.015625,
+        "width": 1184,
+        "height": 874.390625
+      },
+      {
+        "class": "ref-section selected-section",
+        "x": 0,
+        "y": 2279.40625,
+        "width": 1920,
+        "height": 731.921875
+      },
+      {
+        "class": "ref-section ref-container ai-travel-section",
+        "x": 368,
+        "y": 3011.328125,
+        "width": 1184,
+        "height": 569.546875
+      },
+      {
+        "class": "compare-band",
+        "x": 0,
+        "y": 3580.875,
+        "width": 1920,
+        "height": 343
+      },
+      {
+        "class": "ref-section ref-container",
+        "x": 368,
+        "y": 3923.875,
+        "width": 1184,
+        "height": 360.390625
+      },
+      {
+        "class": "ref-org",
+        "x": 0,
+        "y": 4284.265625,
+        "width": 1920,
+        "height": 553
+      },
+      {
+        "class": "trust-section",
+        "x": 0,
+        "y": 4837.265625,
+        "width": 1920,
+        "height": 511.90625
+      },
+      {
+        "class": "service-ribbon",
+        "x": 0,
+        "y": 5349.171875,
+        "width": 1920,
+        "height": 96
+      },
+      {
+        "class": "ref-footer",
+        "x": 0,
+        "y": 5445.171875,
+        "width": 1920,
+        "height": 327
+      }
+    ],
+    "images": [
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Fhome%2Fhero-yazd.png&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-shiraz.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-qeshm.jpeg&w=3840&q=75",
+        "loaded": true
+      },
+      {
+        "src": "/_next/image?url=%2Fimages%2Ffigma%2Ftrip-north.jpeg&w=3840&q=75",
+        "loaded": true
+      }
+    ],
+    "links": [
+      "/",
+      "#home-services",
+      "/trips",
+      "/nearby",
+      "/organization",
+      "/support",
+      "/login",
+      "/support?channel=expert",
+      "/services",
+      "/services?group=0",
+      "/services?group=1",
+      "/services?group=2",
+      "/services?group=3",
+      "/services?group=4",
+      "/services?group=5",
+      "/destinations",
+      "/destinations/qeshm",
+      "/destinations/shiraz",
+      "/destinations/yazd",
+      "/destinations/masuleh",
+      "/destinations",
+      "/destinations/shiraz",
+      "/destinations/qeshm",
+      "/destinations/masuleh",
+      "/assistant",
+      "/compare",
+      "/experiences",
+      "/restaurants",
+      "/events-venues",
+      "/pools-sports",
+      "/attractions",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "/contact",
+      "/contact",
+      "/contact",
+      "/contact",
+      "#home-services",
+      "/trips",
+      "/nearby",
+      "/organization",
+      "/support",
+      "/",
+      "/contact",
+      "/hotels",
+      "/compare",
+      "/assistant",
+      "/organization",
+      "/white-label",
+      "/integrations",
+      "tel:+989191258009",
+      "/support",
+      "/contact",
+      "/terms",
+      "/privacy",
+      "/assistant"
+    ],
+    "errors": []
+  }
+]

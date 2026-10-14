@@ -287,6 +287,19 @@
       "status": "READY_FOR_RELEASE",
       "reason": "Frontend recovery patch only: historical Hero/mosaic/services/editorial/comparison/footer/floating restored; current routes/Search preserved. Seven-width visual/controls + isolated booking and role smoke PASS. No Production deployment; whole-source package dependencies not validated for public API. Figma pending.",
       "evidence": "docs/recovery/2026-09-30-historical-ui-recovery.md"
+    },
+    "master_catalog": {
+      "status": "PARTIAL",
+      "reason": "Global master/catalog data (places, hotels IR/TR/AE/AM/GE/IQ, airlines, airports, rail operators and stations, venues) implemented in Source with public read API /catalog/*, import pipeline and frontend listing/detail/filter/suggest integration (ADR028). Verified only on a local scratch database; NOT migrated or imported in Production. No commercial data: price/availability always null until a real supplier offer is mapped.",
+      "decision_status": "SOURCE_READY_PENDING_PRODUCTION_APPROVAL",
+      "deferred_work": [
+        "Production migration 20261003_36 and catalog import (owner role) need explicit approval",
+        "Hotel photos: only records with a Commons/Wikidata image have one",
+        "Persian display names missing for many foreign hotels (English name shown)",
+        "Star rating present only where the source publishes it",
+        "Rail passenger operators limited to those verified on their official site"
+      ],
+      "updated": "2026-10-03"
     }
   }
 }

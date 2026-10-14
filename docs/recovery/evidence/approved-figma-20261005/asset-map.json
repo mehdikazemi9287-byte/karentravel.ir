@@ -1,0 +1,169 @@
+[
+  {
+    "variable": "imgIconInstagram",
+    "node": "68:47"
+  },
+  {
+    "variable": "imgIconTelegram",
+    "node": "68:51"
+  },
+  {
+    "variable": "imgIconLinkedIn",
+    "node": "68:53"
+  },
+  {
+    "variable": "imgComponentLogoMark",
+    "node": "66:46"
+  },
+  {
+    "variable": "imgIconDot",
+    "node": "45:5"
+  },
+  {
+    "variable": "imgIconPerson",
+    "node": "68:77"
+  },
+  {
+    "variable": "imgIconCompare",
+    "node": "67:77"
+  },
+  {
+    "variable": "imgIconChevronLeft",
+    "node": "67:80"
+  },
+  {
+    "variable": "isZandiyeh ? imgThumb1 : imgThumb"
+  },
+  {
+    "variable": "imgHeroImageYazd",
+    "node": "46:3"
+  },
+  {
+    "variable": "imgIconSupport",
+    "node": "68:58"
+  },
+  {
+    "variable": "imgEllipse",
+    "node": "46:10"
+  },
+  {
+    "variable": "imgIconCheck",
+    "node": "68:62"
+  },
+  {
+    "variable": "imgEllipse",
+    "node": "46:15"
+  },
+  {
+    "variable": "imgThumb2",
+    "node": "48:4"
+  },
+  {
+    "variable": "imgIconArrowLeft",
+    "node": "72:118"
+  },
+  {
+    "variable": "imgThumb3",
+    "node": "48:8"
+  },
+  {
+    "variable": "imgIconArrowLeft",
+    "node": "72:120"
+  },
+  {
+    "variable": "imgIconPin",
+    "node": "68:64"
+  },
+  {
+    "variable": "imgIconPlaneSmall",
+    "node": "68:67"
+  },
+  {
+    "variable": "imgIconPerson1",
+    "node": "68:69"
+  },
+  {
+    "variable": "imgIconCalendar",
+    "node": "68:72"
+  },
+  {
+    "variable": "imgTileQeshm",
+    "node": "50:8"
+  },
+  {
+    "variable": "imgTileShiraz",
+    "node": "50:11"
+  },
+  {
+    "variable": "imgTileMasuleh",
+    "node": "50:15"
+  },
+  {
+    "variable": "imgTileIsfahan",
+    "node": "50:18"
+  },
+  {
+    "variable": "imgImage",
+    "node": "I51:25;51:13"
+  },
+  {
+    "variable": "imgIconArrowLeft1",
+    "node": "I51:25;72:116"
+  },
+  {
+    "variable": "imgImage1",
+    "node": "I51:37;51:13"
+  },
+  {
+    "variable": "imgIconArrowLeft1",
+    "node": "I51:37;72:116"
+  },
+  {
+    "variable": "imgImage2",
+    "node": "I51:49;51:13"
+  },
+  {
+    "variable": "imgIconArrowLeft1",
+    "node": "I51:49;72:116"
+  },
+  {
+    "variable": "imgCoralDot",
+    "node": "94:260"
+  },
+  {
+    "variable": "imgCoralDot",
+    "node": "94:257"
+  },
+  {
+    "variable": "imgCoralDot",
+    "node": "94:254"
+  },
+  {
+    "variable": "imgCoralDot",
+    "node": "94:251"
+  },
+  {
+    "variable": "imgCoralDot",
+    "node": "94:248"
+  },
+  {
+    "variable": "imgLaptopScreen",
+    "node": "54:45"
+  },
+  {
+    "variable": "imgTablet",
+    "node": "54:53"
+  },
+  {
+    "variable": "imgIconChart",
+    "node": "67:64"
+  },
+  {
+    "variable": "imgIconCheck1",
+    "node": "67:69"
+  },
+  {
+    "variable": "imgIconStaff",
+    "node": "67:71"
+  }
+]

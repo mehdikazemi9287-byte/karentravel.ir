@@ -1,0 +1,34 @@
+[
+  {
+    "width": 390,
+    "headings_match": true,
+    "max_section_geometry_delta_px": 0,
+    "overflow": false,
+    "page_errors": [],
+    "broken_images": 0
+  },
+  {
+    "width": 768,
+    "headings_match": true,
+    "max_section_geometry_delta_px": 0,
+    "overflow": false,
+    "page_errors": [],
+    "broken_images": 0
+  },
+  {
+    "width": 1440,
+    "headings_match": true,
+    "max_section_geometry_delta_px": 0,
+    "overflow": false,
+    "page_errors": [],
+    "broken_images": 0
+  },
+  {
+    "width": 1920,
+    "headings_match": true,
+    "max_section_geometry_delta_px": 0,
+    "overflow": false,
+    "page_errors": [],
+    "broken_images": 0
+  }
+]

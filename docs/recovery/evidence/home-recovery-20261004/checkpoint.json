@@ -1,0 +1,26 @@
+{
+  "CURRENT_PRODUCTION": {
+    "commit": "d2ba674be607a5908bac15a46d385a0b63b26b10",
+    "image": "sha256:d27e90f03dc9f3b9cec15277b76f1651a209d7d62852dc438a79435d99288528",
+    "build": "f2RCNeisrtn7IzoGKDsyg"
+  },
+  "LAST_KNOWN_GOOD_UI": "76bea5c historical reference explicitly authorized in ADR027; Figma approval unverified",
+  "CURRENT_CANDIDATE": {
+    "path": "/tmp/karen-recovery-20261004",
+    "preview": "http://127.0.0.1:3391",
+    "base_HEAD": "791d007039831e19f268cf1b5f36d569dc29563a",
+    "build_id": "8XDjNYO-acX2TvmkM-608",
+    "source_hashes": {
+      "app/page.tsx": "b353a39357d49c281c7ed7e375128c558a572bf9f768f6049e203787db488292",
+      "app/globals.css": "fe1ef4f9be96b972c6af235f798a9f9329ce143dd6286b7e76bd05782b063aa8"
+    },
+    "build": "PASS",
+    "visual_qa": "PIXEL_IDENTICAL_TO_HISTORICAL_AT_390_768_1440_1920"
+  },
+  "FILES_CHANGED": [
+    "candidate/app/page.tsx",
+    "candidate/app/globals.css",
+    "docs/recovery/evidence/home-recovery-20261004/*"
+  ],
+  "NEXT_STEP": "Historical candidate Visual QA complete. Preserve candidate and patch. Working Figma read access needed for independent frame inventory/parity. Production deployment is NOT authorized."
+}

@@ -1,0 +1,140 @@
+[
+  {
+    "width": 390,
+    "checks": [
+      {
+        "selector": ".fs-field--dates button.fs-field-body",
+        "boxes": [
+          {
+            "x": 48,
+            "right": 342,
+            "width": 294
+          }
+        ],
+        "closed": true
+      },
+      {
+        "selector": ".fs-field--pax button.fs-field-body",
+        "boxes": [
+          {
+            "x": 48,
+            "right": 342,
+            "width": 294
+          }
+        ],
+        "closed": true
+      }
+    ]
+  },
+  {
+    "width": 768,
+    "checks": [
+      {
+        "selector": ".fs-field--dates button.fs-field-body",
+        "boxes": [
+          {
+            "x": 430.171875,
+            "right": 719,
+            "width": 288.828125
+          }
+        ],
+        "closed": true
+      },
+      {
+        "selector": ".fs-field--pax button.fs-field-body",
+        "boxes": [
+          {
+            "x": 196,
+            "right": 398.171875,
+            "width": 202.171875
+          }
+        ],
+        "closed": true
+      }
+    ]
+  },
+  {
+    "width": 1440,
+    "checks": [
+      {
+        "selector": ".fs-field--dates button.fs-field-body",
+        "boxes": [
+          {
+            "x": 579.5625,
+            "right": 979.5625,
+            "width": 400
+          }
+        ],
+        "closed": true
+      },
+      {
+        "selector": ".fs-field--pax button.fs-field-body",
+        "boxes": [
+          {
+            "x": 319.984375,
+            "right": 639.984375,
+            "width": 320
+          }
+        ],
+        "closed": true
+      }
+    ]
+  },
+  {
+    "width": 1920,
+    "checks": [
+      {
+        "selector": ".fs-field--dates button.fs-field-body",
+        "boxes": [
+          {
+            "x": 819.5625,
+            "right": 1219.5625,
+            "width": 400
+          }
+        ],
+        "closed": true
+      },
+      {
+        "selector": ".fs-field--pax button.fs-field-body",
+        "boxes": [
+          {
+            "x": 559.984375,
+            "right": 879.984375,
+            "width": 320
+          }
+        ],
+        "closed": true
+      }
+    ]
+  },
+  {
+    "route": "/hotels",
+    "status": 200,
+    "historicalHomeScopes": 0
+  },
+  {
+    "route": "/flights",
+    "status": 200,
+    "historicalHomeScopes": 0
+  },
+  {
+    "route": "/trips",
+    "status": 200,
+    "historicalHomeScopes": 0
+  },
+  {
+    "route": "/organization",
+    "status": 200,
+    "historicalHomeScopes": 0
+  },
+  {
+    "route": "/assistant",
+    "status": 200,
+    "historicalHomeScopes": 0
+  },
+  {
+    "route": "/services",
+    "status": 200,
+    "historicalHomeScopes": 0
+  }
+]

@@ -1,0 +1,184 @@
+{
+  "export": {
+    "nodeId": "44:3",
+    "url": "https://www.figma.com/api/mcp/asset/f1348373-0098-46ed-a74f-3df0c83f61ae.png",
+    "format": "png",
+    "sizeBytes": 2720758
+  },
+  "rawImages": [
+    {
+      "url": "https://www.figma.com/api/mcp/asset/a94ac1af-0849-4492-b102-bcfe8b2f5606",
+      "format": "jpeg"
+    },
+    {
+      "url": "https://www.figma.com/api/mcp/asset/732d1946-673d-4862-a147-4c40b637c8e6",
+      "format": "jpeg"
+    },
+    {
+      "url": "https://www.figma.com/api/mcp/asset/ac94a6b9-3f0b-42f5-9864-3b7902f46292",
+      "format": "jpeg"
+    },
+    {
+      "url": "https://www.figma.com/api/mcp/asset/40d4d241-c134-42a9-87da-babfc0bb996d",
+      "format": "jpeg"
+    },
+    {
+      "url": "https://www.figma.com/api/mcp/asset/a23fa4ca-5f5f-4abe-807b-adfc902aaaca",
+      "format": "jpeg"
+    },
+    {
+      "url": "https://www.figma.com/api/mcp/asset/4f4d704f-ac3f-4edb-a67f-cac07821332a",
+      "format": "jpeg"
+    },
+    {
+      "url": "https://www.figma.com/api/mcp/asset/f3047b66-7e55-41b5-b923-b33c0ff96cf3",
+      "format": "jpeg"
+    },
+    {
+      "url": "https://www.figma.com/api/mcp/asset/a3a243ab-92c3-4b59-b502-74e230dd74b4",
+      "format": "jpeg"
+    },
+    {
+      "url": "https://www.figma.com/api/mcp/asset/5771f51a-8ec2-4516-b90d-836d60833957",
+      "format": "jpeg"
+    },
+    {
+      "url": "https://www.figma.com/api/mcp/asset/6c854d69-25ad-476b-a38a-568b3986224b",
+      "format": "jpeg"
+    },
+    {
+      "url": "https://www.figma.com/api/mcp/asset/c8e41253-0970-4fd0-8fab-55af62b76851",
+      "format": "jpeg"
+    },
+    {
+      "url": "https://www.figma.com/api/mcp/asset/0dfc4147-d9ca-42e3-8e38-8f49193a001a",
+      "format": "jpeg"
+    }
+  ],
+  "rawImagesTruncated": false,
+  "svgAssets": [
+    {
+      "url": "https://www.figma.com/api/mcp/asset/1e742864-6c71-4ec1-b8c2-7ead2b2db173.svg",
+      "format": "svg",
+      "sizeBytes": 234
+    },
+    {
+      "url": "https://www.figma.com/api/mcp/asset/45a20ec3-f990-4018-a7ac-c69f26fc5b44.svg",
+      "format": "svg",
+      "sizeBytes": 258
+    },
+    {
+      "url": "https://www.figma.com/api/mcp/asset/e826e782-03f0-4a8e-96a3-87688767e862.svg",
+      "format": "svg",
+      "sizeBytes": 718
+    },
+    {
+      "url": "https://www.figma.com/api/mcp/asset/51cec176-3829-4cf6-b11f-67ac0a0d03ca.svg",
+      "format": "svg",
+      "sizeBytes": 1216
+    },
+    {
+      "url": "https://www.figma.com/api/mcp/asset/bf1268f8-ece2-41c1-bd3c-496dbf2699c0.svg",
+      "format": "svg",
+      "sizeBytes": 1045
+    },
+    {
+      "url": "https://www.figma.com/api/mcp/asset/049d43a4-d327-4533-855f-a085eeac0765.svg",
+      "format": "svg",
+      "sizeBytes": 366
+    },
+    {
+      "url": "https://www.figma.com/api/mcp/asset/ad8aaae3-d16b-4b7e-adbb-a7ed97487e67.svg",
+      "format": "svg",
+      "sizeBytes": 331
+    },
+    {
+      "url": "https://www.figma.com/api/mcp/asset/d6e004d7-ed16-4a95-83f4-d6de04fc105a.svg",
+      "format": "svg",
+      "sizeBytes": 1100
+    },
+    {
+      "url": "https://www.figma.com/api/mcp/asset/4f90ad0f-6746-4fca-945a-79eb49afe06e.svg",
+      "format": "svg",
+      "sizeBytes": 1020
+    },
+    {
+      "url": "https://www.figma.com/api/mcp/asset/843032cd-104f-4b4e-832c-30629e193453.svg",
+      "format": "svg",
+      "sizeBytes": 356
+    },
+    {
+      "url": "https://www.figma.com/api/mcp/asset/559e95b3-f324-4e39-ae4b-7c5b21248089.svg",
+      "format": "svg",
+      "sizeBytes": 235
+    },
+    {
+      "url": "https://www.figma.com/api/mcp/asset/c1c08c5a-60dc-4ee1-9ef4-d18e47aab72a.svg",
+      "format": "svg",
+      "sizeBytes": 508
+    },
+    {
+      "url": "https://www.figma.com/api/mcp/asset/3a9af604-3b34-4a84-99be-4c50fbd8fd75.svg",
+      "format": "svg",
+      "sizeBytes": 689
+    },
+    {
+      "url": "https://www.figma.com/api/mcp/asset/5e574e92-9e42-4d78-98db-e46567642d29.svg",
+      "format": "svg",
+      "sizeBytes": 341
+    },
+    {
+      "url": "https://www.figma.com/api/mcp/asset/69961c87-5aca-4680-b294-c5c51a68aede.svg",
+      "format": "svg",
+      "sizeBytes": 344
+    },
+    {
+      "url": "https://www.figma.com/api/mcp/asset/f0606be6-10c0-4c8e-be1d-0fbda15ce915.svg",
+      "format": "svg",
+      "sizeBytes": 893
+    },
+    {
+      "url": "https://www.figma.com/api/mcp/asset/2d1d31b0-f345-4e4f-9d37-9fbb266d7085.svg",
+      "format": "svg",
+      "sizeBytes": 359
+    },
+    {
+      "url": "https://www.figma.com/api/mcp/asset/0673df12-60e7-457e-9c38-209b9c8ce5b2.svg",
+      "format": "svg",
+      "sizeBytes": 562
+    },
+    {
+      "url": "https://www.figma.com/api/mcp/asset/209ff408-5218-4feb-a031-74b6c0b9c937.svg",
+      "format": "svg",
+      "sizeBytes": 230
+    },
+    {
+      "url": "https://www.figma.com/api/mcp/asset/737544d4-82eb-4f4b-bdf9-2574c16964a3.svg",
+      "format": "svg",
+      "sizeBytes": 1007
+    }
+  ],
+  "svgAssetsTruncated": true,
+  "message": "This node's subtree has more than 20 SVG assets (only the first 20 are returned). Ask the user to select a smaller or more specific node, then call download_assets again."
+}
+Download by running:
+
+  curl -L -o export.png "https://www.figma.com/api/mcp/asset/f1348373-0098-46ed-a74f-3df0c83f61ae.png"
+
+The URL is short-lived — treat it like a secret.
+To download the 12 raw images:
+
+  curl -L -o raw_image_1.jpeg "https://www.figma.com/api/mcp/asset/a94ac1af-0849-4492-b102-bcfe8b2f5606"
+  curl -L -o raw_image_2.jpeg "https://www.figma.com/api/mcp/asset/732d1946-673d-4862-a147-4c40b637c8e6"
+  curl -L -o raw_image_3.jpeg "https://www.figma.com/api/mcp/asset/ac94a6b9-3f0b-42f5-9864-3b7902f46292"
+  curl -L -o raw_image_4.jpeg "https://www.figma.com/api/mcp/asset/40d4d241-c134-42a9-87da-babfc0bb996d"
+  curl -L -o raw_image_5.jpeg "https://www.figma.com/api/mcp/asset/a23fa4ca-5f5f-4abe-807b-adfc902aaaca"
+  curl -L -o raw_image_6.jpeg "https://www.figma.com/api/mcp/asset/4f4d704f-ac3f-4edb-a67f-cac07821332a"
+  curl -L -o raw_image_7.jpeg "https://www.figma.com/api/mcp/asset/f3047b66-7e55-41b5-b923-b33c0ff96cf3"
+  curl -L -o raw_image_8.jpeg "https://www.figma.com/api/mcp/asset/a3a243ab-92c3-4b59-b502-74e230dd74b4"
+  curl -L -o raw_image_9.jpeg "https://www.figma.com/api/mcp/asset/5771f51a-8ec2-4516-b90d-836d60833957"
+  curl -L -o raw_image_10.jpeg "https://www.figma.com/api/mcp/asset/6c854d69-25ad-476b-a38a-568b3986224b"
+  curl -L -o raw_image_11.jpeg "https://www.figma.com/api/mcp/asset/c8e41253-0970-4fd0-8fab-55af62b76851"
+  curl -L -o raw_image_12.jpeg "https://www.figma.com/api/mcp/asset/0dfc4147-d9ca-42e3-8e38-8f49193a001a"
+
+The URLs are short-lived — treat them like secrets.

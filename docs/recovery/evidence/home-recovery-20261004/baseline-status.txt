@@ -1,0 +1,39 @@
+ M CAPABILITY_REGISTRY.json
+ M app/attractions/page.tsx
+ M app/car-rental/page.tsx
+ M app/destinations/[slug]/page.tsx
+ M app/destinations/page.tsx
+ M app/events-venues/page.tsx
+ M app/flights/page.tsx
+ M app/globals.css
+ M app/handicrafts/page.tsx
+ M app/pools-sports/page.tsx
+ M app/restaurants/page.tsx
+ M app/tourist-transport/page.tsx
+ M app/tours/page.tsx
+ M app/travel-guides/page.tsx
+ M app/villas/page.tsx
+ M backend/Dockerfile
+ M backend/app/main.py
+ M components/marketplace/HistoricalPresentation.tsx
+ M components/marketplace/MarketplaceHome.tsx
+ M components/marketplace/StayLanding.tsx
+ M components/search/HomeSearchExperience.tsx
+?? app/hotels/[slug]/
+?? app/trains/
+?? backend/alembic/versions/20261003_36_catalog_master_data.py
+?? backend/app/catalog.py
+?? backend/debug_voucher.py
+?? backend/scripts/__init__.py
+?? backend/scripts/catalog/
+?? backend/tests/test_catalog_master_data.py
+?? components/catalog/
+?? docs/adr/ADR-028-master-catalog-data.md
+?? docs/recovery/evidence/figma-candidate-20261003/home-1024.png
+?? docs/recovery/evidence/figma-candidate-20261003/home-1366.png
+?? docs/recovery/evidence/figma-candidate-20261003/home-1440.png
+?? docs/recovery/evidence/figma-candidate-20261003/home-1920.png
+?? docs/recovery/evidence/figma-candidate-20261003/home-360.png
+?? docs/recovery/evidence/figma-candidate-20261003/home-390.png
+?? docs/recovery/evidence/figma-candidate-20261003/home-430.png
+?? docs/recovery/evidence/figma-candidate-20261003/home-768.png

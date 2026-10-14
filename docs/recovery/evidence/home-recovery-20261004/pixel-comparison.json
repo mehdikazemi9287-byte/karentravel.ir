@@ -1,0 +1,26 @@
+[
+  {
+    "width": 390,
+    "historicalHeight": 7954,
+    "candidateHeight": 7954,
+    "pixelIdentical": true
+  },
+  {
+    "width": 768,
+    "historicalHeight": 6296,
+    "candidateHeight": 6296,
+    "pixelIdentical": true
+  },
+  {
+    "width": 1440,
+    "historicalHeight": 5772,
+    "candidateHeight": 5772,
+    "pixelIdentical": true
+  },
+  {
+    "width": 1920,
+    "historicalHeight": 5772,
+    "candidateHeight": 5772,
+    "pixelIdentical": true
+  }
+]

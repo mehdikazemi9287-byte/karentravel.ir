@@ -56,7 +56,7 @@ function OrganizationSection(){return <section className="fh-org"><div className
 const iconNav:[string,string,string][]=[
  ['خدمات سفر','/services','M4 13a8 8 0 0 1 16 0M4 13v4h3v-5H4M20 13v4h-3v-5h3'],
  ['تور','/tours','M3 20h18M5 20l4-9 3 5 3-8 4 12M9 6h6'],
- ['قطار','/?vertical=train#search','M7 4h10a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM5 11h14M9 14h.01M15 14h.01M8 21l2-4M16 21l-2-4'],
+ ['قطار','/trains','M7 4h10a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM5 11h14M9 14h.01M15 14h.01M8 21l2-4M16 21l-2-4'],
  ['اقامت','/hotels','M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M16 10h3a1 1 0 0 1 1 1v10M3 21h18M8 7h4M8 11h4M8 15h4'],
  ['پرواز','/flights','M3 13l18-8-6 16-3-7-9-1z'],
 ];

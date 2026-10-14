@@ -1,0 +1,54 @@
+{
+ "390": {
+  "tabs": [
+   "پرواز",
+   "هتل",
+   "پرواز + هتل",
+   "تشریفات فرودگاه"
+  ],
+  "datePop": true,
+  "popInView": true,
+  "dayButtons": 27,
+  "paxPop": true,
+  "hotelForm": "فرم جست‌وجوی هتل",
+  "hotelFields": [
+   "مقصد، هتل یا منطقه",
+   "تاریخ ورود",
+   "تاریخ خروج",
+   "اتاق و مهمان"
+  ],
+  "afterSubmitUrl": "/",
+  "validation": [
+   "تاریخ رفت و برگشت معتبر انتخاب کنید؛ تاریخ خروج باید پس از ورود باشد."
+  ],
+  "nlOpen": "true",
+  "errs": [],
+  "blockedExternal": []
+ },
+ "1440": {
+  "tabs": [
+   "پرواز",
+   "هتل",
+   "پرواز + هتل",
+   "تشریفات فرودگاه"
+  ],
+  "datePop": true,
+  "popInView": true,
+  "dayButtons": 27,
+  "paxPop": true,
+  "hotelForm": "فرم جست‌وجوی هتل",
+  "hotelFields": [
+   "مقصد، هتل یا منطقه",
+   "تاریخ ورود",
+   "تاریخ خروج",
+   "اتاق و مهمان"
+  ],
+  "afterSubmitUrl": "/",
+  "validation": [
+   "تاریخ رفت و برگشت معتبر انتخاب کنید؛ تاریخ خروج باید پس از ورود باشد."
+  ],
+  "nlOpen": "true",
+  "errs": [],
+  "blockedExternal": []
+ }
+}

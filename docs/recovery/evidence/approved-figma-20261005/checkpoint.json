@@ -1,0 +1,80 @@
+{
+ "CURRENT_PRODUCTION": {
+  "commit": "d2ba674be607a5908bac15a46d385a0b63b26b10",
+  "image": "sha256:d27e90f03dc9f3b9cec15277b76f1651a209d7d62852dc438a79435d99288528",
+  "build": "f2RCNeisrtn7IzoGKDsyg",
+  "changed": false
+ },
+ "LAST_KNOWN_GOOD_UI": "Figma Final Desktop UI frame44:3 supersedes historical candidate",
+ "CURRENT_CANDIDATE": {
+  "preview": "http://127.0.0.1:3392 (next start, isolated copy of Source in session scratchpad; loopback only; not a container)",
+  "build_id": "VVqdUtG3Bl1k9x0dYNrrv",
+  "base_HEAD": "791d007 + uncommitted working tree",
+  "build": "PASS",
+  "tsc": "PASS for app (only pre-existing errors inside docs/recovery/evidence/home-recovery-20261004/candidate-source)"
+ },
+ "FILES_CHANGED": [
+  "app/page.tsx",
+  "components/search/HomeSearchExperience.tsx",
+  "components/journey/JourneyShell.tsx",
+  "components/marketplace/ApprovedFigmaHome.tsx",
+  "components/marketplace/ApprovedMobileAI.tsx",
+  "components/marketplace/approved-figma.css",
+  "public/images/approved-figma/"
+ ],
+ "NEXT_STEP": "User review of Preview; explicit approval required for any Production deploy",
+ "BLOCKER": null,
+ "FIGMA_FRAME": "Ei8MUR9VN2yCX6BLOpvTXm / 44:3",
+ "FIGMA_ACCESS": "Connector NOT authorized in this session; worked from saved context44.tsx/tokens/inventory and saved asset URLs (8 missing rasters downloaded, HTTP 200 JPEG)",
+ "SECTIONS_INVENTORIED": 8,
+ "MOBILE_FRAMES": [
+  "95:232 AI tablet",
+  "95:258 AI mobile"
+ ],
+ "ASSET_NOTE": "MCP asset URLs return HTTP202 WAF challenge with empty body. Native read returns original bytes but large responses truncate at20kb; retrieve small byte slices, not the truncated response. Native SVG export works.",
+ "AUTHORIZATION": "Explicit user exception: isolated Source/Preview changes despite deployment drift; Production prohibited",
+ "DESKTOP_1440": {
+  "page_height": 3797,
+  "figma_height": 3797,
+  "sections_px": [
+   939,
+   620,
+   530,
+   424,
+   241,
+   452,
+   114,
+   477
+  ],
+  "figma_sections_px": [
+   939,
+   620,
+   531,
+   424,
+   241,
+   452,
+   114,
+   476
+  ],
+  "node_class_diff": "all Figma 44:3 nodes present with identical classes except Search Card 48:10 internals (live search component restyled)",
+  "comparison": "preview-qa/figma-vs-preview-1440.png (reference export is only 389px wide; fine pixel parity UNVERIFIED)"
+ },
+ "KNOWN_VISIBLE_DIFFERENCES": [
+  "Search card: live fields show label+value (مبدأ تهران / مقصد شیراز, split depart/return dates, traveller count) instead of Figma placeholders; tab label 'پرواز + هتل' instead of Figma 'تور + هتل' (actual vertical is flight+hotel)",
+  "Trip cards and hotel-compare rows show 'استعلام قیمت' instead of Figma mock prices/ratings (no fabricated prices)",
+  "Hero stat captions differ from Figma (no unsupported 24h-support claim)",
+  "Footer app-store chips and 'فرصت‌های شغلی' are non-links (no such destinations exist)",
+  "Inner pages: only Header/Footer/tokens are shared from Figma; page bodies keep current layouts (no Figma frames exist for them)"
+ ],
+ "QA": {
+  "responsive": "home 390/768/1024/1920 + 14 routes at 1440/390: 33 captures, 0 horizontal overflow, 0 page errors, 0 failed requests, 0 broken images",
+  "functional": "search tabs, date popover, traveller popover, hotel form, fail-closed validation, assistant toggle at 1440 and 390 (preview-qa/func.json); external API calls blocked during interaction test",
+  "links": "all header/footer/home internal links return 200",
+  "not_run": [
+   "backend tests (backend untouched this session)",
+   "playwright e2e suite",
+   "authenticated journeys / booking flow against API",
+   "Mobile AI frame 95:258 pixel comparison (no reference export saved)"
+  ]
+ }
+}
