@@ -24,13 +24,11 @@ const reservationCols = [
 ];
 
 export function CustomerOverview() {
-  const profile = useLoad<{name: string; email: string; role: string}>('/me/profile'); const res = useLoad<Reservation[]>('/me/reservations'); const trips = useLoad<Trip[]>('/me/trips');
-  const inv = useLoad<Invoice[]>('/me/invoices'); const notes = useLoad<Notification[]>('/me/notifications'); const cases = useLoad<Case[]>('/support/cases');
+  const res = useLoad<Reservation[]>('/me/reservations'); const trips = useLoad<Trip[]>('/me/trips');
+  const notes = useLoad<Notification[]>('/me/notifications');
   const count = <T,>(s: Load<T[]>, f: (x: T) => boolean = () => true) => s.kind === 'ready' ? fa(s.data.filter(f).length) : s.kind === 'error' ? '—' : '…';
   return <>
-    <Async state={profile.state}>{p => <p className="pn-muted">{p.name} · <span className="pn-ltr">{p.email}</span></p>}</Async>
-    <Stats items={[{label: 'رزروها', value: count(res.state)}, {label: 'رزروهای فعال', value: count(res.state, r => !isCancelled(r.status))}, {label: 'سفرها', value: count(trips.state)}, {label: 'فاکتورها', value: count(inv.state)},
-      {label: 'اعلان خوانده‌نشده', value: count(notes.state, n => n.status !== 'read')}, {label: 'پروندهٔ باز پشتیبانی', value: count(cases.state, c => !/resolved|closed/.test(c.status))}]}/>
+    <Stats className="pn-overview-stats" items={[{label: 'رزروها', value: count(res.state)}, {label: 'رزروهای فعال', value: count(res.state, r => !isCancelled(r.status))}, {label: 'سفرها', value: count(trips.state)}]}/>
     <Card title="آخرین رزروها" action={<Link className="pn-link" href="/account/bookings">همهٔ رزروها</Link>}>
       <Async state={res.state}>{rows => <Table rows={rows.slice(0, 5)} cols={reservationCols} rowKey={r => r.id} empty={<>هنوز رزروی در این حساب ثبت نشده است. <Link className="pn-link" href="/hotels">جست‌وجوی هتل</Link> · <Link className="pn-link" href="/tours">تورها</Link></>}/>}</Async></Card>
     <Card title="آخرین اعلان‌ها" action={<Link className="pn-link" href="/account/notifications">همهٔ اعلان‌ها</Link>}>

@@ -1,3 +1,3 @@
-import { JourneyShell } from '../../components/journey/JourneyShell';
+import {PanelShell} from '../../components/panel/PanelKit';
 import { ConnectedFinance } from '../../components/operational/ConnectedViews';
-export default function FinancePage(){return <JourneyShell><main className="journey-main"><ConnectedFinance/></main></JourneyShell>}
+export default function FinancePage(){return <PanelShell area="admin" title="مالی"><div className="journey-main"><ConnectedFinance/></div></PanelShell>}

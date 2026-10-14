@@ -304,7 +304,8 @@ def platform_ops_router(get_db, current_user, require_permission, role_has_permi
     def supplier_settlements(user=Depends(require_permission("inventory:manage")), db: Session = Depends(get_db)) -> dict:
         scope = supplier_scope(db, user)
         rows = db.scalars(select(m.SettlementRecord).where(m.SettlementRecord.tenant_id == user.tenant_id, m.SettlementRecord.supplier_id.in_(scope)).order_by(m.SettlementRecord.created_at.desc()).limit(200)).all() if scope else []
-        return {"items": [{"id": r.id, "supplier_id": r.supplier_id, "reservation_id": r.reservation_id, "amount": r.amount, "currency": r.currency, "status": r.status, "external_reference": r.external_reference, "created_at": r.created_at.isoformat()} for r in rows]}
+        totals=db.execute(select(m.SettlementRecord.status,m.SettlementRecord.currency,func.sum(m.SettlementRecord.amount)).where(m.SettlementRecord.tenant_id==user.tenant_id,m.SettlementRecord.supplier_id.in_(scope)).group_by(m.SettlementRecord.status,m.SettlementRecord.currency)).all() if scope else []
+        return {"items": [{"id": r.id, "supplier_id": r.supplier_id, "reservation_id": r.reservation_id, "amount": r.amount, "currency": r.currency, "status": r.status, "external_reference": r.external_reference, "created_at": r.created_at.isoformat()} for r in rows], "totals":[{"status":status,"currency":currency,"amount":amount} for status,currency,amount in totals]}
 
     @router.get("/supplier/contracts")
     def supplier_contracts(user=Depends(require_permission("inventory:manage")), db: Session = Depends(get_db)) -> dict:
@@ -340,9 +341,12 @@ def platform_ops_router(get_db, current_user, require_permission, role_has_permi
         if not member: raise HTTPException(status_code=404, detail="آژانس در دسترس این حساب نیست")
         return row
 
-    def agency_reservations(db: Session, agency: m.Agency, user):
+    def agency_reservations(db: Session, agency: m.Agency, user, *, visible_limit=500):
         if not agency.sales_channel_id: return []
-        return db.scalars(select(m.Reservation).where(m.Reservation.tenant_id == user.tenant_id, m.Reservation.sales_channel_id == agency.sales_channel_id).order_by(m.Reservation.created_at.desc()).limit(500)).all()
+        stmt=select(m.Reservation).where(m.Reservation.tenant_id == user.tenant_id, m.Reservation.sales_channel_id == agency.sales_channel_id).order_by(m.Reservation.created_at.desc())
+        if visible_limit is not None:
+            return db.scalars(stmt.limit(visible_limit)).all()
+        return db.scalars(stmt.execution_options(yield_per=500))
 
     def total_of(r: m.Reservation):
         snap = json.loads(r.price_snapshot_json or "{}")
@@ -367,7 +371,7 @@ def platform_ops_router(get_db, current_user, require_permission, role_has_permi
 
     @router.get("/agency/{agency_id}/customers")
     def agency_customers(agency_id: str, user=Depends(agency_user), db: Session = Depends(get_db)) -> dict:
-        rows = agency_reservations(db, my_agency(db, agency_id, user), user)
+        rows = agency_reservations(db, my_agency(db, agency_id, user), user, visible_limit=None)
         counts: dict[int, int] = {}
         for r in rows: counts[r.user_id] = counts.get(r.user_id, 0) + 1
         names = {u.id: u.name for u in db.scalars(select(User).where(User.id.in_(set(counts)), User.tenant_id == user.tenant_id))} if counts else {}
@@ -377,30 +381,32 @@ def platform_ops_router(get_db, current_user, require_permission, role_has_permi
     def agency_commissions(agency_id: str, user=Depends(agency_user), db: Session = Depends(get_db)) -> dict:
         agency = my_agency(db, agency_id, user)
         items, totals = [], {}
-        for r in agency_reservations(db, agency, user):
+        for r in agency_reservations(db, agency, user, visible_limit=None):
             amount, currency = total_of(r)
             if r.confirmed_at is None or amount is None: continue
             commission = amount * agency.commission_bps // 10000
-            items.append({"reservation_id": r.id, "booking_reference": r.booking_reference, "confirmed_at": r.confirmed_at.isoformat(), "base_amount": amount, "currency": currency, "commission_bps": agency.commission_bps, "commission_amount": commission})
+            if len(items) < 500:
+                items.append({"reservation_id": r.id, "booking_reference": r.booking_reference, "confirmed_at": r.confirmed_at.isoformat(), "base_amount": amount, "currency": currency, "commission_bps": agency.commission_bps, "commission_amount": commission})
             totals[currency] = totals.get(currency, 0) + commission
         return {"basis": "configured_rate_on_confirmed_reservations", "settled": False, "commission_bps": agency.commission_bps, "items": items, "totals": [{"currency": c, "commission_amount": v} for c, v in totals.items()],
                 "note": "محاسبه بر اساس نرخ کمیسیون ثبت‌شده و مبلغ رزروهای تأییدشده است؛ پرداخت‌شده بودن آن فقط در بخش تسویه مشخص می‌شود."}
 
     @router.get("/agency/{agency_id}/settlements")
     def agency_settlements(agency_id: str, user=Depends(agency_user), db: Session = Depends(get_db)) -> dict:
-        ids = [r.id for r in agency_reservations(db, my_agency(db, agency_id, user), user)]
-        rows = db.scalars(select(m.SettlementRecord).where(m.SettlementRecord.tenant_id == user.tenant_id, m.SettlementRecord.reservation_id.in_(ids)).order_by(m.SettlementRecord.created_at.desc())).all() if ids else []
+        agency = my_agency(db, agency_id, user)
+        ids = select(m.Reservation.id).where(m.Reservation.tenant_id == user.tenant_id, m.Reservation.sales_channel_id == agency.sales_channel_id)
+        rows = db.scalars(select(m.SettlementRecord).where(m.SettlementRecord.tenant_id == user.tenant_id, m.SettlementRecord.reservation_id.in_(ids)).order_by(m.SettlementRecord.created_at.desc())).all() if agency.sales_channel_id else []
         return {"items": [{"id": s.id, "reservation_id": s.reservation_id, "amount": s.amount, "currency": s.currency, "status": s.status, "external_reference": s.external_reference, "created_at": s.created_at.isoformat()} for s in rows]}
 
     @router.get("/agency/{agency_id}/report")
     def agency_report(agency_id: str, user=Depends(agency_user), db: Session = Depends(get_db)) -> dict:
-        rows = agency_reservations(db, my_agency(db, agency_id, user), user)
+        rows = agency_reservations(db, my_agency(db, agency_id, user), user, visible_limit=None)
         by_status, by_service, confirmed = {}, {}, {}
         for r in rows:
             by_status[r.status] = by_status.get(r.status, 0) + 1; by_service[r.service_type] = by_service.get(r.service_type, 0) + 1
             amount, currency = total_of(r)
             if r.confirmed_at is not None and amount is not None: confirmed[currency] = confirmed.get(currency, 0) + amount
-        return {"bookings": len(rows), "by_status": by_status, "by_service_type": by_service, "confirmed_sales": [{"currency": c, "amount": v} for c, v in confirmed.items()]}
+        return {"bookings": sum(by_status.values()), "by_status": by_status, "by_service_type": by_service, "confirmed_sales": [{"currency": c, "amount": v} for c, v in confirmed.items()]}
 
     @router.post("/agency/{agency_id}/members", status_code=201)
     def add_agency_member(agency_id: str, data: AgencyMemberIn, user=Depends(require_permission("tenant:manage")), db: Session = Depends(get_db)) -> dict:

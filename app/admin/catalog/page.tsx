@@ -1,4 +1,4 @@
-import {JourneyShell} from '../../../components/journey/JourneyShell';
+import {PanelShell} from '../../../components/panel/PanelKit';
 import {CatalogAdmin} from '../../../components/catalog/CatalogAdmin';
 export const metadata = {title: 'مدیریت هتل‌ها | کارن‌سیر', robots: {index: false}};
-export default function Page() {return <JourneyShell><main className="journey-main"><CatalogAdmin/></main></JourneyShell>;}
+export default function Page() {return <PanelShell area="admin" title="هتل‌ها"><div className="journey-main"><CatalogAdmin/></div></PanelShell>;}

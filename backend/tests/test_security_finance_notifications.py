@@ -151,6 +151,10 @@ def test_credit_reserve_capture_release_and_idempotency():
 
 
 class SuccessfulPaymentAdapter:
+    def health(self):
+        from app.providers import ProviderHealth
+        return ProviderHealth(status="configured_not_verified", mode="isolated", detail="Synthetic test transport; no bank transaction")
+
     def execute(self, operation, payload, context):
         return {"ok": True, "status": "accepted", "reference": "sandbox-payment-ref", "redirect_url": "https://sandbox.payment.test/pay/123"}
 
@@ -161,7 +165,7 @@ def test_payment_intent_signed_callback_duplicate_and_partial_refund(client, mon
     session = login(client, "employee@aftab.test")
     with SessionLocal() as db:
         user = db.scalar(select(User).where(User.email == "employee@aftab.test"))
-        reservation = Reservation(tenant_id=user.tenant_id, user_id=user.id, service_type="hotel", status="pending_payment", price_snapshot_json=json.dumps({"total_amount": 1_500_000, "currency": "IRR"}), policy_at_booking_json='{"verified":true}')
+        reservation = Reservation(tenant_id=user.tenant_id, user_id=user.id, service_type="hotel", status="reserved", price_snapshot_json=json.dumps({"total_amount": 1_500_000, "currency": "IRR"}), policy_at_booking_json='{"verified":true}')
         db.add(reservation); db.commit(); reservation_id = reservation.id
     created = client.post(f"/reservations/{reservation_id}/payment-intents", headers={**auth(session["access_token"]), "Idempotency-Key": "payment-create-001"})
     assert created.status_code == 201

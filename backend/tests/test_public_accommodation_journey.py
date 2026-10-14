@@ -7,12 +7,15 @@ from test_checkout_reviews_zarinpal import auth
 from test_search_v2_public import _seed_public_tenant
 
 
-def test_public_stay_catalog_never_exposes_private_inventory_or_rates(client):
+def test_public_stay_catalog_never_exposes_private_inventory_or_rates(client, monkeypatch):
     employee, _, uid, _, _ = fixture(client)
     with SessionLocal() as db:
         private = db.get(m.VacationUnit, uid).property_id
     # No fallback to any seeded corporate inventory.
-    assert client.get('/public/vacation-rentals').status_code == 503
+    import app.main as main_module
+    with monkeypatch.context() as missing_catalog:
+        missing_catalog.setattr(main_module, '_PUBLIC_SEARCH_TENANT_SLUG', 'missing-qa-' + uuid.uuid4().hex)
+        assert client.get('/public/vacation-rentals').status_code == 503
     tenant_id = _seed_public_tenant()
     assert client.get('/public/vacation-rentals').json() == []
     assert client.get('/public/vacation-rentals/'+private).status_code == 404

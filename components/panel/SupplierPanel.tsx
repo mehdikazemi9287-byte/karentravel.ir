@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import {Async, Badge, Card, Stats, Table, Unavailable, dateFa, fa, money, serviceFa, useLoad} from './PanelKit';
 
-type Dashboard = {suppliers: number; offers: number; available_units: number; settlements: {count: number; amount: number}; supplier_records: {id: string; name: string; type: string; status: string}[];
+type Dashboard = {suppliers: number; offers: number; available_units: number; settlements: {count: number; amount: number | null; currency: string | null; totals?: {currency: string; amount: number}[]}; supplier_records: {id: string; name: string; type: string; status: string}[];
   offer_records: {id: string; supplier_id: string; title: string; service_type: string; amount: number; currency: string; available_units: number; status: string}[]};
 const EDITORS: [string, string][] = [['/supplier/offers/new', 'ثبت عرضهٔ اقامت'], ['/supplier/accommodation', 'تقویم و نرخ اقامتگاه'], ['/supplier/hotels', 'هتل‌های من در فهرست مرجع'], ['/supplier/train/new', 'ظرفیت قراردادی قطار'], ['/supplier/car-rental/new', 'ظرفیت قراردادی خودرو'],
   ['/supplier/guides/new', 'خدمت راهنما'], ['/supplier/transport/new', 'حمل‌ونقل قراردادی'], ['/supplier/handicrafts/new', 'صنایع‌دستی']];
@@ -11,7 +11,7 @@ const EDITORS: [string, string][] = [['/supplier/offers/new', 'ثبت عرضهٔ
 export function SupplierOverview() {
   const d = useLoad<Dashboard>('/supplier/dashboard'); const ready = useLoad<unknown[]>('/supplier/reservations/ready');
   return <Async state={d.state}>{x => <>
-    <Stats items={[{label: 'تأمین‌کننده‌های من', value: fa(x.suppliers)}, {label: 'عرضه‌های ثبت‌شده', value: fa(x.offers)}, {label: 'ظرفیت اعلام‌شده', value: fa(x.available_units)}, {label: 'سفارش آمادهٔ تأیید', value: ready.state.kind === 'ready' ? fa(ready.state.data.length) : '…'}, {label: 'تسویه‌ها', value: fa(x.settlements.count), hint: money(x.settlements.amount, 'IRR')}]}/>
+    <Stats items={[{label: 'تأمین‌کننده‌های من', value: fa(x.suppliers)}, {label: 'عرضه‌های ثبت‌شده', value: fa(x.offers)}, {label: 'ظرفیت اعلام‌شده', value: fa(x.available_units)}, {label: 'سفارش آمادهٔ تأیید', value: ready.state.kind === 'ready' ? fa(ready.state.data.length) : '…'}, {label: 'تسویه‌ها', value: fa(x.settlements.count), hint: x.settlements.totals?.length ? x.settlements.totals.map(t => money(t.amount, t.currency)).join(' · ') : x.settlements.count ? 'جزئیات ارز تسویه‌ها در دسترس نیست' : 'تسویه‌ای ثبت نشده است'}]}/>
     <Card title="وضعیت تأمین‌کننده"><Table rows={x.supplier_records} rowKey={s => s.id} empty="حساب شما به تأمین‌کننده‌ای متصل نیست؛ عضویت را مدیر مجموعه ثبت می‌کند." cols={[{label: 'نام', cell: s => s.name}, {label: 'نوع', cell: s => serviceFa(s.type)}, {label: 'وضعیت', cell: s => <Badge status={s.status}/>}]}/></Card>
     <Card title="کارهای امروز"><ul className="pn-list"><li><span>سفارش‌های پرداخت‌شده را تأیید یا رد کنید و مدارک را صادر کنید.</span><Link className="pn-link" href="/supplier/fulfillment">سفارش‌ها و تأیید</Link></li><li><span>نرخ و ظرفیت عرضه‌ها را به‌روز نگه دارید.</span><Link className="pn-link" href="/supplier/services">خدمات و موجودی</Link></li></ul></Card></>}</Async>;
 }
@@ -29,12 +29,11 @@ export function SupplierRfqs() {
   return <Card title="درخواست‌های پیشنهاد قیمت سازمان‌ها"><Async state={r.state}>{rows => <Table rows={rows} rowKey={x => x.id} empty="سازمانی از شما درخواست پیشنهاد قیمت نکرده است." cols={[{label: 'عنوان', cell: x => x.title ?? '—'}, {label: 'مقصد', cell: x => x.destination ?? '—'}, {label: 'نفرات', cell: x => x.headcount ? fa(x.headcount) : '—'}, {label: 'تاریخ', cell: x => dateFa(x.starts_at)}, {label: 'وضعیت', cell: x => <Badge status={x.status}/>}]}/>}</Async></Card>;
 }
 export function SupplierReports() {
-  const d = useLoad<Dashboard>('/supplier/dashboard'); const s = useLoad<{items: {id: string; amount: number; currency: string; status: string; created_at: string}[]}>('/supplier/settlements'); const c = useLoad<{contracts: {id: string; provider_key: string; mode: string; configured: boolean}[]}>('/supplier/contracts');
+  const d = useLoad<Dashboard>('/supplier/dashboard'); const s = useLoad<{items: {id: string; amount: number; currency: string; status: string; created_at: string}[]; totals?: {status: string; currency: string; amount: number}[]}>('/supplier/settlements'); const c = useLoad<{contracts: {id: string; provider_key: string; mode: string; configured: boolean}[]}>('/supplier/contracts');
   return <>
     <Async state={d.state}>{x => {const by: Record<string, number> = {}; x.offer_records.forEach(o => {by[o.service_type] = (by[o.service_type] ?? 0) + 1;});
       return <Card title="عرضه‌ها بر اساس خدمت"><Table rows={Object.entries(by)} rowKey={([k]) => k} empty="عرضه‌ای ثبت نشده است." cols={[{label: 'خدمت', cell: ([k]) => serviceFa(k)}, {label: 'تعداد عرضه', cell: ([, v]) => fa(v)}]}/></Card>;}}</Async>
-    <Async state={s.state}>{x => {const by: Record<string, number> = {}; x.items.forEach(i => {by[`${i.status}|${i.currency}`] = (by[`${i.status}|${i.currency}`] ?? 0) + i.amount;});
-      return <Card title="تسویه‌ها بر اساس وضعیت"><Table rows={Object.entries(by)} rowKey={([k]) => k} empty="تسویه‌ای ثبت نشده است." cols={[{label: 'وضعیت', cell: ([k]) => <Badge status={k.split('|')[0]}/>}, {label: 'جمع', cell: ([k, v]) => money(v, k.split('|')[1])}]}/></Card>;}}</Async>
+    <Async state={s.state}>{x => <Card title="تسویه‌ها بر اساس وضعیت">{x.totals ? <Table rows={x.totals} rowKey={row => row.status+'|'+row.currency} empty="تسویه‌ای ثبت نشده است." cols={[{label: 'وضعیت', cell: row => <Badge status={row.status}/>}, {label: 'جمع', cell: row => money(row.amount, row.currency)}]}/> : <Unavailable title="جمع تسویه‌ها">جمع همهٔ سوابق به تفکیک وضعیت و ارز در دسترس نیست.</Unavailable>}</Card>}</Async>
     <Async state={c.state}>{x => <Card title="اتصال‌های قراردادی"><Table rows={x.contracts} rowKey={k => k.id} empty="قرارداد اتصالی ثبت نشده است." cols={[{label: 'سرویس', cell: k => <span className="pn-ltr">{k.provider_key}</span>}, {label: 'حالت', cell: k => k.mode}, {label: 'پیکربندی', cell: k => <Badge status={k.configured ? 'active' : 'pending'}/>}]}/></Card>}</Async>
   </>;
 }

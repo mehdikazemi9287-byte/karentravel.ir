@@ -136,7 +136,7 @@ function GrantEditor({org, member, onSaved}: {org: Org; member: Member; onSaved:
 }
 
 export function OrgAudit() {return <OrgScope>{org => <AuditBody org={org}/>}</OrgScope>;}
-const EVENT_FA: Record<string, string> = {'grant.changed': 'تغییر دسترسی', 'policy.changed': 'تغییر سیاست سفر', 'policy.updated': 'تغییر سیاست سفر', 'request.created': 'ثبت درخواست', 'request.decided': 'تصمیم درخواست', 'request.approved': 'تأیید درخواست', 'request.rejected': 'رد درخواست', 'request.withdrawn': 'پس‌گرفتن درخواست', 'booking.linked': 'اتصال رزرو', 'quote.submitted': 'دریافت پیشنهاد', 'quote.selected': 'انتخاب پیشنهاد', 'campaign.created': 'ایجاد مزایا', 'invitation.sent': 'دعوت تأمین‌کننده'};
+const EVENT_FA: Record<string, string> = {'created': 'ثبت سازمان', 'member.added': 'افزودن عضو', 'member.removed': 'حذف عضویت', 'grant.changed': 'تغییر دسترسی', 'policy.changed': 'تغییر سیاست سفر', 'policy.updated': 'تغییر سیاست سفر', 'request.created': 'ثبت درخواست', 'request.decided': 'تصمیم درخواست', 'request.approved': 'تأیید درخواست', 'request.rejected': 'رد درخواست', 'request.withdrawn': 'پس‌گرفتن درخواست', 'booking.linked': 'اتصال رزرو', 'quote.submitted': 'دریافت پیشنهاد', 'quote.selected': 'انتخاب پیشنهاد', 'campaign.created': 'ایجاد مزایا', 'invitation.sent': 'دعوت تأمین‌کننده'};
 function AuditBody({org}: {org: Org}) {
   const trail = useLoad<{id: string; type: string; at: string; actor: string; request_title: string | null}[]>(`/enterprise/organizations/${org.id}/audit`); const flows = useLoad<{workflows: {id: string; status: string; current_step: number; escalation_count: number}[]}>('/organization/overview');
   return <>

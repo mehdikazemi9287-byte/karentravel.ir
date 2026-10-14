@@ -30,11 +30,14 @@ def _public_offer(tenant_id: int, *, title: str, entity_id: str) -> None:
         db.add(row); db.commit()
 
 
-def test_public_search_fails_closed_then_returns_only_public_offers_with_no_price(client):
+def test_public_search_fails_closed_then_returns_only_public_offers_with_no_price(client, monkeypatch):
     # Before the public tenant/identity exists, anonymous discovery must fail closed —
     # never silently fall back to a corporate tenant.
-    unseeded = client.post("/search/v2/public", json={"verticals": ["hotel"], "destination": "شیراز"})
-    assert unseeded.status_code == 503
+    import app.main as main_module
+    with monkeypatch.context() as missing_catalog:
+        missing_catalog.setattr(main_module, "_PUBLIC_SEARCH_TENANT_SLUG", "missing-qa-" + uuid.uuid4().hex)
+        unseeded = client.post("/search/v2/public", json={"verticals": ["hotel"], "destination": "شیراز"})
+        assert unseeded.status_code == 503
 
     public_tenant_id = _seed_public_tenant()
     _public_offer(public_tenant_id, title="هتل عمومی نمونه", entity_id="public-hotel-1")

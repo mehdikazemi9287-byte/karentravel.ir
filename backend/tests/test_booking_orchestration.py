@@ -98,7 +98,10 @@ def test_price_check_expiry_cross_tenant_and_unverified_policy_are_rejected(clie
     assert invalid.status_code == 422
     valid = client.post("/supplier/offers", headers=auth(supplier_session["access_token"]), json={"supplier_id": supplier_id, "service_type": "hotel", "title": "expires", "amount": 1_000_000, "available_units": 1, "valid_minutes": 60, "policy": policy(), "attributes": {}, "fulfillment_mode": "manual_supplier", "provider_key": "manual_supplier"})
     offer_id = valid.json()["id"]
-    assert client.post("/search/offers", headers=auth(faraz["access_token"]), json={"service_type": "hotel"}).json() == []
+    other_results = client.post("/search/offers", headers=auth(faraz["access_token"]), json={"service_type": "hotel"})
+    assert other_results.status_code == 200
+    assert offer_id not in {row["id"] for row in other_results.json()}
+    assert client.post(f"/offers/{offer_id}/price-check", headers=auth(faraz["access_token"]), json={"units": 1, "command_id": "cross-tenant-price-check"}).status_code == 409
     with SessionLocal() as db:
         offer = db.get(Offer, offer_id); offer.valid_until = datetime.now(timezone.utc) - timedelta(seconds=1); db.commit()
     assert client.post(f"/offers/{offer_id}/price-check", headers=auth(employee["access_token"]), json={"units": 1, "command_id": "expired-price-check"}).status_code == 409

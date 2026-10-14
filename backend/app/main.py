@@ -381,7 +381,7 @@ class ItineraryItemIn(BaseModel): offer_id: Optional[str] = Field(default=None, 
 class ItineraryItemUpdateIn(BaseModel): day_number: int = Field(ge=1, le=365); position: int = Field(ge=1, le=100); replacement_offer_id: Optional[str] = Field(default=None, min_length=36, max_length=36); command_id: str = Field(min_length=8, max_length=120)
 class ItineraryUpdateIn(BaseModel): title: str = Field(min_length=2, max_length=160); budget_amount: Optional[int] = Field(default=None, ge=0); status: str = Field(default="draft", pattern="^(draft|saved|archived)$"); command_id: str = Field(min_length=8, max_length=120)
 class CheckoutCreateIn(BaseModel): command_id: str = Field(min_length=8, max_length=120)
-class CheckoutStepIn(BaseModel): command_id: str = Field(min_length=8, max_length=120); traveller_ids: list[str] = Field(default_factory=list, max_length=20); acknowledged: Optional[bool] = None; wallet_amount: int = Field(default=0, ge=0); credit_amount: int = Field(default=0, ge=0)
+class CheckoutStepIn(BaseModel): command_id: str = Field(min_length=8, max_length=120); traveller_ids: list[str] = Field(default_factory=list, max_length=20); acknowledged: Optional[bool] = None; wallet_amount: int = Field(default=0, ge=0); credit_amount: int = Field(default=0, ge=0); credit_account_id: Optional[str] = Field(default=None, min_length=36, max_length=36)
 def token_for(user: User, tenant: Tenant) -> str:
     now = datetime.now(timezone.utc)
     return jwt.encode({"sub":str(user.id),"tenant":tenant.id,"role":user.role,"type":"access","iss":JWT_ISSUER,"aud":JWT_AUDIENCE,"iat":now,"jti":str(uuid.uuid4()),"exp":now+timedelta(minutes=15)}, JWT_SECRET, algorithm="HS256")
@@ -1427,6 +1427,11 @@ def create_payment_intent(reservation_id: str, user: User = Depends(current_user
         amount = 0; currency = "IRR"
     if amount <= 0 or currency != "IRR":
         raise HTTPException(status_code=409, detail="قیمت معتبر و قطعی برای پرداخت موجود نیست")
+    from .funding_references import bank_payable
+    from .financial_amounts import FinancialInvariantError
+    try: amount = bank_payable(db, reservation, _secure_hash)
+    except (FinancialInvariantError, KeyError, ValueError): raise HTTPException(409, "تخصیص منابع رزرو نیازمند تطبیق است")
+    if amount <= 0: raise HTTPException(409, "مانده بانکی برای این رزرو وجود ندارد")
     prior = _existing_reservation_payment(db, reservation, amount, currency)
     if prior: return {"id": prior.id, "status": prior.status, "amount": prior.amount, "currency": prior.currency}
     if reservation.status not in {"reserved", "pending_approval", "approved"}: raise HTTPException(409, "رزرو در وضعیت قابل پرداخت نیست")
@@ -1443,6 +1448,14 @@ def initiate_payment(payment_id: str, user: User = Depends(current_user), db: Se
     intent = db.scalar(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.id == payment_id, operational_models.PaymentIntent.tenant_id == user.tenant_id, operational_models.PaymentIntent.user_id == user.id).with_for_update())
     if intent is None:
         raise HTTPException(status_code=404, detail="درخواست پرداخت وجود ندارد")
+    if intent.status in {"created", "initiated"}:
+        reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == intent.reservation_id, operational_models.Reservation.tenant_id == user.tenant_id, operational_models.Reservation.user_id == user.id))
+        if reservation is None or reservation.status not in {"reserved", "pending_approval", "approved", "awaiting_payment"}: raise HTTPException(409, "رزرو در وضعیت قابل پرداخت نیست")
+        from .funding_references import bank_payable
+        from .financial_amounts import FinancialInvariantError
+        try: due = bank_payable(db, reservation, _secure_hash)
+        except (FinancialInvariantError, KeyError, ValueError): raise HTTPException(409, "مرجع تخصیص پرداخت معتبر نیست")
+        if due != intent.amount or json.loads(reservation.price_snapshot_json).get("currency") != intent.currency: raise HTTPException(409, "مبلغ یا ارز intent با تخصیص معتبر رزرو متفاوت است")
     attempt = db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id == user.tenant_id, operational_models.IdempotencyKey.scope == "payment.initiate", operational_models.IdempotencyKey.key == intent.id))
     if attempt:
         cached = json.loads(attempt.response_json or "{}")
@@ -3498,6 +3511,13 @@ async def notification_receipt(channel: str, request: Request, x_notification_si
     db.commit(); return {"status": "accepted", "delivery_status": attempt.status}
 
 
+def _owned_agency(db: Session, user: User, agency_id: str, *, for_update=False):
+    stmt=select(operational_models.Agency).where(operational_models.Agency.id==agency_id,operational_models.Agency.tenant_id==user.tenant_id)
+    if not role_has_permission(user.role,"tenant:manage"):
+        stmt=stmt.where(operational_models.Agency.id.in_(select(operational_models.AgencyMembership.agency_id).where(operational_models.AgencyMembership.tenant_id==user.tenant_id,operational_models.AgencyMembership.user_id==user.id)))
+    return db.scalar(stmt.with_for_update() if for_update else stmt)
+
+
 @app.post("/agency/sub-agencies", status_code=status.HTTP_201_CREATED)
 def create_sub_agency(data: AgencyIn, user: User = Depends(require_permission("agency:manage")), db: Session = Depends(get_db), idempotency_key: Optional[str] = Header(default=None, alias="Idempotency-Key", min_length=8,max_length=120)) -> dict:
     key=idempotency_key or str(uuid.uuid4())
@@ -3509,10 +3529,11 @@ def create_sub_agency(data: AgencyIn, user: User = Depends(require_permission("a
         return json.loads(prior.response_json)
 
     if data.parent_agency_id:
-        parent = db.scalar(select(operational_models.Agency).where(operational_models.Agency.id == data.parent_agency_id, operational_models.Agency.tenant_id == user.tenant_id))
+        parent = _owned_agency(db,user,data.parent_agency_id)
         if parent is None: raise HTTPException(status_code=404, detail="آژانس مادر وجود ندارد")
     row = operational_models.Agency(tenant_id=user.tenant_id, display_name=data.display_name, status="active", parent_agency_id=data.parent_agency_id, markup_bps=data.markup_bps, commission_bps=data.commission_bps)
     db.add(row);db.flush()
+    db.add(operational_models.AgencyMembership(tenant_id=user.tenant_id,user_id=user.id,agency_id=row.id))
     result={"id":row.id,"display_name":row.display_name,"parent_agency_id":row.parent_agency_id,"markup_bps":row.markup_bps,"commission_bps":row.commission_bps}
     db.add(operational_models.IdempotencyKey(tenant_id=user.tenant_id,scope="agency.create",key=key,request_hash=request_hash,response_json=json.dumps(result)))
     db.commit();return result
@@ -3524,7 +3545,10 @@ def supplier_dashboard(user: User = Depends(require_permission("inventory:manage
     suppliers = db.scalars(select(operational_models.Supplier).where(operational_models.Supplier.tenant_id == user.tenant_id, operational_models.Supplier.id.in_(supplier_ids))).all() if supplier_ids else []
     offers = db.scalars(select(operational_models.Offer).where(operational_models.Offer.tenant_id == user.tenant_id, operational_models.Offer.supplier_id.in_(supplier_ids))).all() if supplier_ids else []
     settlements = db.scalars(select(operational_models.SettlementRecord).where(operational_models.SettlementRecord.tenant_id == user.tenant_id, operational_models.SettlementRecord.supplier_id.in_(supplier_ids))).all() if supplier_ids else []
-    return {"suppliers": len(suppliers), "offers": len(offers), "available_units": sum(item.available_units for item in offers), "settlements": {"count": len(settlements), "amount": sum(item.amount for item in settlements)}, "supplier_records": [{"id": row.id, "name": row.display_name, "type": row.supplier_type, "status": row.status} for row in suppliers], "offer_records": [{"id": row.id, "supplier_id": row.supplier_id, "title": row.title, "service_type": row.service_type, "amount": row.amount, "currency": row.currency, "available_units": row.available_units, "status": row.status} for row in offers]}
+    settlement_totals={}
+    for item in settlements: settlement_totals[item.currency]=settlement_totals.get(item.currency,0)+item.amount
+    only_currency=next(iter(settlement_totals)) if len(settlement_totals)==1 else None
+    return {"suppliers": len(suppliers), "offers": len(offers), "available_units": sum(item.available_units for item in offers), "settlements": {"count": len(settlements), "amount": settlement_totals[only_currency] if only_currency else None, "currency": only_currency, "totals": [{"currency":currency,"amount":amount} for currency,amount in sorted(settlement_totals.items())]}, "supplier_records": [{"id": row.id, "name": row.display_name, "type": row.supplier_type, "status": row.status} for row in suppliers], "offer_records": [{"id": row.id, "supplier_id": row.supplier_id, "title": row.title, "service_type": row.service_type, "amount": row.amount, "currency": row.currency, "available_units": row.available_units, "status": row.status} for row in offers]}
 
 
 @app.put("/supplier/offers/{offer_id}")
@@ -3543,13 +3567,16 @@ def update_supplier_offer(offer_id: str, data: SupplierOfferUpdateIn, user: User
 
 @app.get("/agency/dashboard")
 def agency_dashboard(user: User = Depends(require_permission("agency:manage")), db: Session = Depends(get_db)) -> dict:
-    agencies = db.scalars(select(operational_models.Agency).where(operational_models.Agency.tenant_id == user.tenant_id).order_by(operational_models.Agency.created_at.desc())).all()
+    stmt=select(operational_models.Agency).where(operational_models.Agency.tenant_id == user.tenant_id)
+    if not role_has_permission(user.role,"tenant:manage"):
+        stmt=stmt.where(operational_models.Agency.id.in_(select(operational_models.AgencyMembership.agency_id).where(operational_models.AgencyMembership.tenant_id==user.tenant_id,operational_models.AgencyMembership.user_id==user.id)))
+    agencies=db.scalars(stmt.order_by(operational_models.Agency.created_at.desc())).all()
     return {"agencies": [{"id": row.id, "name": row.display_name, "parent_agency_id": row.parent_agency_id, "markup_bps": row.markup_bps, "commission_bps": row.commission_bps} for row in agencies]}
 
 
 @app.put("/agency/agencies/{agency_id}")
 def update_agency(agency_id: str, data: AgencyUpdateIn, user: User = Depends(require_permission("agency:manage")), db: Session = Depends(get_db)) -> dict:
-    row = db.scalar(select(operational_models.Agency).where(operational_models.Agency.id == agency_id, operational_models.Agency.tenant_id == user.tenant_id).with_for_update())
+    row = _owned_agency(db,user,agency_id,for_update=True)
     if row is None: raise HTTPException(status_code=404, detail="آژانس در این tenant وجود ندارد")
     if data.display_name is not None: row.display_name = data.display_name.strip()
     if data.markup_bps is not None: row.markup_bps = data.markup_bps
@@ -3916,8 +3943,12 @@ def request_installment(reservation_id: str, plan_id: str, user: User = Depends(
     try: terms = json.loads(plan.terms_json); months = int(terms["months"]); fee_bps = int(terms.get("fee_bps", 0)); principal = int(json.loads(reservation.price_snapshot_json)["total_amount"])
     except (KeyError, TypeError, ValueError, json.JSONDecodeError): raise HTTPException(status_code=409, detail="شرایط معتبر اقساط یا قیمت رزرو وجود ندارد")
     if months < 2 or months > 36 or fee_bps < 0 or fee_bps > 10000 or principal <= 0: raise HTTPException(status_code=409, detail="شرایط اقساط معتبر نیست")
-    total = principal + (principal * fee_bps // 10000); base, remainder = divmod(total, months); schedule = [{"number": index + 1, "amount": base + (1 if index < remainder else 0), "status": "scheduled"} for index in range(months)]
-    row = operational_models.InstallmentAgreement(tenant_id=user.tenant_id, plan_id=plan.id, reservation_id=reservation.id, user_id=user.id, command_id=idempotency_key, principal_amount=principal, total_payable=total, schedule_json=json.dumps(schedule)); db.add(row); db.flush(); db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="installment", aggregate_id=row.id, event_type="installment.requested", payload_json=json.dumps({"agreement_id": row.id, "reservation_id": reservation.id}), correlation_id=str(uuid.uuid4()), idempotency_key=idempotency_key)); db.commit(); return _installment_output(row)
+    from .financial_amounts import FinancialInvariantError, currency_code, installment_schedule
+    try:
+        installment_currency = currency_code(json.loads(reservation.price_snapshot_json).get("currency"))
+        total, schedule = installment_schedule(principal, months, fee_bps)
+    except FinancialInvariantError as exc: raise HTTPException(status_code=409, detail=str(exc))
+    row = operational_models.InstallmentAgreement(tenant_id=user.tenant_id, plan_id=plan.id, reservation_id=reservation.id, user_id=user.id, command_id=idempotency_key, principal_amount=principal, total_payable=total, currency=installment_currency, schedule_json=json.dumps(schedule)); db.add(row); db.flush(); db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="installment", aggregate_id=row.id, event_type="installment.requested", payload_json=json.dumps({"agreement_id": row.id, "reservation_id": reservation.id}), correlation_id=str(uuid.uuid4()), idempotency_key=idempotency_key)); db.commit(); return _installment_output(row)
 
 
 @app.put("/finance/installments/{agreement_id}/decision")
@@ -3942,9 +3973,22 @@ def post_settlement(reservation_id: str, user: User = Depends(require_permission
     price_check = db.scalar(select(operational_models.PriceCheck).where(operational_models.PriceCheck.id == reservation.price_check_id, operational_models.PriceCheck.tenant_id == user.tenant_id)) if reservation.price_check_id else None
     offer = db.scalar(select(operational_models.Offer).where(operational_models.Offer.id == price_check.offer_id, operational_models.Offer.tenant_id == user.tenant_id)) if price_check else None
     if offer is None: raise HTTPException(status_code=409, detail="تأمین‌کننده معتبر رزرو برای تسویه وجود ندارد")
-    already = db.scalar(select(func.coalesce(func.sum(operational_models.SettlementRecord.amount), 0)).where(operational_models.SettlementRecord.tenant_id == user.tenant_id, operational_models.SettlementRecord.reservation_id == reservation.id)) or 0; amount = payment.captured_amount - payment.refunded_amount - int(already)
+    from .financial_amounts import FinancialInvariantError, settlement_remaining
+    if reservation.status not in {"confirmed", "issued", "completed"}:
+        raise HTTPException(status_code=409, detail="تأمین خدمت هنوز قطعی نشده است")
+    entity = db.scalar(select(operational_models.LicensedEntity).where(operational_models.LicensedEntity.id == reservation.licensed_entity_id, operational_models.LicensedEntity.tenant_id == user.tenant_id, operational_models.LicensedEntity.status == "active"))
+    if entity is None: raise HTTPException(status_code=409, detail="شرکت حقوقی فعال برای تسویه تعیین نشده است")
+    breakdown = db.scalar(select(operational_models.PriceBreakdown).where(operational_models.PriceBreakdown.tenant_id == user.tenant_id, operational_models.PriceBreakdown.booking_id == reservation.id))
+    if breakdown is not None and breakdown.source_contract_id:
+        contract = db.scalar(select(operational_models.ProviderContract).where(operational_models.ProviderContract.id == breakdown.source_contract_id, operational_models.ProviderContract.tenant_id == user.tenant_id, operational_models.ProviderContract.supplier_id == offer.supplier_id))
+        if contract is None: raise HTTPException(status_code=409, detail="قرارداد تأمین با ذی‌نفع تسویه سازگار نیست")
+    payments = db.scalars(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.tenant_id == user.tenant_id, operational_models.PaymentIntent.reservation_id == reservation.id).order_by(operational_models.PaymentIntent.id).with_for_update()).all()
+    previous = db.scalars(select(operational_models.SettlementRecord).where(operational_models.SettlementRecord.tenant_id == user.tenant_id, operational_models.SettlementRecord.reservation_id == reservation.id)).all()
+    try: calculation = settlement_remaining(breakdown, payments, previous, offer.supplier_id)
+    except FinancialInvariantError as exc: raise HTTPException(status_code=409, detail=str(exc))
+    amount = calculation["remaining"]
     if amount <= 0: raise HTTPException(status_code=409, detail="مبلغ قابل تسویه باقی نمانده است")
-    row = operational_models.SettlementRecord(tenant_id=user.tenant_id, supplier_id=offer.supplier_id, reservation_id=reservation.id, amount=amount, currency=payment.currency, status="pending"); db.add(row); db.flush(); response = {"id": row.id, "reservation_id": reservation.id, "supplier_id": row.supplier_id, "amount": row.amount, "currency": row.currency, "status": row.status, "external_transfer_claimed": False}
+    row = operational_models.SettlementRecord(tenant_id=user.tenant_id, supplier_id=offer.supplier_id, reservation_id=reservation.id, amount=amount, currency=calculation["currency"], status="pending"); db.add(row); db.flush(); response = {"id": row.id, "reservation_id": reservation.id, "supplier_id": row.supplier_id, "amount": row.amount, "currency": row.currency, "status": row.status, "external_transfer_claimed": False}
     db.add(operational_models.IdempotencyKey(tenant_id=user.tenant_id, scope="settlement.post", key=idempotency_key, request_hash=_secure_hash(reservation.id), response_json=json.dumps(response))); db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="settlement", aggregate_id=row.id, event_type="settlement.posted_pending", payload_json=json.dumps(response), correlation_id=str(uuid.uuid4()), idempotency_key=idempotency_key)); db.commit(); return response
 
 
@@ -3958,11 +4002,13 @@ def admin_audit_events(action: Optional[str] = Query(default=None, max_length=80
 
 @app.get("/admin/users")
 def admin_users(user: User = Depends(require_permission("member:manage")), db: Session = Depends(get_db)) -> list[dict]:
+    if user.role not in {"tenant_admin", "platform_admin"}: raise HTTPException(status_code=403, detail="مدیریت سراسری کاربران فقط برای مدیر مجموعه مجاز است")
     rows = db.scalars(select(User).where(User.tenant_id == user.tenant_id).order_by(User.id)).all(); return [{"id": row.id, "name": row.name, "email": row.email, "role": row.role, "mutable": row.role != "platform_admin" and row.id != user.id} for row in rows]
 
 
 @app.put("/admin/users/{target_user_id}/role")
 def change_user_role(target_user_id: int, data: AdminRoleIn, user: User = Depends(require_permission("member:manage")), db: Session = Depends(get_db)) -> dict:
+    if user.role not in {"tenant_admin", "platform_admin"}: raise HTTPException(status_code=403, detail="مدیریت سراسری کاربران فقط برای مدیر مجموعه مجاز است")
     target = db.scalar(select(User).where(User.id == target_user_id, User.tenant_id == user.tenant_id).with_for_update())
     if target is None: raise HTTPException(status_code=404, detail="کاربر در این tenant وجود ندارد")
     if target.id == user.id: raise HTTPException(status_code=409, detail="تغییر نقش خود از این مسیر مجاز نیست")
@@ -4326,7 +4372,7 @@ def advance_checkout(checkout_id: str, step: str, data: CheckoutStepIn, user: Us
     row = db.scalar(select(operational_models.CheckoutSession).where(operational_models.CheckoutSession.id == checkout_id, operational_models.CheckoutSession.tenant_id == user.tenant_id, operational_models.CheckoutSession.user_id == user.id).with_for_update()); reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == row.reservation_id, operational_models.Reservation.tenant_id == user.tenant_id, operational_models.Reservation.user_id == user.id).with_for_update()) if row else None
     if row is None or reservation is None: raise HTTPException(status_code=404, detail="Checkout در این حساب وجود ندارد")
     if _aware(row.expires_at) <= datetime.now(timezone.utc): raise HTTPException(status_code=409, detail="Checkout منقضی شده است")
-    scope = f"checkout.step.{step}"; request_hash = _secure_hash(f"{checkout_id}:{data.model_dump_json()}"); prior = db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id == user.tenant_id, operational_models.IdempotencyKey.scope == scope, operational_models.IdempotencyKey.key == data.command_id))
+    scope = f"checkout.step.{step}"; request_hash = _secure_hash(f"{checkout_id}:{data.model_dump_json(exclude={'credit_account_id'} if data.credit_account_id is None else set())}"); prior = db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id == user.tenant_id, operational_models.IdempotencyKey.scope == scope, operational_models.IdempotencyKey.key == data.command_id))
     if prior:
         if prior.request_hash != request_hash: raise HTTPException(status_code=409, detail="کلید تکرار برای مرحله دیگری استفاده شده است")
         return json.loads(prior.response_json or "{}")
@@ -4396,24 +4442,50 @@ def advance_checkout(checkout_id: str, step: str, data: CheckoutStepIn, user: Us
         if policy.get("verified") is not True or not policy.get("source") or not policy.get("verified_at"): raise HTTPException(status_code=409, detail="Policy معتبر و timestampدار موجود نیست")
         state["policy_acknowledged"] = True; state["policy_source"] = policy["source"]; row.stage = "policy"
     elif step == "funding":
-        total = int(json.loads(reservation.price_snapshot_json).get("total_amount", 0))
+        from .financial_amounts import FinancialInvariantError, minor, currency_code
+        from .funding_references import declaration
+        try:
+            price = json.loads(reservation.price_snapshot_json)
+            total = minor(price["total_amount"]); funding_currency = currency_code(price["currency"])
+        except (FinancialInvariantError, KeyError, ValueError): raise HTTPException(409, "قیمت و ارز صریح و معتبر برای تخصیص وجود ندارد")
+        if row.price_snapshot_hash != _secure_hash(reservation.price_snapshot_json): raise HTTPException(409, "قیمت پس از بازبینی checkout تغییر کرده است")
+        if (data.wallet_amount or data.credit_amount) and funding_currency != "IRR": raise HTTPException(409, "منابع ریالی با قیمت ارزی قابل ترکیب نیستند")
+        wallet_entry = credit_entry = None
+        prior_funding = db.scalar(select(operational_models.FinancialLedgerEntry.id).where(operational_models.FinancialLedgerEntry.tenant_id == user.tenant_id, operational_models.FinancialLedgerEntry.reservation_id == reservation.id, operational_models.FinancialLedgerEntry.entry_type.in_(["reserve", "capture"])).limit(1))
+        if prior_funding is not None: raise HTTPException(409, "گردش قبلی منابع این رزرو باید پیش از تخصیص جدید تطبیق شود")
+        payable = total - data.wallet_amount - data.credit_amount
+        active_payments = db.scalars(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.tenant_id == user.tenant_id, operational_models.PaymentIntent.reservation_id == reservation.id, operational_models.PaymentIntent.status.in_(["created", "initiated", "captured"])).with_for_update()).all()
+        if len(active_payments) > 1 or any(x.amount != payable or x.currency != funding_currency or x.user_id != user.id for x in active_payments): raise HTTPException(409, "درخواست بانکی موجود با تخصیص جدید سازگار نیست")
         if data.wallet_amount + data.credit_amount > total: raise HTTPException(status_code=409, detail="مجموع کیف پول و اعتبار سازمانی از مبلغ رزرو بیشتر است")
         if data.wallet_amount:
             wallet = db.scalar(select(operational_models.Wallet).where(operational_models.Wallet.tenant_id == user.tenant_id, operational_models.Wallet.owner_type == "user", operational_models.Wallet.owner_reference == str(user.id), operational_models.Wallet.currency == "IRR").with_for_update())
             if wallet is None: raise HTTPException(status_code=409, detail="کیف پول ریالی معتبر وجود ندارد")
-            try: operational_models.apply_credit_command(db, tenant_id=user.tenant_id, wallet_id=wallet.id, command_id=f"checkout:{row.id}:wallet:{data.command_id}"[:80], entry_type="reserve", amount=data.wallet_amount, reservation_id=reservation.id)
+            try: wallet_entry = operational_models.apply_credit_command(db, tenant_id=user.tenant_id, wallet_id=wallet.id, command_id=f"checkout:{row.id}:wallet:{data.command_id}"[:80], entry_type="reserve", amount=data.wallet_amount, reservation_id=reservation.id)
             except ValueError as exc: raise HTTPException(status_code=409, detail="موجودی قابل استفاده کیف پول کافی نیست") from exc
         if data.credit_amount:
             organization_ids = [a.organization_id for a in db.scalars(select(operational_models.EmployeeAssignment).where(operational_models.EmployeeAssignment.tenant_id == user.tenant_id, operational_models.EmployeeAssignment.user_id == user.id)).all()]
-            credit_account = db.scalar(select(operational_models.CreditAccount).where(operational_models.CreditAccount.tenant_id == user.tenant_id, operational_models.CreditAccount.organization_id.in_(organization_ids), operational_models.CreditAccount.currency == "IRR").with_for_update()) if organization_ids else None
+            accounts_query = select(operational_models.CreditAccount).where(operational_models.CreditAccount.tenant_id == user.tenant_id, operational_models.CreditAccount.organization_id.in_(organization_ids), operational_models.CreditAccount.currency == "IRR")
+            if data.credit_account_id: accounts_query = accounts_query.where(operational_models.CreditAccount.id == data.credit_account_id)
+            accounts = db.scalars(accounts_query.order_by(operational_models.CreditAccount.id).limit(2).with_for_update()).all() if organization_ids else []
+            if len(accounts) > 1: raise HTTPException(409, "حساب اعتبار سازمانی باید به‌صورت مشخص انتخاب شود")
+            credit_account = accounts[0] if accounts else None
             if credit_account is None: raise HTTPException(status_code=409, detail="حساب اعتبار سازمانی مشخص و معتبر برای این حساب وجود ندارد")
-            try: operational_models.apply_organization_credit_command(db, tenant_id=user.tenant_id, credit_account_id=credit_account.id, command_id=f"checkout:{row.id}:credit:{data.command_id}"[:80], entry_type="reserve", amount=data.credit_amount, reservation_id=reservation.id)
+            try: credit_entry = operational_models.apply_organization_credit_command(db, tenant_id=user.tenant_id, credit_account_id=credit_account.id, command_id=f"checkout:{row.id}:credit:{data.command_id}"[:80], entry_type="reserve", amount=data.credit_amount, reservation_id=reservation.id)
             except ValueError as exc: raise HTTPException(status_code=409, detail="سقف اعتبار سازمانی کافی نیست") from exc
-        state["funding"] = {"wallet_amount": data.wallet_amount, "credit_amount": data.credit_amount, "payable_amount": total - data.wallet_amount - data.credit_amount}; row.stage = "funding"
+        db.flush()
+        state["funding"] = declaration(total, funding_currency, data.wallet_amount, data.credit_amount, row.price_snapshot_hash, wallet_entry.id if wallet_entry else None, credit_entry.id if credit_entry else None)
+        row.stage = "funding"
     elif step == "invoice":
         price = json.loads(reservation.price_snapshot_json); state["invoice_preview"] = {"subtotal_amount": int(price["total_amount"]), "currency": price.get("currency", "IRR"), "final_invoice_after_confirmation": True}; row.stage = "invoice"
     elif step == "payment":
-        payable = int(state.get("funding", {}).get("payable_amount", 0))
+        from .funding_references import checked_declaration
+        from .financial_amounts import FinancialInvariantError
+        try: funded = checked_declaration(state.get("funding", {}), reservation.price_snapshot_json, row.price_snapshot_hash, _secure_hash(reservation.price_snapshot_json))
+        except (FinancialInvariantError, KeyError, ValueError): raise HTTPException(409, "مرجع تخصیص پرداخت نیازمند بررسی است")
+        from .funding_references import bank_payable
+        try: payable = bank_payable(db, reservation, _secure_hash)
+        except (FinancialInvariantError, KeyError, ValueError): raise HTTPException(409, "منابع مسدودشده با تخصیص رزرو قابل تطبیق نیستند")
+        if payable > 0 and funded["currency"] != "IRR": raise HTTPException(409, "درگاه موجود برای پرداخت این ارز فعال نیست")
         if payable <= 0: row.stage = "awaiting_fulfillment"
         else:
             intent = _existing_reservation_payment(db, reservation, payable, "IRR")
@@ -5073,7 +5145,7 @@ def supplier_ready_reservations(user:User=Depends(require_permission("inventory:
 
 # Enterprise pre-booking domain reuses the existing authentication and DB boundary.
 from .enterprise import router as enterprise_router
-app.include_router(enterprise_router(current_user, get_db, User))
+app.include_router(enterprise_router(current_user, get_db, User, AuditEvent))
 from .catalog import catalog_router  # noqa: E402  (global master data; registers catalog tables)
 app.include_router(catalog_router(get_db))
 
@@ -5098,3 +5170,9 @@ def _catalog_history(db: Session, hotel_id: str) -> list[dict]:
 
 
 app.include_router(catalog_admin_router(get_db, require_role("platform_admin", "backoffice_expert"), _catalog_audit, _catalog_history))
+
+from .ecosystem_finance import ecosystem_finance_router  # additive finance API
+app.include_router(ecosystem_finance_router(get_db, current_user, role_has_permission, price_hasher=_secure_hash))
+
+from .financial_integrity import financial_integrity_router
+app.include_router(financial_integrity_router(get_db, current_user, role_has_permission, User))

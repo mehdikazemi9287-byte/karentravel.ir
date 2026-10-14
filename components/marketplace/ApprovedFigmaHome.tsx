@@ -1,6 +1,9 @@
 'use client';
 import Link from 'next/link';
+import {useAuth} from '../../lib/api/auth-context';
+import {roleLinks} from '../../lib/role-navigation';
 import './approved-figma.css';
+import {ApprovedEcosystemServices} from './ApprovedEcosystemServices';
 import {ApprovedHomeLower, ApprovedFooterLight, ApprovedHomeHero, ApprovedHomeBento} from './ApprovedHomeLower';
 import {Suspense, type ReactNode} from 'react';
 import {HomeSearchExperience} from '../search/HomeSearchExperience';
@@ -83,11 +86,26 @@ type ComponentButtonProps = {
   type?: "Auth" | "SearchCTA" | "Compare" | "OrgSolutions";
 };
 
+export function AccountMenu({variant = "site"}: {variant?: "site" | "panel"}) {
+  const {session, logout} = useAuth();
+  if (!session?.user) return null;
+  return <details className={variant === "panel" ? "kh-account-menu pn-account" : "kh-account-menu"} dir="rtl">
+    <summary className={variant === "panel" ? "pn-account-label" : "bg-[#ef5b3d] px-[20px] py-[12px] rounded-[100px] text-white font-[Vazirmatn] font-semibold text-[15px]"}>حساب کاربری</summary>
+    <div className="kh-account-popover">
+      <p>{session.user.name}</p>
+      {roleLinks(session.user.role).map(([label, href]) => <Link key={href} href={href}>{label}</Link>)}
+      <button type="button" onClick={() => {void logout();}}>خروج از حساب</button>
+    </div>
+  </details>;
+}
+
 function ComponentButton({ className, type = "Auth" }: ComponentButtonProps) {
+  const {session} = useAuth();
   const isAuth = type === "Auth";
   const isCompare = type === "Compare";
   const isOrgSolutions = type === "OrgSolutions";
   const isSearchCta = type === "SearchCTA";
+  if (isAuth && session?.user) return <AccountMenu/>;
   return (
     <Link href={isAuth?"/login":isCompare?"/compare":isOrgSolutions?"/organization":"/#search"} className={className || `content-stretch flex items-center overflow-clip relative ${isOrgSolutions ? "bg-[#28132b] gap-[8px] px-[22px] py-[14px] rounded-[100px]" : isCompare ? "bg-[#ef5b3d] gap-[8px] px-[22px] py-[14px] rounded-[100px]" : isSearchCta ? "bg-[#ef5b3d] justify-center py-[16px] rounded-[16px] w-[572px]" : "bg-[#ef5b3d] gap-[8px] px-[20px] py-[12px] rounded-[100px]"}`} id={isOrgSolutions ? "node-71_153" : isCompare ? "node-71_152" : isSearchCta ? "node-71_150" : "node-71_149"}>
       {isAuth && (
@@ -203,6 +221,7 @@ export default function ApprovedFigmaHome() {
         </div>
         <ApprovedHomeHero search={<div className="approved-search-card" data-node-id="48:10" data-name="Search Card"><Suspense fallback={<p role="status">در حال آماده‌سازی جست‌وجو…</p>}><HomeSearchExperience presentation="approved"/></Suspense></div>}/>
       </div>
+      <ApprovedEcosystemServices/>
       <ApprovedHomeBento/>
       <ApprovedHomeLower/>
       <ApprovedFooterLight/>

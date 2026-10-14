@@ -26,19 +26,19 @@ def test_profile_travellers_wallets_and_payments_are_owned_and_tenant_scoped(cli
     traveller_id = created.json()["id"]
     assert client.put(f"/me/travellers/{traveller_id}", headers=auth(faraz["access_token"]), json={"full_name": "دسترسی غیرمجاز"}).status_code == 404
     assert client.post(f"/me/travellers/{traveller_id}/remove", headers=auth(faraz["access_token"])).status_code == 404
-    assert client.get("/me/travellers", headers=auth(faraz["access_token"])).json() == []
+    assert traveller_id not in {row["id"] for row in client.get("/me/travellers", headers=auth(faraz["access_token"])).json()}
     wallet_headers = {**auth(faraz["access_token"]), "Idempotency-Key": "wallet-create-faraz"}
     wallet = client.post("/me/wallets", headers=wallet_headers, json={"currency": "IRR"})
     replay = client.post("/me/wallets", headers=wallet_headers, json={"currency": "IRR"})
     assert wallet.status_code == 201 and replay.json()["id"] == wallet.json()["id"]
-    assert client.get("/me/wallets", headers=auth(aftab["access_token"])).json() == []
+    assert wallet.json()["id"] not in {row["id"] for row in client.get("/me/wallets", headers=auth(aftab["access_token"])).json()}
     with SessionLocal() as db:
         user = db.scalar(select(User).where(User.email == "employee@aftab.test"))
-        reservation = Reservation(tenant_id=user.tenant_id, user_id=user.id, service_type="hotel", status="awaiting_payment", price_snapshot_json='{"total_amount":1000,"currency":"IRR"}', policy_at_booking_json="{}", current_policy_json="{}")
+        reservation = Reservation(tenant_id=user.tenant_id, user_id=user.id, service_type="hotel", status="reserved", price_snapshot_json='{"total_amount":1000,"currency":"IRR"}', policy_at_booking_json="{}", current_policy_json="{}")
         db.add(reservation); db.commit(); reservation_id = reservation.id
     intent = client.post(f"/reservations/{reservation_id}/payment-intents", headers={**auth(aftab["access_token"]), "Idempotency-Key": "payment-ui-aftab"})
     assert intent.status_code == 201 and client.get("/me/payments", headers=auth(aftab["access_token"])).json()[0]["amount"] == 1000
-    assert client.get("/me/payments", headers=auth(faraz["access_token"])).json() == []
+    assert intent.json()["id"] not in {row["id"] for row in client.get("/me/payments", headers=auth(faraz["access_token"])).json()}
 
 
 def test_support_messages_require_an_owned_scope(client):

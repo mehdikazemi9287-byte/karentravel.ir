@@ -1,4 +1,4 @@
-import { JourneyShell } from '../../../components/journey/JourneyShell';
+import {PanelShell} from '../../../components/panel/PanelKit';
 import { TourReference } from '../../../components/operational/PanelViews';
 export const metadata = {title: 'تورهای مرجع | کارن‌سیر', robots: {index: false}};
-export default function Page(){return <JourneyShell><TourReference/></JourneyShell>}
+export default function Page(){return <PanelShell area="admin" title="تورها"><TourReference/></PanelShell>}

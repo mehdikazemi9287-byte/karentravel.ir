@@ -1266,8 +1266,9 @@ def credit_balances(db: Session, *, tenant_id: int, credit_account_id: str) -> d
     """Organization credit is a LINE OF CREDIT (a limit), not a funded balance like
     Wallet: available = limit_amount - reserved - consumed. Kept as its own function
     (not merged into wallet_balances) so Organization Credit stays a distinct concept."""
-    account = db.get(CreditAccount, credit_account_id)
-    limit_amount = account.limit_amount if account is not None else 0
+    account = db.scalar(select(CreditAccount).where(CreditAccount.id == credit_account_id, CreditAccount.tenant_id == tenant_id))
+    if account is None: raise ValueError("credit account not found in tenant")
+    limit_amount = account.limit_amount
     entries = db.scalars(select(FinancialLedgerEntry).where(FinancialLedgerEntry.tenant_id == tenant_id, FinancialLedgerEntry.credit_account_id == credit_account_id)).all()
     reserved = consumed = 0
     for entry in entries:

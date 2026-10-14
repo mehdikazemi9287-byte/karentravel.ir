@@ -3,7 +3,8 @@ export const roleHome:Record<string,string>={customer:'/account',employee:'/empl
 export function roleLinks(role:string):Array<[string,string]>{
  const links:Array<[string,string]>=[['حساب من','/account'],['رزروها و سفرها','/account/bookings'],['اعلان‌ها','/account/notifications'],['پشتیبانی','/account/support']];
  const home=roleHome[role];if(home&&home!=='/account')links.push(['پنل کاری من',home]);
- if(['organization_admin','tenant_admin','platform_admin'].includes(role))links.push(['مدیریت کاربران','/admin']);
+ if(role==='organization_admin')links.push(['مدیریت کاربران','/organization/members']);
+ if(['tenant_admin','platform_admin'].includes(role))links.push(['مدیریت کاربران','/admin']);
  if(['tenant_admin','platform_admin'].includes(role))links.push(['عملیات سفر','/backoffice']);
  if(['platform_admin','backoffice_expert'].includes(role))links.push(['مدیریت هتل‌ها','/admin/catalog'],['تورهای مرجع','/admin/tours'],['داده‌های مرجع','/admin/catalog/reference'],['مرکز عملیات سفر','/backoffice/trip-events'],['میز پشتیبانی','/backoffice/support'],['وضعیت اعلان‌ها','/backoffice/notifications']);
  if(['platform_admin','finance_operator'].includes(role))links.push(['رکوردهای مالی','/finance/records'],['حسابداری و کمیسیون','/finance/accounting']);

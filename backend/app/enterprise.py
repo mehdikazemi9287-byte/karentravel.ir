@@ -2,6 +2,7 @@
 import hashlib,json
 from datetime import datetime,timezone
 from typing import Literal
+from uuid import uuid4
 from fastapi import APIRouter,Depends,HTTPException
 from pydantic import BaseModel,Field,ConfigDict
 from sqlalchemy import select,func
@@ -88,7 +89,7 @@ class BookingLinkIn(BaseModel):
     reservation_id:str=Field(min_length=36,max_length=36)
     command_id:str=Field(min_length=8,max_length=120)
 
-def router(current_user,get_db,User):
+def router(current_user,get_db,User,AuditEvent):
     api=APIRouter(prefix='/enterprise',tags=['enterprise'])
     def membership(db,user,org):
         return db.scalar(select(m.EmployeeAssignment).where(m.EmployeeAssignment.tenant_id==user.tenant_id,m.EmployeeAssignment.user_id==user.id,m.EmployeeAssignment.organization_id==org))
@@ -369,6 +370,13 @@ def router(current_user,get_db,User):
     def manage_members(db,user,org):
         if user.role in TENANT_ADMINS:org_row(db,user,org)
         else:require(db,user,org,'roles.manage')
+    def management_audit(db,user,org,kind,detail):
+        payload={'organization_id':org,**detail}
+        db.add(e.EnterpriseRequestEvent(tenant_id=user.tenant_id,organization_id=org,request_id=None,
+                                       actor_id=user.id,event_type=kind,detail_json=json.dumps(payload,ensure_ascii=False),
+                                       command_key='management:'+uuid4().hex))
+        db.add(AuditEvent(tenant_id=user.tenant_id,actor_id=user.id,action='organization.'+kind,
+                          entity='organization',entity_id=0,detail=json.dumps(payload,ensure_ascii=False)))
     def member_list(db,user,org):
         users=db.scalars(select(User).join(m.EmployeeAssignment,m.EmployeeAssignment.user_id==User.id).where(User.tenant_id==user.tenant_id,m.EmployeeAssignment.tenant_id==user.tenant_id,m.EmployeeAssignment.organization_id==org).order_by(User.name)).all()
         grants=dict(db.execute(select(e.EnterpriseGrant.user_id,e.EnterpriseGrant.permissions_json).where(e.EnterpriseGrant.tenant_id==user.tenant_id,e.EnterpriseGrant.organization_id==org)).all())
@@ -384,7 +392,7 @@ def router(current_user,get_db,User):
         if user.role not in TENANT_ADMINS:raise HTTPException(403,'ایجاد سازمان فقط برای مدیر مجموعه است')
         name=' '.join(data.name.split())
         if db.scalar(select(m.Organization.id).where(m.Organization.tenant_id==user.tenant_id,m.Organization.name==name)):raise HTTPException(409,'سازمانی با این نام وجود دارد')
-        row=m.Organization(tenant_id=user.tenant_id,name=name,status='active');db.add(row);db.commit()
+        row=m.Organization(tenant_id=user.tenant_id,name=name,status='active');db.add(row);db.flush();management_audit(db,user,row.id,'created',{});db.commit()
         return {'id':row.id,'name':row.name,'status':row.status,'members':0}
     @api.post('/organizations/{org}/members',status_code=201)
     def add_member(org:str,data:MemberIn,user=Depends(current_user),db:Session=Depends(get_db)):
@@ -392,17 +400,17 @@ def router(current_user,get_db,User):
         target=db.scalar(select(User).where(User.tenant_id==user.tenant_id,func.lower(User.email)==data.email.strip().lower()))
         if target is None:raise HTTPException(404,'کاربری با این ایمیل در این مجموعه ثبت نشده است')
         if db.scalar(select(m.EmployeeAssignment.id).where(m.EmployeeAssignment.tenant_id==user.tenant_id,m.EmployeeAssignment.user_id==target.id,m.EmployeeAssignment.organization_id==org)) is None:
-            db.add(m.EmployeeAssignment(tenant_id=user.tenant_id,user_id=target.id,organization_id=org));db.commit()
+            db.add(m.EmployeeAssignment(tenant_id=user.tenant_id,user_id=target.id,organization_id=org));management_audit(db,user,org,'member.added',{'user_id':target.id});db.commit()
         return member_list(db,user,org)
     @api.post('/organizations/{org}/members/{uid}/remove')
     def remove_member(org:str,uid:int,user=Depends(current_user),db:Session=Depends(get_db)):
-        manage_members(db,user,org)
+        manage_members(db,user,org);org_lock(db,user,org)
         if uid==user.id:raise HTTPException(409,'نمی‌توانید عضویت خودتان را حذف کنید')
         row=db.scalar(select(m.EmployeeAssignment).where(m.EmployeeAssignment.tenant_id==user.tenant_id,m.EmployeeAssignment.user_id==uid,m.EmployeeAssignment.organization_id==org))
         if row is None:raise HTTPException(404,'این کاربر عضو سازمان نیست')
         grant=db.scalar(select(e.EnterpriseGrant).where(e.EnterpriseGrant.tenant_id==user.tenant_id,e.EnterpriseGrant.organization_id==org,e.EnterpriseGrant.user_id==uid))
         if grant is not None:db.delete(grant)
-        db.delete(row);db.commit()
+        db.delete(row);management_audit(db,user,org,'member.removed',{'user_id':uid});db.commit()
         return member_list(db,user,org)
     @api.get('/organizations/{org}/policy')
     def current_policy(org:str,user=Depends(current_user),db:Session=Depends(get_db)):
@@ -440,9 +448,14 @@ def router(current_user,get_db,User):
         org_reader(db,user,org);t=user.tenant_id
         rows=db.execute(select(m.Invoice,m.Reservation,e.EnterpriseRequest.title).join(m.Reservation,m.Reservation.id==m.Invoice.reservation_id).join(e.EnterpriseBookingLink,e.EnterpriseBookingLink.reservation_id==m.Reservation.id)
                         .join(e.EnterpriseRequest,e.EnterpriseRequest.id==e.EnterpriseBookingLink.request_id).where(m.Invoice.tenant_id==t,e.EnterpriseBookingLink.tenant_id==t,e.EnterpriseRequest.organization_id==org).order_by(m.Invoice.issued_at.desc()).limit(500)).all()
-        totals={}
-        for inv,_,_ in rows:
-            key=(inv.currency,inv.status);totals[key]=totals.get(key,0)+inv.total_amount
+        # The visible list is bounded; financial totals cover all organization invoices.
+        aggregates=db.execute(select(m.Invoice.currency,m.Invoice.status,func.sum(m.Invoice.total_amount))
+                              .join(m.Reservation,m.Reservation.id==m.Invoice.reservation_id)
+                              .join(e.EnterpriseBookingLink,e.EnterpriseBookingLink.reservation_id==m.Reservation.id)
+                              .join(e.EnterpriseRequest,e.EnterpriseRequest.id==e.EnterpriseBookingLink.request_id)
+                              .where(m.Invoice.tenant_id==t,m.Reservation.tenant_id==t,e.EnterpriseBookingLink.tenant_id==t,e.EnterpriseRequest.tenant_id==t,e.EnterpriseRequest.organization_id==org)
+                              .group_by(m.Invoice.currency,m.Invoice.status)).all()
+        totals={(currency,status):amount for currency,status,amount in aggregates}
         linked=db.scalar(select(func.count()).select_from(e.EnterpriseBookingLink).join(e.EnterpriseRequest,e.EnterpriseRequest.id==e.EnterpriseBookingLink.request_id).where(e.EnterpriseBookingLink.tenant_id==t,e.EnterpriseRequest.organization_id==org))
         return {'linked_bookings':linked,'items':[{'invoice_number':inv.invoice_number,'request_title':title,'booking_reference':res.booking_reference,'service_type':res.service_type,'subtotal_amount':inv.subtotal_amount,'tax_amount':inv.tax_amount,'total_amount':inv.total_amount,
                                                    'currency':inv.currency,'status':inv.status,'issued_at':inv.issued_at.isoformat() if inv.issued_at else None} for inv,res,title in rows],

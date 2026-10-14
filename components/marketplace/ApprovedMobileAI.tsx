@@ -7,7 +7,7 @@ export default function ApprovedMobileAI() {
       <div className="bg-[#fbf4e6] border border-[#e0ccbf] border-solid content-stretch flex flex-col gap-[14px] items-start px-[20px] py-[22px] relative rounded-[24px] shrink-0 w-full" data-node-id="95:259" data-name="AI Travel Assistant">
         <div className="bg-[#220e2e] content-stretch flex items-start justify-between px-[14px] py-[12px] relative rounded-[16px] shrink-0 w-full" data-node-id="95:260" data-name="AI Identity">
           <p className="[word-break:break-word] font-[Vazirmatn] font-semibold leading-[1.6] relative shrink-0 text-[13px] text-right text-white w-[108px]" dir="auto" data-node-id="95:261">
-            دستیار هوشمند سفر
+            <span className="ai-mobile-identity">دستیار هوشمند سفر</span><span className="ai-tablet-identity">هوشمندی برای تصمیم بهتر</span>
           </p>
           <div className="bg-[#ed4f40] content-stretch flex items-start px-[14px] py-[7px] relative rounded-[999px] shrink-0" data-node-id="95:262" data-name="AI Badge">
             <p className="[word-break:break-word] font-[Vazirmatn] font-bold leading-[1.6] relative shrink-0 text-[16px] text-right text-white w-[16px]" data-node-id="95:263">

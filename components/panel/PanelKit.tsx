@@ -6,16 +6,16 @@ import {usePathname} from 'next/navigation';
 import {useCallback, useEffect, useState, type ReactNode} from 'react';
 import {useAuth} from '../../lib/api/auth-context';
 import {ApiError} from '../../lib/api/karenseir-client';
-import {JourneyShell} from '../journey/JourneyShell';
+import {AccountMenu} from '../marketplace/ApprovedFigmaHome';
 import './panel.css';
 
 export type Area = 'customer' | 'organization' | 'agency' | 'supplier' | 'admin';
 const NAV: Record<Area, {title: string; links: [string, string][]}> = {
   customer: {title: 'حساب من', links: [['نمای کلی', '/account'], ['پروفایل و مسافران', '/account/profile'], ['رزروها و سفرها', '/account/bookings'], ['تغییرات سفر', '/account/changes'], ['ویزا', '/account/visa'], ['پرداخت و فاکتور', '/account/payments'], ['لغو و استرداد', '/account/refunds'], ['کیف پول و اعتبار', '/account/wallet'], ['مزایای سازمانی', '/account/benefits'], ['ذخیره‌شده‌ها و پیشنهادها', '/account/saved'], ['اعلان‌ها', '/account/notifications'], ['پشتیبانی', '/account/support']]},
-  organization: {title: 'پنل سازمان', links: [['نمای کلی', '/organization'], ['میز کار کارمند', '/employee'], ['کارکنان و دسترسی‌ها', '/organization/members'], ['درخواست و تأیید سفر', '/organization/requests'], ['سیاست سفر', '/organization/policy'], ['واحدها و مراکز هزینه', '/organization/structure'], ['اعتبار و اقساط', '/organization/credit'], ['رزروهای سازمان', '/organization/bookings'], ['صورتحساب و تسویه', '/organization/billing'], ['گزارش', '/organization/reports'], ['سوابق و گردش تأیید', '/organization/audit']]},
+  organization: {title: 'پنل سازمان', links: [['نمای کلی', '/organization'], ['میز کار کارمند', '/employee'], ['کارکنان و دسترسی‌ها', '/organization/members'], ['درخواست و تأیید سفر', '/organization/requests'], ['سیاست سفر', '/organization/policy'], ['واحدها و مراکز هزینه', '/organization/structure'], ['اعتبار و اقساط', '/organization/credit'], ['رزروهای سازمان', '/organization/bookings'], ['صورتحساب و تسویه', '/organization/billing'], ['گزارش', '/organization/reports'], ['سوابق و گردش تأیید', '/organization/audit'], ['تعهد مالی سفر', '/organization/financial-context']]},
   agency: {title: 'پنل همکار', links: [['نمای کلی', '/agency'], ['فروش و پیشنهاد قیمت', '/agency/sales'], ['رزروها', '/agency/bookings'], ['مشتریان', '/agency/customers'], ['کمیسیون', '/agency/commissions'], ['اعتبار و حساب', '/agency/credit'], ['تسویه و اسناد', '/agency/documents'], ['گزارش', '/agency/reports'], ['میز کار کامل', '/agency/workspace'], ['پشتیبانی', '/agency/support']]},
-  supplier: {title: 'پنل تأمین‌کننده', links: [['نمای کلی', '/supplier'], ['خدمات، نرخ و ظرفیت', '/supplier/services'], ['هتل‌های من', '/supplier/hotels'], ['اقامتگاه و تقویم', '/supplier/accommodation'], ['سفارش‌ها و تأیید', '/supplier/fulfillment'], ['کنترل بلیت', '/supplier/admission'], ['درخواست‌های سازمانی', '/supplier/rfqs'], ['تسویه و قرارداد', '/supplier/settlements'], ['گزارش', '/supplier/reports'], ['پشتیبانی', '/supplier/support']]},
-  admin: {title: 'مدیریت مجموعه', links: [['کاربران و نقش‌ها', '/admin'], ['سازمان‌ها', '/admin/organizations'], ['تأمین‌کنندگان و آژانس‌ها', '/admin/partners'], ['سوابق ممیزی', '/admin/audit'], ['هتل‌ها', '/admin/catalog'], ['داده‌های مرجع', '/admin/catalog/reference'], ['تورها', '/admin/tours'], ['عملیات و پشتیبانی', '/backoffice'], ['مالی', '/finance']]},
+  supplier: {title: 'پنل تأمین‌کننده', links: [['نمای کلی', '/supplier'], ['خدمات، نرخ و ظرفیت', '/supplier/services'], ['هتل‌های من', '/supplier/hotels'], ['اقامتگاه و تقویم', '/supplier/accommodation'], ['سفارش‌ها و تأیید', '/supplier/fulfillment'], ['کنترل بلیت', '/supplier/admission'], ['درخواست‌های سازمانی', '/supplier/rfqs'], ['تسویه و قرارداد', '/supplier/settlements'], ['گزارش', '/supplier/reports'], ['پشتیبانی', '/supplier/support'], ['روابط مالی قرارداد', '/supplier/financial-context']]},
+  admin: {title: 'مدیریت مجموعه', links: [['کاربران و نقش‌ها', '/admin'], ['سازمان‌ها', '/admin/organizations'], ['تأمین‌کنندگان و آژانس‌ها', '/admin/partners'], ['سوابق ممیزی', '/admin/audit'], ['هتل‌ها', '/admin/catalog'], ['داده‌های مرجع', '/admin/catalog/reference'], ['تورها', '/admin/tours'], ['عملیات و پشتیبانی', '/backoffice'], ['مالی', '/finance'], ['روابط مالی اکوسیستم', '/admin/ecosystem']]},
 };
 const ORG_ROLES = ['manager', 'welfare_manager', 'organization_admin', 'tenant_admin', 'platform_admin', 'employee'];
 export const fa = (n: number) => n.toLocaleString('fa-IR');
@@ -49,17 +49,22 @@ export function useLoad<T>(path: string | null) {
 export function PanelShell({area, title, intro, children}: {area: Area; title: string; intro?: string; children: ReactNode}) {
   const {session} = useAuth(); const path = usePathname(); const nav = NAV[area];
   const role = (session as {user?: {role?: string}} | null)?.user?.role ?? '';
-  return <JourneyShell><div className="pn" data-area={area}>
+  const nativeTitle = nav.links.find(([, href]) => href === path)?.[0] ?? title;
+  return <div className="pn-page" data-figma-page="129:11966">
+    <header className="pn-page-header"><Link className="pn-page-brand" href="/">کارن‌سیر</Link>
+      {session?.user ? <AccountMenu variant="panel"/> : <Link className="pn-page-login" href="/login">ورود / ثبت‌نام</Link>}
+    </header><div className="pn" data-area={area}>
     <nav className="pn-nav" aria-label={nav.title}><span className="pn-nav-title">{nav.title}</span>
       {nav.links.map(([label, href]) => <Link key={href} href={href} aria-current={path === href ? 'page' : undefined}>{label}</Link>)}
       <span className="pn-nav-foot">{area !== 'customer' && <Link href="/account">حساب من</Link>}{area === 'customer' && ORG_ROLES.includes(role) && role !== 'customer' && <Link href="/organization">پنل سازمان</Link>}</span>
     </nav>
-    <main className="pn-main"><header className="pn-head"><h1>{title}</h1>{intro && <p>{intro}</p>}</header>
-      {session ? children : <div className="pn-card"><p>برای دیدن این بخش وارد حساب خود شوید.</p><div><Link className="pn-btn" href="/login">ورود / ثبت‌نام</Link></div></div>}</main>
-  </div></JourneyShell>;
+    <main className="pn-main"><header className="pn-head"><h1>{nativeTitle}</h1>{intro && <p>{intro}</p>}</header>
+      {session ? children : <div className="pn-card"><p>برای دیدن این بخش وارد حساب خود شوید.</p><div><Link className="pn-btn" href="/login">ورود / ثبت‌نام</Link></div></div>}
+      <Card title="وضعیت و دسترسی"><p className="pn-access-note">اطلاعات تأییدنشده و خدمات متصل‌نشده با وضعیت مشخص نمایش داده می‌شوند.</p><p className="pn-access-note">عملیات فقط با نقش و مجوز همان حساب انجام می‌شود.</p></Card>
+    </main></div><p className="pn-page-foot">اطلاعات واقعی از حساب و سازمان شما دریافت می‌شود.</p></div>;
 }
 export function Card({title, action, children}: {title?: string; action?: ReactNode; children: ReactNode}) {return <section className="pn-card">{(title || action) && <div className="pn-card-head">{title && <h2>{title}</h2>}{action}</div>}{children}</section>;}
-export function Stats({items}: {items: {label: string; value: string; hint?: string}[]}) {return <div className="pn-stats">{items.map(i => <div className="pn-stat" key={i.label}><small>{i.label}</small><strong>{i.value}</strong>{i.hint && <span>{i.hint}</span>}</div>)}</div>;}
+export function Stats({items, className = ''}: {items: {label: string; value: string; hint?: string}[]; className?: string}) {return <div className={`pn-stats ${className}`}>{items.map(i => <div className="pn-stat" key={i.label}><small>{i.label}</small><strong>{i.value}</strong>{i.hint && <span>{i.hint}</span>}</div>)}</div>;}
 export function Empty({children}: {children: ReactNode}) {return <div className="pn-empty">{children}</div>;}
 /** A capability the platform does not have (yet) or a value it does not hold. Says so instead of showing a made-up number. */
 export function Unavailable({title = 'در دسترس نیست', children}: {title?: string; children: ReactNode}) {return <div className="pn-unavail" data-state="unavailable"><b>{title}</b><span>{children}</span></div>;}
