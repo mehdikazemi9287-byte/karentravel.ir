@@ -5,4 +5,4 @@ if [ "${ENVIRONMENT:-development}" = production ]; then
 else
     alembic upgrade head
 fi
-exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --no-access-log
+exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --no-access-log --no-server-header --proxy-headers --forwarded-allow-ips "${FORWARDED_ALLOW_IPS:-127.0.0.1}"

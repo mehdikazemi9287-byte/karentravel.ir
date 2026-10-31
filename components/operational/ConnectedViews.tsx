@@ -11,6 +11,7 @@ import { ContactOptions } from '../customer/CustomerHelp';
 import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { useAuth } from '../../lib/api/auth-context';
 import { ApiError, newId } from '../../lib/api/karenseir-client';
+import { safeHref } from '../../lib/safe-href';
 
 function MockNotice({children='نسخه نمایشی — اطلاعات این بخش نمونه است.'}:{children?:ReactNode}){return <div className="journey-mock" role="note">● {children}</div>}
 
@@ -46,7 +47,7 @@ export function ConnectedTrips() {
   if(state.kind==='loading')return <LoadingState/>;
   if(state.kind==='error')return <ErrorState status={state.status} message={state.message}/>;
   const {trips,reservations,notices}=state.data;
-  return <div className="grid gap-6"><section><h2 className="mb-3 text-xl font-black">سفرهای معتبر</h2>{trips.length===0?<EmptyState>هنوز سفری در حساب شما ساخته نشده است.</EmptyState>:<div className="grid gap-3 sm:grid-cols-2">{trips.map(t=><Link href={t.timeline_link} key={t.id} className="rounded-2xl border border-slate-200 bg-white p-5"><span className="tag">{t.status}</span><h3 className="mt-3 font-black">{t.title}</h3><p className="text-sm text-slate-600">{t.origin?`${t.origin} ← `:''}{t.destination}</p></Link>)}</div>}</section><section><h2 className="mb-3 text-xl font-black">رزروهای من</h2>{reservations.length===0?<EmptyState>رزرو عملیاتی برای این حساب وجود ندارد.</EmptyState>:<div className="grid gap-3 sm:grid-cols-2">{reservations.map(r=><article key={r.id} className="rounded-2xl border border-slate-200 bg-white p-5"><span className="tag">{r.status}</span><h3 className="mt-3 font-black">{r.booking_reference||'در انتظار مرجع رزرو'}</h3><p>{r.service_type} · {money(r.price_snapshot?.total_amount,r.price_snapshot?.currency)}</p><Link className="text-link" href={r.manage_link||`/manage-booking/${r.id}`}>مدیریت رزرو ←</Link></article>)}</div>}</section><aside><h2 className="mb-3 text-xl font-black">اعلان‌ها</h2>{notices.length===0?<EmptyState>اعلان تازه‌ای ندارید.</EmptyState>:notices.map(n=><article className="mb-2 rounded-xl bg-cyan-50 p-4" key={n.id}><b>{n.title}</b><p className="text-sm">{n.message}</p>{n.deep_link&&<Link href={n.deep_link}>مشاهده جزئیات</Link>}</article>)}</aside></div>;
+  return <div className="grid gap-6"><section><h2 className="mb-3 text-xl font-black">سفرهای معتبر</h2>{trips.length===0?<EmptyState>هنوز سفری در حساب شما ساخته نشده است.</EmptyState>:<div className="grid gap-3 sm:grid-cols-2">{trips.map(t=><Link href={safeHref(t.timeline_link)} key={t.id} className="rounded-2xl border border-slate-200 bg-white p-5"><span className="tag">{t.status}</span><h3 className="mt-3 font-black">{t.title}</h3><p className="text-sm text-slate-600">{t.origin?`${t.origin} ← `:''}{t.destination}</p></Link>)}</div>}</section><section><h2 className="mb-3 text-xl font-black">رزروهای من</h2>{reservations.length===0?<EmptyState>رزرو عملیاتی برای این حساب وجود ندارد.</EmptyState>:<div className="grid gap-3 sm:grid-cols-2">{reservations.map(r=><article key={r.id} className="rounded-2xl border border-slate-200 bg-white p-5"><span className="tag">{r.status}</span><h3 className="mt-3 font-black">{r.booking_reference||'در انتظار مرجع رزرو'}</h3><p>{r.service_type} · {money(r.price_snapshot?.total_amount,r.price_snapshot?.currency)}</p><Link className="text-link" href={safeHref(r.manage_link,`/manage-booking/${r.id}`)}>مدیریت رزرو ←</Link></article>)}</div>}</section><aside><h2 className="mb-3 text-xl font-black">اعلان‌ها</h2>{notices.length===0?<EmptyState>اعلان تازه‌ای ندارید.</EmptyState>:notices.map(n=><article className="mb-2 rounded-xl bg-cyan-50 p-4" key={n.id}><b>{n.title}</b><p className="text-sm">{n.message}</p>{n.deep_link&&<Link href={safeHref(n.deep_link)}>مشاهده جزئیات</Link>}</article>)}</aside></div>;
 }
 
 type TimelineEvent = { id:string; type:string; severity:string; source:string; title:string; message:string; requires_action:boolean; deep_link?:string|null };
@@ -72,7 +73,7 @@ export function ConnectedTripTimeline({tripId}:{tripId:string}) {
     <article className={`rounded-xl p-4 ${ev.requires_action?'bg-amber-50 border border-amber-300':ev.severity==='error'?'bg-rose-50':ev.severity==='warning'?'bg-amber-50':'bg-slate-50'}`}>
       <div className="flex items-center gap-2 text-xs"><span aria-hidden="true">{iconFor(ev.type)}</span><span className="rounded bg-slate-200 px-2 py-0.5">سیستم · {ev.type}</span>{ev.requires_action&&<span className="rounded bg-amber-600 px-2 py-0.5 text-white">نیاز به اقدام</span>}</div>
       <h3 className="mt-2 font-bold">{ev.title}</h3><p className="text-sm text-slate-600">{ev.message}</p>
-      {ev.deep_link&&<Link className="text-link mt-1 inline-block text-sm" href={ev.deep_link}>مشاهده اقدام ←</Link>}
+      {ev.deep_link&&<Link className="text-link mt-1 inline-block text-sm" href={safeHref(ev.deep_link)}>مشاهده اقدام ←</Link>}
     </article>)}));
   const supportRows:Row[]=support.map(m=>{const human=m.sender_type==='human_agent';const ai=m.sender_type==='ai';const you=m.sender_type==='customer';
     return {id:m.id,created_at:m.created_at,action:false,fresh:human,node:(

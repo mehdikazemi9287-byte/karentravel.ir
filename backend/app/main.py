@@ -41,7 +41,9 @@ from .version import read_build_info
 JWT_SECRET = read_secret("JWT_SECRET", "development-only-change-before-production")
 JWT_ISSUER = os.getenv("JWT_ISSUER", "karenseir-api")
 JWT_AUDIENCE = os.getenv("JWT_AUDIENCE", "karenseir-web")
-ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+ENVIRONMENT = os.getenv("ENVIRONMENT", "production")  # fail closed: dev features need an explicit opt-in
+IS_PRODUCTION = ENVIRONMENT == "production"
+METRICS_TOKEN = read_secret("METRICS_TOKEN", "")
 DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() in {"1", "true", "yes"}
 REDIS_URL = read_secret("REDIS_URL", "")
 PAYMENT_WEBHOOK_SECRET = read_secret("PAYMENT_WEBHOOK_SECRET", "")
@@ -334,13 +336,14 @@ class WhiteLabelIn(BaseModel):
     feature_flags: dict = Field(default_factory=dict)
 class CompareIn(BaseModel): offer_ids: list[str] = Field(min_length=2, max_length=4)
 class NotificationPreferenceIn(BaseModel): topic: str = Field(min_length=2, max_length=48); channel: str = Field(pattern="^(web|app|push|sms)$"); enabled: bool
+SAFE_INTERNAL_LINK_PATTERN = r"^/([A-Za-z0-9\-._~?#\[\]@!$&'()*+,;=%{}][A-Za-z0-9\-._~/?#\[\]@!$&'()*+,;=%{}]*)?$"  # "/path" only: no "//host", no scheme
 class NotificationTemplateIn(BaseModel):
     event_type: str = Field(min_length=3, max_length=64)
     channel: str = Field(pattern="^(web|app|push|sms)$")
     locale: str = Field(default="fa", pattern="^[a-z]{2}(-[A-Z]{2})?$")
     title_template: str = Field(min_length=1, max_length=300)
     body_template: str = Field(min_length=1, max_length=4000)
-    deep_link_template: Optional[str] = Field(default=None, max_length=300)
+    deep_link_template: Optional[str] = Field(default=None, max_length=300, pattern=SAFE_INTERNAL_LINK_PATTERN)
 class AgencyIn(BaseModel): display_name: str = Field(min_length=2, max_length=180); parent_agency_id: Optional[str] = Field(default=None, min_length=36, max_length=36); markup_bps: int = Field(ge=0, le=10000); commission_bps: int = Field(ge=0, le=10000)
 class VoucherReissueIn(BaseModel): command_id: str = Field(min_length=8, max_length=120); document_reference: str = Field(min_length=3, max_length=240); reason: str = Field(min_length=3, max_length=500)
 class ProfileIn(BaseModel): name: str = Field(min_length=2, max_length=160); locale: str = Field(default="fa-IR", pattern="^(fa-IR|en-US)$")
@@ -531,8 +534,45 @@ async def lifespan(_: FastAPI):
         engine.dispose()
 
 
-app = FastAPI(title="KarenSeir Pilot API", version="0.2.0", lifespan=lifespan)
+app = FastAPI(title="KarenSeir Pilot API", version="0.2.0", lifespan=lifespan,
+              docs_url=None if IS_PRODUCTION else "/docs", redoc_url=None if IS_PRODUCTION else "/redoc",
+              openapi_url=None if IS_PRODUCTION else "/openapi.json")
 app.add_middleware(CORSMiddleware, allow_origins=os.getenv("CORS_ORIGINS","http://localhost:3000").split(","), allow_credentials=False, allow_methods=["GET","POST","PUT","DELETE"], allow_headers=["Authorization","Content-Type","Idempotency-Key","X-Request-ID","X-Correlation-ID"])
+
+
+def _client_ip(request: Request) -> str:
+    return request.client.host if request.client else "unknown"
+
+
+def _rate_limit_identity(request: Request, route_class: str) -> str:
+    """Bucket by verified user for authenticated API calls, otherwise by client IP.
+    An arbitrary/forged Authorization header must never mint a fresh bucket."""
+    ip = _client_ip(request)
+    auth = request.headers.get("Authorization") or ""
+    if route_class != "auth" and auth.startswith("Bearer "):
+        try:
+            claims = jwt.decode(auth[7:], JWT_SECRET, algorithms=["HS256"], issuer=JWT_ISSUER, audience=JWT_AUDIENCE, options={"require": ["exp", "sub", "tenant"]})
+            return f"user:{claims['tenant']}:{claims['sub']}"
+        except jwt.PyJWTError:
+            return f"ip:{ip}"
+    return f"ip:{ip}"
+
+
+_SECURITY_LOG = logging.getLogger("karenseir.security")
+
+
+def _security_headers(request: Request, response) -> None:
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    response.headers.setdefault("Cross-Origin-Resource-Policy", "same-site")
+    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    if not request.url.path.startswith("/media/public/"):
+        response.headers.setdefault("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
+    if request.url.path == "/me" or request.url.path.startswith(("/auth/", "/me/", "/payments", "/admin", "/backoffice", "/finance")):
+        response.headers["Cache-Control"] = "no-store"
+    if IS_PRODUCTION and request.headers.get("x-forwarded-proto", request.url.scheme) == "https":
+        response.headers.setdefault("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
 
 
 @app.middleware("http")
@@ -546,7 +586,7 @@ async def request_context(request: Request, call_next):
     if request.url.path not in {"/health", "/ready", "/metrics"}:
         route_class = "auth" if request.url.path.startswith("/auth/") else "api"
         limit, window = ((10, 60) if route_class == "auth" else (300, 60)) if rate_limiter.distributed else (10_000, 60)
-        identity = request.headers.get("Authorization") or (request.client.host if request.client else "unknown")
+        identity = _rate_limit_identity(request, route_class)
         try:
             decision = await rate_limiter.hit(f"karenseir:rl:{route_class}:{fingerprint(identity)}", limit, window)
         except Exception:
@@ -557,6 +597,9 @@ async def request_context(request: Request, call_next):
             record_request(request.method, 429, time.perf_counter() - started_at)
             return JSONResponse(status_code=429, content={"detail": "تعداد درخواست‌ها بیش از حد مجاز است", "request_id": request_id}, headers={"Retry-After": str(decision.retry_after), "X-RateLimit-Remaining": "0", "X-Request-ID": request_id, "X-Correlation-ID": correlation_id})
     response = await call_next(request)
+    _security_headers(request, response)
+    if response.status_code in (401, 403, 423, 429) or (request.url.path.startswith(("/admin", "/backoffice", "/finance")) and response.status_code < 400 and request.method != "GET"):
+        _SECURITY_LOG.warning("security_event", extra={"request_id": request_id, "method": request.method, "path": request.url.path, "status": response.status_code, "ip_hash": _secure_hash(_client_ip(request))[:16]})
     response.headers["X-Request-ID"] = request_id
     response.headers["X-Correlation-ID"] = correlation_id
     response.headers["X-Process-Time"] = f"{time.perf_counter() - started_at:.6f}"
@@ -578,12 +621,20 @@ async def unhandled_exception(request: Request, exc: Exception):
 @app.get("/health")
 def health() -> dict: return {"status":"ok","service":"karenseir-api","environment":ENVIRONMENT}
 @app.get("/system/version")
-def system_version(db: Session = Depends(get_db)) -> dict:
+def system_version(db: Session = Depends(get_db), x_metrics_token: str = Header(default="")) -> dict:
+    _require_internal(x_metrics_token)
     build_info = read_build_info()
     migration_head = db.execute(text("SELECT version_num FROM alembic_version")).scalar()
     return {"service":"karenseir-api","environment":ENVIRONMENT,"git_commit":build_info["git_commit"],"build_timestamp_utc":build_info["build_timestamp_utc"],"migration_head":migration_head}
+def _require_internal(x_metrics_token: str) -> None:
+    if IS_PRODUCTION and (not METRICS_TOKEN or not hmac.compare_digest(x_metrics_token, METRICS_TOKEN)):
+        raise HTTPException(status_code=404, detail="Not Found")
+
+
 @app.get("/metrics", response_class=PlainTextResponse)
-def metrics() -> str: return prometheus_metrics()
+def metrics(x_metrics_token: str = Header(default="")) -> str:
+    _require_internal(x_metrics_token)
+    return prometheus_metrics()
 @app.get("/ready")
 async def readiness(db: Session = Depends(get_db)) -> dict:
     db.execute(text("SELECT 1"))
@@ -611,6 +662,22 @@ def dev_login(data: LoginIn, db: Session = Depends(get_db)) -> dict:
     refresh_token, _ = operational_models.create_refresh_session(db, tenant_id=user.tenant_id, user_id=user.id, expires_at=datetime.now(timezone.utc) + timedelta(days=30))
     db.commit()
     return {"access_token":token_for(user, tenant),"refresh_token":refresh_token,"token_type":"bearer","user":{"name":user.name,"role":user.role,"tenant":tenant.name}}
+
+
+OTP_RESEND_COOLDOWN_SECONDS = int(os.getenv("OTP_RESEND_COOLDOWN_SECONDS", "60"))
+OTP_MAX_PER_HOUR = int(os.getenv("OTP_MAX_PER_HOUR", "5"))
+
+
+def _otp_throttled(db: Session, tenant_id: int, user_id: int, now: datetime) -> bool:
+    """Per-account SMS throttle (independent of IP): stops SMS bombing / cost abuse.
+    OTP challenges live 5 minutes, so issuance time = expires_at - 5min."""
+    recent = db.scalars(select(operational_models.OTPChallenge.expires_at).where(
+        operational_models.OTPChallenge.tenant_id == tenant_id,
+        operational_models.OTPChallenge.user_id == user_id,
+        operational_models.OTPChallenge.expires_at > now - timedelta(minutes=55))).all()
+    if len(recent) >= OTP_MAX_PER_HOUR:
+        return True
+    return any(_aware(e) > now + timedelta(minutes=5) - timedelta(seconds=OTP_RESEND_COOLDOWN_SECONDS) for e in recent)
 
 
 @app.post("/auth/otp/request", status_code=status.HTTP_202_ACCEPTED)
@@ -647,6 +714,10 @@ def request_otp(data: OTPRequestIn, request: Request, db: Session = Depends(get_
     auth_state = db.scalar(select(operational_models.AuthenticationState).where(operational_models.AuthenticationState.tenant_id == tenant.id, operational_models.AuthenticationState.user_id == user.id).with_for_update())
     now = datetime.now(timezone.utc)
     if auth_state and auth_state.locked_until and _aware(auth_state.locked_until) > now:
+        return {"status": "accepted", "challenge_id": generic_id, "expires_in": 300}
+    if _otp_throttled(db, tenant.id, user.id, now):
+        logging.getLogger("karenseir.security").warning("otp_throttled", extra={"status": 202, "path": "/auth/otp/request"})
+        db.rollback()
         return {"status": "accepted", "challenge_id": generic_id, "expires_in": 300}
     code = f"{secrets.randbelow(1_000_000):06d}"
     challenge = operational_models.OTPChallenge(tenant_id=tenant.id, user_id=user.id, identifier_hash=_secure_hash(identifier.lower()), code_hash="pending", expires_at=now + timedelta(minutes=5))
@@ -721,6 +792,10 @@ def register_request(data: RegisterRequestIn, request: Request, db: Session = De
             db.rollback()
             _secure_hash(f"{generic_id}:000000")
             return {"status": "accepted", "challenge_id": generic_id, "expires_in": 300}
+    if user.id and _otp_throttled(db, tenant.id, user.id, datetime.now(timezone.utc)):
+        logging.getLogger("karenseir.security").warning("otp_throttled", extra={"status": 202, "path": "/auth/register/request"})
+        db.commit()  # keep a freshly registered account; just don't send another SMS
+        return {"status": "accepted", "challenge_id": generic_id, "expires_in": 300}
     code = f"{secrets.randbelow(1_000_000):06d}"
     challenge = operational_models.OTPChallenge(tenant_id=tenant.id, user_id=user.id, identifier_hash=_secure_hash(mobile_e164.lower()), code_hash="pending", expires_at=datetime.now(timezone.utc) + timedelta(minutes=5))
     db.add(challenge); db.flush()

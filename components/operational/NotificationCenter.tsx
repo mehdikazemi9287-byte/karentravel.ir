@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../../lib/api/auth-context';
 import { ApiError } from '../../lib/api/karenseir-client';
+import { safeHref } from '../../lib/safe-href';
 
 type Notice = { id: string; topic: string; title: string; message: string; deep_link?: string | null; status: string; created_at: string };
 type Pref = { topic: string; channel: string; enabled: boolean };
@@ -76,7 +77,7 @@ export function NotificationCenter() {
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-3 text-xs">
                 <span className="rounded bg-slate-200 px-2 py-0.5">{topicLabel(n.topic)}</span>{isNew&&<button className="button secondary" disabled={reading!==null} onClick={()=>void markRead(n.id)}>علامت خوانده‌شده</button>}
-                {n.deep_link && <Link className="text-link" href={n.deep_link}>مشاهده ←</Link>}
+                {n.deep_link && <Link className="text-link" href={safeHref(n.deep_link)}>مشاهده ←</Link>}
               </div>
             </li>;
           })}</ul>}

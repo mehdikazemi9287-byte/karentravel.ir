@@ -5,6 +5,9 @@ from fastapi.testclient import TestClient
 
 os.environ.setdefault("DATABASE_URL", "sqlite:///./test_karenseir.db")
 os.environ.setdefault("ENVIRONMENT", "development")
+# The shared test DB reuses accounts; the per-account SMS throttle has its own dedicated test.
+os.environ.setdefault("OTP_RESEND_COOLDOWN_SECONDS", "0")
+os.environ.setdefault("OTP_MAX_PER_HOUR", "100000")
 
 from app.main import Base, SessionLocal, app, engine, seed
 

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import {useEffect, useState} from 'react';
 import {type Load, Async, Badge, Card, Empty, Stats, Table, Unavailable, dateFa, errorOf, fa, money, serviceFa, useLoad} from './PanelKit';
+import { safeHref } from '../../lib/safe-href';
 
 type Reservation = {id: string; booking_reference: string | null; service_type: string; status: string; price_snapshot?: {total_amount?: number; currency?: string} | null; created_at: string; manage_link: string; provider_connected?: boolean};
 type Trip = {id: string; title: string; destination: string | null; starts_at: string | null; status: string; timeline_link: string};
@@ -20,7 +21,7 @@ const reservationCols = [
   {label: 'وضعیت', cell: (r: Reservation) => <Badge status={r.status}/>},
   {label: 'مبلغ', cell: (r: Reservation) => money(r.price_snapshot?.total_amount, r.price_snapshot?.currency)},
   {label: 'تاریخ ثبت', cell: (r: Reservation) => dateFa(r.created_at)},
-  {label: '', cell: (r: Reservation) => <Link className="pn-link" href={r.manage_link}>مدیریت رزرو</Link>},
+  {label: '', cell: (r: Reservation) => <Link className="pn-link" href={safeHref(r.manage_link, `/manage-booking/${r.id}`)}>مدیریت رزرو</Link>},
 ];
 
 export function CustomerOverview() {
@@ -42,7 +43,7 @@ export function CustomerBookings() {
     <Card title="رزروها"><Async state={res.state}>{rows => {const kinds = rows.map(r => r.service_type).filter((k, i, all) => all.indexOf(k) === i); const shown = rows.filter(r => !service || r.service_type === service);
       return <>{kinds.length > 1 && <div className="pn-chips" role="group" aria-label="نوع خدمت"><button type="button" aria-pressed={service === ''} onClick={() => setService('')}>همه ({fa(rows.length)})</button>{kinds.map(k => <button type="button" key={k} aria-pressed={service === k} onClick={() => setService(k)}>{serviceFa(k)}</button>)}</div>}
         <Table rows={shown} cols={reservationCols} rowKey={r => r.id} empty={<>رزروی ثبت نشده است. از <Link className="pn-link" href="/flights">پرواز</Link>، <Link className="pn-link" href="/hotels">هتل</Link> یا <Link className="pn-link" href="/tours">تور</Link> شروع کنید.</>}/></>;}}</Async></Card>
-    <Card title="سفرها"><Async state={trips.state}>{rows => <Table rows={rows} rowKey={t => t.id} empty="سفری ساخته نشده است." cols={[{label: 'عنوان', cell: t => t.title}, {label: 'مقصد', cell: t => t.destination ?? '—'}, {label: 'شروع', cell: t => dateFa(t.starts_at)}, {label: 'وضعیت', cell: t => <Badge status={t.status}/>}, {label: '', cell: t => <Link className="pn-link" href={t.timeline_link}>برنامه و تغییرات</Link>}]}/>}</Async></Card>
+    <Card title="سفرها"><Async state={trips.state}>{rows => <Table rows={rows} rowKey={t => t.id} empty="سفری ساخته نشده است." cols={[{label: 'عنوان', cell: t => t.title}, {label: 'مقصد', cell: t => t.destination ?? '—'}, {label: 'شروع', cell: t => dateFa(t.starts_at)}, {label: 'وضعیت', cell: t => <Badge status={t.status}/>}, {label: '', cell: t => <Link className="pn-link" href={safeHref(t.timeline_link)}>برنامه و تغییرات</Link>}]}/>}</Async></Card>
   </>;
 }
 
@@ -71,7 +72,7 @@ export function CustomerRefunds() {
   const res = useLoad<Reservation[]>('/me/reservations'); const pay = useLoad<Payment[]>('/me/payments');
   return <>
     <Card title="رزروهای قابل لغو"><p className="pn-muted">جریمه و مبلغ قابل استرداد هر رزرو از قوانین همان رزرو محاسبه می‌شود و پیش از تأیید نهایی در صفحهٔ مدیریت رزرو نمایش داده می‌شود.</p>
-      <Async state={res.state}>{rows => <Table rows={rows.filter(r => !isCancelled(r.status))} rowKey={r => r.id} empty="رزرو فعالی برای لغو وجود ندارد." cols={[...reservationCols.slice(0, 4), {label: '', cell: r => <Link className="pn-link" href={r.manage_link}>مشاهدهٔ شرایط لغو</Link>}]}/>}</Async></Card>
+      <Async state={res.state}>{rows => <Table rows={rows.filter(r => !isCancelled(r.status))} rowKey={r => r.id} empty="رزرو فعالی برای لغو وجود ندارد." cols={[...reservationCols.slice(0, 4), {label: '', cell: r => <Link className="pn-link" href={safeHref(r.manage_link, `/manage-booking/${r.id}`)}>مشاهدهٔ شرایط لغو</Link>}]}/>}</Async></Card>
     <Card title="رزروهای لغوشده"><Async state={res.state}>{rows => <Table rows={rows.filter(r => isCancelled(r.status))} rowKey={r => r.id} empty="رزرو لغوشده‌ای ندارید." cols={reservationCols}/>}</Async></Card>
     <Card title="استردادها"><Async state={pay.state}>{rows => <Table rows={rows.filter(p => p.refunded_amount > 0)} rowKey={p => p.id} empty="استردادی ثبت نشده است." cols={[{label: 'مبلغ مسترد', cell: p => money(p.refunded_amount, p.currency)}, {label: 'از پرداخت', cell: p => money(p.captured_amount, p.currency)}, {label: 'وضعیت پرداخت', cell: p => <Badge status={p.status}/>}, {label: '', cell: p => <Link className="pn-link" href={`/payments/${p.id}`}>جزئیات</Link>}]}/>}</Async></Card>
   </>;
@@ -98,7 +99,7 @@ export function CustomerNotifications() {
   return <>
     {error && <div className="pn-note error" role="alert">{error}</div>}
     <Card title="اعلان‌ها"><Async state={notes.state}>{rows => rows.length === 0 ? <Empty>اعلانی ندارید.</Empty> : <ul className="pn-list">{rows.map(n => <li key={n.id}><span><Badge status={n.status === 'read' ? 'read' : 'unread'}/> <b>{n.title}</b> — {n.message} <span className="pn-muted">· {dateFa(n.created_at)}</span></span>
-      <span>{n.deep_link && <Link className="pn-link" href={n.deep_link}>مشاهده</Link>} {n.status !== 'read' && <button type="button" className="pn-btn ghost" onClick={() => void read(n.id)}>خواندم</button>}</span></li>)}</ul>}</Async></Card>
+      <span>{n.deep_link && <Link className="pn-link" href={safeHref(n.deep_link)}>مشاهده</Link>} {n.status !== 'read' && <button type="button" className="pn-btn ghost" onClick={() => void read(n.id)}>خواندم</button>}</span></li>)}</ul>}</Async></Card>
     <Card title="کانال‌های دریافت"><Async state={prefs.state}>{rows => rows.length === 0 ? <Empty>تنظیم جداگانه‌ای ثبت نشده است؛ اعلان‌ها داخل همین حساب نمایش داده می‌شوند.</Empty> : <ul className="pn-list">{rows.map(p => <li key={p.topic + p.channel}><span>{p.topic} · <span className="pn-ltr">{p.channel}</span></span><Badge status={p.enabled ? 'active' : 'cancelled'}/></li>)}</ul>}</Async>
       <Unavailable title="پیامک و اعلان همراه">ارسال پیامک و Push به سرویس‌دهندهٔ پیام متصل نیست؛ فقط اعلان داخل حساب فعال است.</Unavailable></Card>
   </>;
