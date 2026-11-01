@@ -2523,6 +2523,7 @@ def search_offers(data: OfferSearchIn, user: User = Depends(current_user), db: S
         if stale and not data.include_stale: continue
         taxes = max(0, int(attrs.get("taxes", 0) or 0)); fees = max(0, int(attrs.get("fees", 0) or 0)); discounts = max(0, int(attrs.get("discounts", 0) or 0))
         final_price = max(0, row.amount + taxes + fees - discounts)
+        final_price, _commercial = _commercial_unit_price(db, user.tenant_id, user.id, row, attrs, final_price)
         entity_id = attrs.get("entity_id") or hashlib.sha256(f"{row.service_type}:{_normalize_search_text(row.title)}:{_normalize_search_text(str(attrs.get('city', '')))}".encode()).hexdigest()[:24]
         result = {"id": row.id, "offer_id": row.id, "entity_id": entity_id, "service_type": row.service_type, "title": row.title, "provider": row.provider_key, "provider_status": "supplier_verified" if row.fulfillment_mode == "manual_supplier" else "provider_required", "last_updated_at": observed_at.isoformat(), "observed_at": observed_at.isoformat(), "availability_checked_at": _search_datetime(attrs.get("availability_checked_at"), observed_at).isoformat(), "price_checked_at": _search_datetime(attrs.get("price_checked_at"), observed_at).isoformat(), "freshness_ttl_seconds": ttl_seconds, "freshness": "stale" if stale else "live", "freshness_state": "STALE" if stale else "LIVE", "amount": row.amount, "base_price": row.amount, "taxes": taxes, "fees": fees, "discounts": discounts, "total_amount": final_price, "final_price": final_price, "currency": row.currency, "available": not stale, "availability_state": "REQUIRES_RECHECK" if stale else "CONFIRMED", "inventory_status": "available" if not stale else "stale_unknown", "available_units": row.available_units if not stale else None, "cancellation_policy": cancellation, "policy_verified": policy.get("verified") is True, "quality_score": attrs.get("quality_score", attrs.get("quality")), "review_score": review_score or None, "location": {key: attrs.get(key) for key in ("city", "province", "latitude", "longitude") if attrs.get(key) is not None}, "attributes": attrs, "valid_until": _aware(row.valid_until).isoformat()}
         breakdown = {"price": round(1000000000 / max(result["total_amount"], 1), 4), "reviews": review_score * 10, "flexibility": 10 if cancellation and cancellation.get("refundable") else 0, "policy": 5 if attrs.get("organization_policy_compliant") else 0, "freshness": 0 if stale else 15, "provider_reliability": float(attrs.get("provider_reliability", 5))}
@@ -2870,8 +2871,23 @@ def offer_detail(offer_id: str, user: User = Depends(current_user), db: Session 
     if offer is None: raise HTTPException(status_code=404, detail="این گزینه در دسترس نیست")
     attrs = json.loads(offer.attributes_json)
     amount = max(0, offer.amount + int(attrs.get("taxes", 0) or 0) + int(attrs.get("fees", 0) or 0) - int(attrs.get("discounts", 0) or 0))
+    amount, _commercial = _commercial_unit_price(db, user.tenant_id, user.id, offer, attrs, amount)
     safe_attributes = {key: attrs[key] for key in ("hotel_rate", "city", "description", "origin", "destination", "departure_time", "arrival_time", "airline", "flight_number", "duration", "stops", "cabin", "cabin_class", "fare_type", "fare_class", "fare_rules", "supplier_name", "provider_name", "baggage", "room_type", "amenities", "stars", "breakfast", "rail_operator", "train_number", "seat_class", "vehicle_class", "pickup_location", "return_location", "rental_start", "rental_end", "deposit_terms", "license_terms", "insurance_terms", "mileage_terms", "guide_name", "languages", "meeting_point", "group_capacity", "inclusions", "exclusions", "transport_operator", "seats_per_vehicle", "pickup_point", "dropoff_point", "luggage_terms", "accessibility_terms", "sku", "artisan_name", "craft_origin", "material", "pickup_address", "pickup_hours", "authenticity_terms", "care_instructions", "delivery_mode") if key in attrs}
     return {"booking_detail_url":("/experience-products/"+str(attrs["leisure_product_id"])) if attrs.get("leisure_product_id") else None,"id": offer.id, "title": offer.title, "service_type": offer.service_type, "amount": amount, "currency": offer.currency, "policy": json.loads(offer.policy_json), "attributes": safe_attributes, "valid_until": offer.valid_until.isoformat(), "provider_required": offer.fulfillment_mode == "provider", "available": offer.status == "active" and offer.available_units > 0 and _aware(offer.valid_until) > datetime.now(timezone.utc), "max_units": offer.available_units}
+
+
+def _commercial_unit_price(db: Session, tenant_id: int, user_id: Optional[int], offer, attrs: dict, net_unit: int) -> tuple[int, Optional[dict]]:
+    """Apply the admin's markup/discount rule (commerce module) to one unit; no rule -> net price unchanged."""
+    from .commerce import quote as _commerce_quote
+    airline = attrs.get("airline_code") or (str(attrs.get("flight_number") or "")[:2] or None)
+    ctx = {"service_type": "package" if offer.service_type == "flight_hotel" else offer.service_type, "supplier_id": offer.supplier_id,
+           "airline_code": airline, "origin": attrs.get("origin_code") or attrs.get("origin"), "destination": attrs.get("destination_code") or attrs.get("destination"),
+           "scope": attrs.get("scope") or ("international" if attrs.get("international") else None), "flight_type": attrs.get("flight_type") or attrs.get("fare_type"),
+           "city_id": attrs.get("city_id"), "stars": attrs.get("stars")}
+    result = _commerce_quote(db, tenant_id, ctx, {"adult": {"count": 1, "total": net_unit}}, user_id=user_id)
+    if not result["rule"] or not result["lines"]:
+        return net_unit, None
+    return result["lines"][0]["sell"], {"rule_id": result["rule"]["id"], "net_unit": net_unit, "adjustment": result["lines"][0]["adjustment"]}
 
 
 @app.post("/offers/{offer_id}/price-check", status_code=status.HTTP_201_CREATED)
@@ -2901,10 +2917,11 @@ def price_check(offer_id: str, data: PriceCheckIn, user: User = Depends(current_
     if offer.service_type == "travel_guide":_validate_guide_contract(json.loads(offer.attributes_json))
     if offer.service_type == "tourist_transportation":_validate_transport_contract(json.loads(offer.attributes_json))
     if offer.service_type == "handicraft":_validate_handicraft_contract(json.loads(offer.attributes_json))
-    attributes = json.loads(offer.attributes_json); final_unit_price = max(0, offer.amount + int(attributes.get("taxes", 0) or 0) + int(attributes.get("fees", 0) or 0) - int(attributes.get("discounts", 0) or 0)); final_total = final_unit_price * data.units
+    attributes = json.loads(offer.attributes_json); final_unit_price = max(0, offer.amount + int(attributes.get("taxes", 0) or 0) + int(attributes.get("fees", 0) or 0) - int(attributes.get("discounts", 0) or 0)); final_unit_price, commercial_rule = _commercial_unit_price(db, user.tenant_id, user.id, offer, attributes, final_unit_price); final_total = final_unit_price * data.units
     if data.expected_final_price is not None and data.expected_final_price != final_total:
         raise HTTPException(status_code=409, detail={"code": "PRICE_CHANGED", "old_price": data.expected_final_price, "new_price": final_total, "delta": final_total - data.expected_final_price, "checked_at": now.isoformat()})
     snapshot = {"offer_id": offer.id, "service_type": offer.service_type, "supplier_id": offer.supplier_id, "title": offer.title, "unit_amount": final_unit_price, "units": data.units, "total_amount": final_total, "currency": offer.currency, "policy": json.loads(offer.policy_json), "attributes": attributes, "provider_key": offer.provider_key, "fulfillment_mode": offer.fulfillment_mode, "checked_at": now.isoformat(), "availability_state": "CONFIRMED", "price_state": "RECHECKED"}
+    if commercial_rule: snapshot["commercial_rule"] = commercial_rule
     if offer.service_type == "hotel":
         snapshot["hotel_stay"] = validate_hotel_stay(attributes, data.hotel_stay, data.units)
     elif data.hotel_stay is not None:
@@ -5251,3 +5268,6 @@ app.include_router(ecosystem_finance_router(get_db, current_user, role_has_permi
 
 from .financial_integrity import financial_integrity_router
 app.include_router(financial_integrity_router(get_db, current_user, role_has_permission, User))
+
+from .commerce import commerce_router  # noqa: E402  commercial rules + treasury
+app.include_router(commerce_router(get_db, current_user, role_has_permission, User, _platform_audit))
