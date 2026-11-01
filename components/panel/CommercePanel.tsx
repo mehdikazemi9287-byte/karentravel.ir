@@ -4,9 +4,9 @@
 import {useState, type FormEvent, type ReactNode} from 'react';
 import {Async, Badge, Card, Empty, Stats, Table, dateFa, errorOf, fa, money, useLoad} from './PanelKit';
 
-type Opt = [string, string][];
-type Field = {key: string; label: string; type?: 'text' | 'number' | 'select' | 'bool' | 'textarea' | 'date' | 'percent' | 'money'; options?: Opt; hint?: string; required?: boolean; wide?: boolean};
-type Row = Record<string, any>;
+export type Opt = [string, string][];
+export type Field = {key: string; label: string; type?: 'text' | 'number' | 'select' | 'bool' | 'textarea' | 'date' | 'percent' | 'money'; options?: Opt; hint?: string; required?: boolean; wide?: boolean};
+export type Row = Record<string, any>;
 
 const SERVICES: Opt = [['flight', 'پرواز'], ['hotel', 'هتل'], ['tour', 'تور'], ['train', 'قطار'], ['bus', 'اتوبوس'], ['insurance', 'بیمه'], ['visa', 'ویزا'], ['package', 'پرواز + هتل'], ['cip', 'CIP'], ['transfer', 'ترانسفر'], ['any', 'همه خدمات']];
 const STATUS: Opt = [['active', 'فعال'], ['disabled', 'غیرفعال']];
@@ -17,16 +17,16 @@ const ACCOUNT: Opt = [['wallet', 'کیف پول'], ['credit', 'اعتبار'], [
 const OPERATION: Opt = [['deposit', 'واریز'], ['withdrawal', 'برداشت'], ['purchase', 'خرید'], ['refund', 'استرداد'], ['settlement', 'تسویه'], ['adjustment', 'اصلاحی'], ['fee', 'کارمزد']];
 const PARTY: Opt = [['user', 'کاربر'], ['organization', 'سازمان'], ['agency', 'آژانس همکار'], ['supplier', 'تأمین‌کننده'], ['company', 'شرکت']];
 
-function Tabs({tabs}: {tabs: [string, ReactNode][]}) {
+export function Tabs({tabs}: {tabs: [string, ReactNode][]}) {
   const [i, setI] = useState(0);
   return <div><div className="pn-chips" role="tablist" style={{marginBottom: 14}}>{tabs.map(([t], k) => <button key={t} role="tab" aria-selected={i === k} className={i === k ? 'active' : ''} style={i === k ? {background: 'var(--pn-plum, #4b2a4f)', color: '#fff'} : undefined} onClick={() => setI(k)}>{t}</button>)}</div>{tabs[i][1]}</div>;
 }
 
-function Note({msg}: {msg: {ok: boolean; text: string} | null}) {
+export function Note({msg}: {msg: {ok: boolean; text: string} | null}) {
   return msg ? <p className={`pn-note ${msg.ok ? '' : 'error'}`} role={msg.ok ? 'status' : 'alert'}>{msg.text}</p> : null;
 }
 
-function FormFields({fields, value, set}: {fields: Field[]; value: Row; set: (v: Row) => void}) {
+export function FormFields({fields, value, set}: {fields: Field[]; value: Row; set: (v: Row) => void}) {
   return <>{fields.map(f => {
     const v = value[f.key];
     const on = (x: any) => set({...value, [f.key]: x});
@@ -43,7 +43,7 @@ function FormFields({fields, value, set}: {fields: Field[]; value: Row; set: (v:
 }
 
 /* Generic list + create/edit for one rule collection. */
-function Crud({path, title, fields, cols, blank, toPayload, fromRow, extra}: {path: string; title: string; fields: Field[]; cols: {label: string; cell: (r: Row) => ReactNode}[];
+export function Crud({path, title, fields, cols, blank, toPayload, fromRow, extra}: {path: string; title: string; fields: Field[]; cols: {label: string; cell: (r: Row) => ReactNode}[];
   blank: Row; toPayload?: (v: Row) => Row; fromRow?: (r: Row) => Row; extra?: (r: Row) => ReactNode}) {
   const {state, reload, api} = useLoad<{items: Row[]}>(path);
   const [edit, setEdit] = useState<Row | null>(null);

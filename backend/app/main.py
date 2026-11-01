@@ -2519,7 +2519,7 @@ def search_offers(data: OfferSearchIn, user: User = Depends(current_user), db: S
         observed_at = _search_datetime(attrs.get("observed_at"), fallback_observed)
         ttl_default = 3600 if row.fulfillment_mode == "manual_supplier" else 300
         ttl_seconds = max(30, min(int(attrs.get("freshness_ttl_seconds", ttl_default)), 86400))
-        stale = observed_at + timedelta(seconds=ttl_seconds) <= now
+        stale = observed_at + timedelta(seconds=ttl_seconds) <= now and not attrs.get("authoritative_inventory")
         if stale and not data.include_stale: continue
         taxes = max(0, int(attrs.get("taxes", 0) or 0)); fees = max(0, int(attrs.get("fees", 0) or 0)); discounts = max(0, int(attrs.get("discounts", 0) or 0))
         final_price = max(0, row.amount + taxes + fees - discounts)
@@ -5271,3 +5271,6 @@ app.include_router(financial_integrity_router(get_db, current_user, role_has_per
 
 from .commerce import commerce_router  # noqa: E402  commercial rules + treasury
 app.include_router(commerce_router(get_db, current_user, role_has_permission, User, _platform_audit))
+
+from .inventory import inventory_router  # noqa: E402  own flight inventory, contracts, sales report
+app.include_router(inventory_router(get_db, current_user, role_has_permission, User, _platform_audit))

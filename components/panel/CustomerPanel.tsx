@@ -21,7 +21,7 @@ const reservationCols = [
   {label: 'وضعیت', cell: (r: Reservation) => <Badge status={r.status}/>},
   {label: 'مبلغ', cell: (r: Reservation) => money(r.price_snapshot?.total_amount, r.price_snapshot?.currency)},
   {label: 'تاریخ ثبت', cell: (r: Reservation) => dateFa(r.created_at)},
-  {label: '', cell: (r: Reservation) => <Link className="pn-link" href={safeHref(r.manage_link, `/manage-booking/${r.id}`)}>مدیریت رزرو</Link>},
+  {label: '', cell: (r: Reservation) => <span style={{display: 'flex', gap: 10}}><Link className="pn-link" href={safeHref(r.manage_link, `/manage-booking/${r.id}`)}>مدیریت رزرو</Link><Link className="pn-link" href={`/contract/${encodeURIComponent(r.id)}`}>قرارداد</Link></span>},
 ];
 
 export function CustomerOverview() {
