@@ -155,7 +155,7 @@ type ComponentHotelRowProps = {
 function ComponentHotelRow({ className, hotel = "Abbasi" }: ComponentHotelRowProps) {
   const isZandiyeh = hotel === "Zandiyeh";
   return (
-    <div className={className || "content-stretch flex gap-[16px] items-center overflow-clip relative"} id={isZandiyeh ? "node-71_110" : "node-71_109"}>
+    <Link href={isZandiyeh ? "/hotels/zandiyeh-hotel-w999233441" : "/hotels/abbasi-hotel-r4769549"} aria-label={(isZandiyeh ? "هتل زندیه شیراز" : "هتل عباسی اصفهان") + " — مشاهده و استعلام قیمت"} className={className || "content-stretch flex gap-[16px] items-center overflow-clip relative"} id={isZandiyeh ? "node-71_110" : "node-71_109"}>
       <div className="h-[70px] relative rounded-[16px] shrink-0 w-[90px]" id={isZandiyeh ? "node-53_59" : "node-53_51"} data-name="Thumb">
         <img alt="" className="absolute inset-0 max-w-none object-cover pointer-events-none rounded-[16px] size-full" src={isZandiyeh ? imgThumb1 : imgThumb} />
       </div>
@@ -172,7 +172,7 @@ function ComponentHotelRow({ className, hotel = "Abbasi" }: ComponentHotelRowPro
           </p>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
