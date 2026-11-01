@@ -434,16 +434,28 @@ export function LegacyRedirect() {
 }
 
 
-/* ---- Unified hotel results: the registered hotels of the searched destination (no rate yet, inquiry only) ---- */
-export function CatalogHotelsForSearch() {
+/* ---- Unified hotel results: the registered hotels of the searched destination (no rate yet, inquiry only) ----
+   mode="primary": no priced offer exists for the search -> the catalog IS the result (shown first, 12 cards).
+   mode="complement": priced offers exist -> a short "more registered stays" strip under them.
+   fallback: rendered when the catalog has nothing for this destination either. */
+export function CatalogHotelsForSearch({mode = 'complement', fallback = null}: {mode?: 'primary' | 'complement'; fallback?: ReactNode}) {
   const params = useSearchParams();
   const vertical = params.get('vertical'), destination = (params.get('destination') || '').trim();
-  const show = (vertical === 'hotel' || vertical === 'package') && destination.length >= 2;
-  const {data, loading} = useCatalog<Page<Hotel>>(show ? `/catalog/hotels?q=${encodeURIComponent(destination)}&limit=6` : null);
-  if (!show || loading || !data || data.items.length === 0) return null;
-  return <section className="cat container" id="catalog-for-search" aria-labelledby="cat-search-title">
-    <header className="cat-head"><div><h2 id="cat-search-title">اقامتگاه‌های ثبت‌شده برای «{destination}»</h2><p>این اقامتگاه‌ها در فهرست کارن‌سیر ثبت شده‌اند ولی هنوز نرخ و موجودی متصل ندارند؛ برای هر کدام می‌توانید درخواست استعلام ثبت کنید.</p></div></header>
+  const show = (vertical === 'hotel' || vertical === 'package' || vertical === 'vacation_rental') && destination.length >= 2;
+  const limit = mode === 'primary' ? 12 : 6;
+  const {data, loading} = useCatalog<Page<Hotel>>(show ? `/catalog/hotels?q=${encodeURIComponent(destination)}&limit=${limit}` : null);
+  if (!show) return <>{fallback}</>;
+  if (loading) return mode === 'primary' ? <p className="cat-muted" role="status">در حال یافتن اقامتگاه‌های «{destination}»…</p> : null;
+  if (!data || data.items.length === 0) return <>{fallback}</>;
+  const all = <Link className="button secondary" href={`/hotels?q=${encodeURIComponent(destination)}`}>دیدن همهٔ {fa(data.total)} اقامتگاه «{destination}»</Link>;
+  if (mode === 'primary') return <section className="cat" id="catalog-for-search" aria-labelledby="cat-search-title">
+    <header className="cat-head"><div><h2 id="cat-search-title">{fa(data.total)} اقامتگاه در «{destination}»</h2><p>قیمت آنلاین برای این تاریخ هنوز از تأمین‌کننده نرسیده است. اقامتگاه را انتخاب کن و استعلام قیمت بگیر؛ کارشناس ما قیمت و موجودی همین تاریخ را اعلام می‌کند.</p></div></header>
     <div className="cat-grid">{data.items.map(h => <HotelCard key={h.id} h={h}/>)}</div>
-    {data.total > data.items.length && <Link className="button secondary" href={`/hotels?q=${encodeURIComponent(destination)}`}>همهٔ {fa(data.total)} اقامتگاه ثبت‌شده</Link>}
+    {data.total > data.items.length && all}
+  </section>;
+  return <section className="cat container" id="catalog-for-search" aria-labelledby="cat-search-title">
+    <header className="cat-head"><div><h2 id="cat-search-title">اقامتگاه‌های بیشتر در «{destination}»</h2><p>این اقامتگاه‌ها در فهرست کارن‌سیر ثبت شده‌اند ولی هنوز نرخ آنلاین ندارند؛ برای هر کدام می‌توانید استعلام قیمت بگیرید.</p></div></header>
+    <div className="cat-grid">{data.items.map(h => <HotelCard key={h.id} h={h}/>)}</div>
+    {data.total > data.items.length && all}
   </section>;
 }
