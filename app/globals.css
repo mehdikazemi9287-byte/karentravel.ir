@@ -723,3 +723,5 @@ a.cat-card:hover{box-shadow:0 12px 28px rgba(8,37,61,.12);transform:translateY(-
 .filters-toggle{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin:12px 0 0;padding:11px;border:1px solid var(--line);border-radius:12px;background:#fff;font:inherit;font-size:13px;font-weight:700;color:var(--ink,#2a1530)}
 .search-results-page .results-filters:not(.open){display:none}
 }
+
+.kh-cmp-hotel{text-decoration:none;color:inherit;transition:transform .15s}.kh-cmp-hotel:hover{transform:translateY(-2px)}

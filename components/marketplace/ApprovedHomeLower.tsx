@@ -44,9 +44,9 @@ export function ApprovedHomeLower() {
     <section className="kh-sec" aria-labelledby="kh-cmp-title">
       <div className="kh-cmp">
         <h2 id="kh-cmp-title">دو انتخاب داری؟ کنار هم ببین</h2>
-        {[{name: 'هتل زندیه شیراز', img: A + 'imgThumb1.jpg'}, {name: 'هتل عباسی اصفهان', img: A + 'imgThumb.jpg'}].map(h => <div key={h.name} className="kh-cmp-hotel">
+        {[{name: 'هتل زندیه شیراز', img: A + 'imgThumb1.jpg', href: '/hotels/zandiyeh-hotel-w999233441'}, {name: 'هتل عباسی اصفهان', img: A + 'imgThumb.jpg', href: '/hotels/abbasi-hotel-r4769549'}].map(h => <Link key={h.name} href={h.href} className="kh-cmp-hotel" aria-label={h.name + ' — مشاهده و استعلام قیمت'}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={h.img} alt="" loading="lazy"/><div><b>{h.name}</b><span>قیمت پس از استعلام</span></div></div>)}
+          <img src={h.img} alt="" loading="lazy"/><div><b>{h.name}</b><span>قیمت پس از استعلام</span></div></Link>)}
         <Link href="/compare" className="kh-cmp-cta"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 4v16M6 20h12M5 8h14M5 8l-3 7a3 3 0 0 0 6 0zM19 8l-3 7a3 3 0 0 0 6 0z"/></svg>مقایسه کن</Link>
       </div>
     </section>
