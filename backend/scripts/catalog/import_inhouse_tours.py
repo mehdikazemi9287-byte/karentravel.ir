@@ -1,6 +1,6 @@
-"""Import staged CheckLine tours as non-commercial reference drafts (additive, idempotent).
+"""Import staged In-house tours as non-commercial reference drafts (additive, idempotent).
 
-  DATABASE_URL=... python scripts/catalog/import_checkline_tours.py <staged_dir> [--dry-run]
+  DATABASE_URL=... python scripts/catalog/import_inhouse_tours.py <staged_dir> [--dry-run]
 
 A catalog tour is a description of something that was once offered: a title and the dates it ran on. It has
 no price, capacity, supplier or tenant and can never be booked. Something sellable exists only when a supplier
@@ -21,7 +21,7 @@ from sqlalchemy import select  # noqa: E402
 from app.catalog import CatalogTour, CatalogTourDeparture, normalize_text  # noqa: E402
 from app.database import SessionLocal  # noqa: E402
 
-SOURCE, LICENSE, RETRIEVED = "checkline", "CheckLine content; rights unverified", "2026-10-06"
+SOURCE, LICENSE, RETRIEVED = "inhouse", "KarenSeir own content", "2026-10-06"
 _DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
 
 

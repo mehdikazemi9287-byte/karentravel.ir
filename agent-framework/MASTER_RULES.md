@@ -80,7 +80,7 @@ Keep output short, accurate and actionable. Do not skip required QA to save toke
 
 ## Project isolation and protected rules
 
-Supported projects: Karen Travel, 60Online, Estehkam, ShadShahr, Padvira, CheckLine.
+Supported projects: Karen Travel, 60Online, Estehkam, ShadShahr, Padvira, In-house.
 Do not add another project without explicit user instruction. Each project is independent.
 An agent may not change another project unless the user explicitly defines a cross-project task.
 Inspect dependencies before changing any shared code or infrastructure; shared framework rules

@@ -39,9 +39,9 @@ property content, structured protected traveller data, basket-to-single-Trip
 linkage and the remaining vertical/after-sales requirements. Do not classify
 these as external credential blockers or claim all internal capabilities PASS.
 
-CheckLine integration capability is unverified: no approved source/API reference
+In-house integration capability is unverified: no approved source/API reference
 was supplied or found in the checked project locations. Do not infer its supplier
-functionality is unavailable. No CheckLine UI/database/code was copied. No Figma
+functionality is unavailable. No In-house UI/database/code was copied. No Figma
 source URL was found in the checked design/docs references; existing approved
 frontend visual structure was preserved, but no Figma document was edited.
 

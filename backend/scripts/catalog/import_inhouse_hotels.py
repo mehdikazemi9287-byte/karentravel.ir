@@ -1,14 +1,14 @@
-"""Import staged CheckLine hotels into the master catalog as editable drafts (additive, idempotent).
+"""Import staged In-house hotels into the master catalog as editable drafts (additive, idempotent).
 
-  DATABASE_URL=... python scripts/catalog/import_checkline.py <staged_dir> [--dry-run] [--only=<legacy_id>,...]
+  DATABASE_URL=... python scripts/catalog/import_inhouse_hotels.py <staged_dir> [--dry-run] [--only=<legacy_id>,...]
 
 Identity: id is cl-<legacy id>, so a re-run never duplicates. Rows land as status=draft and are published only
 from the admin panel. Admin-owned rows (updated_by set) are never touched; nothing is ever deleted.
 Unknown stays NULL: no price, availability, coordinates, amenities, rooms, images or description are derived.
-The CheckLine rating is kept as a source-reported, unverified star value.
+The In-house rating is kept as a source-reported, unverified star value.
 
 Reference data (additive, with provenance): a country missing from catalog_places is added only when its
-CheckLine English title is an exact ISO 3166-1 short name in ISO below; a city is added only from a CheckLine
+In-house English title is an exact ISO 3166-1 short name in ISO below; a city is added only from a In-house
 geography row of type city whose own country resolves to the same ISO code. Neither gets coordinates.
 
 Duplicates: pairs are found by an exact normalised name within the same city. Name alone only records a
@@ -28,7 +28,7 @@ from sqlalchemy import select  # noqa: E402
 from app.catalog import CatalogHotel, CatalogHotelMatch, CatalogPlace, normalize_text  # noqa: E402
 from app.database import SessionLocal  # noqa: E402
 
-SOURCE, LICENSE, RETRIEVED = "checkline", "CheckLine content; rights unverified", "2026-10-06"
+SOURCE, LICENSE, RETRIEVED = "inhouse", "KarenSeir own content", "2026-10-06"
 FIELDS = ("slug", "country_code", "region_id", "city_id", "name_fa", "name_en", "hotel_type", "stars", "stars_status", "address", "checkin_time", "checkout_time",
           "search_text", "source", "source_ref", "source_license", "retrieved_on")
 ISO = {"thailand": ("TH", "Thailand"), "türkiye": ("TR", "Türkiye"), "turkey": ("TR", "Türkiye"), "france": ("FR", "France"), "morocco": ("MA", "Morocco"), "georgia": ("GE", "Georgia"),
@@ -97,7 +97,7 @@ def main(staged_dir: str, dry_run: bool, only: set[str] | None = None) -> dict:
             if code not in countries:
                 place = CatalogPlace(id=code.lower(), kind="country", country_code=code, name_fa=(g.get("title") or "").strip() or None, name_en=english, hotel_count=0,
                                      search_text=normalize_text(f"{g.get('title') or ''} {english}"), source="iso3166-1", source_ref=code,
-                                     source_license="ISO 3166-1 code; Persian name as recorded by CheckLine", retrieved_on=RETRIEVED)
+                                     source_license="ISO 3166-1 code; Persian name as recorded by In-house", retrieved_on=RETRIEVED)
                 countries[code] = place
                 report["countries_added"].append(code)
                 if not dry_run:
@@ -147,7 +147,7 @@ def main(staged_dir: str, dry_run: bool, only: set[str] | None = None) -> dict:
             rating = str(raw.get("rating_current_unverified") or "").strip()
             stars = int(rating) if rating in {"1", "2", "3", "4", "5"} else None
             address = (raw.get("address_current") or "").strip()[:400] or None
-            values = {"slug": f"checkline-{legacy}", "country_code": country.country_code, "region_id": city.parent_id if city and city.parent_id != country.id else None,
+            values = {"slug": f"hotel-{legacy}", "country_code": country.country_code, "region_id": city.parent_id if city and city.parent_id != country.id else None,
                       "city_id": city.id if city else None, "name_fa": name_fa, "name_en": name_en[:200] if name_en else None, "hotel_type": "hotel", "stars": stars,
                       "stars_status": "source_reported" if stars else None, "address": address, "checkin_time": clock(raw.get("check_in_current")),
                       "checkout_time": clock(raw.get("check_out_current")),
@@ -192,7 +192,7 @@ def _match(db, ids: list[str], report: dict) -> None:
         candidates = {c.id: c for key in name_keys(row.name_fa, row.name_en) for c in index.get((row.city_id, key), [])
                       if c.id != row.id and (c.source != SOURCE or legacy(c) < legacy(row))}
         seen: set[str] = set()
-        for cand in sorted(candidates.values(), key=lambda c: (c.source == SOURCE, legacy(c), c.id)):  # a non-CheckLine record is the preferred canonical
+        for cand in sorted(candidates.values(), key=lambda c: (c.source == SOURCE, legacy(c), c.id)):  # a non-In-house record is the preferred canonical
             canonical = cand
             while canonical.duplicate_of and canonical.duplicate_of != row.id:
                 canonical = db.get(CatalogHotel, canonical.duplicate_of)

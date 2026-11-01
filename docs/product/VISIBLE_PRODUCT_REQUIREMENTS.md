@@ -359,7 +359,7 @@ Consistent components.
 Do not allow the current beige/orange/purple drift to become the design
 system.
 
-Do not copy Alibaba, Jabama or CheckLine visually.
+Do not copy Alibaba, Jabama or In-house visually.
 
 Use them only to understand product depth.
 

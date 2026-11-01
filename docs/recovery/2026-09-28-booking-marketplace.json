@@ -54,7 +54,7 @@
   "production_sms": false,
   "production_fixtures": false,
   "migration": false,
-  "checkline": "No CheckLine source or approved API reference found in accessible supplied project paths; capability remains unverified, not declared unavailable.",
+  "inhouse": "No In-house source or approved API reference found in accessible supplied project paths; capability remains unverified, not declared unavailable.",
   "remaining_internal": "See ADR-022 gap matrix and authoritative product requirement files",
   "rollback": "Retain old containers; before reverting after adoption, disable units using new rate/calendar fields because older code ignores them.",
   "deployed_commit": "c138249",
@@ -289,7 +289,7 @@
     "Close remaining applicable lifecycle/after-sales/vertical gaps against the approved product requirements"
   ],
   "external_references_needed": [
-    "Approved CheckLine API/source reference for the requested capability audit",
+    "Approved In-house API/source reference for the requested capability audit",
     "Approved Figma file/node reference for edits in Figma itself"
   ],
   "baseline_tests_not_repeated": [

@@ -708,15 +708,15 @@ ticket
 refund status
 
 ==================================================
-26. CHECKLINE CAPABILITY AUDIT
+26. In-house CAPABILITY AUDIT
 ==================================================
 
-CheckLine already demonstrates real flight/hotel inventory.
+In-house already demonstrates real flight/hotel inventory.
 
 Audit its approved integration possibilities before claiming supplier
 functionality is unavailable.
 
-Do not couple KarenSeir directly to CheckLine UI.
+Do not couple KarenSeir directly to In-house UI.
 
 Use supplier adapters and a normalized KarenSeir domain.
 

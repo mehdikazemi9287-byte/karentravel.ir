@@ -1,6 +1,6 @@
-"""Import the full CheckLine bundle content into the master catalog (additive, idempotent, provenance kept).
+"""Import the full In-house bundle content into the master catalog (additive, idempotent, provenance kept).
 
-  DATABASE_URL=... python scripts/catalog/import_checkline_bundle.py <extracted_bundle_dir> [--dry-run]
+  DATABASE_URL=... python scripts/catalog/import_inhouse_bundle.py <extracted_bundle_dir> [--dry-run]
 
 Reads evidence-round3/deep-data-audit-round3.json (catalog items with public body) and
 evidence-round3/catalog-controls-round3.json (full meta, taxonomy), round3-technical/media-workbench.json
@@ -11,7 +11,7 @@ clock times, rules, phone, room types, images, facts; reference tours with descr
 transport, inclusions, hotels; attractions; visa articles; the old site's page/menu map.
 What is never written: price, discount, capacity, availability, coordinates that the source does not carry,
 facility lists whose labels are not in the bundle. Admin-edited rows keep their values (only empty fields are filled).
-Rows of other sources are never changed. Nothing is deleted except replace-on-import children of CheckLine-owned rows.
+Rows of other sources are never changed. Nothing is deleted except replace-on-import children of In-house-owned rows.
 """
 from __future__ import annotations
 
@@ -30,11 +30,11 @@ from sqlalchemy import delete, func, select  # noqa: E402
 from app.catalog import (AMENITIES, CatalogContent, CatalogHotel, CatalogHotelImage, CatalogHotelRoomType, CatalogLegacyRoute, CatalogPlace, CatalogTour, CatalogTourHotel, CatalogVenue,  # noqa: E402
                          content_is_complete, normalize_text)
 from app.database import SessionLocal  # noqa: E402
-from scripts.catalog.import_checkline import ISO, LICENSE, RETRIEVED, SOURCE, _match, clock, squash  # noqa: E402
+from scripts.catalog.import_inhouse_hotels import ISO, LICENSE, RETRIEVED, SOURCE, _match, clock, squash  # noqa: E402
 UNKNOWN_COUNTRY = "ZZ"  # ISO 3166 user-assigned: the source names no country; such a hotel is a draft until a reviewer sets it
 
-MEDIA_BASE = "https://checkline.travel/wp-content/uploads/"
-IMAGE_LICENSE = "CheckLine media library; rights unverified"
+MEDIA_BASE = "/catalog-media/"
+IMAGE_LICENSE = "KarenSeir own media"
 ROOM_AMENITY = {"wifi": "wifi", "elevator": "elevator", "reception_24": "reception_24h", "air_conditioning": "air_conditioning", "safe_box": "safe", "full_fridge": "minibar", "satellite": "tv", "tv": "tv", "room_service": "room_service",
                 "breakfast": "breakfast", "kitchen": "kitchen", "parking": "parking", "laundry": "laundry", "toothbrush_toothpaste_soap": "toiletries", "towel_slippers": "towels", "closet_with_hangers": "wardrobe", "hairdryer": "hairdryer",
                 "fire_sensor": "smoke_detector", "alarm": "wake_up", "terrace": "terrace", "airport_transportation": "airport_shuttle", "exchange": "currency_exchange", "buffet_breakfast": "breakfast", "restaurant": "restaurant",
@@ -167,7 +167,7 @@ def main(bundle_dir: str, dry_run: bool, publish: bool = True) -> dict:
         enriched_ids: set[str] = set()  # the source has duplicate country/city posts: the lowest id speaks for the place
 
         def enrich(place: CatalogPlace, x: dict, meta: dict, extra: dict) -> None:
-            """Fill only what is empty on records of other sources; CheckLine-owned records follow the bundle."""
+            """Fill only what is empty on records of other sources; In-house-owned records follow the bundle."""
             if place.id in enriched_ids: return
             enriched_ids.add(place.id)
             own = (place.source == SOURCE or place.source == "iso3166-1") and place.updated_by is None
@@ -186,7 +186,7 @@ def main(bundle_dir: str, dry_run: bool, publish: bool = True) -> dict:
             img = image_url(first(meta.get("top-image"))) or next((image_url(g) for g in ids_of(meta.get("gallery")) if image_url(g)), None)
             if img and not place.image_url: place.image_url, place.image_credit = img, IMAGE_LICENSE
             details = json.loads(place.details_json or "{}")
-            details["checkline"] = {k: v for k, v in {"legacy_id": x["id"], "legacy_slug": unquote(x.get("slug") or ""), "source_status": x["status"], "categories": categories.get(str(x["id"])),
+            details["inhouse"] = {k: v for k, v in {"legacy_id": x["id"], "legacy_slug": unquote(x.get("slug") or ""), "source_status": x["status"], "categories": categories.get(str(x["id"])),
                                                       "images": gallery_urls(ids_of(meta.get("gallery"))), "map_link": map_link(first(meta.get("map-embed"))), "flag_url": image_url(first(meta.get("flag"))), **extra}.items() if v not in EMPTY}
             place.details_json = json.dumps(details, ensure_ascii=False, sort_keys=True)
             if own:
@@ -301,11 +301,11 @@ def main(bundle_dir: str, dry_run: bool, publish: bool = True) -> dict:
                                          "map_link": map_link(first(meta.get("map-embed"))), "traffic": text_of(first(meta.get("traffic-situation"))), "review_note": review, "coordinates_basis": position[2] if position else None, "place_basis": place_basis,
                                          "nearby": [{"place": r["hdtbp-place"], "distance": r["hdtbp-distance"], "unit": r["hdtbp-unit"]} for r in rows_of(meta, "hotel-distance-to-bold-points", ("hdtbp-place", "hdtbp-distance", "hdtbp-unit")) if r["hdtbp-place"]],
                                          "restaurants": [{"name": r["cafe-name"], "capacity": r["cafe-capacity"], "hours": r["cafe-hours"]} for r in restaurants if r["cafe-name"]]}.items() if v not in EMPTY}
-            values = {"slug": f"checkline-{legacy}", "country_code": code, "region_id": city.parent_id if city and country and city.parent_id != country.id else None, "latitude": position[0] if position else None, "longitude": position[1] if position else None, "city_id": city.id if city else None, "name_fa": name_fa,
+            values = {"slug": f"hotel-{legacy}", "country_code": code, "region_id": city.parent_id if city and country and city.parent_id != country.id else None, "latitude": position[0] if position else None, "longitude": position[1] if position else None, "city_id": city.id if city else None, "name_fa": name_fa,
                       "name_en": name_en[:200] if name_en else None, "hotel_type": "guest_house" if first(meta.get("stay-type")) == "ecotourism" else "hotel", "stars": stars, "stars_status": "source_reported" if stars else None,
                       "address": (first(meta.get("address")) or "").strip()[:400] or None, "checkin_time": clock(first(meta.get("check-in-time"))), "checkout_time": clock(first(meta.get("check-out-time"))), "description": description,
                       "rules_text": rules, "phone": str(phone).strip()[:80] if phone else None, "website": str(site).strip()[:300] if site and str(site).startswith("https://") else None, "amenities_json": json.dumps(amenity_keys),
-                      "details_json": json.dumps({"checkline": details}, ensure_ascii=False, sort_keys=True),
+                      "details_json": json.dumps({"inhouse": details}, ensure_ascii=False, sort_keys=True),
                       "search_text": normalize_text(" ".join(filter(None, [name_fa, name_en, city.search_text if city else None, country.name_fa if country else None, first(meta.get("address")), first(meta.get("district"))])))[:2000],
                       "source": SOURCE, "source_ref": f"hotel/{legacy}", "source_license": LICENSE, "retrieved_on": RETRIEVED}
             image_ids = list(dict.fromkeys(ids_of(meta.get("gallery"))))
@@ -397,7 +397,7 @@ def main(bundle_dir: str, dry_run: bool, publish: bool = True) -> dict:
                       "destination_place_id": dest.id if dest else None, "duration_nights": nights, "duration_days": days, "transport_mode": next((TRANSPORT[l["direction_title"]] for l in legs if l["direction_title"] in TRANSPORT), None),
                       "guide_included": True if "persian-tour-leader" in codes else None, "transfer_included": True if any(c.startswith("transfer-") for c in codes) else None,
                       "cancellation_policy_text": "\n".join(filter(None, [text_of(first(meta.get("title_table_jarime"))), text_of(first(meta.get("txt_table_jarime"))), text_of(first(meta.get("tour-rules")))])) or None,
-                      "details_json": json.dumps({"checkline": details}, ensure_ascii=False, sort_keys=True), "source_disabled": str(first(meta.get("disabled")) or "0") == "1", "source_soldout": str(first(meta.get("static-soldout")) or "0") == "1",
+                      "details_json": json.dumps({"inhouse": details}, ensure_ascii=False, sort_keys=True), "source_disabled": str(first(meta.get("disabled")) or "0") == "1", "source_soldout": str(first(meta.get("static-soldout")) or "0") == "1",
                       "source": SOURCE, "source_ref": f"tour/{x['id']}", "source_license": LICENSE, "retrieved_on": RETRIEVED, "status": "published" if x["status"] == "publish" else "draft"}
             row = db.get(CatalogTour, tid)
             if not publish_flag: values["status"] = row.status if row is not None else "draft"
@@ -440,7 +440,7 @@ def main(bundle_dir: str, dry_run: bool, publish: bool = True) -> dict:
                 for k, v in vals.items(): setattr(row, k, v)
             report["content"] += 1
         for code, place in countries.items():
-            note = json.loads(place.details_json or "{}").get("checkline", {}).get("visa_note")
+            note = json.loads(place.details_json or "{}").get("inhouse", {}).get("visa_note")
             cid = f"cl-visa-country-{code.lower()}"; row = db.get(CatalogContent, cid)
             if not note: continue
             vals = {"kind": "visa_country", "title": f"ویزای {place.name_fa}", "slug": code.lower(), "body": note, "status": "published", "source": SOURCE, "source_ref": f"country/{code}", "source_license": LICENSE, "retrieved_on": RETRIEVED}
@@ -450,7 +450,7 @@ def main(bundle_dir: str, dry_run: bool, publish: bool = True) -> dict:
             report["content"] += 1
         STATIC = {"ثبت شکایت": "/support", "مشاوره گردشگری آنلاین": "/support", "چرا ما را انتخاب می کنید؟": "/contact", "جاذبه های گردشگری": "/attractions", "صنایع دستی": "/handicrafts", "رزرو هتل خارجی": "/hotels",
                   "راهنمای خرید هتل": "/hotels", "کشور": "/destinations", "تفریحات کیش": "/attractions", "تورهای ویژه BSI": "/tours/search", "bsi tour": "/tours/search", "بلاگ": "/travel-guides",
-                  "اقامت و مهاجرت": "/visa", "گردشگری سلامت چیست؟": "/services", "اپلیکیشن چک‌لاین تراول": "/"}
+                  "اقامت و مهاجرت": "/visa", "گردشگری سلامت چیست؟": "/services", "اپلیکیشن کارن‌سیر تراول": "/"}
         menu_targets = {str(mi.get("_menu_item_object_id")) for mi in deep["menu_items"] if mi.get("_menu_item_object") == "page"}
         for page in deep["pages"]:
             if page["post_status"] != "publish": continue

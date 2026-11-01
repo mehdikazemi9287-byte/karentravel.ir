@@ -6,7 +6,7 @@ the master; rendered configurations embed a snapshot so other projects have no r
 filesystem dependency on Karen Travel. Future updates require a reviewed regeneration/merge,
 not automatic synchronization across projects.
 
-Supported: Karen Travel, 60Online, Estehkam, ShadShahr, Padvira, CheckLine.
+Supported: Karen Travel, 60Online, Estehkam, ShadShahr, Padvira, In-house.
 Only bootstrap a different project after explicit user authorization for that project.
 Definitions describe Codex roles; they do not start persistent agents or install global settings.
 

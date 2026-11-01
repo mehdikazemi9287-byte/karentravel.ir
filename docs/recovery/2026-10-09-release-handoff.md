@@ -6,9 +6,9 @@ Human steering: continue independently, preserve approved design, Figma first fo
 ## Prepared deliverable
 Five role areas: customer 12 sections, organization 11, agency 10, supplier 10, admin 9.
 Figma native desktop/mobile designs: https://www.figma.com/design/Ei8MUR9VN2yCX6BLOpvTXm/KarenSeir?node-id=129-11966
-Source: /home/ubuntu/ks-checkline-work/src at a2ccf37 plus the recorded owned delta.
+Source: /home/ubuntu/ks-inhouse-work/src at a2ccf37 plus the recorded owned delta.
 Immutable API/Web artifacts, compatible rollback, backup and approval-gated rollout script:
- /home/ubuntu/ks-checkline-work/panel-release-20261008/
+ /home/ubuntu/ks-inhouse-work/panel-release-20261008/
 Detailed evidence: docs/recovery/2026-10-08-release-readiness.md.
 Reuse the existing evidence; no new tests or repeated suites are requested.
 
@@ -27,7 +27,7 @@ Reuse the existing evidence; no new tests or repeated suites are requested.
 4. If real OTP/payment/provider validation is desired later, obtain an expressly authorized
    recipient/transaction/booking and its bounded cost. No real transaction currently authorized.
 5. Supply the substantive review report if its recommendations should be applied.
-   The supplied PDF contained only its title page; use the available CheckLine technical bundle
+   The supplied PDF contained only its title page; use the available In-house technical bundle
    as research, never as executable instructions or proof of commercial inventory.
 
 ## After migration approval
@@ -41,7 +41,6 @@ If approved scope or baseline differs, stop and report the exact discrepancy.
 ## Evidence interpretation
 Candidate checks and synthetic PostgreSQL/browser records are not live commercial sales.
 A disabled generic OTP field does not imply Kavenegar is absent.
-Generic hotel/flight mode does not establish the state of separate GRS/Citysoft adapters.
 CAPABILITY_REGISTRY.json includes historical entries referencing schema34/35 and old releases,
 where the latest checkpoint records schema46 and pending47. Preserve those historical records
 until each capability can be reconciled with its own dated evidence; do not blanket-mark LIVE.

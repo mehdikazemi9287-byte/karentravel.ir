@@ -40,10 +40,10 @@
 |--------|-------|------|
 | **Licensed Entity** | شخصیت حقوقی دارنده مجوز فعالیت گردشگری | تاژبان گشت پارس |
 | **Platform** | سامانه نرم‌افزاری مستقل (کدبیس + دیتابیس + Deployment) | Karen Travel |
-| **Brand** | هویت بصری و تجاری که مشتری نهایی می‌بیند | checkline.ir |
-| **Tenant** | نمونه منطقی جداشده روی Platform (داده + تنظیمات) | Checkline Tenant, سازمان X |
-| **Authorized Sales Channel** | کانال فروش مجاز که تحت مجوز یک Licensed Entity فعالیت می‌کند | چک‌لاین، آژانس Y |
-| **Supplier / Commercial Partner** | تأمین‌کننده خدمت، نرخ، موجودی یا فناوری | ایرلاین، هتل، سیتی‌نت |
+| **Brand** | هویت بصری و تجاری که مشتری نهایی می‌بیند | karenseir.ir |
+| **Tenant** | نمونه منطقی جداشده روی Platform (داده + تنظیمات) | In-house Tenant, سازمان X |
+| **Authorized Sales Channel** | کانال فروش مجاز که تحت مجوز یک Licensed Entity فعالیت می‌کند | کارن‌سیر، آژانس Y |
+| **Supplier / Commercial Partner** | تأمین‌کننده خدمت، نرخ، موجودی یا فناوری | ایرلاین، هتل، اقامت۲۴ |
 | **White Label** | حالت خاصی از Tenant + Brand که برند و ظاهر سفارشی دارد | پورتال سفر بانک Z |
 
 ### نمودار رابطه‌ای
@@ -54,7 +54,7 @@
     │
     ├── Karen Travel ──── Platform (مستقل فنی)
     │       │
-    │       ├── checkline.ir ──── Authorized Sales Channel
+    │       ├── karenseir.ir ──── Authorized Sales Channel
     │       │       (Brand + Tenant، تحت مجوز تاژبان)
     │       │
     │       ├── پورتال سفر بانک Z ──── White Label
@@ -73,15 +73,15 @@ Commercial & Supply Partners (طبقه جدا):
     ├── Aggregators (پرتو، مقیم، ...)
     ├── Rail/Transport (رجا، ...)
     ├── Insurance (بیمه سامان، ...)
-    ├── Technology/API Providers (سیتی‌نت، ...)
+    ├── Technology/API Providers (اقامت۲۴، ...)
     └── [سایر تأمین‌کنندگان]
 ```
 
 ### قاعده‌ها
 - تاژبان = Licensed/Commercial Parent (نه والد کدبیس)
 - Karen Travel = Platform فنی مستقل
-- checkline.ir = Authorized Sales Channel (می‌تواند با معماری WL اجرا شود — تصمیم باز)
-- سیتی‌نت = Technology/API Provider (در طبقه Suppliers)
+- karenseir.ir = Authorized Sales Channel (می‌تواند با معماری WL اجرا شود — تصمیم باز)
+- اقامت۲۴ (GRS) = Technology/API Provider (در طبقه Suppliers)
 - هیچ‌یک از موارد بالا از روی نام برند استنباط نمی‌شود — صریحاً تنظیم می‌شود
 
 ---
@@ -198,7 +198,7 @@ L1: Infrastructure (PostgreSQL, Redis, Elasticsearch, MQ, Monitoring, Backup/DR)
 | # | تصمیم | دلیل |
 |---|-------|------|
 | ADR-001 | Karen Travel = پلتفرم مستقل | مالکیت کامل کد و داده |
-| ADR-002 | Multi-Tenant از روز اول | checkline.ir اولین Channel |
+| ADR-002 | Multi-Tenant از روز اول | karenseir.ir اولین Channel |
 | ADR-003 | AI Layer (L8) از روز اول | AI-ready Schema + Events |
 | ADR-004 | Supplier Status System | جلوگیری از ساخت کد برای Supplier تعیین‌نشده |
 | ADR-005 | Event-Driven برای عملیات حساس | Booking/Payment/Refund از طریق Event |
@@ -246,7 +246,7 @@ Refund Flow (12 مرحله + Error States + Idempotency + Concurrency + 8 Accept
 | CIP Operator | تشریفات فرودگاه | شرکت‌های CIP |
 | Transport Provider | ترانسفر/اتوبوس/خودرو | (UNSELECTED) |
 | Experience Provider | گشت و تجربه | (UNSELECTED) |
-| Technology/API Provider | فناوری | سیتی‌نت |
+| Technology/API Provider | فناوری | اقامت۲۴ |
 
 ## ۵.۲ Supply Chain
 
@@ -636,7 +636,7 @@ Acceptance Tests: E2E3-01→E2E3-05 (Happy Path, Rate Change, Overcharge Dispute
 | 8 | TOC Case Management (۱۲ نوع + SLA) | ✅ |
 | 9 | Human/AI Boundary + Handoff | ✅ |
 | 10 | Spec ≠ Implementation (۶ وضعیت) | ✅ |
-| +α | CheckLine = Authorized Sales Channel | ✅ |
+| +α | In-house = Authorized Sales Channel | ✅ |
 
 ---
 

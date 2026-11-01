@@ -7,7 +7,7 @@ import sys
 
 KEYS = {"PROJECT_NAME", "PROJECT_ROOT", "SERVER", "PRODUCTION_PATH", "SERVICES",
         "PROTECTED_AREAS", "PROJECT_SPECIFIC_RULES"}
-SUPPORTED = {"Karen Travel", "60Online", "Estehkam", "ShadShahr", "Padvira", "CheckLine"}
+SUPPORTED = {"Karen Travel", "60Online", "Estehkam", "ShadShahr", "Padvira", "In-house"}
 
 
 def render(values):

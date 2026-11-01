@@ -34,7 +34,7 @@ disable affected units before reverting to an older implementation.
 | After-sales/operations | service requests, support, event timeline, roles | partial cancellation/refund and changed-value detail review required |
 | Organization | policy/approval/credit baseline | compare full settlement journey against requirements |
 | Assistant | deterministic search/hold/checkout | structured accommodation constraints, multi-service planning remain |
-| CheckLine | no approved adapter evidence inspected this increment | read-only integration capability discovery; no UI/DB coupling |
+| In-house | no approved adapter evidence inspected this increment | read-only integration capability discovery; no UI/DB coupling |
 | Design | existing approved component system | preserve homepage; extend states in dedicated screens; Figma source not supplied |
 
 Only tested increments are deployed; remaining internal gaps are not external blockers.

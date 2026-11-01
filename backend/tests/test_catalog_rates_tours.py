@@ -9,8 +9,8 @@ from app import hotel_rates
 from app.catalog import CatalogHotelProviderMapping, CatalogTour, CatalogTourDeparture, TOUR_TABLES
 from app.hotel_rates import RateOffer, RateQuery, RateSourceError, validate_offers
 from app.main import SessionLocal
-from scripts.catalog import import_checkline_tours
-from scripts.catalog.import_checkline_tours import jalali_to_gregorian
+from scripts.catalog import import_inhouse_tours
+from scripts.catalog.import_inhouse_tours import jalali_to_gregorian
 from tests.test_catalog_hotel_content import _token
 from tests.test_catalog_master_data import _load
 
@@ -101,9 +101,9 @@ def test_tour_catalog_is_reference_only(tmp_path, client):
     (d / "departures.jsonl").write_text("\n".join(json.dumps({"raw": r}) for r in [{"tour_id": 1, "row_index": 1, "departure_raw": "1402-08-04", "end_raw": "1402-08-11"},
                                                                                      {"tour_id": 1, "row_index": 2, "departure_raw": "1402-12-30", "end_raw": "1403-01-05"},
                                                                                      {"tour_id": 9, "row_index": 1, "departure_raw": "1402-08-04", "end_raw": "1402-08-11"}]), encoding="utf-8")
-    first = import_checkline_tours.main(str(d), False)
+    first = import_inhouse_tours.main(str(d), False)
     assert (first["tours_inserted"], first["departures_inserted"], first["departures_invalid_date"], first["departures_without_tour"]) == (2, 2, 1, 1)
-    second = import_checkline_tours.main(str(d), False)
+    second = import_inhouse_tours.main(str(d), False)
     assert (second["tours_inserted"], second["tours_unchanged"], second["departures_inserted"], second["departures_unchanged"]) == (0, 2, 0, 2)
     admin = _token(client, "backoffice@aftab.test")
     assert client.get("/admin/catalog/tours").status_code in (401, 403) and client.get("/admin/catalog/tours", headers=_token(client, "supplier@aftab.test")).status_code == 403

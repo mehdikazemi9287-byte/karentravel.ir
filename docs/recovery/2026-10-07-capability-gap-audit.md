@@ -33,7 +33,7 @@
 | Hotel operator | نرخ و موجودی زنده | EXTERNAL_BLOCKED | endpoint، token و قرارداد GRS |
 | Tour operator | کاتالوگ مرجع تور (برنامهٔ سفر، هتل، حمل‌ونقل، وعده، قوانین) | PARTIAL | مدل و API ادمین کامل و تست‌شده؛ UI ندارد |
 | Tour operator | محصول و تاریخ حرکت قابل‌فروش | PARTIAL | tour_products/departures موجود؛ ایجاد تاریخ گذشته اکنون رد می‌شود |
-| Tour operator | تاریخ‌های آینده و نرخ تورهای CheckLine | EXTERNAL_BLOCKED | مالک/tenant و دادهٔ تأمین‌کننده لازم است |
+| Tour operator | تاریخ‌های آینده و نرخ تورهای In-house | EXTERNAL_BLOCKED | مالک/tenant و دادهٔ تأمین‌کننده لازم است |
 | Flight operator | دادهٔ مرجع ایرلاین/فرودگاه | WORKING | ۷۲ ایرلاین، ۱۷۴ فرودگاه (محدود به ۶ کشور) |
 | Flight operator | قرارداد search/fare/revalidate/PNR/issue/void/refund/schedule change | WORKING | flight_port + harness؛ تغییر برنامه به رویداد سفر تبدیل می‌شود |
 | Flight operator | جست‌وجو و صدور واقعی | EXTERNAL_BLOCKED | تأمین‌کنندهٔ پرواز وجود ندارد |

@@ -5,7 +5,7 @@ from sqlalchemy import delete
 
 from app.catalog import CatalogHotel, CatalogHotelImage, CatalogHotelMatch, CatalogHotelProviderMapping, CatalogHotelRoomType, CatalogPlace
 from app.main import SessionLocal
-from scripts.catalog import import_checkline
+from scripts.catalog import import_inhouse_hotels
 from tests.test_catalog_master_data import HOTELS, _load
 
 
@@ -22,7 +22,7 @@ def _stage(tmp_path, hotels):
     return str(d)
 
 
-CL = [{"hotel_id": 901, "title": "هتل نمونه چک‌لاین (Sample Checkline Hotel)", "country_id": "1", "country": "ایران", "city_id": "2", "city": "شیراز", "rating_current_unverified": "4",
+CL = [{"hotel_id": 901, "title": "هتل نمونه کارن‌سیر (Sample In-house Hotel)", "country_id": "1", "country": "ایران", "city_id": "2", "city": "شیراز", "rating_current_unverified": "4",
        "address_current": "خیابان زند", "check_in_current": "۱۴:۰۰", "check_out_current": "2:00 عصر - هر زمان"},
       {"hotel_id": 902, "title": "Bangkok Test", "country_id": "3", "country": "تایلند", "city_id": "", "city": "بانکوک", "rating_current_unverified": ""}]
 VALID = {"name_fa": "هتل ویرایش‌شده", "name_en": "Edited Hotel", "country_code": "IR", "city_id": "ir-shiraz", "hotel_type": "hotel", "stars": 4, "stars_status": "verified",
@@ -36,33 +36,33 @@ VALID = {"name_fa": "هتل ویرایش‌شده", "name_en": "Edited Hotel", "
 def _reset():
     with SessionLocal() as db:
         for model in (CatalogHotelMatch, CatalogHotelProviderMapping, CatalogHotelImage, CatalogHotelRoomType, CatalogHotel): db.execute(delete(model))
-        db.execute(delete(CatalogPlace).where(CatalogPlace.source.in_(("checkline", "iso3166-1")))); db.commit()
+        db.execute(delete(CatalogPlace).where(CatalogPlace.source.in_(("inhouse", "iso3166-1")))); db.commit()
 
 
-def test_checkline_import_is_draft_idempotent_and_never_guesses(tmp_path, client):
+def test_inhouse_import_is_draft_idempotent_and_never_guesses(tmp_path, client):
     _reset(); _load(tmp_path); staged = _stage(tmp_path, CL)
-    first = import_checkline.main(staged, False)
+    first = import_inhouse_hotels.main(staged, False)
     assert first["inserted"] == 2 and first["quarantined"] == {} and first["countries_added"] == ["TH"] and first["city_unresolved"] == 1
-    second = import_checkline.main(staged, False)
+    second = import_inhouse_hotels.main(staged, False)
     assert (second["inserted"], second["updated"], second["unchanged"], second["countries_added"]) == (0, 0, 2, [])
     with SessionLocal() as db:
         row = db.get(CatalogHotel, "cl-901")
-        assert db.query(CatalogHotel).filter(CatalogHotel.source == "checkline").count() == 2
+        assert db.query(CatalogHotel).filter(CatalogHotel.source == "inhouse").count() == 2
         thailand, bangkok = db.get(CatalogPlace, "th"), db.get(CatalogHotel, "cl-902")
         assert (thailand.kind, thailand.source, thailand.source_ref, thailand.latitude) == ("country", "iso3166-1", "TH", None)
         assert bangkok.country_code == "TH" and bangkok.city_id is None and bangkok.stars is None  # no city row in the source: unresolved, not invented
         assert (row.status, row.city_id, row.stars, row.stars_status, row.checkin_time, row.checkout_time) == ("draft", "ir-shiraz", 4, "source_reported", "14:00", None)
-        assert row.latitude is None and row.image_url is None and row.amenities_json == "[]" and row.name_en == "Sample Checkline Hotel"
+        assert row.latitude is None and row.image_url is None and row.amenities_json == "[]" and row.name_en == "Sample In-house Hotel"
     # drafts are invisible publicly
     assert client.get("/catalog/hotels/cl-901").status_code == 404
-    assert client.get("/catalog/hotels", params={"q": "چک‌لاین"}).json()["total"] == 0
+    assert client.get("/catalog/hotels", params={"q": "کارن‌سیر"}).json()["total"] == 0
 
 
-def test_osm_reimport_keeps_checkline_and_admin_edits_and_never_deletes(tmp_path, client):
-    _reset(); _load(tmp_path); import_checkline.main(_stage(tmp_path, CL), False)
+def test_osm_reimport_keeps_inhouse_and_admin_edits_and_never_deletes(tmp_path, client):
+    _reset(); _load(tmp_path); import_inhouse_hotels.main(_stage(tmp_path, CL), False)
     admin = _token(client, "platform-admin@aftab.test")
     assert client.put("/admin/catalog/hotels/h2", json={**VALID, "name_fa": "هاستل ویرایش دستی"}, headers=admin).status_code == 200
-    # OSM input now lacks h3 and tries to overwrite h2 and to claim the CheckLine id
+    # OSM input now lacks h3 and tries to overwrite h2 and to claim the In-house id
     import gzip
     rows = [HOTELS[0], {**HOTELS[1], "name_fa": "بازنویسی OSM"}, {**HOTELS[0], "id": "cl-901", "slug": "hijack"}]
     with gzip.open(tmp_path / "hotels.json.gz", "wt", encoding="utf-8") as fh: json.dump(rows, fh, ensure_ascii=False)
@@ -74,18 +74,18 @@ def test_osm_reimport_keeps_checkline_and_admin_edits_and_never_deletes(tmp_path
     with SessionLocal() as db:
         assert db.get(CatalogHotel, "h3") is not None
         assert db.get(CatalogHotel, "h2").name_fa == "هاستل ویرایش دستی"
-        assert db.get(CatalogHotel, "cl-901").source == "checkline" and db.get(CatalogHotel, "cl-901").slug == "checkline-901"
+        assert db.get(CatalogHotel, "cl-901").source == "inhouse" and db.get(CatalogHotel, "cl-901").slug == "hotel-901"
         assert db.query(CatalogHotelImage).filter_by(hotel_id="h2").count() == 1
-    # CheckLine re-import leaves an admin-edited CheckLine hotel alone
+    # In-house re-import leaves an admin-edited In-house hotel alone
     assert client.put("/admin/catalog/hotels/cl-901", json=VALID, headers=admin).status_code == 200
-    rerun = import_checkline.main(_stage(tmp_path, CL), False)
+    rerun = import_inhouse_hotels.main(_stage(tmp_path, CL), False)
     assert rerun["admin_owned_skipped"] == 1 and rerun["inserted"] == 0
     with SessionLocal() as db:
         assert db.get(CatalogHotel, "cl-901").name_fa == "هتل ویرایش‌شده"
 
 
 def test_admin_api_auth_validation_roundtrip_and_public_view(tmp_path, client):
-    _reset(); _load(tmp_path); import_checkline.main(_stage(tmp_path, CL), False)
+    _reset(); _load(tmp_path); import_inhouse_hotels.main(_stage(tmp_path, CL), False)
     assert client.get("/admin/catalog/hotels").status_code in (401, 403)
     assert client.put("/admin/catalog/hotels/cl-901", json=VALID).status_code in (401, 403)
     assert client.put("/admin/catalog/hotels/cl-901", json=VALID, headers=_token(client, "employee@aftab.test")).status_code == 403
@@ -103,7 +103,7 @@ def test_admin_api_auth_validation_roundtrip_and_public_view(tmp_path, client):
     reopened = client.get("/admin/catalog/hotels/cl-901", headers=admin).json()
     assert reopened["amenity_keys"] == ["wifi", "elevator"] and reopened["images"][0]["license"] == "CC BY-SA 4.0" and reopened["rules_text"] == VALID["rules_text"]
     assert reopened["price"] is None
-    public = client.get("/catalog/hotels/checkline-901").json()
+    public = client.get("/catalog/hotels/hotel-901").json()
     assert public["price"] is None and public["price_status"] == "inquiry" and len(public["images"]) == 1 and public["room_types"][0]["max_adults"] == 2
     assert not any("price" in key or "avail" in key for key in public["room_types"][0])
     assert {p["key"]: p["value"] for p in public["policies"]} == {"children_policy": "allowed", "pets_policy": "not_allowed", "smoking_policy": "not_allowed"}
@@ -114,14 +114,14 @@ def test_admin_api_auth_validation_roundtrip_and_public_view(tmp_path, client):
     assert client.put("/admin/catalog/hotels/cl-901", json={**VALID, "images": [], "room_types": [], "status": "hidden"}, headers=admin).status_code == 200
     with SessionLocal() as db:
         assert db.query(CatalogHotelImage).filter_by(hotel_id="cl-901").count() == 0 and db.query(CatalogHotelRoomType).filter_by(hotel_id="cl-901").count() == 0
-    assert client.get("/catalog/hotels/checkline-901").status_code == 404
+    assert client.get("/catalog/hotels/hotel-901").status_code == 404
     created = client.post("/admin/catalog/hotels", json={**VALID, "name_en": "Brand New"}, headers=admin)
     assert created.status_code == 201 and created.json()["provenance"]["source"] == "karenseir"
 
 
 def test_duplicates_are_linked_only_on_address_evidence_and_reviewer_decides_the_rest(tmp_path, client):
     _reset(); _load(tmp_path)
-    with SessionLocal() as db:  # canonical reference records the CheckLine rows may collide with
+    with SessionLocal() as db:  # canonical reference records the In-house rows may collide with
         h1, h2 = db.get(CatalogHotel, "h1"), db.get(CatalogHotel, "h2")
         h1.name_en, h1.address = "Zand Palace", "Zand Boulevard 12, Shiraz"
         h2.name_en, h2.name_fa, h2.address = "Eram Garden Inn", None, None
@@ -131,7 +131,7 @@ def test_duplicates_are_linked_only_on_address_evidence_and_reviewer_decides_the
                                {**base, "hotel_id": 912, "title": "Eram Garden Inn", "address_current": "Eram street 5"},                # name + city only -> proposed
                                {**base, "hotel_id": 913, "title": "Zand Palace", "address_current": "Airport road 40"},                  # same name, different address -> proposed
                                {**base, "hotel_id": 914, "title": "Unrelated Lodge", "address_current": "No 12 Zand Boulevard"}])        # same address, different name -> nothing
-    report = import_checkline.main(staged, False)
+    report = import_inhouse_hotels.main(staged, False)
     assert report["inserted"] == 4
     with SessionLocal() as db:
         assert (db.get(CatalogHotel, "cl-911").duplicate_of, db.get(CatalogHotel, "cl-911").match_basis) == ("h1", "name+city+address")
@@ -152,7 +152,7 @@ def test_duplicates_are_linked_only_on_address_evidence_and_reviewer_decides_the
         canonical = db.get(CatalogHotel, "h2")
         assert canonical.address == "Eram street 5" and canonical.stars == 3 and canonical.stars_status == "source_reported" and canonical.hotel_type == "hostel"  # only empty fields were filled
         assert canonical.updated_by is not None and db.get(CatalogHotel, "h1").address == "Zand Boulevard 12, Shiraz"
-    rerun = import_checkline.main(staged, False)
+    rerun = import_inhouse_hotels.main(staged, False)
     assert rerun["inserted"] == 0 and rerun["matches"]["kept_decisions"] == 2
     with SessionLocal() as db:
         assert db.query(CatalogHotelMatch).filter_by(id=reject_id).one().status == "rejected" and db.get(CatalogHotel, "cl-913").duplicate_of is None
@@ -162,21 +162,21 @@ def test_duplicates_are_linked_only_on_address_evidence_and_reviewer_decides_the
 
 
 def test_state_flags_publish_unpublish_and_verification(tmp_path, client):
-    _reset(); _load(tmp_path); import_checkline.main(_stage(tmp_path, CL), False)
+    _reset(); _load(tmp_path); import_inhouse_hotels.main(_stage(tmp_path, CL), False)
     admin = _token(client, "backoffice@aftab.test")
     draft = client.get("/admin/catalog/hotels/cl-901", headers=admin).json()
-    assert draft["state"] == {"catalogued": True, "content_complete": False, "rate_available": False, "bookable": False, "published": False, "source": "checkline", "last_verified_at": None}
+    assert draft["state"] == {"catalogued": True, "content_complete": False, "rate_available": False, "bookable": False, "published": False, "source": "inhouse", "last_verified_at": None}
     assert client.post("/admin/catalog/hotels/cl-902/status", json={"status": "published"}, headers=admin).status_code == 422  # no city
     assert client.post("/admin/catalog/hotels/cl-901/status", json={"status": "published"}, headers=_token(client, "employee@aftab.test")).status_code == 403
     assert client.post("/admin/catalog/hotels/cl-901/status", json={"status": "published"}, headers=admin).json()["state"]["published"] is True
-    public = client.get("/catalog/hotels/checkline-901").json()
+    public = client.get("/catalog/hotels/hotel-901").json()
     assert public["state"]["bookable"] is False and public["state"]["rate_available"] is False and public["price"] is None and public["state"]["content_complete"] is False
     assert client.post("/admin/catalog/hotels/cl-901/status", json={"status": "hidden"}, headers=admin).status_code == 200
-    assert client.get("/catalog/hotels/checkline-901").status_code == 404
+    assert client.get("/catalog/hotels/hotel-901").status_code == 404
     saved = client.put("/admin/catalog/hotels/cl-901", json={**VALID, "mark_verified": True}, headers=admin).json()
     assert saved["state"]["content_complete"] is True and saved["state"]["last_verified_at"] and saved["state"]["bookable"] is False
     assert client.put("/admin/catalog/hotels/cl-901", json={**VALID, "images": []}, headers=admin).json()["state"]["content_complete"] is False
-    listed = client.get("/admin/catalog/hotels", params={"review": "no_city", "source": "checkline"}, headers=admin).json()
+    listed = client.get("/admin/catalog/hotels", params={"review": "no_city", "source": "inhouse"}, headers=admin).json()
     assert [i["id"] for i in listed["items"]] == ["cl-902"]
     mapping = {"provider": "grs", "provider_hotel_id": "H-1"}
     assert client.post("/admin/catalog/hotels/cl-901/provider-mappings", json=mapping, headers=admin).json()["provider_mappings"][0]["status"] == "unverified"

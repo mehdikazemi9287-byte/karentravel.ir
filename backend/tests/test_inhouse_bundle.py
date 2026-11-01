@@ -6,7 +6,7 @@ from sqlalchemy import delete, select
 from app.catalog import (CatalogContent, CatalogHotel, CatalogHotelImage, CatalogHotelMatch, CatalogHotelProviderMapping, CatalogHotelRoomType, CatalogLegacyRoute, CatalogPlace, CatalogTour, CatalogTourDeparture,
                          CatalogTourHotel, CatalogVenue)
 from app.main import SessionLocal
-from scripts.catalog import import_checkline_bundle as b
+from scripts.catalog import import_inhouse_bundle as b
 from tests.test_catalog_hotel_content import VALID, _token
 from tests.test_catalog_master_data import _load
 
@@ -54,7 +54,7 @@ def _bundle(tmp_path):
 def _reset():
     with SessionLocal() as db:
         for model in (CatalogHotelMatch, CatalogHotelProviderMapping, CatalogHotelImage, CatalogHotelRoomType, CatalogTourHotel, CatalogTourDeparture, CatalogTour, CatalogContent, CatalogLegacyRoute, CatalogHotel): db.execute(delete(model))
-        db.execute(delete(CatalogVenue).where(CatalogVenue.source == "checkline")); db.execute(delete(CatalogPlace).where(CatalogPlace.source.in_(("checkline", "iso3166-1")))); db.commit()
+        db.execute(delete(CatalogVenue).where(CatalogVenue.source == "inhouse")); db.execute(delete(CatalogPlace).where(CatalogPlace.source.in_(("inhouse", "iso3166-1")))); db.commit()
 
 
 import pytest
@@ -72,12 +72,12 @@ def test_bundle_import_keeps_publication_untouched_without_the_publish_flag(tmp_
     first = b.main(root, False, publish=False)
     assert first["hotels"]["inserted"] == 3 and first["hotels"]["published"] == 0
     with SessionLocal() as db:
-        assert {h.status for h in db.scalars(select(CatalogHotel).where(CatalogHotel.source == "checkline"))} == {"draft"} and db.get(CatalogTour, "cl-tour-20").status == "draft"
+        assert {h.status for h in db.scalars(select(CatalogHotel).where(CatalogHotel.source == "inhouse"))} == {"draft"} and db.get(CatalogTour, "cl-tour-20").status == "draft"
         db.get(CatalogHotel, "cl-10").status = "published"; db.commit()                      # a reviewer published one
     again = b.main(root, False, publish=False)
     with SessionLocal() as db:
         assert db.get(CatalogHotel, "cl-10").status == "published" and db.get(CatalogHotel, "cl-12").status == "draft" and again["hotels"]["updated"] == 0
-    assert client.get("/catalog/tours").json()["total"] == 0 and client.get("/catalog/hotels/checkline-10").status_code == 200
+    assert client.get("/catalog/tours").json()["total"] == 0 and client.get("/catalog/hotels/hotel-10").status_code == 200
 
 
 def test_bundle_import_carries_content_and_never_commercial_data(tmp_path, client):
@@ -90,18 +90,18 @@ def test_bundle_import_carries_content_and_never_commercial_data(tmp_path, clien
         h = db.get(CatalogHotel, "cl-10")
         assert h.description == "معرفی\nهتلی آرام در مرکز شهر.\nنزدیک بازار." and "alert" not in h.description and (h.city_id, h.stars, h.stars_status, h.checkin_time, h.checkout_time, h.phone) == ("ir-shiraz", 4, "source_reported", "14:00", "12:00", "07112345")
         assert h.latitude is None and json.loads(h.amenities_json) == ["breakfast"] and h.status == "published"
-        details = json.loads(h.details_json)["checkline"]
+        details = json.loads(h.details_json)["inhouse"]
         assert details["room_count"] == "40" and details["nearby"] == [{"place": "حافظیه", "distance": "2", "unit": "km"}] and details["board_plans"] == ["صبحانه"] and details["categories"] == ["هتل های شیراز"]
         assert "discount" not in h.details_json and "15%" not in h.details_json and "facilit" not in h.details_json                      # no discount, no unlabeled facility codes
         rooms = db.scalars(select(CatalogHotelRoomType).where(CatalogHotelRoomType.hotel_id == "cl-10")).all()
         assert [(r.name_fa, json.loads(r.amenities_json)) for r in rooms] == [("دوتخته", ["wifi", "air_conditioning"])] and rooms[0].image_url is None                    # hidden room skipped, unknown code dropped
         images = db.scalars(select(CatalogHotelImage).where(CatalogHotelImage.hotel_id == "cl-10").order_by(CatalogHotelImage.sort_order)).all()
-        assert [i.url for i in images] == ["https://checkline.travel/wp-content/uploads/2024/01/%D9%86%D9%85%D8%A7%DB%8C%20%D9%87%D8%AA%D9%84.jpg", "https://checkline.travel/wp-content/uploads/2024/01/b.jpg"] and all("rights unverified" in i.license for i in images)
+        assert [i.url for i in images] == ["/catalog-media/2024/01/%D9%86%D9%85%D8%A7%DB%8C%20%D9%87%D8%AA%D9%84.jpg", "/catalog-media/2024/01/b.jpg"] and all("own media" in i.license for i in images)
         assert db.get(CatalogHotel, "cl-11").status == "draft" and db.get(CatalogHotel, "cl-12").city_id == "cl-city-4"
         th, phuket, shiraz = db.get(CatalogPlace, "th"), db.get(CatalogPlace, "cl-city-4"), db.get(CatalogPlace, "ir-shiraz")
-        assert (th.source, th.latitude, th.description) == ("iso3166-1", 15.87, "تایلند در جنوب شرق آسیا") and json.loads(th.details_json)["checkline"]["visa_note"] == "ویزای توریستی"
+        assert (th.source, th.latitude, th.description) == ("iso3166-1", 15.87, "تایلند در جنوب شرق آسیا") and json.loads(th.details_json)["inhouse"]["visa_note"] == "ویزای توریستی"
         assert (phuket.latitude, phuket.longitude, phuket.name_en, phuket.hotel_count) == (7.88, 98.39, "Phuket", 1) and phuket.image_url.endswith("/2024/01/b.jpg")
-        assert shiraz.source != "checkline" and shiraz.description == "شهر شیراز" and json.loads(shiraz.details_json)["checkline"]["time_zone"] == "+3:30"   # existing place: only empty fields filled
+        assert shiraz.source != "inhouse" and shiraz.description == "شهر شیراز" and json.loads(shiraz.details_json)["inhouse"]["time_zone"] == "+3:30"   # existing place: only empty fields filled
         tour = db.get(CatalogTour, "cl-tour-20")
         assert (tour.destination_place_id, tour.duration_nights, tour.duration_days, tour.transport_mode, tour.guide_included, tour.transfer_included, tour.status) == ("ir-shiraz", 3, 4, "flight", True, True, "published")
         assert "9000000" not in tour.details_json
@@ -113,15 +113,15 @@ def test_bundle_import_carries_content_and_never_commercial_data(tmp_path, clien
     # ---- the content is reachable through the public API: search -> results -> detail, with no price and not bookable
     listing = client.get("/catalog/hotels", params={"city": "ir-shiraz", "q": "باغ نارنج"}).json()
     assert listing["total"] == 1 and listing["items"][0]["price"] is None and listing["items"][0]["state"]["bookable"] is False and listing["items"][0]["image_url"]
-    detail = client.get("/catalog/hotels/checkline-10").json()
+    detail = client.get("/catalog/hotels/hotel-10").json()
     assert detail["description"].startswith("معرفی") and detail["details"]["nearby"][0]["place"] == "حافظیه" and len(detail["images"]) == 2 and detail["room_types"][0]["name_fa"] == "دوتخته" and detail["price"] is None
-    assert client.get("/catalog/hotels/checkline-11").status_code == 404
-    assert any(i["type"] == "hotel" and i["href"] == "/hotels/checkline-10" for i in client.get("/catalog/suggest", params={"q": "باغ نارنج"}).json()["items"])
+    assert client.get("/catalog/hotels/hotel-11").status_code == 404
+    assert any(i["type"] == "hotel" and i["href"] == "/hotels/hotel-10" for i in client.get("/catalog/suggest", params={"q": "باغ نارنج"}).json()["items"])
     assert any(i["type"] == "tour" and i["href"] == "/tours/t20" for i in client.get("/catalog/suggest", params={"q": "شیراز"}).json()["items"])
     tours = client.get("/catalog/tours", params={"destination": "ir-shiraz"}).json()
     assert tours["total"] == 1 and tours["sellable"] is False and tours["items"][0]["price"] is None and tours["items"][0]["image_url"] and tours["destinations"][0]["id"] == "ir-shiraz"
     t = client.get("/catalog/tours/cl-tour-20").json()
-    assert t["sellable"] is False and t["price"] is None and t["details"]["inclusions"] == ["راهنمای فارسی‌زبان", "ترانسفر هتل", "وعدهٔ غذایی"] and t["hotels"] == [{"id": "cl-10", "name": "هتل باغ نارنج", "stars": 4, "slug": "checkline-10", "nights": None}]
+    assert t["sellable"] is False and t["price"] is None and t["details"]["inclusions"] == ["راهنمای فارسی‌زبان", "ترانسفر هتل", "وعدهٔ غذایی"] and t["hotels"] == [{"id": "cl-10", "name": "هتل باغ نارنج", "stars": 4, "slug": "hotel-10", "nights": None}]
     assert t["details"]["transport_legs"][0]["origin"] == "تهران" and "price" not in json.dumps(t["details"]) and client.get("/catalog/tours/cl-tour-21").status_code == 404
     place = client.get("/catalog/places/ir-shiraz").json()
     assert place["description"] == "شهر شیراز" and place["details"]["time_zone"] == "+3:30" and place["reference_tours"][0]["id"] == "cl-tour-20"
@@ -142,8 +142,8 @@ def test_bundle_reimport_keeps_reviewer_edits_and_other_sources(tmp_path, client
     with SessionLocal() as db:
         h = db.get(CatalogHotel, "cl-10")
         assert (h.name_fa, h.description, h.status) == ("نام بازبینی‌شده", "متن بازبین", "hidden") and db.query(CatalogHotelImage).filter_by(hotel_id="cl-10").count() == 1     # reviewer's single image kept
-        assert (db.get(CatalogHotel, "h1").description, db.get(CatalogHotel, "h1").name_fa) == osm_before and db.query(CatalogHotel).filter(CatalogHotel.source == "checkline").count() == 3
-    assert report["hotels"]["inserted"] == 0 and client.get("/catalog/hotels/checkline-10").status_code == 404
+        assert (db.get(CatalogHotel, "h1").description, db.get(CatalogHotel, "h1").name_fa) == osm_before and db.query(CatalogHotel).filter(CatalogHotel.source == "inhouse").count() == 3
+    assert report["hotels"]["inserted"] == 0 and client.get("/catalog/hotels/hotel-10").status_code == 404
 
 
 def test_reference_reimport_never_erases_what_the_bundle_filled(tmp_path, client):

@@ -18,11 +18,11 @@ Authorized scope: Backend/API + migrations 35→38 + reference/master/catalog da
 ## Result
 - Migrations 35, 36, 37, 38 applied in order by a one-off owner-role container.
 - Master catalog: 2,273 places, 19,268 hotels, 72 airlines, 174 airports, 3 rail operators, 224 stations, 13,317 venues inserted; 0 removed.
-- CheckLine: 706 hotels as drafts, 14 countries and 36 cities added with provenance; re-run 0 inserted / 0 updated.
+- In-house: 706 hotels as drafts, 14 countries and 36 cities added with provenance; re-run 0 inserted / 0 updated.
 - Post-deploy: 174 anonymous route results identical to the pre-deploy snapshot; 36 live pages (18 × desktop/mobile) text-identical, 35 pixel-identical (the differing one also differs between two pre-deploy runs); users/bookings/tenants row counts unchanged.
 
 ## Rollback (not needed so far)
-`~/ks-checkline-work/rollback.sh`: stops the new API, removes only release-created catalog rows that block downgrade 37, `alembic downgrade 20260928_34`, renames `karenseir-api-1-prev-d2ba674` (kept, stopped) back and starts it. The 38→34 path was rehearsed on restores of the production dump (schema identical). Alternative: restore `prod-karenseir-final.dump`.
+`~/ks-inhouse-work/rollback.sh`: stops the new API, removes only release-created catalog rows that block downgrade 37, `alembic downgrade 20260928_34`, renames `karenseir-api-1-prev-d2ba674` (kept, stopped) back and starts it. The 38→34 path was rehearsed on restores of the production dump (schema identical). Alternative: restore `prod-karenseir-final.dump`.
 
 ## Notes for the next release
 - In production `karenseir_api` has DELETE on `catalog_hotels` and write on `catalog_places` (it did not on the candidate): production's default privileges grant the API role DML on every new table. No API code path deletes catalog rows; tightening is a one-line REVOKE and needs its own approval.

@@ -397,10 +397,10 @@ Do not replace it with generic beige/orange/purple styling.
 EXISTING SYSTEMS / BENCHMARKS
 ==================================================
 
-Also preserve the previous instruction to investigate existing CheckLine
+Also preserve the previous instruction to investigate existing In-house
 capabilities.
 
-CheckLine:
+In-house:
 transactional capability benchmark and possible approved integration source.
 
 Jabama:

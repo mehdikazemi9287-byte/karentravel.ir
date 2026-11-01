@@ -148,7 +148,7 @@ def test_tour_reference_edit_never_becomes_a_product(tmp_path, client):
     from sqlalchemy import delete
     from app.catalog import CatalogTour, CatalogTourDeparture
     from app.main import SessionLocal
-    from scripts.catalog import import_checkline_tours
+    from scripts.catalog import import_inhouse_tours
     import json
     _load(tmp_path)
     with SessionLocal() as db:
@@ -156,7 +156,7 @@ def test_tour_reference_edit_never_becomes_a_product(tmp_path, client):
     d = tmp_path / "st"; d.mkdir()
     (d / "tours.jsonl").write_text(json.dumps({"raw": {"tour_id": 7, "title": "تور ۷ شب و ۸ روز ارمنستان", "disabled": "0", "soldout": "0"}}, ensure_ascii=False) + "\n" + json.dumps({"raw": {"tour_id": 8, "title": "تور 9 شب و 3 روز", "disabled": "0", "soldout": "0"}}, ensure_ascii=False), encoding="utf-8")
     (d / "departures.jsonl").write_text(json.dumps({"raw": {"tour_id": 7, "row_index": 1, "departure_raw": "1402-08-04", "end_raw": "1402-08-11"}}), encoding="utf-8")
-    import_checkline_tours.main(str(d), False)
+    import_inhouse_tours.main(str(d), False)
     admin = _token(client, "backoffice@aftab.test")
     t = client.get("/admin/catalog/tours/cl-tour-7", headers=admin).json()
     assert (t["duration_nights"], t["duration_days"], t["capacity"], t["supplier"], t["price"], t["sellable"]) == (7, 8, None, None, None, False)
@@ -169,6 +169,6 @@ def test_tour_reference_edit_never_becomes_a_product(tmp_path, client):
     assert client.put("/admin/catalog/tours/cl-tour-7", json=body, headers=_token(client, "supplier@aftab.test")).status_code == 403
     saved = client.put("/admin/catalog/tours/cl-tour-7", json=body, headers=admin).json()
     assert saved["status"] == "published" and len(saved["itinerary"]) == 2 and saved["hotels"] == [{"hotel_id": "h1", "nights": 7}] and saved["sellable"] is False and saved["latest_departure"] == "2023-10-26"
-    assert import_checkline_tours.main(str(d), False)["admin_owned_skipped"] == 1
+    assert import_inhouse_tours.main(str(d), False)["admin_owned_skipped"] == 1
     public = client.get("/public/tour-products")
     assert public.status_code in (200, 503) and "cl-tour-7" not in public.text

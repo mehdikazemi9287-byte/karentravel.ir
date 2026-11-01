@@ -49,8 +49,8 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     bind = op.get_bind()
-    if bind.execute(sa.text("SELECT count(*) FROM catalog_hotels WHERE latitude IS NULL OR longitude IS NULL OR source IN ('checkline','karenseir')")).scalar():
-        raise RuntimeError("Downgrade refused: catalog_hotels holds CheckLine/admin hotels or rows without coordinates. Export and remove them explicitly first.")
+    if bind.execute(sa.text("SELECT count(*) FROM catalog_hotels WHERE latitude IS NULL OR longitude IS NULL OR source IN ('inhouse','karenseir')")).scalar():
+        raise RuntimeError("Downgrade refused: catalog_hotels holds In-house/admin hotels or rows without coordinates. Export and remove them explicitly first.")
     if bind.dialect.name == "postgresql":
         _grant("REVOKE INSERT, UPDATE ON catalog_hotels FROM karenseir_api")
     for table in reversed(HOTEL_CONTENT_TABLES):

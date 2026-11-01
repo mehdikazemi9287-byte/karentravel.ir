@@ -92,7 +92,7 @@ Jabama
 Flightio
 SnappTrip
 Safarmarket
-CheckLine
+In-house
 
 و نمونه‌های بین‌المللی مناسب مانند:
 
@@ -234,10 +234,10 @@ Ticket
 Cancellation
 Refund
 
-از CheckLine به‌عنوان benchmark عمق Transactional و در صورت مجاز بودن
+از In-house به‌عنوان benchmark عمق Transactional و در صورت مجاز بودن
 به‌عنوان potential integration source بررسی کن.
 
-اما KarenSeir را به CheckLine tightly couple نکن.
+اما KarenSeir را به In-house tightly couple نکن.
 
 ==================================================
 7. Accommodation یک Marketplace واقعی است

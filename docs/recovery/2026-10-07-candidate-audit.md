@@ -5,7 +5,7 @@ Not a defect. `_public_search_identity()` fails closed with «کاتالوگ ع�
 
 ## Tour catalog and departure dates (migration 39, candidate only)
 - `catalog_tours` / `catalog_tour_departures`: title + the dates the source recorded. No price, capacity, currency, supplier or tenant column (asserted by test). Every row is `draft`, `sellable=false`, `price=null`; admin read API only (`/admin/catalog/tours`).
-- CheckLine: 59 tours, 165 date rows imported; 162 valid Jalali dates converted (2023-10-23 … 2026-10-05), 3 invalid kept as raw text only, **0 on or after 2026-10-06**. 15 were disabled and 7 sold out in the source.
+- In-house: 59 tours, 165 date rows imported; 162 valid Jalali dates converted (2023-10-23 … 2026-10-05), 3 invalid kept as raw text only, **0 on or after 2026-10-06**. 15 were disabled and 7 sold out in the source.
 - A sellable tour is still only a supplier-owned `tour_products` + `tour_departures` row (tenant, contract, capacity, price). Nothing is copied there. Open decision: which tenant/supplier owns these tours and what their new departures and rates are.
 
 ## Supplier mapping and hotel rate/availability port
@@ -17,7 +17,7 @@ Not a defect. `_public_search_identity()` fails closed with «کاتالوگ ع�
 ## Flight / airline / airport reference data
 - 72 airlines: all with IATA, 69 with ICAO, 8 without a Persian name, 4 IATA codes shared by two rows (needs review), 10 countries.
 - 174 airports in the 6 catalog countries only (IR 77, TR 66, AE 12, IQ 12, GE 4, AM 3): all with ICAO, all with timezone, 7 without a Persian name, 51 not linked to a catalog city, `scope` known for 52 (international) and unknown for 122.
-- No airport exists for the 14 countries added from CheckLine. No schedule, fare or seat data exists anywhere (by design; needs a flight supplier).
+- No airport exists for the 14 countries added from In-house. No schedule, fare or seat data exists anywhere (by design; needs a flight supplier).
 
 ## Panels, operations, timeline, notifications
 257 operations in the candidate API. Parameterless GET routes × 10 roles + anonymous (66 routes): no sensitive route open to anonymous; `/admin` catalog routes only platform_admin and backoffice_expert; `/finance` only finance_operator and platform_admin; `/supplier` only supplier and platform_admin; `/agency` only agency_partner and platform_admin; `/backoffice` backoffice_expert, platform_admin (tenant_admin on 1).

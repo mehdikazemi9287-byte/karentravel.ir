@@ -73,7 +73,7 @@ Supervisor بر همه نقش‌ها حاکم است و دامنه، محیط ه
 
 ## مرز پروژه
 
-این مخزن فقط KarenSeir است. 60Online/70Online هرگز import، copy یا shared database/UI نمی‌شود. CheckLine، تاژبان گشت پارس و پادویرا هویت مستقل دارند.
+این مخزن فقط KarenSeir است. 60Online/70Online هرگز import، copy یا shared database/UI نمی‌شود. In-house، تاژبان گشت پارس و پادویرا هویت مستقل دارند.
 
 ## قواعد تغییر
 
@@ -170,7 +170,7 @@ experience - no redesign/simplification without explicit user approval. Architec
 stays Modular Monolith now; microservices only after measured evidence justifies
 extraction, never added merely because they're fashionable (this extends and doesn't
 replace the existing project-boundary rule above: no import/copy/shared DB with
-60Online/70Online/CheckLine/Tazhban unless explicitly requested). Never fabricate
+60Online/70Online/In-house/Tazhban unless explicitly requested). Never fabricate
 inventory, price, availability, provider/payment success, notification delivery,
 credentials, or security/RLS evidence.
 

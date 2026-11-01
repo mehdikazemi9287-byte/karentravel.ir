@@ -1,9 +1,9 @@
 """Bundle content as site structure: tour slug/filters, travel requirements, destination breadcrumbs/related, de-duplicated images."""
 import json
 
-from scripts.catalog import import_checkline_bundle as b
+from scripts.catalog import import_inhouse_bundle as b
 from tests.test_catalog_master_data import _load
-from tests.test_checkline_bundle import _bundle, _clean_catalog_after, _reset  # noqa: F401  (autouse cleanup)
+from tests.test_inhouse_bundle import _bundle, _clean_catalog_after, _reset  # noqa: F401  (autouse cleanup)
 
 
 def test_tour_vertical_visa_and_destination_structure(tmp_path, client):
@@ -13,7 +13,7 @@ def test_tour_vertical_visa_and_destination_structure(tmp_path, client):
     open(root + "/round3-technical/media-workbench.json", "w", encoding="utf-8").write(json.dumps(media, ensure_ascii=False))
     b.main(root, False); again = b.main(root, False)
     assert (again["hotels"]["updated"], again["tours"]["updated"]) == (0, 0)
-    hotel = client.get("/catalog/hotels/checkline-10").json()
+    hotel = client.get("/catalog/hotels/hotel-10").json()
     assert len(hotel["images"]) == 1 and hotel["request"] == {"mode": "inquiry", "online_booking": False, "reason": hotel["request"]["reason"]} and hotel["seo"]["title"].startswith("هتل باغ نارنج")
     assert {a["key"] for a in hotel["room_types"][0]["amenities"]} == {"wifi", "air_conditioning"} and hotel["state"]["bookable"] is False
     tours = client.get("/catalog/tours").json()
@@ -34,9 +34,9 @@ def test_tour_vertical_visa_and_destination_structure(tmp_path, client):
 def test_sitemap_lists_only_published_pages(tmp_path, client):
     _reset(); _load(tmp_path); root = _bundle(tmp_path); b.main(root, False)
     paths = client.get("/catalog/sitemap").json()["paths"]
-    assert "/hotels/checkline-10" in paths and "/tours/t20" in paths and "/destinations/ir-shiraz" in paths and "/visa/cl-visa-country-th" in paths and len(paths) == len(set(paths))
+    assert "/hotels/hotel-10" in paths and "/tours/t20" in paths and "/destinations/ir-shiraz" in paths and "/visa/cl-visa-country-th" in paths and len(paths) == len(set(paths))
     from app.catalog import CatalogHotel
     from app.main import SessionLocal
     with SessionLocal() as db:
         db.get(CatalogHotel, "cl-10").status = "draft"; db.commit()
-    assert "/hotels/checkline-10" not in client.get("/catalog/sitemap").json()["paths"]
+    assert "/hotels/hotel-10" not in client.get("/catalog/sitemap").json()["paths"]

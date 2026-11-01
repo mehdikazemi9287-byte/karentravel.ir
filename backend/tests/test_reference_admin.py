@@ -7,10 +7,10 @@ from sqlalchemy import select
 from app.catalog import CatalogAirline, CatalogAirport, CatalogContent, CatalogHotel, CatalogPlace
 from app.main import SessionLocal
 from scripts.catalog import import_airlines_reference, import_airports_reference
-from scripts.catalog import import_checkline_bundle as b
+from scripts.catalog import import_inhouse_bundle as b
 from tests.test_catalog_hotel_content import _token
 from tests.test_catalog_master_data import _load
-from tests.test_checkline_bundle import _bundle, _clean_catalog_after, _reset  # noqa: F401  (autouse cleanup)
+from tests.test_inhouse_bundle import _bundle, _clean_catalog_after, _reset  # noqa: F401  (autouse cleanup)
 
 EMBED = '<iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3010.2!2d{lng}!3d{lat}!2m3!1f0" width="600"></iframe>'
 
@@ -39,17 +39,17 @@ def test_hotels_are_never_dropped_and_positions_are_verified(tmp_path, client):
     assert first["hotels"]["quarantined"] == {} and first["hotels"]["needs_review"] == {"country_unresolved": 1, "country_city_conflict": 1} and (again["hotels"]["inserted"], again["hotels"]["updated"]) == (0, 0)
     with SessionLocal() as db:
         unknown, conflict, sea, far = (db.get(CatalogHotel, f"cl-{i}") for i in (13, 14, 15, 16))
-        assert (unknown.country_code, unknown.city_id, unknown.status) == ("ZZ", None, "draft") and json.loads(unknown.details_json)["checkline"]["review_note"] == "country_unresolved"
+        assert (unknown.country_code, unknown.city_id, unknown.status) == ("ZZ", None, "draft") and json.loads(unknown.details_json)["inhouse"]["review_note"] == "country_unresolved"
         # the city is the more specific fact: the hotel follows its city's country, stays a draft and says why
-        assert (conflict.country_code, conflict.city_id, conflict.status) == ("TH", "cl-city-4", "draft") and json.loads(conflict.details_json)["checkline"]["review_note"] == "country_city_conflict"
-        assert (conflict.latitude, conflict.longitude) == (7.89, 98.3) and json.loads(conflict.details_json)["checkline"]["coordinates_basis"] == "source_map_embed"
+        assert (conflict.country_code, conflict.city_id, conflict.status) == ("TH", "cl-city-4", "draft") and json.loads(conflict.details_json)["inhouse"]["review_note"] == "country_city_conflict"
+        assert (conflict.latitude, conflict.longitude) == (7.89, 98.3) and json.loads(conflict.details_json)["inhouse"]["coordinates_basis"] == "source_map_embed"
         # dangling city reference: the address names one bundle city of that country; the swapped latitude/longitude fields are put right by the city check
-        details = json.loads(sea.details_json)["checkline"]
+        details = json.loads(sea.details_json)["inhouse"]
         assert sea.city_id == "cl-city-4" and details["place_basis"] == "source_text" and (sea.latitude, sea.longitude, details["coordinates_basis"]) == (7.9, 98.31, "source_fields_swapped") and "review_note" not in details
-        assert (far.latitude, far.longitude) == (None, None) and "coordinates_basis" not in json.loads(far.details_json)["checkline"]      # a map centred 4,500 km from the hotel's city is not a position
+        assert (far.latitude, far.longitude) == (None, None) and "coordinates_basis" not in json.loads(far.details_json)["inhouse"]      # a map centred 4,500 km from the hotel's city is not a position
     assert first["hotels"]["with_coordinates"] == 2 and first["hotels"]["coordinates_unverified"] == 1
     public = client.get("/catalog/hotels", params={"limit": 50}).json()["items"]
-    assert "ZZ" not in {h["country_code"] for h in public} and "checkline-13" not in {h["slug"] for h in public} and client.get("/catalog/hotels/checkline-13").status_code == 404
+    assert "ZZ" not in {h["country_code"] for h in public} and "hotel-13" not in {h["slug"] for h in public} and client.get("/catalog/hotels/hotel-13").status_code == 404
     token = _token(client, "platform-admin@aftab.test")
     listed = client.get("/admin/catalog/hotels", params={"q": "cl-13"}, headers=token).json()["items"]
     assert listed[0]["id"] == "cl-13" and {"شهر", "تصویر", "نوع اتاق"} <= set(listed[0]["missing"]) and client.get("/admin/catalog/hotels/cl-13", headers=token).status_code == 200

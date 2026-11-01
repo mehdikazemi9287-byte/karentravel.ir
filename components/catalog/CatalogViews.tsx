@@ -394,7 +394,7 @@ export function TourReferenceDetail({id}: {id: string}) {
         <InquiryRequest subject={`استعلام تور: ${t.title}`} context={`درخواست استعلام تاریخ حرکت و قیمت جدید برای «${t.title}» (شناسهٔ فهرست: ${t.id}).`} reason={t.request.reason}/>
         <Link className="button secondary" href="/tours">تورهای قابل رزرو</Link></aside>
     </div>
-    <p className="cat-attrib">منبع این صفحه: فهرست تورهای چک‌لاین (سابقهٔ برگزاری). این صفحه قیمت، ظرفیت یا تاریخ قابل رزرو نشان نمی‌دهد.</p>
+    <p className="cat-attrib">منبع این صفحه: فهرست تورهای کارن‌سیر (سابقهٔ برگزاری). این صفحه قیمت، ظرفیت یا تاریخ قابل رزرو نشان نمی‌دهد.</p>
   </main>;
 }
 
