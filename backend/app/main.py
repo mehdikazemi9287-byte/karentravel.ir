@@ -3016,6 +3016,9 @@ def orchestrate_booking(data: OrchestrationBookingIn, user: User = Depends(curre
     _supplier_row = db.get(operational_models.Supplier, snapshot.get("supplier_id")) if snapshot.get("supplier_id") else None
     _record_sale(db, tenant_id=user.tenant_id, reservation=reservation, buyer_id=user.id, buyer_name=user.name, amount=check.amount, currency=check.currency,
                  supplier_id=_supplier_row.id if _supplier_row else None, supplier_name=_supplier_row.display_name if _supplier_row else None, supplier_cost=total_cost)
+    from .markup_revenue import record_markup as _record_markup  # applied markup/discount per service, posted as revenue
+    _record_markup(db, tenant_id=user.tenant_id, reservation=reservation, commercial=snapshot.get("commercial_rule"), units=check.units, currency=check.currency,
+                   supplier_id=_supplier_row.id if _supplier_row else None, supplier_cost=total_cost)
     db.add(operational_models.BookingItem(tenant_id=user.tenant_id, reservation_id=reservation.id, item_type=snapshot["service_type"], snapshot_json=json.dumps({"title": snapshot["title"], "attributes": snapshot["attributes"], "supplier_id": snapshot["supplier_id"], "offer_id": offer.id, "provider_key": snapshot["provider_key"], "fulfillment_mode": snapshot["fulfillment_mode"], **({"hotel_stay": snapshot["hotel_stay"]} if snapshot.get("hotel_stay") else {})}, sort_keys=True)))
     db.add(operational_models.BookingStatusHistory(tenant_id=user.tenant_id, reservation_id=reservation.id, from_status=None, to_status="reserved", actor_id=user.id, command_id=data.command_id))
     offer.available_units -= check.units; check.consumed_at = now
@@ -5287,3 +5290,6 @@ app.include_router(stays_router(get_db, current_user, role_has_permission, User,
 
 from .sales_desk import sales_desk_router  # noqa: E402  sales desk CRM: cases, presence, SLA, quotes
 app.include_router(sales_desk_router(get_db, current_user, role_has_permission, User, _platform_audit))
+
+from .markup_revenue import markup_revenue_router  # noqa: E402  applied markup per service as revenue
+app.include_router(markup_revenue_router(get_db, current_user, role_has_permission))
