@@ -5293,3 +5293,6 @@ app.include_router(sales_desk_router(get_db, current_user, role_has_permission, 
 
 from .markup_revenue import markup_revenue_router  # noqa: E402  applied markup per service as revenue
 app.include_router(markup_revenue_router(get_db, current_user, role_has_permission))
+
+from .safarsaz import safarsaz_router  # noqa: E402  tour builder: drafts, room/passenger prices, checklist, publish to tour catalogue
+app.include_router(safarsaz_router(get_db, current_user, role_has_permission, User, _platform_audit))

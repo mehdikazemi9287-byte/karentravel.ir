@@ -6,7 +6,7 @@ export function roleLinks(role:string):Array<[string,string]>{
  if(role==='organization_admin')links.push(['مدیریت کاربران','/organization/members']);
  if(['tenant_admin','platform_admin'].includes(role))links.push(['مدیریت کاربران','/admin']);
  if(['tenant_admin','platform_admin'].includes(role))links.push(['عملیات سفر','/backoffice']);
- if(['tenant_admin','platform_admin','backoffice_expert'].includes(role))links.push(['میز گفتگو و فروش','/admin/sales-desk']);
+ if(['tenant_admin','platform_admin','backoffice_expert'].includes(role))links.push(['میز گفتگو و فروش','/admin/sales-desk'],['سفرساز','/admin/safarsaz']);
  if(['platform_admin','backoffice_expert'].includes(role))links.push(['مدیریت هتل‌ها','/admin/catalog'],['تورهای مرجع','/admin/tours'],['داده‌های مرجع','/admin/catalog/reference'],['مرکز عملیات سفر','/backoffice/trip-events'],['میز پشتیبانی','/backoffice/support'],['وضعیت اعلان‌ها','/backoffice/notifications']);
  if(['platform_admin','finance_operator'].includes(role))links.push(['رکوردهای مالی','/finance/records'],['حسابداری و کمیسیون','/finance/accounting'],['سود و کمیسیون فروش','/finance/markup-revenue']);
  if(['platform_admin','tenant_admin'].includes(role))links.push(['تأمین‌کنندگان و آژانس‌ها','/admin/partners'],['سازمان‌ها','/admin/organizations'],['سوابق ممیزی','/admin/audit']);
