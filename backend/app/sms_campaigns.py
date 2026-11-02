@@ -38,7 +38,7 @@ class SmsCampaign(OperationalMixin, Base):
     title: Mapped[str] = mapped_column(String(160))
     body: Mapped[str] = mapped_column(Text)
     audience_json: Mapped[str] = mapped_column(Text, default="{}")
-    status: Mapped[str] = mapped_column(String(24), default="draft", index=True)  # draft | sending | sent | waiting_for_provider | cancelled
+    status: Mapped[str] = mapped_column(String(24), default="draft", index=True)  # draft | sending | sent | failed | waiting_for_provider | cancelled
     recipients: Mapped[int] = mapped_column(Integer, default=0)
     delivered: Mapped[int] = mapped_column(Integer, default=0)
     blocked: Mapped[int] = mapped_column(Integer, default=0)
@@ -188,7 +188,7 @@ def sms_campaigns_router(get_db, current_user, role_has_permission, User, audit=
     @api.post("/sms-campaigns/{cid}/send")
     def send(cid: str, user=Depends(manager), db: Session = Depends(get_db)):
         c = _get(db, user.tenant_id, cid)
-        if c.status not in ("draft", "waiting_for_provider"):
+        if c.status not in ("draft", "waiting_for_provider", "failed"):
             raise HTTPException(status_code=409, detail="این کمپین قبلاً ارسال شده است")
         if c.status == "draft":
             people = _audience(db, user.tenant_id, AudienceIn.model_validate_json(c.audience_json))
@@ -201,7 +201,7 @@ def sms_campaigns_router(get_db, current_user, role_has_permission, User, audit=
         c.status = "sending"
         text = full_text(c.body)
         pending = db.scalars(select(SmsCampaignRecipient).where(SmsCampaignRecipient.tenant_id == user.tenant_id, SmsCampaignRecipient.campaign_id == c.id,
-                                                                SmsCampaignRecipient.status.in_(("queued", "blocked_external")))).all()
+                                                                SmsCampaignRecipient.status.in_(("queued", "blocked_external", "failed")))).all()
         connected = _connected()
         for r in pending:
             result = {"ok": False, "reason": "external_provider_not_configured"}
@@ -220,7 +220,8 @@ def sms_campaigns_router(get_db, current_user, role_has_permission, User, audit=
         counts = dict(db.execute(select(SmsCampaignRecipient.status, func.count()).where(SmsCampaignRecipient.tenant_id == user.tenant_id, SmsCampaignRecipient.campaign_id == c.id)
                                  .group_by(SmsCampaignRecipient.status)).all())
         c.delivered, c.blocked = counts.get("delivered", 0), counts.get("blocked_external", 0)
-        c.status = "waiting_for_provider" if c.blocked else "sent"
+        failed = counts.get("failed", 0)
+        c.status = "waiting_for_provider" if c.blocked else ("failed" if failed and not c.delivered else "sent")
         if audit:
             audit(db, user, "sms_campaign.send", "sms_campaign", {"campaign_id": c.id, "recipients": c.recipients, "delivered": c.delivered, "blocked": c.blocked})
         db.commit()

@@ -7,7 +7,7 @@ import {FormFields, Note, Tabs, type Opt, type Row} from './CommercePanel';
 type Msg = {ok: boolean; text: string} | null;
 const STAGES: Opt = [['', 'همه'], ['new', 'جدید'], ['contacted', 'تماس گرفته شد'], ['quoted', 'پیش‌فاکتور'], ['awaiting_payment', 'منتظر پرداخت'], ['paid', 'پرداخت شد'], ['issued', 'صادر شد'], ['travelled', 'سفر انجام شد'], ['lost', 'منصرف']];
 const CHANNELS: Opt = [['', 'همه'], ['web_form', 'فرم سایت'], ['whatsapp', 'واتس‌اپ'], ['bale', 'بله'], ['phone', 'تلفن'], ['instagram', 'اینستاگرام'], ['campaign', 'کمپین'], ['referral', 'معرفی'], ['walk_in', 'حضوری']];
-const STATUS: Record<string, [string, string]> = {draft: ['پیش‌نویس', 'warn'], sending: ['در حال ارسال', 'warn'], sent: ['ارسال شد', 'ok'], waiting_for_provider: ['منتظر اتصال سرویس پیامک', 'bad'], cancelled: ['لغو شد', '']};
+const STATUS: Record<string, [string, string]> = {draft: ['پیش‌نویس', 'warn'], sending: ['در حال ارسال', 'warn'], sent: ['ارسال شد', 'ok'], waiting_for_provider: ['منتظر اتصال سرویس پیامک', 'bad'], cancelled: ['لغو شد', ''], failed: ['ارسال ناموفق', 'bad']};
 
 function Provider() {
   const {state} = useLoad<Row>('/sms-campaigns/provider');
@@ -39,7 +39,7 @@ function Campaigns() {
     <Card title="کمپین‌ها"><Async state={state}>{d => <Table rows={d.items} rowKey={r => r.id} empty="هنوز کمپینی ساخته نشده است." cols={[
       {label: 'عنوان', cell: r => r.title}, {label: 'وضعیت', cell: r => <span className={`pn-badge ${STATUS[r.status]?.[1] ?? ''}`}>{STATUS[r.status]?.[0] ?? r.status}</span>},
       {label: 'گیرنده', cell: r => fa(r.recipients)}, {label: 'ارسال‌شده', cell: r => fa(r.delivered)}, {label: 'منتظر سرویس', cell: r => fa(r.blocked)}, {label: 'پیامک', cell: r => fa(r.parts)},
-      {label: '', cell: r => ['draft', 'waiting_for_provider'].includes(r.status) ? <span style={{display: 'flex', gap: 6}}><button className="pn-btn" onClick={() => act(`/sms-campaigns/${r.id}/send`, 'ارسال انجام شد')}>{r.status === 'draft' ? 'ارسال' : 'تلاش دوباره'}</button><button className="pn-btn ghost" onClick={() => act(`/sms-campaigns/${r.id}/cancel`, 'لغو شد')}>لغو</button></span> : null}]}/>}</Async></Card>
+      {label: '', cell: r => ['draft', 'waiting_for_provider', 'failed'].includes(r.status) ? <span style={{display: 'flex', gap: 6}}><button className="pn-btn" onClick={() => act(`/sms-campaigns/${r.id}/send`, 'ارسال انجام شد')}>{r.status === 'draft' ? 'ارسال' : 'تلاش دوباره'}</button><button className="pn-btn ghost" onClick={() => act(`/sms-campaigns/${r.id}/cancel`, 'لغو شد')}>لغو</button></span> : null}]}/>}</Async></Card>
   </>;
 }
 

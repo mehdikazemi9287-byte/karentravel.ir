@@ -48,10 +48,10 @@ function Codes() {
   const {state, reload, api} = useLoad<Row>('/commerce/accounting-codes');
   const [draft, setDraft] = useState<string | null>(null); const [msg, setMsg] = useState<Msg>(null);
   return <Async state={state}>{d => {
-    const text = draft ?? d.items.map((c: Row) => [c.counterparty_type, c.account_type, c.code, c.title].join(' | ')).join('\n');
+    const text: string = draft ?? d.items.map((c: Row) => [c.counterparty_type, c.account_type, c.code, c.title].join(' | ')).join('\n');
     async function save(e: FormEvent) {
       e.preventDefault(); setMsg(null);
-      const items = text.split('\n').map(l => l.trim()).filter(Boolean).map(l => {const [counterparty_type, account_type, code, title] = l.split('|').map(x => x.trim()); return {counterparty_type, account_type, code, title};});
+      const items = text.split('\n').map((l: string) => l.trim()).filter(Boolean).map((l: string) => {const [counterparty_type, account_type, code, title] = l.split('|').map((x: string) => x.trim()); return {counterparty_type, account_type, code, title};});
       try {await api.put('/commerce/accounting-codes', {items}); setDraft(null); setMsg({ok: true, text: 'کدینگ ذخیره شد.'}); reload();} catch (x) {setMsg({ok: false, text: errorOf(x).message});}
     }
     return <Card title="کدینگ حساب‌ها"><form className="pn-form" onSubmit={save}>

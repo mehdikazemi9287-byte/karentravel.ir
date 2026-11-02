@@ -34,8 +34,13 @@ def test_campaign_flow_without_provider(client):
     c = client.post("/sms-campaigns", json={"title": f"پاییز {tag}", "body": "تورهای پاییزی کیش با پرواز رفت و برگشت", "audience": {"source": "sales_desk", "channels": ["instagram"]}}, headers=admin)
     assert c.status_code == 201 and c.json()["status"] == "draft" and c.json()["text"].endswith("لغو۱۱")
     cid = c.json()["id"]
+    connected = client.get("/sms-campaigns/provider", headers=admin).json()["connected"]
     sent = client.post(f"/sms-campaigns/{cid}/send", headers=admin).json()
-    assert sent["delivered"] == 0 and sent["status"] == "waiting_for_provider" and sent["blocked"] == sent["recipients"] >= 1
+    assert sent["recipients"] >= 1 and sent["delivered"] == 0  # no real SMS provider in tests: nothing may be reported as delivered
+    if connected:  # a sandbox adapter that cannot send campaign SMS -> failed, never "sent"
+        assert sent["status"] == "failed" and sent["failed"] == sent["recipients"]
+    else:
+        assert sent["status"] == "waiting_for_provider" and sent["blocked"] == sent["recipients"]
     with SessionLocal() as db:
         got = set(db.scalars(select(SmsCampaignRecipient.mobile).where(SmsCampaignRecipient.campaign_id == cid)).all())
     assert mobiles[0] in got and mobiles[1] not in got  # opted-out number never queued
@@ -43,8 +48,6 @@ def test_campaign_flow_without_provider(client):
     assert again["recipients"] == sent["recipients"]
     assert client.post(f"/sms-campaigns/{cid}/cancel", headers=admin).json()["status"] == "cancelled"
     assert client.post(f"/sms-campaigns/{cid}/send", headers=admin).status_code == 409
-    prov = client.get("/sms-campaigns/provider", headers=admin).json()
-    assert prov["connected"] is False
     # another tenant never sees it
     with SessionLocal() as db:
         otid = db.scalar(select(User.tenant_id).where(User.email == "employee@faraz.test"))
