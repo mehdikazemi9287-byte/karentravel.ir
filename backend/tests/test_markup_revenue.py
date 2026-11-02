@@ -64,6 +64,24 @@ def test_booking_with_markup_rule_posts_revenue_per_service(client):
         assert hotel["markup"] >= 150_000 and any(i["reservation_id"] == res_id and i["posted"] for i in report.json()["items"])
         assert client.get("/commerce/markup-revenue", headers=emp).status_code == 403
         assert client.get("/commerce/markup-revenue", params={"date_from": "2026-02-01", "date_to": "2026-01-01"}, headers=admin).status_code == 422
+        # the booking expires -> the markup is reversed once, and leaves the revenue total
+        from app import operations as m
+        from app.markup_revenue import reverse_markup
+        with SessionLocal() as db:
+            res = db.get(m.Reservation, res_id)
+            m.transition_reservation(db, res, "expired", None, f"mk-expire-{suffix}")
+            db.commit()
+            reverse_markup(db, db.get(m.Reservation, res_id), "expired")  # second call is a no-op
+            db.commit()
+            row = db.scalar(select(AppliedMarkup).where(AppliedMarkup.reservation_id == res_id))
+            assert row.reversed_reason == "expired" and row.reversed_entry_id
+            revs = db.scalars(select(TreasuryEntry).where(TreasuryEntry.reversal_of_id == row.treasury_entry_id)).all()
+            assert len(revs) == 1 and revs[0].debit == 150_000 and revs[0].credit == 0 and revs[0].command_id == f"reverse:{row.treasury_entry_id}"
+        after = client.get("/commerce/markup-revenue", params={"service_type": "hotel"}, headers=_login(client, "finance@aftab.test")).json()
+        item = next(i for i in after["items"] if i["reservation_id"] == res_id)
+        assert item["reversed"] == "expired"
+        hotel_after = next(g for g in after["by_service"] if g["service_type"] == "hotel" and g["currency"] == row.currency)
+        assert hotel_after["reversed"] >= 1 and hotel_after["markup"] == hotel["markup"] - 150_000
         # another tenant never sees it
         faraz = _login(client, "employee@faraz.test")
         assert client.get("/commerce/markup-revenue", headers=faraz).status_code == 403

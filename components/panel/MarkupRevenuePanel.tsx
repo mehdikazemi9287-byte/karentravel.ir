@@ -15,14 +15,14 @@ export function MarkupRevenue() {
       const irr = d.by_service.filter(g => g.currency === 'IRR');
       const sum = (k: string) => irr.reduce((a, g) => a + (g[k] as number), 0);
       return <>
-        <Stats items={[{label: 'رزرو با قانون فروش', value: fa(d.total)}, {label: 'سود افزوده (ریال)', value: money(sum('markup'), 'IRR')}, {label: 'تخفیف داده‌شده (ریال)', value: money(sum('discount'), 'IRR')}, {label: 'درآمد خالص (ریال)', value: money(sum('revenue'), 'IRR')}]}/>
+        <Stats items={[{label: 'رزرو با قانون فروش', value: fa(d.total)}, {label: 'سود افزوده (ریال)', value: money(sum('markup'), 'IRR')}, {label: 'تخفیف داده‌شده (ریال)', value: money(sum('discount'), 'IRR')}, {label: 'درآمد خالص (ریال)', value: money(sum('revenue'), 'IRR'), hint: sum('reversed') ? `${fa(sum('reversed'))} رزرو لغوشده کسر شد` : undefined}]}/>
         <Card title="به تفکیک خدمت"><Table rows={d.by_service} rowKey={g => `${g.service_type}-${g.currency}`} empty="هنوز رزروی با قانون سود/تخفیف ثبت نشده است." cols={[
           {label: 'خدمت', cell: g => serviceFa(g.service_type)}, {label: 'تعداد', cell: g => fa(g.bookings)}, {label: 'خالص', cell: g => money(g.net_total, g.currency)},
-          {label: 'فروش', cell: g => money(g.sell_total, g.currency)}, {label: 'سود', cell: g => money(g.markup, g.currency)}, {label: 'تخفیف', cell: g => money(g.discount, g.currency)}, {label: 'درآمد', cell: g => money(g.revenue, g.currency)}]}/></Card>
+          {label: 'فروش', cell: g => money(g.sell_total, g.currency)}, {label: 'سود', cell: g => money(g.markup, g.currency)}, {label: 'تخفیف', cell: g => money(g.discount, g.currency)}, {label: 'درآمد', cell: g => money(g.revenue, g.currency)}, {label: 'برگشت‌خورده', cell: g => g.reversed ? `${fa(g.reversed)} رزرو` : '—'}]}/></Card>
         <Card title="ریز رزروها"><Table rows={d.items} rowKey={r => r.id} empty="—" cols={[
           {label: 'رزرو', cell: r => r.booking_reference ?? r.reservation_id}, {label: 'خدمت', cell: r => serviceFa(r.service_type)}, {label: 'قانون', cell: r => r.rule_title ?? '—'},
           {label: 'تعداد', cell: r => fa(r.units)}, {label: 'خالص واحد', cell: r => money(r.net_unit, r.currency)}, {label: 'فروش واحد', cell: r => money(r.sell_unit, r.currency)},
-          {label: 'سود/تخفیف', cell: r => money(r.markup_total, r.currency)}, {label: 'سند', cell: r => <span className={`pn-badge ${r.posted ? 'ok' : ''}`}>{r.posted ? 'ثبت در دفتر' : 'بدون سند'}</span>}, {label: 'تاریخ', cell: r => dateFa(r.created_at)}]}/></Card>
+          {label: 'سود/تخفیف', cell: r => money(r.markup_total, r.currency)}, {label: 'سند', cell: r => r.reversed ? <span className="pn-badge bad">برگشت‌خورده ({({cancelled: 'لغو', failed: 'ناموفق', expired: 'منقضی', refunded: 'استرداد'} as Row)[r.reversed] ?? r.reversed})</span> : <span className={`pn-badge ${r.posted ? 'ok' : ''}`}>{r.posted ? 'ثبت در دفتر' : 'بدون سند'}</span>}, {label: 'تاریخ', cell: r => dateFa(r.created_at)}]}/></Card>
       </>;
     }}</Async>
   </>;

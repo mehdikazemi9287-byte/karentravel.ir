@@ -43,6 +43,8 @@ class AppliedMarkup(OperationalMixin, Base):
     supplier_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     supplier_cost: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     treasury_entry_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    reversed_entry_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    reversed_reason: Mapped[Optional[str]] = mapped_column(String(24), nullable=True)
     __table_args__ = (UniqueConstraint("tenant_id", "reservation_id", name="uq_applied_markup_reservation"),)
 
 
@@ -97,6 +99,34 @@ def record_markup(db: Session, *, tenant_id: int, reservation, commercial: Optio
         return None
 
 
+REVERSING_STATUSES = frozenset({"cancelled", "failed", "expired", "refunded"})
+
+
+def reverse_markup(db: Session, reservation, reason: str) -> Optional[AppliedMarkup]:
+    """A booking that ends cancelled/failed/expired/refunded earned no markup: post the mirror entry. Idempotent, never raises.
+
+    Uses the same command id as a manual reversal from the treasury book (reverse:<entry>), so a booking can never be reversed twice.
+    """
+    try:
+        with db.begin_nested():
+            row = db.scalar(select(AppliedMarkup).where(AppliedMarkup.tenant_id == reservation.tenant_id, AppliedMarkup.reservation_id == reservation.id))
+            if row is None or row.reversed_entry_id:
+                return row
+            if row.treasury_entry_id:
+                from .commerce import TreasuryEntry, post_treasury
+                e = db.scalar(select(TreasuryEntry).where(TreasuryEntry.tenant_id == reservation.tenant_id, TreasuryEntry.id == row.treasury_entry_id))
+                if e is not None:
+                    rev = post_treasury(db, tenant_id=e.tenant_id, command_id=f"reverse:{e.id}", counterparty_type=e.counterparty_type, counterparty_ref=e.counterparty_ref,
+                                        counterparty_name=e.counterparty_name, account_type=e.account_type, operation=e.operation, debit=e.credit, credit=e.debit,
+                                        currency=e.currency, reversal_of_id=e.id, contract_ref=e.contract_ref, purchase_ref=e.purchase_ref,
+                                        description=f"برگشت سود/تخفیف — رزرو {e.contract_ref or reservation.id} ({reason})")
+                    row.reversed_entry_id = rev.id
+            row.reversed_reason = reason
+            return row
+    except Exception:  # pragma: no cover - a posting must never block a status change
+        return None
+
+
 def _bounds(date_from: Optional[date], date_to: Optional[date]):
     start = datetime.combine(date_from, time.min, tzinfo=timezone.utc) if date_from else None
     end = datetime.combine(date_to, time.max, tzinfo=timezone.utc) if date_to else None
@@ -125,7 +155,11 @@ def markup_revenue_router(get_db, current_user, role_has_permission):
         by: dict[tuple[str, str], dict] = {}
         for r in rows:
             g = by.setdefault((r.service_type, r.currency), {"service_type": r.service_type, "currency": r.currency, "bookings": 0, "net_total": 0,
-                                                            "sell_total": 0, "markup": 0, "discount": 0, "revenue": 0})
+                                                            "sell_total": 0, "markup": 0, "discount": 0, "revenue": 0, "reversed": 0, "reversed_amount": 0})
+            if r.reversed_reason:
+                g["reversed"] += 1
+                g["reversed_amount"] += r.markup_total
+                continue
             g["bookings"] += 1
             g["net_total"] += r.net_total
             g["sell_total"] += r.sell_total
@@ -135,6 +169,7 @@ def markup_revenue_router(get_db, current_user, role_has_permission):
         items = [{"id": r.id, "reservation_id": r.reservation_id, "booking_reference": r.booking_reference, "service_type": r.service_type,
                   "rule_id": r.rule_id, "rule_title": r.rule_title, "effect": r.effect, "units": r.units, "net_unit": r.net_unit, "sell_unit": r.sell_unit,
                   "markup_total": r.markup_total, "currency": r.currency, "posted": r.treasury_entry_id is not None,
+                  "reversed": r.reversed_reason, "reversed_entry_id": r.reversed_entry_id,
                   "created_at": r.created_at.isoformat() if r.created_at else None} for r in rows[:limit]]
         return {"by_service": sorted(by.values(), key=lambda g: -g["revenue"]), "items": items, "total": len(rows)}
 
