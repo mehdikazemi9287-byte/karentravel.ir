@@ -5306,3 +5306,6 @@ app.include_router(markup_revenue_router(get_db, current_user, role_has_permissi
 
 from .safarsaz import safarsaz_router  # noqa: E402  tour builder: drafts, room/passenger prices, checklist, publish to tour catalogue
 app.include_router(safarsaz_router(get_db, current_user, role_has_permission, User, _platform_audit))
+
+from .loyalty import loyalty_router  # noqa: E402  loyalty circle: levels, trip points, referral codes
+app.include_router(loyalty_router(get_db, current_user, role_has_permission, User, _platform_audit))

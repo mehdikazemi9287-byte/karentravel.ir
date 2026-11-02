@@ -142,6 +142,30 @@ export function WalletScreen() {
   </>;
 }
 
+type Level = {key: string; name: string; min_points: number; benefits?: string};
+type LoyaltyData = {enabled: false} | {enabled: true; points_earned: number; points_balance: number; level: Level; next_level: Level | null; to_next: number; referral_code: string; referred: boolean; can_enter_referral: boolean; irr_per_point: number; referral_bonus_points: number; history: {kind: string; points: number; note: string | null; at: string | null}[]};
+function LoyaltyCard() {
+  const {state, reload, api} = useLoad<LoyaltyData>('/me/loyalty');
+  const [code, setCode] = useState(''); const [msg, setMsg] = useState<{ok: boolean; text: string} | null>(null);
+  return <section className="ca-card"><h2>حلقه‌ی همسفران</h2>
+    <Async state={state}>{d => !d.enabled ? <Unavailable>حلقه‌ی همسفران هنوز برای حساب شما فعال نشده است.</Unavailable> : <>
+      <div className="ca-row"><strong style={{fontSize: 18}}>سطح {d.level.name}</strong><span className="ca-badge ok">{fa(d.points_balance)} امتیاز</span></div>
+      {d.next_level ? <><div style={{height: 8, borderRadius: 99, background: 'var(--line)', overflow: 'hidden'}} role="progressbar" aria-valuemin={d.level.min_points} aria-valuemax={d.next_level.min_points} aria-valuenow={d.points_earned}>
+          <div style={{height: '100%', width: `${Math.min(100, Math.round(((d.points_earned - d.level.min_points) / Math.max(1, d.next_level.min_points - d.level.min_points)) * 100))}%`, background: 'var(--coral)'}}/></div>
+        <p className="ca-muted">{fa(d.to_next)} امتیاز تا سطح {d.next_level.name}</p></> : <p className="ca-muted">بالاترین سطح حلقه را دارید.</p>}
+      {d.level.benefits && <p className="ca-muted">مزایای سطح شما: {d.level.benefits}</p>}
+      <p className="ca-muted">هر {fa(d.irr_per_point)} ریال سفرِ انجام‌شده، یک امتیاز.</p>
+      <div className="ca-row"><span>کد معرف شما</span><strong className="ca-ltr">{d.referral_code}</strong></div>
+      {d.referral_bonus_points > 0 && <p className="ca-muted">وقتی دوستتان با این کد اولین سفرش را انجام دهد، {fa(d.referral_bonus_points)} امتیاز می‌گیرید.</p>}
+      {d.can_enter_referral && <form className="ca-row" onSubmit={async e => {e.preventDefault(); setMsg(null); try {await api.post('/me/loyalty/referral', {code}); setMsg({ok: true, text: 'کد معرف ثبت شد.'}); reload();} catch (x) {setMsg({ok: false, text: errorOf(x).message});}}}>
+        <input aria-label="کد معرف" dir="ltr" placeholder="کد معرف دوستتان" value={code} onChange={e => setCode(e.target.value)} style={{flex: 1, minWidth: 0, padding: '10px 12px', border: '1px solid var(--line)', borderRadius: 12, font: 'inherit'}}/>
+        <button className="ca-btn ghost" disabled={code.trim().length < 4}>ثبت</button></form>}
+      {msg && <p className={msg.ok ? 'ca-muted' : 'ca-error'} role={msg.ok ? 'status' : 'alert'}>{msg.text}</p>}
+      {d.history.length > 0 && <ul className="ca-list">{d.history.slice(0, 5).map((h, i) => <li key={i}><div className="ca-row"><span>{h.note ?? (h.kind === 'trip' ? 'سفر' : h.kind === 'referral' ? 'معرفی دوست' : 'اصلاح')}</span><strong>{h.points > 0 ? '+' : ''}{fa(h.points)}</strong></div></li>)}</ul>}
+    </>}</Async>
+  </section>;
+}
+
 type Profile = {user_id: number; name: string; email: string; role: string};
 type Traveller = {id: string; full_name: string};
 export function AccountScreen() {
@@ -151,8 +175,7 @@ export function AccountScreen() {
   if (!session) return <SignIn what="حساب خود"/>;
   return <>
     <section className="ca-card"><Async state={profile.state}>{p => <><h2>{p.name}</h2><p className="ca-muted ca-ltr" style={{textAlign: 'right'}}>{p.email}</p></>}</Async></section>
-    <section className="ca-card"><h2>حلقه‌ی همسفران</h2>
-      <Unavailable>سطح، امتیاز و کد معرف هنوز در سامانه فعال نشده‌اند؛ پس از راه‌اندازی همین‌جا نمایش داده می‌شوند.</Unavailable></section>
+    <LoyaltyCard/>
     <section className="ca-card"><div className="ca-row"><h2>مسافران ذخیره‌شده</h2><Link className="ca-muted" href="/account/profile">ویرایش</Link></div>
       <Async state={travellers.state}>{ts => ts.length === 0 ? <p className="ca-muted">مسافری ذخیره نکرده‌اید.</p> : <ul className="ca-list">{ts.map(t => <li key={t.id}>{t.full_name}</li>)}</ul>}</Async></section>
     <section className="ca-card"><h2>بیشتر</h2><ul className="ca-list">

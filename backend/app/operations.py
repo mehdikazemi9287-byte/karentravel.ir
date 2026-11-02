@@ -1153,6 +1153,9 @@ def transition_reservation(db: Session, reservation: Reservation, target: str, a
     if target in {"cancelled", "failed", "expired", "refunded"}:
         from .markup_revenue import reverse_markup  # lazy: markup_revenue imports this module
         reverse_markup(db, reservation, target)
+    if target == "completed":
+        from .loyalty import award_trip  # lazy: loyalty imports this module
+        award_trip(db, reservation)
     return reservation
 
 
