@@ -154,3 +154,33 @@ def test_sla_sweep_reassigns_unanswered(client):
     assert swept["reassigned"] >= 1
     assert client.get(f"/sales-desk/cases/{case['id']}", headers=desk).json()["agent_user_id"] == admin_id
     client.put("/sales-desk/presence", json={"present": False}, headers=admin)
+
+
+def test_public_web_form_intake(client, monkeypatch):
+    body = {"customer_name": "بازدیدکننده سایت", "mobile": "09351234567", "trip": "استانبول ۴ شب " + uuid.uuid4().hex[:4], "travellers": 2, "consent": True}
+    monkeypatch.delenv("SALES_DESK_PUBLIC_TENANT", raising=False)
+    assert client.post("/public/sales-desk/requests", json=body).status_code == 503  # fail closed until configured
+    with SessionLocal() as db:
+        from app.main import Tenant
+        _, tid = _user("backoffice@aftab.test")
+        slug = db.scalar(select(Tenant.slug).where(Tenant.id == tid))
+    monkeypatch.setenv("SALES_DESK_PUBLIC_TENANT", slug)
+    assert client.post("/public/sales-desk/requests", json={**body, "consent": False}).status_code == 422
+    assert client.post("/public/sales-desk/requests", json={**body, "mobile": "12"}).status_code == 422
+    bot = client.post("/public/sales-desk/requests", json={**body, "website": "http://spam.example"})
+    assert bot.status_code == 202
+    r = client.post("/public/sales-desk/requests", json=body)
+    assert r.status_code == 202 and r.json() == {"received": True}  # nothing about the desk is disclosed
+    again = client.post("/public/sales-desk/requests", json={**body, "description": "لطفاً تماس بگیرید"})
+    assert again.status_code == 202
+    desk = _h(client, "backoffice@aftab.test")
+    found = client.get("/sales-desk/cases", params={"q": "09351234567"}, headers=desk).json()["items"]
+    mine = [c for c in found if c["trip"] == body["trip"]]
+    assert len(mine) == 1 and mine[0]["channel"] == "web_form" and mine[0]["stage"] == "new"  # bot ignored, repeat merged
+    detail = client.get(f"/sales-desk/cases/{mine[0]['id']}", headers=desk).json()
+    assert any(a["kind"] == "message" and "لطفاً تماس بگیرید" in (a["body"] or "") for a in detail["activities"])
+    for i in range(4):  # daily cap per mobile
+        client.post("/public/sales-desk/requests", json={**body, "trip": f"سفر دیگر {i} {uuid.uuid4().hex[:4]}"})
+    with SessionLocal() as db:
+        n = len(db.scalars(select(SalesCase).where(SalesCase.tenant_id == tid, SalesCase.mobile == "09351234567", SalesCase.channel == "web_form")).all())
+    assert n <= 3

@@ -76,6 +76,8 @@ export function Home() {
     <section className="ca-card"><div className="ca-row"><h2>خرید اقساطی و اعتبار سازمانی</h2></div>
       <p className="ca-muted">اگر سازمان شما اعتبار سفر دارد یا طرح اقساط برایتان فعال است، هنگام پرداخت نمایش داده می‌شود.</p>
       <Link className="ca-btn ghost" href="/app/wallet">مشاهده‌ی اعتبار و اقساط من</Link></section>
+    <section className="ca-card"><h2>سفر دلخواهت را پیدا نکردی؟</h2><p className="ca-muted">مقصد و تاریخ را بگو تا کارشناس فروش با گزینه‌ها تماس بگیرد.</p>
+      <Link className="ca-btn ghost" href="/contact#request">درخواست سفر و مشاوره</Link></section>
     <PublicTours/>
   </>;
 }

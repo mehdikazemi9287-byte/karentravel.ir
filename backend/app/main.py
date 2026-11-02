@@ -5289,7 +5289,17 @@ from .stays import stays_router  # noqa: E402  own hotel contracts, allotment an
 app.include_router(stays_router(get_db, current_user, role_has_permission, User, _platform_audit))
 
 from .sales_desk import sales_desk_router  # noqa: E402  sales desk CRM: cases, presence, SLA, quotes
-app.include_router(sales_desk_router(get_db, current_user, role_has_permission, User, _platform_audit))
+def _sales_desk_public_tenant(db: Session) -> int:
+    """Tenant that receives the public 'request a trip' form: SALES_DESK_PUBLIC_TENANT (slug). Unset = intake closed (fail closed)."""
+    slug = (os.getenv("SALES_DESK_PUBLIC_TENANT") or "").strip()
+    tenant = db.scalar(select(Tenant).where(Tenant.slug == slug)) if slug else None
+    if tenant is None:
+        raise HTTPException(status_code=503, detail="ثبت درخواست آنلاین هنوز فعال نشده است")
+    set_tenant_context(db, tenant.id)
+    return tenant.id
+
+
+app.include_router(sales_desk_router(get_db, current_user, role_has_permission, User, _platform_audit, public_tenant=_sales_desk_public_tenant))
 
 from .markup_revenue import markup_revenue_router  # noqa: E402  applied markup per service as revenue
 app.include_router(markup_revenue_router(get_db, current_user, role_has_permission))

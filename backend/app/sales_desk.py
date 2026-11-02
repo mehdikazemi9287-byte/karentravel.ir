@@ -178,6 +178,33 @@ class CaseIn(BaseModel):
         return v
 
 
+class PublicCaseIn(BaseModel):
+    """Public 'request a trip' form. Only what a visitor can type; channel, stage and agent are decided server side."""
+    customer_name: str = Field(min_length=2, max_length=160)
+    mobile: str
+    trip: str = Field(min_length=2, max_length=240)
+    travel_date: Optional[str] = Field(default=None, max_length=10)
+    travellers: int = Field(default=1, ge=1, le=100)
+    description: Optional[str] = Field(default=None, max_length=1000)
+    consent: bool
+    website: Optional[str] = Field(default=None, max_length=200)  # honeypot: humans never fill it
+
+    @field_validator("mobile")
+    @classmethod
+    def _mobile(cls, v: str) -> str:
+        return normalize_mobile(v)
+
+    @field_validator("travel_date")
+    @classmethod
+    def _date(cls, v: Optional[str]) -> Optional[str]:
+        if v and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", v):
+            raise ValueError("تاریخ سفر نامعتبر است")
+        return v or None
+
+
+PUBLIC_DAILY_CAP = 3  # new web-form cases per mobile per 24h; later ones are added to the open case
+
+
 class StageIn(BaseModel):
     stage: str
     reason: Optional[str] = Field(default=None, max_length=1000)
@@ -349,7 +376,8 @@ def _month_start(now: datetime) -> datetime:
 
 
 # ---------------------------------------------------------------- router
-def sales_desk_router(get_db, current_user, role_has_permission, User, audit=None):
+def sales_desk_router(get_db, current_user, role_has_permission, User, audit=None, public_tenant=None):
+    """public_tenant(db) -> tenant id that receives the public web form (sets the RLS context); None or raising 503 = intake closed."""
     api = APIRouter(tags=["sales-desk"])
 
     def agent(user=Depends(current_user)):
@@ -587,6 +615,45 @@ def sales_desk_router(get_db, current_user, role_has_permission, User, audit=Non
         text = render_template(templates[data.template], {"name": case.customer_name, "trip": case.trip, "agent": names.get(case.agent_user_id) or user.name,
                                                           "amount": amount, "expires": expires.strftime("%Y-%m-%d %H:%M UTC") if expires else ""})
         return {"template": data.template, "text": text, "mobile": case.mobile}
+
+    # ---- public intake (website form)
+    @api.post("/public/sales-desk/requests", status_code=202)
+    def public_request(data: PublicCaseIn, db: Session = Depends(get_db)):
+        if data.website:  # bot: answer like a success, store nothing
+            return {"received": True}
+        if not data.consent:
+            raise HTTPException(status_code=422, detail="برای تماس کارشناس، رضایت لازم است")
+        if public_tenant is None:
+            raise HTTPException(status_code=503, detail="ثبت درخواست آنلاین هنوز فعال نشده است")
+        tenant_id = public_tenant(db)
+        now = utcnow()
+        recent = db.scalars(select(SalesCase).where(SalesCase.tenant_id == tenant_id, SalesCase.mobile == data.mobile, SalesCase.channel == "web_form",
+                                                    SalesCase.created_at >= now - timedelta(hours=24)).order_by(SalesCase.created_at.desc())).all()
+        open_case = next((c for c in recent if c.stage in OPEN_STAGES), None)
+        if open_case is not None and (len(recent) >= PUBLIC_DAILY_CAP or open_case.trip.strip() == data.trip.strip()):
+            _log(db, open_case, None, "message", f"درخواست دوباره از سایت: {data.trip}" + (f" — {data.description}" if data.description else ""),
+                 {"channel": "web_form", "travel_date": data.travel_date, "travellers": data.travellers})
+            open_case.updated_at = now
+            db.commit()
+            return {"received": True}
+        if len(recent) >= PUBLIC_DAILY_CAP:
+            return {"received": True}
+        settings = _settings(db, tenant_id)
+        case = SalesCase(tenant_id=tenant_id, code=_new_code(db, tenant_id), customer_name=data.customer_name.strip(), mobile=data.mobile, channel="web_form",
+                         trip=data.trip.strip(), travel_date=data.travel_date, travellers=data.travellers, stage="new", is_complaint=False,
+                         description=data.description, sla_due_at=now + timedelta(minutes=settings.sla_alert_minutes))
+        case.customer_user_id = db.scalar(select(User.id).where(User.tenant_id == tenant_id, User.mobile_e164 == "+98" + data.mobile[1:])) if hasattr(User, "mobile_e164") else None
+        assigned_by = None
+        if settings.auto_assign:
+            nxt = _next_agent(db, tenant_id)
+            if nxt:
+                case.agent_user_id, nxt.last_assigned_at, assigned_by = nxt.user_id, now, "round_robin"
+        db.add(case)
+        db.flush()
+        _log(db, case, None, "created", None, {"channel": "web_form", "assigned_by": assigned_by, "agent_user_id": case.agent_user_id, "consent": True})
+        db.commit()
+        # The visitor gets no case code or agent name: nothing about the desk is disclosed to an anonymous caller.
+        return {"received": True}
 
     # ---- presence, team and KPIs
     @api.get("/sales-desk/presence")
