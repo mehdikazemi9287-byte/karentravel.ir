@@ -25,6 +25,14 @@ const csp = [
 const nextConfig = {
   output: 'standalone',
   poweredByHeader: false,
+  // The installable customer app lives at /app; its route folder is app/customer-app because a nested
+  // app/app/ folder fails to compile inside the Docker image (WORKDIR /app -> /app/app/app/page.tsx).
+  async rewrites() {
+    return [
+      {source: '/app', destination: '/customer-app'},
+      {source: '/app/:path*', destination: '/customer-app/:path*'},
+    ];
+  },
   productionBrowserSourceMaps: false,
   async headers() {
     return [
