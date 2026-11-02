@@ -24,10 +24,23 @@
 - **برگشت سند درآمد:** با لغو، شکست، انقضا یا استرداد رزرو، سند معکوس خودکار ثبت می‌شود (کلید مشترک با برگشت دستی، پس دوبار نمی‌خورد) و گزارش، رزروهای برگشت‌خورده را جدا نشان می‌دهد.
 - **فرم «درخواست سفر» در `/contact`:** پرونده‌ی `web_form` در میز فروش می‌سازد. برای فعال شدن باید متغیر `SALES_DESK_PUBLIC_TENANT` روی سرور برابر نامک مستأجر گیرنده تنظیم شود؛ تا آن موقع بسته است.
 
+## دور سوم
+
+| قابلیت | بک‌اند | جدول‌ها (RLS) | صفحه | آزمون |
+| --- | --- | --- | --- | --- |
+| حلقه‌ی همسفران | `backend/app/loyalty.py` | `loyalty_settings`، `loyalty_accounts`، `loyalty_entries` (`20261102_56`) | `/admin/loyalty`، `/app/account` | `tests/test_loyalty.py` |
+| کمپین پیامکی | `backend/app/sms_campaigns.py` | `sms_campaigns`، `sms_campaign_recipients`، `sms_opt_outs` (`20261102_57`) | `/admin/sms-campaigns` | `tests/test_sms_campaigns.py` |
+| ورود اکسل و خروجی فرانگر | `backend/app/data_exchange.py`، `backend/app/tabular.py` | `accounting_code_map` (`20261102_58`) | زبانه‌ی «ورود اکسل» در میز فروش، `/finance/journal-export` | `tests/test_data_exchange.py` |
+| ورودی واتس‌اپ/بله/سانترال | در `sales_desk.py` | — | — | `tests/test_sales_desk.py` |
+| نرخ کودک/نوزاد تور | `main.py` (استعلام و رزرو تور) | — | — | `tests/test_safarsaz.py` |
+| حالت آفلاین اپ | `public/sw.js`، `public/offline.html` | — | `/app` | — |
+
+متغیرهای محیطی لازم برای روشن شدن ورودی‌ها: `SALES_DESK_PUBLIC_TENANT`، `SALES_DESK_WHATSAPP_APP_SECRET`، `SALES_DESK_WHATSAPP_VERIFY_TOKEN`، `SALES_DESK_BALE_WEBHOOK_TOKEN`، `SALES_DESK_PBX_SECRET`.
+
 ## محدودیت‌های فعلی
 
-- واتس‌اپ، بله و سانترال هنوز به میز فروش وصل نیستند (فرم سایت وصل شد).
-- نرخ کودک/نوزاد سفرساز برای پیش‌فاکتور نگه داشته می‌شود؛ رزرو آنلاین فعلاً با نرخ بزرگسال است.
-- اپ مشتری service worker و حالت آفلاین ندارد.
+- فرم رزرو تور در سایت هنوز فیلد کودک/نوزاد ندارد (API دارد).
+- کمپین پیامکی تا اتصال سرویس پیامک چیزی نمی‌فرستد.
+- خروجی فرانگر قالب عمومی سند است و باید با نمونه‌ی قالب ورود فرانگر منطبق شود.
 
 </div>
