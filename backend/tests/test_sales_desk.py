@@ -184,3 +184,48 @@ def test_public_web_form_intake(client, monkeypatch):
     with SessionLocal() as db:
         n = len(db.scalars(select(SalesCase).where(SalesCase.tenant_id == tid, SalesCase.mobile == "09351234567", SalesCase.channel == "web_form")).all())
     assert n <= 3
+
+
+def test_messenger_and_pbx_intake(client, monkeypatch):
+    import hashlib
+    import hmac
+    import json as _json
+    from app.main import Tenant
+    _, tid = _user("backoffice@aftab.test")
+    with SessionLocal() as db:
+        slug = db.scalar(select(Tenant.slug).where(Tenant.id == tid))
+    for k in ("SALES_DESK_WHATSAPP_APP_SECRET", "SALES_DESK_BALE_WEBHOOK_TOKEN", "SALES_DESK_PBX_SECRET"):
+        monkeypatch.delenv(k, raising=False)
+    monkeypatch.setenv("SALES_DESK_PUBLIC_TENANT", slug)
+    assert client.post("/public/sales-desk/inbound/pbx", content=b"{}").status_code == 503  # closed until configured
+    assert client.post("/public/sales-desk/inbound/bale/x", content=b"{}").status_code == 503
+    monkeypatch.setenv("SALES_DESK_WHATSAPP_APP_SECRET", "wa-secret")
+    monkeypatch.setenv("SALES_DESK_WHATSAPP_VERIFY_TOKEN", "verify-me")
+    monkeypatch.setenv("SALES_DESK_BALE_WEBHOOK_TOKEN", "bale-token-123")
+    monkeypatch.setenv("SALES_DESK_PBX_SECRET", "pbx-secret")
+    hs = client.get("/public/sales-desk/inbound/whatsapp", params={"hub.mode": "subscribe", "hub.verify_token": "verify-me", "hub.challenge": "42"})
+    assert hs.status_code == 200 and hs.text == "42"
+    assert client.get("/public/sales-desk/inbound/whatsapp", params={"hub.mode": "subscribe", "hub.verify_token": "nope", "hub.challenge": "42"}).status_code == 403
+    mid = uuid.uuid4().hex
+    wa = _json.dumps({"entry": [{"changes": [{"value": {"contacts": [{"wa_id": "989121112233", "profile": {"name": "سارا"}}],
+                                                         "messages": [{"from": "989121112233", "id": mid, "type": "text", "text": {"body": "تور کیش برای دو نفر"}}]}}]}]}).encode()
+    sig = "sha256=" + hmac.new(b"wa-secret", wa, hashlib.sha256).hexdigest()
+    assert client.post("/public/sales-desk/inbound/whatsapp", content=wa, headers={"x-hub-signature-256": "sha256=bad"}).status_code == 401
+    r = client.post("/public/sales-desk/inbound/whatsapp", content=wa, headers={"x-hub-signature-256": sig})
+    assert r.status_code == 200 and r.json()["results"] == ["created"]
+    assert client.post("/public/sales-desk/inbound/whatsapp", content=wa, headers={"x-hub-signature-256": sig}).json()["results"] == ["duplicate"]
+    desk = _h(client, "backoffice@aftab.test")
+    cases = [c for c in client.get("/sales-desk/cases", params={"q": "09121112233"}, headers=desk).json()["items"] if c["channel"] == "whatsapp"]
+    assert len(cases) == 1 and cases[0]["customer_name"] == "سارا" and "کیش" in cases[0]["trip"]
+    # PBX missed call from the same number goes into the same open case
+    ev = _json.dumps({"call_id": uuid.uuid4().hex, "caller": "+98 912 111 2233", "event": "missed", "extension": "104"}).encode()
+    psig = hmac.new(b"pbx-secret", ev, hashlib.sha256).hexdigest()
+    assert client.post("/public/sales-desk/inbound/pbx", content=ev, headers={"x-karenseir-signature": "x"}).status_code == 401
+    assert client.post("/public/sales-desk/inbound/pbx", content=ev, headers={"x-karenseir-signature": psig}).json()["result"] == "appended"
+    detail = client.get(f"/sales-desk/cases/{cases[0]['id']}", headers=desk).json()
+    assert any(a["kind"] == "call" and "بی‌پاسخ" in (a["body"] or "") for a in detail["activities"])
+    # Bale: wrong token rejected, no shared phone skipped, shared contact opens a case
+    assert client.post("/public/sales-desk/inbound/bale/wrong", content=b"{}").status_code == 403
+    assert client.post("/public/sales-desk/inbound/bale/bale-token-123", json={"update_id": 1, "message": {"text": "سلام"}}).json()["result"] == "skipped"
+    b = client.post("/public/sales-desk/inbound/bale/bale-token-123", json={"update_id": int(uuid.uuid4().int % 10**9), "message": {"from": {"first_name": "رضا"}, "contact": {"phone_number": "989351119900"}, "text": "مشهد"}})
+    assert b.json()["result"] == "created"

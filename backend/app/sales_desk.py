@@ -17,13 +17,17 @@ only *points* to a reservation; money stays in the commerce/treasury modules.
 """
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
+import os
 import re
 import uuid
 from datetime import date, datetime, time, timedelta, timezone
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, func, select
 from sqlalchemy.orm import Mapped, Session, mapped_column
@@ -615,6 +619,134 @@ def sales_desk_router(get_db, current_user, role_has_permission, User, audit=Non
         text = render_template(templates[data.template], {"name": case.customer_name, "trip": case.trip, "agent": names.get(case.agent_user_id) or user.name,
                                                           "amount": amount, "expires": expires.strftime("%Y-%m-%d %H:%M UTC") if expires else ""})
         return {"template": data.template, "text": text, "mobile": case.mobile}
+
+    # ---- messenger / PBX intake (webhooks). Each channel is closed until its own secret is configured.
+    def _inbound(db: Session, tenant_id: int, channel: str, mobile: str, name: Optional[str], text: str, ext_id: str, kind: str = "message") -> str:
+        """Append to the open case of this mobile, or open a new case. Idempotent on the provider's message/call id."""
+        marker = f'"ext_id": {json.dumps(ext_id)}'
+        if db.scalar(select(SalesCaseActivity.id).where(SalesCaseActivity.tenant_id == tenant_id, SalesCaseActivity.detail_json.contains(marker))):
+            return "duplicate"
+        now = utcnow()
+        case = db.scalar(select(SalesCase).where(SalesCase.tenant_id == tenant_id, SalesCase.mobile == mobile, SalesCase.stage.in_(OPEN_STAGES),
+                                                 SalesCase.created_at >= now - timedelta(days=14)).order_by(SalesCase.created_at.desc()))
+        detail = {"channel": channel, "ext_id": ext_id, "inbound": True}
+        if case is not None:
+            _log(db, case, None, kind, text[:4000] or None, detail)
+            case.updated_at = now
+            db.commit()
+            return "appended"
+        settings = _settings(db, tenant_id)
+        label = {"whatsapp": "واتس‌اپ", "bale": "بله", "phone": "تماس تلفنی"}[channel]
+        case = SalesCase(tenant_id=tenant_id, code=_new_code(db, tenant_id), customer_name=(name or "").strip()[:160] or f"مشتری {label}", mobile=mobile, channel=channel,
+                         trip=(text.strip()[:240] or f"درخواست از {label}"), travellers=1, stage="new", is_complaint=False,
+                         sla_due_at=now + timedelta(minutes=settings.sla_alert_minutes))
+        if hasattr(User, "mobile_e164"):
+            case.customer_user_id = db.scalar(select(User.id).where(User.tenant_id == tenant_id, User.mobile_e164 == "+98" + mobile[1:]))
+        if settings.auto_assign:
+            nxt = _next_agent(db, tenant_id)
+            if nxt:
+                case.agent_user_id, nxt.last_assigned_at = nxt.user_id, now
+        db.add(case)
+        db.flush()
+        _log(db, case, None, "created", None, {**detail, "agent_user_id": case.agent_user_id})
+        if text.strip():
+            _log(db, case, None, kind, text[:4000], {**detail, "ext_id": ext_id + "#body"})
+        db.commit()
+        return "created"
+
+    def _tenant_or_503(db: Session) -> int:
+        if public_tenant is None:
+            raise HTTPException(status_code=503, detail="ورودی پیام‌رسان فعال نیست")
+        return public_tenant(db)
+
+    def _secret(name: str) -> str:
+        value = (os.getenv(name) or "").strip()
+        if not value:
+            raise HTTPException(status_code=503, detail="این کانال هنوز پیکربندی نشده است")
+        return value
+
+    def _mobile_or_none(raw: Any) -> Optional[str]:
+        try:
+            return normalize_mobile(str(raw or ""))
+        except ValueError:
+            return None
+
+    @api.get("/public/sales-desk/inbound/whatsapp")
+    def whatsapp_verify(request: Request):
+        """WhatsApp Cloud API webhook verification handshake."""
+        q = request.query_params
+        token = _secret("SALES_DESK_WHATSAPP_VERIFY_TOKEN")
+        if q.get("hub.mode") == "subscribe" and hmac.compare_digest(q.get("hub.verify_token", ""), token):
+            return PlainTextResponse(q.get("hub.challenge", ""))
+        raise HTTPException(status_code=403, detail="forbidden")
+
+    @api.post("/public/sales-desk/inbound/whatsapp")
+    async def whatsapp_inbound(request: Request, db: Session = Depends(get_db)):
+        secret = _secret("SALES_DESK_WHATSAPP_APP_SECRET")
+        body = await request.body()
+        sent = request.headers.get("x-hub-signature-256", "")
+        expected = "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(sent, expected):
+            raise HTTPException(status_code=401, detail="invalid signature")
+        tenant_id = _tenant_or_503(db)
+        try:
+            payload = json.loads(body or b"{}")
+        except ValueError:
+            raise HTTPException(status_code=422, detail="invalid json")
+        results = []
+        for entry in payload.get("entry", []) or []:
+            for change in entry.get("changes", []) or []:
+                value = change.get("value") or {}
+                names = {c.get("wa_id"): (c.get("profile") or {}).get("name") for c in value.get("contacts", []) or []}
+                for msg in value.get("messages", []) or []:
+                    mobile = _mobile_or_none(msg.get("from"))
+                    if not mobile or not msg.get("id"):
+                        results.append("skipped")
+                        continue
+                    text = (msg.get("text") or {}).get("body") or f"[{msg.get('type', 'message')}]"
+                    results.append(_inbound(db, tenant_id, "whatsapp", mobile, names.get(msg.get("from")), text, "wa:" + str(msg["id"])))
+        return {"received": len(results), "results": results}
+
+    @api.post("/public/sales-desk/inbound/bale/{token}")
+    async def bale_inbound(token: str, request: Request, db: Session = Depends(get_db)):
+        """Bale bot webhook (the secret is the path token). A case needs a phone number, so only messages
+        where the customer shared their contact open or update a case; others are acknowledged and skipped."""
+        if not hmac.compare_digest(token, _secret("SALES_DESK_BALE_WEBHOOK_TOKEN")):
+            raise HTTPException(status_code=403, detail="forbidden")
+        tenant_id = _tenant_or_503(db)
+        try:
+            update = json.loads(await request.body() or b"{}")
+        except ValueError:
+            raise HTTPException(status_code=422, detail="invalid json")
+        msg = update.get("message") or {}
+        contact = msg.get("contact") or {}
+        mobile = _mobile_or_none(contact.get("phone_number"))
+        if not mobile or update.get("update_id") is None:
+            return {"result": "skipped", "reason": "no shared phone number"}
+        sender = msg.get("from") or {}
+        name = " ".join(x for x in (contact.get("first_name") or sender.get("first_name"), contact.get("last_name") or sender.get("last_name")) if x)
+        return {"result": _inbound(db, tenant_id, "bale", mobile, name, msg.get("text") or msg.get("caption") or "", f"bale:{update['update_id']}")}
+
+    @api.post("/public/sales-desk/inbound/pbx")
+    async def pbx_inbound(request: Request, db: Session = Depends(get_db)):
+        """Generic PBX (سانترال) call event, HMAC-SHA256 signed: {"call_id","caller","event": incoming|missed|answered, "extension"}."""
+        secret = _secret("SALES_DESK_PBX_SECRET")
+        body = await request.body()
+        sent = request.headers.get("x-karenseir-signature", "")
+        if not hmac.compare_digest(sent, hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()):
+            raise HTTPException(status_code=401, detail="invalid signature")
+        tenant_id = _tenant_or_503(db)
+        try:
+            ev = json.loads(body or b"{}")
+        except ValueError:
+            raise HTTPException(status_code=422, detail="invalid json")
+        mobile = _mobile_or_none(ev.get("caller"))
+        if not mobile or not ev.get("call_id") or ev.get("event") not in ("incoming", "missed", "answered"):
+            return {"result": "skipped"}
+        text = {"incoming": "تماس ورودی", "missed": "تماس بی‌پاسخ — نیاز به تماس دوباره", "answered": "تماس پاسخ داده شد"}[ev["event"]]
+        if ev.get("extension"):
+            text += f" (داخلی {str(ev['extension'])[:12]})"
+        return {"result": _inbound(db, tenant_id, "phone", mobile, None, text, f"pbx:{ev['call_id']}:{ev['event']}", kind="call")}
 
     # ---- public intake (website form)
     @api.post("/public/sales-desk/requests", status_code=202)
