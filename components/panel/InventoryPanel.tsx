@@ -117,8 +117,79 @@ function Templates() {
   </>;
 }
 
+
+const BOARD: Opt = [['RO', 'بدون صبحانه'], ['BB', 'با صبحانه'], ['HB', 'نیم‌پانسیون'], ['FB', 'تمام‌پانسیون'], ['AI', 'همه‌چیز رایگان']];
+
+function HotelPicker({onPick}: {onPick: (h: Row) => void}) {
+  const [q, setQ] = useState(''); const [s, setS] = useState('');
+  const {state} = useLoad<{items: Row[]}>(s ? `/stays/hotels/search?q=${encodeURIComponent(s)}` : null);
+  return <div style={{flexBasis: '100%'}}><form className="pn-form" onSubmit={e => {e.preventDefault(); setS(q.trim());}}><label>جستجوی هتل<input value={q} onChange={e => setQ(e.target.value)}/></label><button className="pn-btn ghost">جستجو</button></form>
+    {s && <Async state={state}>{d => <div className="pn-chips" style={{marginTop: 6}}>{d.items.map(h => <button type="button" key={h.id} onClick={() => onPick(h)}>{h.name}{h.stars ? ` ${fa(h.stars)}★` : ''}</button>)}</div>}</Async>}</div>;
+}
+
+function RoomCalendar({room}: {room: Row}) {
+  const today = new Date(); const later = new Date(); later.setDate(today.getDate() + 30);
+  const [range, setRange] = useState<Row>({date_from: today.toISOString().slice(0, 10), date_to: later.toISOString().slice(0, 10)});
+  const {state, reload, api} = useLoad<{nights: Row[]}>(`/stays/rooms/${room.id}/calendar?date_from=${range.date_from}&date_to=${range.date_to}`);
+  const [v, setV] = useState<Row>({weekdays: [0, 1, 2, 3, 4, 5, 6]}); const [msg, setMsg] = useState<{ok: boolean; text: string} | null>(null);
+  async function apply(e: FormEvent) {
+    e.preventDefault(); const body: Row = {date_from: v.date_from || range.date_from, date_to: v.date_to || range.date_to, weekdays: v.weekdays};
+    for (const k of ['allotment', 'price', 'single_price', 'extra_bed_price', 'child_price', 'min_stay']) if (v[k] !== undefined && v[k] !== null && v[k] !== '') body[k] = v[k];
+    for (const k of ['stop_sell', 'closed_to_arrival']) if (v[k] === 'yes' || v[k] === 'no') body[k] = v[k] === 'yes';
+    try {const r = await api.put<Row>(`/stays/rooms/${room.id}/calendar`, body); setMsg({ok: true, text: `${fa(r.nights_updated)} شب به‌روز شد.`}); reload();} catch (x) {setMsg({ok: false, text: errorOf(x).message});}
+  }
+  const wd = [[5, 'ش'], [6, 'ی'], [0, 'د'], [1, 'س'], [2, 'چ'], [3, 'پ'], [4, 'ج']] as const;
+  return <Card title={`تقویم نرخ و ظرفیت — ${room.name}`}>
+    <form className="pn-form" onSubmit={apply} style={{padding: 10, border: '1px dashed #d9cdc0', borderRadius: 14}}>
+      <FormFields value={v} set={setV} fields={[{key: 'date_from', label: 'از تاریخ', type: 'date'}, {key: 'date_to', label: 'تا تاریخ', type: 'date'}, {key: 'allotment', label: 'ظرفیت (اتاق)', type: 'number'}, {key: 'price', label: 'نرخ هر شب (ریال)', type: 'money', hint: 'ظرفیت پایه'},
+        {key: 'single_price', label: 'نرخ یک‌نفره', type: 'money'}, {key: 'extra_bed_price', label: 'تخت اضافه', type: 'money'}, {key: 'child_price', label: 'کودک', type: 'money'}, {key: 'min_stay', label: 'حداقل اقامت', type: 'number'},
+        {key: 'stop_sell', label: 'توقف فروش', type: 'select', options: [['', 'بدون تغییر'], ['yes', 'بله'], ['no', 'خیر']]}, {key: 'closed_to_arrival', label: 'بسته برای ورود', type: 'select', options: [['', 'بدون تغییر'], ['yes', 'بله'], ['no', 'خیر']]}]}/>
+      <span className="pn-chips" aria-label="روزهای هفته">{wd.map(([k, l]) => <button type="button" key={k} style={v.weekdays.includes(k) ? {background: 'var(--pn-plum, #4b2a4f)', color: '#fff'} : undefined} onClick={() => setV({...v, weekdays: v.weekdays.includes(k) ? v.weekdays.filter((x: number) => x !== k) : [...v.weekdays, k]})}>{l}</button>)}</span>
+      <button className="pn-btn">اعمال روی بازه</button></form>
+    <Note msg={msg}/>
+    <form className="pn-form" style={{marginTop: 10}} onSubmit={e => e.preventDefault()}><FormFields value={range} set={setRange} fields={[{key: 'date_from', label: 'نمایش از', type: 'date'}, {key: 'date_to', label: 'تا', type: 'date'}]}/></form>
+    <Async state={state}>{d => <Table rows={d.nights} rowKey={r => r.night} empty="—" cols={[{label: 'شب', cell: r => dateFa(r.night)}, {label: 'ظرفیت', cell: r => fa(r.allotment)}, {label: 'فروش', cell: r => fa(r.sold)}, {label: 'آزاد', cell: r => <b style={{color: r.free <= 0 ? '#b3261e' : undefined}}>{fa(r.free)}</b>},
+      {label: 'نرخ', cell: r => r.price ? money(r.price, 'IRR') : '—'}, {label: 'یک‌نفره', cell: r => r.single_price ? money(r.single_price, 'IRR') : '—'}, {label: 'وضعیت', cell: r => [r.stop_sell && 'توقف فروش', r.closed_to_arrival && 'بسته برای ورود', r.min_stay && `حداقل ${fa(r.min_stay)} شب`].filter(Boolean).join('، ') || 'باز'}]}/>}</Async>
+  </Card>;
+}
+
+function ContractRooms({contract}: {contract: Row}) {
+  const [cal, setCal] = useState<Row | null>(null);
+  return <>
+    <Crud path={`/stays/contracts/${contract.id}/rooms`} title={`اتاق‌های قرارداد «${contract.title}»`} blank={{name: '', board: 'BB', max_adults: 2, max_children: 1, extra_beds: 0, status: 'active'}}
+      fields={[{key: 'name', label: 'نام اتاق', required: true}, {key: 'board', label: 'وعده', type: 'select', options: BOARD}, {key: 'max_adults', label: 'ظرفیت پایه (بزرگسال)', type: 'number'}, {key: 'max_children', label: 'حداکثر کودک', type: 'number'}, {key: 'extra_beds', label: 'تخت اضافه', type: 'number'}, {key: 'status', label: 'وضعیت', type: 'select', options: [['active', 'فعال'], ['disabled', 'غیرفعال']]}]}
+      cols={[{label: 'اتاق', cell: r => r.name}, {label: 'وعده', cell: r => BOARD.find(b => b[0] === r.board)?.[1]}, {label: 'ظرفیت', cell: r => `${fa(r.max_adults)} بزرگسال + ${fa(r.max_children)} کودک${r.extra_beds ? ` + ${fa(r.extra_beds)} تخت اضافه` : ''}`}, {label: 'وضعیت', cell: r => <Badge status={r.status}/>}]}
+      extra={r => <button className="pn-btn" onClick={() => setCal(r)}>تقویم نرخ</button>}/>
+    {cal && <RoomCalendar key={cal.id} room={cal}/>}
+  </>;
+}
+
+function HotelContracts() {
+  const suppliers = useOptions('/inventory/suppliers', r => [r.id, r.name]);
+  const {state, reload, api} = useLoad<{items: Row[]}>('/stays/contracts');
+  const [edit, setEdit] = useState<Row | null>(null); const [open, setOpen] = useState<Row | null>(null); const [msg, setMsg] = useState<{ok: boolean; text: string} | null>(null);
+  async function save(e: FormEvent) {e.preventDefault(); if (!edit) return; const {id, hotel_name, ...b} = edit; void hotel_name;
+    try {const body = {...b, penalty_code: b.penalty_code || null}; id ? await api.put(`/stays/contracts/${id}`, body) : await api.post('/stays/contracts', body); setEdit(null); setMsg({ok: true, text: 'قرارداد ذخیره شد.'}); reload();} catch (x) {setMsg({ok: false, text: errorOf(x).message});}}
+  return <>
+    <Card title="قراردادهای هتل" action={<button className="pn-btn" onClick={() => setEdit({currency: 'IRR', release_days: 0, min_stay: 1, max_stay: 30, refundable: true, child_free_age: 2, child_max_age: 12, status: 'active'})}>قرارداد جدید</button>}>
+      <Note msg={msg}/>
+      {edit && <form className="pn-form" onSubmit={save} style={{marginBottom: 16, padding: 12, border: '1px dashed #d9cdc0', borderRadius: 14}}>
+        {!edit.id && <HotelPicker onPick={h => setEdit({...edit, hotel_id: h.id, hotel_name: h.name})}/>}
+        <p className="pn-muted" style={{flexBasis: '100%'}}>هتل: <b>{edit.hotel_name || 'انتخاب نشده'}</b></p>
+        <FormFields value={edit} set={setEdit} fields={[{key: 'title', label: 'عنوان قرارداد', required: true}, {key: 'supplier_id', label: 'تأمین‌کننده', type: 'select', options: [['', '—'], ...suppliers]}, {key: 'valid_from', label: 'از تاریخ', type: 'date', required: true}, {key: 'valid_to', label: 'تا تاریخ', type: 'date', required: true},
+          {key: 'release_days', label: 'توقف فروش (روز قبل از ورود)', type: 'number'}, {key: 'min_stay', label: 'حداقل شب', type: 'number'}, {key: 'max_stay', label: 'حداکثر شب', type: 'number'}, {key: 'child_free_age', label: 'کودک رایگان تا سن', type: 'number'}, {key: 'child_max_age', label: 'نرخ کودک تا سن', type: 'number'},
+          {key: 'refundable', label: 'قابل استرداد', type: 'bool'}, {key: 'penalty_code', label: 'کد جریمه کنسلی'}, {key: 'status', label: 'وضعیت', type: 'select', options: [['active', 'فعال'], ['disabled', 'غیرفعال']]}, {key: 'terms', label: 'شرایط و قوانین هتل', type: 'textarea', wide: true}]}/>
+        <span style={{display: 'flex', gap: 8}}><button className="pn-btn">ثبت</button><button type="button" className="pn-btn ghost" onClick={() => setEdit(null)}>انصراف</button></span></form>}
+      <Async state={state}>{d => <Table rows={d.items} rowKey={r => r.id} empty="قرارداد هتلی ثبت نشده است." cols={[{label: 'هتل', cell: r => r.hotel_name}, {label: 'عنوان', cell: r => r.title}, {label: 'اعتبار', cell: r => `${dateFa(r.valid_from)} تا ${dateFa(r.valid_to)}`},
+        {label: 'شرایط', cell: r => `حداقل ${fa(r.min_stay)} شب · توقف ${fa(r.release_days)} روز قبل`}, {label: 'وضعیت', cell: r => <Badge status={r.status}/>},
+        {label: '', cell: r => <span style={{display: 'flex', gap: 6}}><button className="pn-btn ghost" onClick={() => setEdit({...r})}>ویرایش</button><button className="pn-btn" onClick={() => setOpen(r)}>اتاق‌ها و نرخ</button></span>}]}/>}</Async>
+    </Card>
+    {open && <ContractRooms key={open.id} contract={open}/>}
+  </>;
+}
+
 export function AdminInventory() {
-  return <Tabs tabs={[['پروازها', <Flights key="f"/>], ['تعریف پرواز', <Series key="s"/>], ['مسیرها', <Routes key="r"/>], ['تأمین‌کنندگان', <Suppliers key="p"/>], ['مفاد قرارداد', <Templates key="t"/>]]}/>;
+  return <Tabs tabs={[['پروازها', <Flights key="f"/>], ['قرارداد هتل', <HotelContracts key="h"/>], ['تعریف پرواز', <Series key="s"/>], ['مسیرها', <Routes key="r"/>], ['تأمین‌کنندگان', <Suppliers key="p"/>], ['مفاد قرارداد', <Templates key="t"/>]]}/>;
 }
 
 export function SalesReport() {

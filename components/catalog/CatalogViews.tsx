@@ -6,6 +6,7 @@ import {usePathname, useRouter, useSearchParams} from 'next/navigation';
 import {useEffect, useState, type ReactNode} from 'react';
 import {useAuth} from '../../lib/api/auth-context';
 import {ApiError, newId} from '../../lib/api/karenseir-client';
+import {StayBooking} from './StayBooking';
 
 type Brief = {id: string; name: string; name_en?: string | null} | null;
 type Hotel = {id: string; slug: string; name: string; name_fa: string | null; name_en: string | null; name_local: string | null; hotel_type: string; hotel_type_fa: string; stars: number | null; country_code: string;
@@ -195,7 +196,7 @@ export function HotelDetail({slug}: {slug: string}) {
         </dl></section>
         {(h.nearby_airports?.length || h.nearby_rail_stations?.length) ? <section><h2>دسترسی</h2><ul className="cat-access">{h.nearby_airports?.map(a => <li key={a.iata}>فرودگاه {a.name} <span dir="ltr">({a.iata})</span></li>)}{h.nearby_rail_stations?.map(s => <li key={s.id}>ایستگاه راه‌آهن {s.name}</li>)}</ul></section> : null}
       </div>
-      <aside className="cat-inquiry"><h2>قیمت و رزرو</h2><p className="cat-price">{h.price_note}</p><p>برای این اقامتگاه هنوز نرخ تأییدشده‌ای از تأمین‌کننده ثبت نشده است. تاریخ و تعداد مهمان را مشخص کنید یا از پشتیبانی استعلام بگیرید.</p>
+      <aside className="cat-inquiry"><h2>قیمت و رزرو</h2><StayBooking slug={h.slug}/><p className="cat-price">{h.price_note}</p><p>برای این اقامتگاه هنوز نرخ تأییدشده‌ای از تأمین‌کننده ثبت نشده است. تاریخ و تعداد مهمان را مشخص کنید یا از پشتیبانی استعلام بگیرید.</p>
         <Link className="button primary" href={`/search/results?vertical=hotel&destination=${encodeURIComponent(h.city?.name ?? h.name)}`}>جست‌وجوی اقامت در {h.city?.name ?? 'این مقصد'}</Link>
         <InquiryRequest subject={`استعلام اقامت: ${h.name}`} context={`درخواست استعلام نرخ و موجودی برای «${h.name}»${h.city ? ` در ${h.city.name}` : ''} (شناسهٔ فهرست: ${h.id}).`} reason={h.request?.reason ?? 'نرخ تأییدشده‌ای ثبت نشده است.'}/></aside>
     </div>

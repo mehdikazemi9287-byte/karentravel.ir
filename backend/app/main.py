@@ -2494,7 +2494,7 @@ def search_offers(data: OfferSearchIn, user: User = Depends(current_user), db: S
         if set(bounds) != required or bounds["north"] <= bounds["south"] or bounds["east"] <= bounds["west"]:
             raise HTTPException(status_code=422, detail="محدوده نقشه معتبر نیست")
     now = datetime.now(timezone.utc)
-    statement = select(operational_models.Offer).where(operational_models.Offer.tenant_id == user.tenant_id, operational_models.Offer.service_type == data.service_type, operational_models.Offer.status == "active", operational_models.Offer.available_units > 0, operational_models.Offer.valid_until > now)
+    statement = select(operational_models.Offer).where(operational_models.Offer.provider_key != "karenseir_contract", operational_models.Offer.tenant_id == user.tenant_id, operational_models.Offer.service_type == data.service_type, operational_models.Offer.status == "active", operational_models.Offer.available_units > 0, operational_models.Offer.valid_until > now)
     if data.min_price is not None: statement = statement.where(operational_models.Offer.amount >= data.min_price)
     if data.max_price is not None: statement = statement.where(operational_models.Offer.amount <= data.max_price)
     rows = db.scalars(statement).all()
@@ -5274,3 +5274,6 @@ app.include_router(commerce_router(get_db, current_user, role_has_permission, Us
 
 from .inventory import inventory_router  # noqa: E402  own flight inventory, contracts, sales report
 app.include_router(inventory_router(get_db, current_user, role_has_permission, User, _platform_audit))
+
+from .stays import stays_router  # noqa: E402  own hotel contracts, allotment and rate calendar
+app.include_router(stays_router(get_db, current_user, role_has_permission, User, _platform_audit))
