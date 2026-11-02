@@ -2,8 +2,7 @@
 
 # وضعیت پیاده‌سازی (PR #6)
 
-محیط: **فقط کد منبع (Source)**. هیچ تغییری در production و هیچ استقراری انجام نشده است.
-شاخه: `feature/sales-desk-revenue-safarsaz-app` ← `production`
+وضعیت: **در شاخه‌ی `production` ادغام شده (PR #6 و PR #7)**؛ استقرار روی سرور و اجرای مهاجرت‌ها (`20261102_53` تا `_58`) هنوز انجام نشده است.
 
 | # | قابلیت | بک‌اند | جدول‌ها (RLS) | صفحه | آزمون |
 | --- | --- | --- | --- | --- | --- |
@@ -35,11 +34,10 @@
 | نرخ کودک/نوزاد تور | `main.py` (استعلام و رزرو تور) | — | — | `tests/test_safarsaz.py` |
 | حالت آفلاین اپ | `public/sw.js`، `public/offline.html` | — | `/app` | — |
 
-متغیرهای محیطی لازم برای روشن شدن ورودی‌ها: `SALES_DESK_PUBLIC_TENANT`، `SALES_DESK_WHATSAPP_APP_SECRET`، `SALES_DESK_WHATSAPP_VERIFY_TOKEN`، `SALES_DESK_BALE_WEBHOOK_TOKEN`، `SALES_DESK_PBX_SECRET`.
+متغیرهای محیطی ورودی‌ها: `SALES_DESK_PUBLIC_TENANT` (اختیاری؛ پیش‌فرض مستأجر مشتریان `karenseir-consumer`)، `SALES_DESK_WHATSAPP_APP_SECRET`، `SALES_DESK_WHATSAPP_VERIFY_TOKEN`، `SALES_DESK_BALE_WEBHOOK_TOKEN`، `SALES_DESK_PBX_SECRET`.
 
 ## محدودیت‌های فعلی
 
-- فرم رزرو تور در سایت هنوز فیلد کودک/نوزاد ندارد (API دارد).
 - کمپین پیامکی تا اتصال سرویس پیامک چیزی نمی‌فرستد.
 - خروجی فرانگر قالب عمومی سند است و باید با نمونه‌ی قالب ورود فرانگر منطبق شود.
 
