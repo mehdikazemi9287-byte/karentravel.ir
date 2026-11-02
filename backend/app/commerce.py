@@ -16,7 +16,7 @@ from __future__ import annotations
 import json
 import re
 import uuid
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -168,9 +168,26 @@ class UserBankAccount(OperationalMixin, Base):
     __table_args__ = (UniqueConstraint("tenant_id", "user_id", name="uq_commerce_bank_user"),)
 
 
+class SupplierAccount(OperationalMixin, Base):
+    __tablename__ = "commerce_supplier_accounts"
+    supplier_id: Mapped[str] = mapped_column(ForeignKey("suppliers.id"), index=True)
+    credit_limit: Mapped[int] = mapped_column(Integer, default=0)
+    payment_terms_days: Mapped[int] = mapped_column(Integer, default=7)
+    settlement_cycle: Mapped[str] = mapped_column(String(16), default="weekly")
+    account_holder: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
+    sheba: Mapped[Optional[str]] = mapped_column(String(26), nullable=True)
+    contact_name: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    phone: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    email: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
+    booking_only: Mapped[bool] = mapped_column(Boolean, default=False)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(16), default="active")
+    __table_args__ = (UniqueConstraint("tenant_id", "supplier_id", name="uq_commerce_supplier_account"),)
+
+
 TABLES = ("commerce_customer_groups", "commerce_group_members", "commerce_markup_rules", "commerce_penalty_rules",
           "commerce_baggage_rules", "commerce_currency_rates", "commerce_treasury_entries", "commerce_treasury_requests",
-          "commerce_user_bank_accounts")
+          "commerce_user_bank_accounts", "commerce_supplier_accounts")
 APPEND_ONLY = ("commerce_treasury_entries",)
 
 
@@ -538,6 +555,28 @@ class BankAccountIn(BaseModel):
     holder_name: str = Field(min_length=3, max_length=160)
     card_number: Optional[str] = Field(default=None, max_length=24)
     sheba: Optional[str] = Field(default=None, max_length=32)
+
+
+class SupplierAccountIn(BaseModel):
+    credit_limit: int = Field(default=0, ge=0)
+    payment_terms_days: int = Field(default=7, ge=0, le=180)
+    settlement_cycle: str = Field(default="weekly", pattern="^(per_booking|weekly|biweekly|monthly)$")
+    account_holder: Optional[str] = Field(default=None, max_length=160)
+    sheba: Optional[str] = Field(default=None, max_length=32)
+    contact_name: Optional[str] = Field(default=None, max_length=120)
+    phone: Optional[str] = Field(default=None, max_length=32)
+    email: Optional[str] = Field(default=None, max_length=160)
+    booking_only: bool = False
+    notes: Optional[str] = Field(default=None, max_length=4000)
+    status: str = Field(default="active", pattern="^(active|suspended)$")
+
+
+class SettleIn(BaseModel):
+    amount: int = Field(gt=0)
+    bank_name: Optional[str] = Field(default=None, max_length=80)
+    tracking_no: str = Field(min_length=3, max_length=80)
+    description: Optional[str] = Field(default=None, max_length=2000)
+    operation_date: Optional[str] = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
 
 
 # ---------------------------------------------------------------- router
@@ -1004,4 +1043,119 @@ def commerce_router(get_db, current_user, role_has_permission, User, audit=None)
         rows = db.scalars(select(User).where(User.tenant_id == user.tenant_id, cond).order_by(User.id).limit(20)).all()
         return {"items": [{"id": u.id, "name": u.name, "email": u.email, "role": u.role} for u in rows]}
 
+    # ---- supplier accounts
+    def _payable(db, tenant_id, supplier_id):
+        d, c, oldest = db.execute(select(func.sum(TreasuryEntry.debit), func.sum(TreasuryEntry.credit), func.min(TreasuryEntry.operation_date))
+                                  .where(TreasuryEntry.tenant_id == tenant_id, TreasuryEntry.counterparty_type == "supplier", TreasuryEntry.counterparty_ref == supplier_id)).one()
+        return int(c or 0) - int(d or 0), oldest
+
+    def _sacc(a):
+        if a is None:
+            return None
+        return {k: getattr(a, k) for k in ("credit_limit", "payment_terms_days", "settlement_cycle", "account_holder", "sheba", "contact_name", "phone", "email", "booking_only", "notes", "status")}
+
+    @api.get("/commerce/suppliers")
+    def supplier_accounts(user=Depends(finance_read), db: Session = Depends(get_db)):
+        out = []
+        for sup in db.scalars(select(m.Supplier).where(m.Supplier.tenant_id == user.tenant_id).order_by(m.Supplier.display_name)):
+            acc = db.scalar(select(SupplierAccount).where(SupplierAccount.tenant_id == user.tenant_id, SupplierAccount.supplier_id == sup.id))
+            payable, oldest = _payable(db, user.tenant_id, sup.id)
+            limit = acc.credit_limit if acc else 0
+            out.append({"id": sup.id, "name": sup.display_name, "type": sup.supplier_type, "status": sup.status, "account": _sacc(acc), "payable": payable,
+                        "credit_used_pct": round(100 * payable / limit) if limit else None, "over_limit": bool(limit and payable > limit), "oldest_entry": oldest})
+        return {"items": out, "total_payable": sum(max(0, i["payable"]) for i in out)}
+
+    @api.put("/commerce/suppliers/{supplier_id}/account")
+    def save_supplier_account(supplier_id: str, data: SupplierAccountIn, user=Depends(finance_write), db: Session = Depends(get_db)):
+        sup = db.scalar(select(m.Supplier).where(m.Supplier.id == supplier_id, m.Supplier.tenant_id == user.tenant_id))
+        if sup is None:
+            raise HTTPException(status_code=404, detail="تأمین‌کننده یافت نشد")
+        if data.sheba and not valid_sheba(data.sheba):
+            raise HTTPException(status_code=422, detail="شماره شبا معتبر نیست")
+        acc = db.scalar(select(SupplierAccount).where(SupplierAccount.tenant_id == user.tenant_id, SupplierAccount.supplier_id == supplier_id))
+        if acc is None:
+            acc = SupplierAccount(tenant_id=user.tenant_id, supplier_id=supplier_id)
+            db.add(acc)
+        for k, v in data.model_dump().items():
+            setattr(acc, k, v)
+        acc.sheba = normalize_sheba(data.sheba) if data.sheba else None
+        _audit(db, user, "commerce.supplier_account.saved", supplier_id)
+        db.commit()
+        return _sacc(acc)
+
+    @api.get("/commerce/suppliers/{supplier_id}/statement")
+    def supplier_statement(supplier_id: str, user=Depends(finance_read), db: Session = Depends(get_db)):
+        rows = db.scalars(select(TreasuryEntry).where(TreasuryEntry.tenant_id == user.tenant_id, TreasuryEntry.counterparty_type == "supplier",
+                                                      TreasuryEntry.counterparty_ref == supplier_id).order_by(TreasuryEntry.operation_date, TreasuryEntry.created_at)).all()
+        running, out = 0, []
+        for r in rows:
+            running += r.credit - r.debit
+            out.append(_entry_dict(r, running))
+        out.reverse()
+        return {"items": out[:500], "payable": running}
+
+    @api.post("/commerce/suppliers/{supplier_id}/settle", status_code=201)
+    def settle_supplier(supplier_id: str, data: SettleIn, user=Depends(finance_write), db: Session = Depends(get_db)):
+        sup = db.scalar(select(m.Supplier).where(m.Supplier.id == supplier_id, m.Supplier.tenant_id == user.tenant_id))
+        if sup is None:
+            raise HTTPException(status_code=404, detail="تأمین‌کننده یافت نشد")
+        payable, _ = _payable(db, user.tenant_id, supplier_id)
+        if data.amount > payable:
+            raise HTTPException(status_code=409, detail="مبلغ پرداخت از بدهی به تأمین‌کننده بیشتر است")
+        e = post_treasury(db, tenant_id=user.tenant_id, command_id=f"settle:{uuid.uuid4()}", counterparty_type="supplier", counterparty_ref=supplier_id, counterparty_name=sup.display_name,
+                          account_type="payable", operation="settlement", debit=data.amount, registered_by=user.id, bank_name=data.bank_name, tracking_no=data.tracking_no,
+                          description=data.description or "تسویه با تأمین‌کننده", operation_date=data.operation_date)
+        _audit(db, user, "commerce.supplier.settled", supplier_id, {"amount": data.amount})
+        db.commit()
+        return _entry_dict(e)
+
+    # ---- bank gateway report
+    @api.get("/commerce/reports/gateway")
+    def gateway_report(date_from: Optional[str] = None, date_to: Optional[str] = None, status: Optional[str] = None, limit: int = Query(default=300, ge=1, le=2000),
+                       user=Depends(finance_read), db: Session = Depends(get_db)):
+        q = select(m.PaymentIntent, User.name).join(User, User.id == m.PaymentIntent.user_id).where(m.PaymentIntent.tenant_id == user.tenant_id)
+        if date_from: q = q.where(m.PaymentIntent.created_at >= datetime.fromisoformat(date_from).replace(tzinfo=timezone.utc))
+        if date_to: q = q.where(m.PaymentIntent.created_at < datetime.fromisoformat(date_to).replace(tzinfo=timezone.utc) + timedelta(days=1))
+        if status: q = q.where(m.PaymentIntent.status == status)
+        rows = db.execute(q.order_by(m.PaymentIntent.created_at.desc()).limit(limit)).all()
+        items, totals = [], {}
+        for p, name in rows:
+            items.append({"id": p.id, "reservation_id": p.reservation_id, "user": name, "amount": p.amount, "captured_amount": p.captured_amount, "refunded_amount": p.refunded_amount,
+                          "currency": p.currency, "status": p.status, "provider": p.provider_key, "authority": p.provider_authority, "ref_id": p.provider_capture_reference,
+                          "created_at": p.created_at.isoformat() if p.created_at else None})
+            t = totals.setdefault(p.status, {"count": 0, "amount": 0})
+            t["count"] += 1
+            t["amount"] += p.captured_amount if p.status == "captured" else p.amount
+        return {"items": items, "by_status": totals}
+
     return api
+
+
+# ---------------------------------------------------------------- automatic postings (sub-ledger)
+def _safe_post(db: Session, **kw) -> None:
+    """Posting must never break a booking or a payment: it runs in a savepoint and is skipped on error."""
+    try:
+        with db.begin_nested():
+            post_treasury(db, **kw)
+    except Exception:  # pragma: no cover - logged by caller's observability
+        pass
+
+
+def record_sale(db: Session, *, tenant_id: int, reservation, buyer_id: int, buyer_name: Optional[str], amount: int, currency: str,
+                supplier_id: Optional[str], supplier_name: Optional[str], supplier_cost: Optional[int]) -> None:
+    ref = reservation.booking_reference or reservation.id
+    if amount > 0:
+        _safe_post(db, tenant_id=tenant_id, command_id=f"sale:{reservation.id}", counterparty_type="user", counterparty_ref=str(buyer_id), counterparty_name=buyer_name,
+                   account_type="receivable", operation="purchase", debit=amount, currency=currency, contract_ref=ref, purchase_ref=reservation.id,
+                   description=f"خرید {reservation.service_type} — رزرو {ref}")
+    if supplier_id and supplier_cost and supplier_cost > 0:
+        _safe_post(db, tenant_id=tenant_id, command_id=f"cost:{reservation.id}", counterparty_type="supplier", counterparty_ref=supplier_id, counterparty_name=supplier_name,
+                   account_type="payable", operation="purchase", credit=supplier_cost, currency=currency, contract_ref=ref, purchase_ref=reservation.id,
+                   description=f"بهای تمام‌شده رزرو {ref}")
+
+
+def record_payment(db: Session, *, tenant_id: int, intent, buyer_name: Optional[str], booking_reference: Optional[str]) -> None:
+    _safe_post(db, tenant_id=tenant_id, command_id=f"pay:{intent.id}", counterparty_type="user", counterparty_ref=str(intent.user_id), counterparty_name=buyer_name,
+               account_type="gateway", operation="deposit", credit=intent.captured_amount or intent.amount, currency=intent.currency, bank_name=intent.provider_key,
+               tracking_no=intent.provider_capture_reference, contract_ref=booking_reference, purchase_ref=intent.reservation_id,
+               description=f"پرداخت آنلاین رزرو {booking_reference or ''}".strip())

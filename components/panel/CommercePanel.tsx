@@ -248,8 +248,53 @@ function UserAccount() {
   </Card>;
 }
 
+
+function SupplierAccounts() {
+  const {state, reload, api} = useLoad<{items: Row[]; total_payable: number}>('/commerce/suppliers');
+  const [edit, setEdit] = useState<Row | null>(null); const [settle, setSettle] = useState<Row | null>(null); const [stmt, setStmt] = useState<Row | null>(null);
+  const [msg, setMsg] = useState<{ok: boolean; text: string} | null>(null);
+  const statement = useLoad<{items: Row[]; payable: number}>(stmt ? `/commerce/suppliers/${stmt.id}/statement` : null);
+  async function saveAcc(e: FormEvent) {e.preventDefault(); if (!edit) return; const {id, name, ...b} = edit; void name; try {await api.put(`/commerce/suppliers/${id}/account`, {...b, sheba: b.sheba || null}); setEdit(null); setMsg({ok: true, text: 'حساب تأمین‌کننده ذخیره شد.'}); reload();} catch (x) {setMsg({ok: false, text: errorOf(x).message});}}
+  async function pay(e: FormEvent) {e.preventDefault(); if (!settle) return; try {await api.post(`/commerce/suppliers/${settle.id}/settle`, {amount: settle.amount, bank_name: settle.bank_name || null, tracking_no: settle.tracking_no, description: settle.description || null, operation_date: settle.operation_date || null}); setSettle(null); setMsg({ok: true, text: 'پرداخت ثبت شد.'}); reload(); statement.reload();} catch (x) {setMsg({ok: false, text: errorOf(x).message});}}
+  return <>
+    <Card title="حساب تأمین‌کنندگان">
+      <Note msg={msg}/>
+      {edit && <form className="pn-form" onSubmit={saveAcc} style={{marginBottom: 14, padding: 12, border: '1px dashed #d9cdc0', borderRadius: 14}}><p className="pn-muted" style={{flexBasis: '100%'}}>تأمین‌کننده: <b>{edit.name}</b></p>
+        <FormFields value={edit} set={setEdit} fields={[{key: 'credit_limit', label: 'سقف اعتبار خرید (ریال)', type: 'money'}, {key: 'payment_terms_days', label: 'مهلت پرداخت (روز)', type: 'number'}, {key: 'settlement_cycle', label: 'دوره تسویه', type: 'select', options: [['per_booking', 'هر رزرو'], ['weekly', 'هفتگی'], ['biweekly', 'دوهفته'], ['monthly', 'ماهانه']]},
+          {key: 'account_holder', label: 'صاحب حساب'}, {key: 'sheba', label: 'شبا'}, {key: 'contact_name', label: 'رابط'}, {key: 'phone', label: 'تلفن'}, {key: 'email', label: 'ایمیل'}, {key: 'booking_only', label: 'فقط رزرو (بدون صدور)', type: 'bool'},
+          {key: 'status', label: 'وضعیت', type: 'select', options: [['active', 'فعال'], ['suspended', 'معلق']]}, {key: 'notes', label: 'یادداشت', type: 'textarea', wide: true}]}/>
+        <span style={{display: 'flex', gap: 8}}><button className="pn-btn">ذخیره</button><button type="button" className="pn-btn ghost" onClick={() => setEdit(null)}>انصراف</button></span></form>}
+      {settle && <form className="pn-form" onSubmit={pay} style={{marginBottom: 14, padding: 12, border: '1px dashed #d9cdc0', borderRadius: 14}}><p className="pn-muted" style={{flexBasis: '100%'}}>پرداخت به <b>{settle.name}</b> — بدهی فعلی {money(settle.payable, 'IRR')}</p>
+        <FormFields value={settle} set={setSettle} fields={[{key: 'amount', label: 'مبلغ (ریال)', type: 'money', required: true}, {key: 'bank_name', label: 'بانک'}, {key: 'tracking_no', label: 'شماره پیگیری', required: true}, {key: 'operation_date', label: 'تاریخ', type: 'date'}, {key: 'description', label: 'شرح', wide: true}]}/>
+        <span style={{display: 'flex', gap: 8}}><button className="pn-btn">ثبت پرداخت</button><button type="button" className="pn-btn ghost" onClick={() => setSettle(null)}>انصراف</button></span></form>}
+      <Async state={state}>{d => <><Stats items={[{label: 'جمع بدهی به تأمین‌کنندگان', value: money(d.total_payable, 'IRR')}, {label: 'تعداد', value: fa(d.items.length)}]}/>
+        <Table rows={d.items} rowKey={r => r.id} empty="تأمین‌کننده‌ای ثبت نشده است." cols={[{label: 'تأمین‌کننده', cell: r => r.name}, {label: 'بدهی ما', cell: r => <b style={{color: r.over_limit ? '#b3261e' : undefined}}>{money(r.payable, 'IRR')}</b>},
+          {label: 'سقف اعتبار', cell: r => r.account?.credit_limit ? `${money(r.account.credit_limit, 'IRR')}${r.credit_used_pct !== null ? ` (${fa(r.credit_used_pct)}٪)` : ''}` : '—'}, {label: 'مهلت/دوره', cell: r => r.account ? `${fa(r.account.payment_terms_days)} روز / ${({per_booking: 'هر رزرو', weekly: 'هفتگی', biweekly: 'دوهفته', monthly: 'ماهانه'} as Row)[r.account.settlement_cycle]}` : 'تعریف نشده'},
+          {label: 'وضعیت', cell: r => <Badge status={r.account?.status ?? r.status}/>},
+          {label: '', cell: r => <span style={{display: 'flex', gap: 6, flexWrap: 'wrap'}}><button className="pn-btn ghost" onClick={() => setEdit({id: r.id, name: r.name, credit_limit: 0, payment_terms_days: 7, settlement_cycle: 'weekly', booking_only: false, status: 'active', ...(r.account || {})})}>حساب</button>
+            <button className="pn-btn ghost" onClick={() => setStmt(r)}>صورت‌حساب</button>{r.payable > 0 && <button className="pn-btn" onClick={() => setSettle({id: r.id, name: r.name, payable: r.payable, amount: r.payable})}>پرداخت</button>}</span>}]}/></>}</Async>
+    </Card>
+    {stmt && <Card title={`صورت‌حساب ${stmt.name}`} action={<button className="pn-btn ghost" onClick={() => setStmt(null)}>بستن</button>}><Async state={statement.state}>{d => <><Stats items={[{label: 'مانده بدهی', value: money(d.payable, 'IRR')}]}/>
+      <Table rows={d.items} rowKey={(r: Row) => r.id} empty="گردشی ندارد." cols={[{label: 'تاریخ', cell: (r: Row) => dateFa(r.operation_date)}, {label: 'عملیات', cell: (r: Row) => label(OPERATION, r.operation)}, {label: 'بستانکار (خرید)', cell: (r: Row) => r.credit ? money(r.credit, 'IRR') : '—'}, {label: 'بدهکار (پرداخت)', cell: (r: Row) => r.debit ? money(r.debit, 'IRR') : '—'},
+        {label: 'مانده', cell: (r: Row) => money(r.balance, 'IRR')}, {label: 'رزرو/پیگیری', cell: (r: Row) => [r.contract_ref, r.tracking_no].filter(Boolean).join(' / ') || '—'}, {label: 'شرح', cell: (r: Row) => r.description || '—'}]}/></>}</Async></Card>}
+  </>;
+}
+
+function GatewayReport() {
+  const [f, setF] = useState<Row>({}); const [q, setQ] = useState('');
+  const {state} = useLoad<{items: Row[]; by_status: Record<string, Row>}>(`/commerce/reports/gateway${q}`);
+  const ST: Record<string, string> = {captured: 'موفق', failed: 'ناموفق', created: 'ایجادشده', initiated: 'در انتظار بانک', refunded: 'برگشت‌خورده'};
+  return <Card title="گزارش درگاه بانک">
+    <form className="pn-form" onSubmit={e => {e.preventDefault(); setQ('?' + Object.entries(f).filter(([, v]) => v).map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join('&'));}}>
+      <FormFields value={f} set={setF} fields={[{key: 'date_from', label: 'از تاریخ', type: 'date'}, {key: 'date_to', label: 'تا تاریخ', type: 'date'}, {key: 'status', label: 'وضعیت', type: 'select', options: [['', 'همه'], ...Object.entries(ST)]}]}/><button className="pn-btn">گزارش</button></form>
+    <Async state={state}>{d => <><Stats items={Object.entries(d.by_status).map(([k, v]) => ({label: ST[k] ?? k, value: money(v.amount, 'IRR'), hint: `${fa(v.count)} تراکنش`}))}/>
+      <Table rows={d.items} rowKey={r => r.id} empty="تراکنشی نیست." cols={[{label: 'تاریخ', cell: r => dateFa(r.created_at)}, {label: 'کاربر', cell: r => r.user}, {label: 'مبلغ', cell: r => money(r.amount, r.currency)}, {label: 'وضعیت', cell: r => ST[r.status] ?? r.status},
+        {label: 'درگاه', cell: r => r.provider}, {label: 'شماره پیگیری بانک', cell: r => <span dir="ltr">{r.ref_id || '—'}</span>}, {label: 'برگشتی', cell: r => r.refunded_amount ? money(r.refunded_amount, r.currency) : '—'}]}/></>}</Async>
+  </Card>;
+}
+
 export function FinanceTreasury() {
-  return <Tabs tabs={[['دفتر صندوق', <Book key="b"/>], ['بدهکار / بستانکار', <Subsidiary key="s"/>], ['درخواست‌های صندوق', <Requests key="r"/>], ['حساب کاربر', <UserAccount key="u"/>]]}/>;
+  return <Tabs tabs={[['دفتر صندوق', <Book key="b"/>], ['بدهکار / بستانکار', <Subsidiary key="s"/>], ['درخواست‌های صندوق', <Requests key="r"/>], ['حساب کاربر', <UserAccount key="u"/>], ['تأمین‌کنندگان', <SupplierAccounts key="sp"/>], ['گزارش درگاه', <GatewayReport key="g"/>]]}/>;
 }
 
 /* ------------------------------------------------------------------ customer */

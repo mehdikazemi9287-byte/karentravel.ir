@@ -100,3 +100,21 @@ def test_bank_account_validation(client):
     ok = client.put("/me/bank-account", json={"holder_name": "آرمان رضایی", "card_number": "6219-8610-3452-9007", "sheba": "IR062960000000100324200001"}, headers=emp).json()["bank_account"]
     assert ok["card_last4"] == "9007" and ok["card_bank"] == "سامان" and ok["sheba"].startswith("IR06")
     assert client.get("/me/bank-account", headers=emp).json()["bank_account"]["card_last4"] == "9007"
+
+
+def test_supplier_account_settlement_and_reports(client):
+    admin = _h(client, "platform-admin@aftab.test")
+    fin = _h(client, "finance@aftab.test")
+    sup = client.post("/inventory/suppliers", json={"name": "هتل طرف قرارداد " + uuid.uuid4().hex[:4], "supplier_type": "hotel"}, headers=admin).json()
+    assert client.put(f"/commerce/suppliers/{sup['id']}/account", json={"credit_limit": 50_000_000, "sheba": "IR062960000000100324200002"}, headers=admin).status_code == 422
+    acc = client.put(f"/commerce/suppliers/{sup['id']}/account", json={"credit_limit": 50_000_000, "payment_terms_days": 14, "sheba": "IR062960000000100324200001"}, headers=admin)
+    assert acc.status_code == 200 and acc.json()["sheba"].startswith("IR")
+    client.post("/commerce/treasury", json={"counterparty_type": "supplier", "counterparty_ref": sup["id"], "account_type": "payable", "operation": "purchase", "credit": 10_000_000}, headers=admin)
+    assert client.post(f"/commerce/suppliers/{sup['id']}/settle", json={"amount": 11_000_000, "tracking_no": "PAY-1"}, headers=admin).status_code == 409
+    assert client.post(f"/commerce/suppliers/{sup['id']}/settle", json={"amount": 4_000_000, "tracking_no": "PAY-1", "bank_name": "ملت"}, headers=admin).status_code == 201
+    st = client.get(f"/commerce/suppliers/{sup['id']}/statement", headers=fin).json()
+    assert st["payable"] == 6_000_000 and st["items"][0]["operation"] == "settlement"
+    row = next(s for s in client.get("/commerce/suppliers", headers=fin).json()["items"] if s["id"] == sup["id"])
+    assert row["payable"] == 6_000_000 and row["credit_used_pct"] == 12 and not row["over_limit"]
+    gw = client.get("/commerce/reports/gateway", headers=fin).json()
+    assert "by_status" in gw and isinstance(gw["items"], list)
