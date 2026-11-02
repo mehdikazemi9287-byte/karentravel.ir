@@ -217,6 +217,7 @@ def sms_campaigns_router(get_db, current_user, role_has_permission, User, audit=
                 r.status, r.error = "blocked_external", "external_provider_not_configured"
             else:
                 r.status, r.error = "failed", str(result.get("reason") or "failed")[:120]
+        db.flush()  # sessions here run with autoflush off
         counts = dict(db.execute(select(SmsCampaignRecipient.status, func.count()).where(SmsCampaignRecipient.tenant_id == user.tenant_id, SmsCampaignRecipient.campaign_id == c.id)
                                  .group_by(SmsCampaignRecipient.status)).all())
         c.delivered, c.blocked = counts.get("delivered", 0), counts.get("blocked_external", 0)
