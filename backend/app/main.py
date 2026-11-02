@@ -5284,3 +5284,6 @@ app.include_router(inventory_router(get_db, current_user, role_has_permission, U
 
 from .stays import stays_router  # noqa: E402  own hotel contracts, allotment and rate calendar
 app.include_router(stays_router(get_db, current_user, role_has_permission, User, _platform_audit))
+
+from .sales_desk import sales_desk_router  # noqa: E402  sales desk CRM: cases, presence, SLA, quotes
+app.include_router(sales_desk_router(get_db, current_user, role_has_permission, User, _platform_audit))
