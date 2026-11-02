@@ -80,6 +80,15 @@ def test_safarsaz_publish_flow(client):
     assert client.get(f"/tour-departures/{departure['id']}/quote", params={"travellers": 1, "room_type": "triple"}, headers=emp).status_code == 409
     booked = client.post(f"/tour-departures/{departure['id']}/reservations", json={"travellers": 2, "room_type": "double", "command_id": f"safarsaz-{suffix}"}, headers=emp)
     assert booked.status_code == 201 and booked.json()["total_amount"] == 24_000_000
+    # child prices from the room x passenger matrix; a missing price is not sellable online
+    qc = client.get(f"/tour-departures/{departure['id']}/quote", params={"travellers": 2, "children": 1, "room_type": "double"}, headers=emp)
+    assert qc.status_code == 200 and qc.json()["total_amount"] == 2 * 12_000_000 + 9_000_000
+    assert client.get(f"/tour-departures/{departure['id']}/quote", params={"travellers": 1, "infants": 1, "room_type": "double"}, headers=emp).status_code == 409
+    assert client.get(f"/tour-departures/{departure['id']}/quote", params={"travellers": 1, "children": 1, "room_type": "single"}, headers=emp).status_code == 409
+    fam = client.post(f"/tour-departures/{departure['id']}/reservations", json={"travellers": 2, "children": 1, "room_type": "double", "command_id": f"safarsaz-fam-{suffix}"}, headers=emp)
+    assert fam.status_code == 201 and fam.json()["total_amount"] == 33_000_000
+    after = client.get(f"/tour-products/{product_id}", headers=emp).json()["departures"][0]
+    assert after["remaining"] == 20 - 2 - 3
 
     # published departures are not deletable from the builder
     assert client.delete(f"/safarsaz/tours/{tour['id']}/departures/{published['departures'][0]['id']}", headers=desk).status_code == 409

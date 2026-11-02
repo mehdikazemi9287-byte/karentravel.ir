@@ -291,6 +291,7 @@ class TourDepartureIn(BaseModel):
 class TourBookIn(BaseModel):
     expected_total_amount: Optional[int] = Field(default=None,gt=0)
     travellers: int = Field(ge=1, le=100); room_type: str = Field(default="double", pattern="^(single|double|triple|extra_bed)$"); command_id: str = Field(min_length=8, max_length=120)
+    children: int = Field(default=0, ge=0, le=100); infants: int = Field(default=0, ge=0, le=100)  # priced from the departure's room x passenger matrix
 class CruiseSailingIn(BaseModel):
     supplier_id: Optional[str] = Field(default=None, min_length=36, max_length=36); title: str = Field(min_length=3, max_length=200); cruise_line: str = Field(min_length=2, max_length=160); ship: str = Field(min_length=2, max_length=160); departure_port: str = Field(min_length=2, max_length=160); arrival_port: str = Field(min_length=2, max_length=160); starts_at: datetime; nights: int = Field(ge=1, le=365); details: dict = Field(default_factory=dict)
 class VisaProductIn(BaseModel):
@@ -2063,39 +2064,49 @@ def _tour_room_types(departure) -> list[str]:
     return [room for room in ("double", "single", "triple", "extra_bed") if (room == "double" or f"{room}_surcharge" in pricing) and isinstance(pricing.get(f"{room}_surcharge", 0), int) and not isinstance(pricing.get(f"{room}_surcharge", 0), bool) and departure.base_price + pricing.get(f"{room}_surcharge", 0) > 0]
 
 
-def _tour_amount(departure, travellers:int, room_type:str) -> int:
+def _tour_amount(departure, travellers:int, room_type:str, children:int=0, infants:int=0) -> int:
     if room_type not in _tour_room_types(departure):
         raise HTTPException(409,"نرخ این نوع اتاق توسط برگزارکننده ثبت نشده است")
     surcharge=json.loads(departure.pricing_json).get(f"{room_type}_surcharge",0)
     if not isinstance(surcharge,int) or isinstance(surcharge,bool) or departure.base_price+surcharge<=0:
         raise HTTPException(409,"قیمت معتبر این نوع اتاق موجود نیست")
-    return (departure.base_price+surcharge)*travellers
+    total=(departure.base_price+surcharge)*travellers
+    if children or infants:
+        # child/infant prices come from the organiser's room x passenger matrix (Safarsaz); missing price = not sellable online
+        row=next((r for r in (json.loads(departure.pricing_json).get("matrix") or []) if isinstance(r,dict) and r.get("room")==room_type),None)
+        for count,kind,label in ((children,"child","کودک"),(infants,"infant","نوزاد")):
+            if not count: continue
+            price=row.get(kind) if row else None
+            if not isinstance(price,int) or isinstance(price,bool) or price<0:
+                raise HTTPException(409,f"نرخ {label} برای این نوع اتاق توسط برگزارکننده ثبت نشده است")
+            total+=price*count
+    return total
 
 
 @app.get("/tour-departures/{departure_id}/quote")
-def quote_tour(departure_id:str,travellers:int=Query(default=1,ge=1,le=100),room_type:str=Query(default="double",pattern="^(single|double|triple|extra_bed)$"),user:User=Depends(current_user),db:Session=Depends(get_db)) -> dict:
+def quote_tour(departure_id:str,travellers:int=Query(default=1,ge=1,le=100),room_type:str=Query(default="double",pattern="^(single|double|triple|extra_bed)$"),children:int=Query(default=0,ge=0,le=100),infants:int=Query(default=0,ge=0,le=100),user:User=Depends(current_user),db:Session=Depends(get_db)) -> dict:
     departure=db.scalar(select(operational_models.TourDeparture).where(operational_models.TourDeparture.id==departure_id,operational_models.TourDeparture.tenant_id==user.tenant_id))
     now=datetime.now(timezone.utc)
-    if departure is None or departure.status!="active" or _aware(departure.booking_deadline)<=now or departure.remaining<travellers:raise HTTPException(409,"ظرفیت یا مهلت این حرکت قابل تأیید نیست")
+    if departure is None or departure.status!="active" or _aware(departure.booking_deadline)<=now or departure.remaining<travellers+children:raise HTTPException(409,"ظرفیت یا مهلت این حرکت قابل تأیید نیست")
     tour=db.scalar(select(operational_models.TourProduct).where(operational_models.TourProduct.id==departure.tour_id,operational_models.TourProduct.tenant_id==user.tenant_id,operational_models.TourProduct.status=="published"))
     if tour is None or db.scalar(select(operational_models.Supplier.id).where(operational_models.Supplier.id==tour.supplier_id,operational_models.Supplier.tenant_id==user.tenant_id,operational_models.Supplier.status=="active")) is None:raise HTTPException(404,"تور در دسترس نیست")
-    return {"departure_id":departure.id,"total_amount":_tour_amount(departure,travellers,room_type),"currency":departure.currency,"travellers":travellers,"room_type":room_type,"policy":json.loads(tour.details_json).get("cancellation_policy",{}),"expires_at":min(_aware(departure.booking_deadline),now+timedelta(minutes=5)).isoformat()}
+    return {"departure_id":departure.id,"total_amount":_tour_amount(departure,travellers,room_type,children,infants),"currency":departure.currency,"travellers":travellers,"children":children,"infants":infants,"room_type":room_type,"policy":json.loads(tour.details_json).get("cancellation_policy",{}),"expires_at":min(_aware(departure.booking_deadline),now+timedelta(minutes=5)).isoformat()}
 
 
 @app.post("/tour-departures/{departure_id}/reservations", status_code=201)
 def book_tour(departure_id: str, data: TourBookIn, user: User = Depends(require_permission("reservation:create")), db: Session = Depends(get_db)) -> dict:
     prior = db.scalar(select(operational_models.TourReservation).where(operational_models.TourReservation.tenant_id == user.tenant_id, operational_models.TourReservation.command_id == data.command_id))
     if prior:
-        if prior.departure_id != departure_id or prior.user_id!=user.id or prior.travellers!=data.travellers or prior.room_type!=data.room_type: raise HTTPException(409, "کلید تکرار برای رزرو دیگری استفاده شده است")
+        if prior.departure_id != departure_id or prior.user_id!=user.id or prior.travellers!=data.travellers+data.children or prior.room_type!=data.room_type: raise HTTPException(409, "کلید تکرار برای رزرو دیگری استفاده شده است")
         return {"id": prior.id, "reservation_id":prior.reservation_id,"checkout_url":f"/checkout/{prior.reservation_id}","status": prior.status, "total_amount": prior.total_amount}
     departure = db.scalar(select(operational_models.TourDeparture).where(operational_models.TourDeparture.id == departure_id, operational_models.TourDeparture.tenant_id == user.tenant_id).with_for_update())
     now = datetime.now(timezone.utc)
-    if departure is None or departure.status != "active" or _aware(departure.booking_deadline) <= now or departure.remaining < data.travellers: raise HTTPException(409, "ظرفیت یا مهلت رزرو تور معتبر نیست")
-    total=_tour_amount(departure,data.travellers,data.room_type)
+    if departure is None or departure.status != "active" or _aware(departure.booking_deadline) <= now or departure.remaining < data.travellers + data.children: raise HTTPException(409, "ظرفیت یا مهلت رزرو تور معتبر نیست")
+    total=_tour_amount(departure,data.travellers,data.room_type,data.children,data.infants)
     if data.expected_total_amount is not None and total!=data.expected_total_amount:raise HTTPException(409,{"code":"PRICE_CHANGED","new_price":total})
     tour = db.scalar(select(operational_models.TourProduct).where(operational_models.TourProduct.id == departure.tour_id, operational_models.TourProduct.tenant_id == user.tenant_id))
     if tour is None or tour.status!="published" or db.scalar(select(operational_models.Supplier.id).where(operational_models.Supplier.id==tour.supplier_id,operational_models.Supplier.tenant_id==user.tenant_id,operational_models.Supplier.status=="active")) is None:raise HTTPException(409,"تور یا تأمین‌کننده فعال نیست")
-    details = json.loads(tour.details_json); policy = details.get("cancellation_policy") if isinstance(details.get("cancellation_policy"), dict) else {}; reservation = operational_models.Reservation(tenant_id=user.tenant_id, user_id=user.id, service_type="tour", status="reserved", booking_reference=f"KS-TOUR-{uuid.uuid4().hex[:10].upper()}", price_snapshot_json=json.dumps({"total_amount": total, "currency": departure.currency, "travellers": data.travellers, "units":data.travellers,"room_type": data.room_type, "departure_id": departure.id, "visa_status": details.get("visa_status", "VISA_STATUS_UNKNOWN")}, sort_keys=True), policy_at_booking_json=json.dumps(policy, sort_keys=True), current_policy_json=json.dumps(policy, sort_keys=True)); db.add(reservation); db.flush(); departure.remaining -= data.travellers; row = operational_models.TourReservation(tenant_id=user.tenant_id, departure_id=departure.id, user_id=user.id, reservation_id=reservation.id, travellers=data.travellers, room_type=data.room_type, total_amount=total, command_id=data.command_id); db.add(row); db.flush(); _commerce_event(db, tenant_id=user.tenant_id, kind="tour_reservation", aggregate_id=row.id, command_id=data.command_id, payload={"status": row.status, "remaining": departure.remaining, "reservation_id": reservation.id, "visa_status": details.get("visa_status", "VISA_STATUS_UNKNOWN")})
+    details = json.loads(tour.details_json); policy = details.get("cancellation_policy") if isinstance(details.get("cancellation_policy"), dict) else {}; reservation = operational_models.Reservation(tenant_id=user.tenant_id, user_id=user.id, service_type="tour", status="reserved", booking_reference=f"KS-TOUR-{uuid.uuid4().hex[:10].upper()}", price_snapshot_json=json.dumps({"total_amount": total, "currency": departure.currency, "travellers": data.travellers + data.children, "units":data.travellers + data.children, **({"adults": data.travellers, "children": data.children, "infants": data.infants} if data.children or data.infants else {}), "room_type": data.room_type, "departure_id": departure.id, "visa_status": details.get("visa_status", "VISA_STATUS_UNKNOWN")}, sort_keys=True), policy_at_booking_json=json.dumps(policy, sort_keys=True), current_policy_json=json.dumps(policy, sort_keys=True)); db.add(reservation); db.flush(); departure.remaining -= data.travellers + data.children; row = operational_models.TourReservation(tenant_id=user.tenant_id, departure_id=departure.id, user_id=user.id, reservation_id=reservation.id, travellers=data.travellers + data.children, room_type=data.room_type, total_amount=total, command_id=data.command_id); db.add(row); db.flush(); _commerce_event(db, tenant_id=user.tenant_id, kind="tour_reservation", aggregate_id=row.id, command_id=data.command_id, payload={"status": row.status, "remaining": departure.remaining, "reservation_id": reservation.id, "visa_status": details.get("visa_status", "VISA_STATUS_UNKNOWN")})
     db.add(operational_models.BookingItem(tenant_id=user.tenant_id,reservation_id=reservation.id,item_type="tour",snapshot_json=json.dumps({"title":tour.title,"supplier_id":tour.supplier_id,"fulfillment_mode":"manual_supplier","provider_key":"manual_supplier","attributes":{"origin":tour.origin,"destination":tour.destination,"departure_time":_aware(departure.starts_at).isoformat(),"arrival_time":_aware(departure.ends_at).isoformat(),"travellers":data.travellers,"room_type":data.room_type}})))
     tour_title = tour.title if tour else "تور"; tour_destination = tour.destination if tour else ""
     trip = operational_models.ensure_trip_for_reservation(db, reservation, title=tour_title, destination=tour_destination, origin=(tour.origin if tour else None), starts_at=departure.starts_at, ends_at=departure.ends_at)
@@ -4525,7 +4536,7 @@ def advance_checkout(checkout_id: str, step: str, data: CheckoutStepIn, user: Us
             held=db.scalar(select(operational_models.TourReservation).where(operational_models.TourReservation.reservation_id==reservation.id,operational_models.TourReservation.tenant_id==user.tenant_id).with_for_update())
             departure=db.scalar(select(operational_models.TourDeparture).where(operational_models.TourDeparture.id==price["departure_id"],operational_models.TourDeparture.tenant_id==user.tenant_id).with_for_update())
             if held is None or held.status!="held" or departure is None or departure.status!="active" or _aware(departure.booking_deadline)<=datetime.now(timezone.utc):raise HTTPException(409,"نگه‌داشت ظرفیت تور معتبر نیست")
-            if _tour_amount(departure,held.travellers,held.room_type)!=total:raise HTTPException(409,"قیمت تور تغییر کرده است؛ استعلام جدید لازم است")
+            if _tour_amount(departure,price.get("adults",held.travellers),held.room_type,price.get("children",0),price.get("infants",0))!=total:raise HTTPException(409,"قیمت تور تغییر کرده است؛ استعلام جدید لازم است")
         else:
             if offer is None or offer.status != "active" or _aware(offer.valid_until) <= datetime.now(timezone.utc): raise HTTPException(status_code=409, detail="موجودی یا Offer تازه در دسترس نیست")
             recheck_attrs = json.loads(offer.attributes_json)

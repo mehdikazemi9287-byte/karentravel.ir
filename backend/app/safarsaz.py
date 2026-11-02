@@ -13,7 +13,7 @@ A published tour whose departures have all passed returns to draft
 
 All prices are integer IRR. Room types the booking engine can charge are double
 (base), single, triple and extra_bed; child/infant prices are kept with the
-departure for quoting and are reported as not yet bookable online.
+departure and charged by the tour quote/booking endpoints (children=, infants=).
 """
 from __future__ import annotations
 
@@ -285,7 +285,7 @@ def safarsaz_router(get_db, current_user, role_has_permission, User, audit=None)
     @api.get("/safarsaz/meta")
     def meta(user=Depends(staff)):
         return {"sources": [{"key": k, "label": SOURCE_FA[k]} for k in SOURCES], "rooms": [{"key": k, "label": ROOM_FA[k]} for k in ROOMS], "boards": list(BOARDS),
-                "bookable_online": {"rooms": list(ROOMS), "child_infant_prices": False}}
+                "bookable_online": {"rooms": list(ROOMS), "child_infant_prices": True}}
 
     @api.get("/safarsaz/tours")
     def list_tours(status: Optional[str] = None, user=Depends(staff), db: Session = Depends(get_db)):

@@ -74,7 +74,7 @@ function DepartureForm({tourId, saved}: {tourId: string; saved: (t: Row) => void
     {dt('starts_at', 'رفت')}{dt('ends_at', 'برگشت')}{dt('booking_deadline', 'مهلت رزرو')}
     <FormFields value={v} set={setV} fields={[{key: 'capacity', label: 'ظرفیت', type: 'number', required: true},
       ...ROOMS.flatMap(([room, l]) => [{key: `${room}_adult`, label: `${l} — بزرگسال (ریال)`, type: 'money' as const, required: room === 'double'}, {key: `${room}_child`, label: `${l} — کودک`, type: 'money' as const}, {key: `${room}_infant`, label: `${l} — نوزاد`, type: 'money' as const}])]}/>
-    <p className="pn-muted">نرخ کودک و نوزاد برای پیش‌فاکتور میز فروش نگه داشته می‌شود؛ رزرو آنلاین فعلاً با نرخ بزرگسال هر نوع اتاق است.</p>
+    <p className="pn-muted">نرخ کودک و نوزاد هر نوع اتاق در استعلام و رزرو تور اعمال می‌شود؛ اگر برای اتاقی خالی بماند، رزرو کودک یا نوزاد در آن اتاق ممکن نیست.</p>
     <button className="pn-btn">افزودن حرکت</button><Note msg={msg}/>
   </form>;
 }
