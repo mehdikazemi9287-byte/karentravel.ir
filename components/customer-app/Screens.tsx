@@ -54,8 +54,8 @@ function PublicTours() {
 
 function NextTrip() {
   const {state} = useLoad<Trip[]>('/me/trips');
+  const [now] = useState(() => Date.now());
   return <Async state={state}>{trips => {
-    const now = Date.now();
     const next = trips.filter(t => t.starts_at && new Date(t.starts_at).getTime() > now && !/cancel/i.test(t.status)).sort((a, b) => +new Date(a.starts_at!) - +new Date(b.starts_at!))[0];
     return next ? <section className="ca-card"><div className="ca-row"><h2>سفر بعدی شما</h2><Badge s={next.status}/></div>
       <p style={{margin: 0, fontWeight: 800}}>{next.title}</p><p className="ca-muted">{next.destination ?? ''} — {dateFa(next.starts_at)}</p>
@@ -84,8 +84,8 @@ export function Trips() {
   const {session} = useAuth();
   const trips = useLoad<Trip[]>(session ? '/me/trips' : null);
   const res = useLoad<Reservation[]>(session ? '/me/reservations' : null);
+  const [now] = useState(() => Date.now());
   if (!session) return <SignIn what="سفرهای خود"/>;
-  const now = Date.now();
   return <>
     <section className="ca-card"><h2>سفرهای من</h2>
       <Async state={trips.state}>{list => {
