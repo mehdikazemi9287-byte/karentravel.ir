@@ -158,8 +158,19 @@ def test_sla_sweep_reassigns_unanswered(client):
 
 def test_public_web_form_intake(client, monkeypatch):
     body = {"customer_name": "بازدیدکننده سایت", "mobile": "09351234567", "trip": "استانبول ۴ شب " + uuid.uuid4().hex[:4], "travellers": 2, "consent": True}
+    monkeypatch.setenv("SALES_DESK_PUBLIC_TENANT", "no-such-tenant-" + uuid.uuid4().hex[:6])
+    assert client.post("/public/sales-desk/requests", json=body).status_code == 503  # fail closed when the tenant does not exist
+    from app.main import CONSUMER_TENANT_SLUG, Tenant as _T
+    with SessionLocal() as db:  # unset -> the consumer tenant (where public customers sign up)
+        if db.scalar(select(_T.id).where(_T.slug == CONSUMER_TENANT_SLUG)) is None:
+            db.add(_T(slug=CONSUMER_TENANT_SLUG, name="مشتریان کارن‌سیر", primary_color="#0E7490"))
+            db.commit()
+        ctid = db.scalar(select(_T.id).where(_T.slug == CONSUMER_TENANT_SLUG))
     monkeypatch.delenv("SALES_DESK_PUBLIC_TENANT", raising=False)
-    assert client.post("/public/sales-desk/requests", json=body).status_code == 503  # fail closed until configured
+    cmob = "0936" + str(uuid.uuid4().int)[:7]
+    assert client.post("/public/sales-desk/requests", json={**body, "mobile": cmob}).status_code == 202
+    with SessionLocal() as db:
+        assert db.scalar(select(SalesCase.tenant_id).where(SalesCase.mobile == cmob)) == ctid
     with SessionLocal() as db:
         from app.main import Tenant
         _, tid = _user("backoffice@aftab.test")

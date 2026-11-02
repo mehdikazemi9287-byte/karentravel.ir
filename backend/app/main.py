@@ -5301,8 +5301,9 @@ app.include_router(stays_router(get_db, current_user, role_has_permission, User,
 
 from .sales_desk import sales_desk_router  # noqa: E402  sales desk CRM: cases, presence, SLA, quotes
 def _sales_desk_public_tenant(db: Session) -> int:
-    """Tenant that receives the public 'request a trip' form: SALES_DESK_PUBLIC_TENANT (slug). Unset = intake closed (fail closed)."""
-    slug = (os.getenv("SALES_DESK_PUBLIC_TENANT") or "").strip()
+    """Tenant that receives public website/messenger requests: SALES_DESK_PUBLIC_TENANT (slug), otherwise the consumer
+    tenant where public customers sign up. If neither exists, intake is closed (fail closed)."""
+    slug = (os.getenv("SALES_DESK_PUBLIC_TENANT") or "").strip() or CONSUMER_TENANT_SLUG
     tenant = db.scalar(select(Tenant).where(Tenant.slug == slug)) if slug else None
     if tenant is None:
         raise HTTPException(status_code=503, detail="ثبت درخواست آنلاین هنوز فعال نشده است")
