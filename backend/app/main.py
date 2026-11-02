@@ -5320,3 +5320,8 @@ app.include_router(safarsaz_router(get_db, current_user, role_has_permission, Us
 
 from .loyalty import loyalty_router  # noqa: E402  loyalty circle: levels, trip points, referral codes
 app.include_router(loyalty_router(get_db, current_user, role_has_permission, User, _platform_audit))
+
+from .sms_campaigns import sms_campaigns_router  # noqa: E402  SMS campaigns; fail-closed until an SMS provider is connected
+from .providers import ADAPTERS as _SMS_ADAPTERS, ProviderContext as _ProviderContext  # noqa: E402
+app.include_router(sms_campaigns_router(get_db, current_user, role_has_permission, User, _platform_audit, sms_adapter=_SMS_ADAPTERS.get("sms"),
+                                        provider_context=lambda tenant_id, key: _ProviderContext(tenant_id=tenant_id, correlation_id=str(uuid.uuid4()), idempotency_key=key)))
