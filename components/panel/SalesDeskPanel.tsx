@@ -4,6 +4,7 @@
 import {useState, type FormEvent} from 'react';
 import {Async, Card, Empty, Stats, Table, dateFa, errorOf, fa, money, useLoad} from './PanelKit';
 import {FormFields, Note, Tabs, type Opt, type Row} from './CommercePanel';
+import {LeadImport} from './DataExchangePanel';
 
 const CHANNELS: Opt = [['web_form', 'فرم سایت'], ['whatsapp', 'واتس‌اپ'], ['bale', 'بله'], ['phone', 'تماس تلفنی'], ['manual', 'ثبت دستی'], ['rebook', 'خرید مجدد'], ['referral', 'معرفی'],
   ['abandoned', 'سبد رهاشده'], ['trip_request', 'درخواست سفر'], ['campaign', 'کمپین'], ['complaint', 'شکایت'], ['instagram', 'اینستاگرام'], ['walk_in', 'مراجعه حضوری']];
@@ -159,6 +160,6 @@ function Settings() {
 export function SalesDesk() {
   return <>
     <Card title="وضعیت من" action={<Presence/>}><Summary/></Card>
-    <Tabs tabs={[['پرونده‌ها', <Cases key="c"/>], ['تیم و هدف‌ها', <Team key="t"/>], ['تنظیمات', <Settings key="s"/>]]}/>
+    <Tabs tabs={[['پرونده‌ها', <Cases key="c"/>], ['ورود اکسل', <LeadImport key="i"/>], ['تیم و هدف‌ها', <Team key="t"/>], ['تنظیمات', <Settings key="s"/>]]}/>
   </>;
 }
