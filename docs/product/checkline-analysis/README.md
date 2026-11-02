@@ -8,6 +8,7 @@
 
 | فایل | محتوا |
 | --- | --- |
+| ۱۱ آبان ۱۴۰۵ | شروع ساخت کد در PR #6 (شاخه‌ی `feature/sales-desk-revenue-safarsaz-app`، بدون استقرار): میز گفتگو و فروش (`/admin/sales-desk`)، ثبت سود/کمیسیون هر رزرو به‌عنوان درآمد (`/finance/markup-revenue`)، سفرساز (`/admin/safarsaz`) و اپ نصب‌شدنی مشتری (`/app`)؛ چهار جدول و سه مهاجرت با RLS — جزئیات در `IMPLEMENTATION.md` |
 | `ANALYSIS.md` | متن کامل تحلیل (قابل جستجو و diff) |
 | `KarenSeir-CheckLine-Analysis.docx` | همان متن به‌صورت فایل Word |
 | `DESIGN_SCREENS.md` | فهرست ۱۸ صفحه‌ی طراحی‌شده در فیگما و ایده‌های سایت‌های مرجع |
