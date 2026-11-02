@@ -2,7 +2,7 @@
 /* Mobile app shell of the customer PWA: top bar + fixed bottom navigation (خانه، جستجو، سفرهای من، کیف پول، حساب من). */
 import Link from 'next/link';
 import {usePathname} from 'next/navigation';
-import type {ReactNode} from 'react';
+import {useEffect, type ReactNode} from 'react';
 import {useAuth} from '../../lib/api/auth-context';
 import './customer-app.css';
 
@@ -17,6 +17,12 @@ const TABS: {href: string; label: string; icon: ReactNode}[] = [
 export function AppShell({children}: {children: ReactNode}) {
   const path = usePathname();
   const {session} = useAuth();
+  useEffect(() => {
+    // Offline fallback for the installed app; scoped to /app so the rest of the site is unaffected.
+    if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+      navigator.serviceWorker.register('/sw.js', {scope: '/app'}).catch(() => {});
+    }
+  }, []);
   const active = (href: string) => (href === '/app' ? path === '/app' : path?.startsWith(href));
   return <div className="ca">
     <header className="ca-top">
