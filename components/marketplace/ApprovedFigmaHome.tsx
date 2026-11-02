@@ -3,7 +3,6 @@ import Link from 'next/link';
 import {useAuth} from '../../lib/api/auth-context';
 import {roleLinks} from '../../lib/role-navigation';
 import './approved-figma.css';
-import {ApprovedEcosystemServices} from './ApprovedEcosystemServices';
 import {ApprovedHomeLower, ApprovedFooterLight, ApprovedHomeHero, ApprovedHomeBento} from './ApprovedHomeLower';
 import {Suspense, type ReactNode} from 'react';
 import {HomeSearchExperience} from '../search/HomeSearchExperience';
@@ -221,7 +220,6 @@ export default function ApprovedFigmaHome() {
         </div>
         <ApprovedHomeHero search={<div className="approved-search-card" data-node-id="48:10" data-name="Search Card"><Suspense fallback={<p role="status">در حال آماده‌سازی جست‌وجو…</p>}><HomeSearchExperience presentation="approved"/></Suspense></div>}/>
       </div>
-      <ApprovedEcosystemServices/>
       <ApprovedHomeBento/>
       <ApprovedHomeLower/>
       <ApprovedFooterLight/>
