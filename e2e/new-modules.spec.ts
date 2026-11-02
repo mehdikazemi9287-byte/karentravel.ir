@@ -31,11 +31,12 @@ test('safarsaz, loyalty, sms campaigns, revenue and journal pages load with real
                                  ['/finance/markup-revenue', 'سود و کمیسیون فروش'], ['/finance/journal-export', 'خروجی حسابداری (فرانگر)']] as const) {
     await page.goto(path);
     await expect(page.getByRole('heading', { level: 1 })).toContainText(heading.split(' ')[0]);
-    await expect(page.locator('[role=alert]')).toHaveCount(0);
+    await expect(page.locator('.pn-main')).toBeVisible();
+    await expect(page.locator('.pn-note.error', {hasNotText: 'سرویس پیامک هنوز وصل نیست'})).toHaveCount(0); // panel error state (Next's route announcer also uses role=alert)
     await page.screenshot({ path: `${artifactDir}/new-modules${path.replace(/\//g, '-')}.png`, fullPage: true, animations: 'disabled' });
   }
   await page.goto('/admin/sms-campaigns');
-  await expect(page.getByText(/سرویس پیامک/)).toBeVisible();
+  await expect(page.getByText(/سرویس پیامک/).first()).toBeVisible();
 });
 
 test('customer app shell, offline page and manifest', async ({ page }) => {
