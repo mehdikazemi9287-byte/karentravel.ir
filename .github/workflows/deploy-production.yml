@@ -1,0 +1,29 @@
+# Manual production release over SSH. Needs repository secrets:
+#   DEPLOY_HOST (e.g. 95.38.184.209), DEPLOY_USER, DEPLOY_SSH_KEY (private key), DEPLOY_PATH (repo checkout on the server)
+# Optional secret DEPLOY_COMPOSE to override the compose command used by deploy/release-production.sh.
+name: deploy-production
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type DEPLOY to release origin/production (backup + migrations + restart)'
+        required: true
+concurrency: { group: deploy-production, cancel-in-progress: false }
+jobs:
+  deploy:
+    if: ${{ github.event.inputs.confirm == 'DEPLOY' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: SSH key
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_deploy && chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+      - name: Release
+        env:
+          APP_DIR: ${{ secrets.DEPLOY_PATH }}
+          COMPOSE_OVERRIDE: ${{ secrets.DEPLOY_COMPOSE }}
+        run: |
+          ssh -i ~/.ssh/id_deploy "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            "cd '$APP_DIR' && git fetch --quiet origin production && git show origin/production:deploy/release-production.sh > /tmp/karenseir-release.sh && APP_DIR='$APP_DIR' ${COMPOSE_OVERRIDE:+COMPOSE=\"$COMPOSE_OVERRIDE\"} sh /tmp/karenseir-release.sh"
