@@ -80,6 +80,7 @@ function policyValue(v: unknown): string {
 }
 const policyRows = (p: Record<string, unknown>): [string, string][] => Object.entries(p).filter(([k]) => !HIDDEN_POLICY.has(k)).map(([k, v]) => [POLICY_FA[k] ?? k, policyValue(v)]);
 
+const OP_FA: Record<string, string> = {deposit: 'واریز', withdrawal: 'برداشت', purchase: 'خرید', refund: 'استرداد', settlement: 'تسویه', adjustment: 'اصلاح', fee: 'کارمزد', revenue: 'درآمد'};
 const MO_BADGE: Record<string, string> = {not_ready: 'bad', ready: 'warn', waiting_for_provider: 'warn', sent: 'ok', accepted: 'ok', rejected: 'bad'};
 
 function ContractDetail({id, close}: {id: string; close: () => void}) {
@@ -103,7 +104,7 @@ function ContractDetail({id, close}: {id: string; close: () => void}) {
       </Card>
     </div>
     <Card title="پرداخت‌ها و اسناد صندوق"><Table rows={f.payments} rowKey={(r: Row) => r.id} empty="پرداختی ثبت نشده است." cols={[
-      {label: 'نوع', cell: (r: Row) => r.kind === 'gateway' ? 'درگاه' : `صندوق (${r.operation})`}, {label: 'مبلغ', cell: (r: Row) => r.kind === 'gateway' ? money(r.captured || r.amount, 'IRR') : money(r.credit || r.debit, 'IRR')},
+      {label: 'نوع', cell: (r: Row) => r.kind === 'gateway' ? 'درگاه' : `صندوق (${OP_FA[r.operation] ?? r.operation})`}, {label: 'مبلغ', cell: (r: Row) => r.kind === 'gateway' ? money(r.captured || r.amount, 'IRR') : money(r.credit || r.debit, 'IRR')},
       {label: 'وضعیت', cell: (r: Row) => r.kind === 'gateway' ? <span className="pn-badge">{r.status}</span> : (r.credit ? 'بستانکار' : 'بدهکار')}, {label: 'پیگیری', cell: (r: Row) => <span className="pn-ltr">{r.reference ?? '—'}</span>}, {label: 'تاریخ', cell: (r: Row) => dateFa(r.at)}]}/></Card>
     <div className="ops-grid">
       <Card title="مسافران">{f.travellers_note && <p className="pn-note">{f.travellers_note}</p>}<Table rows={f.travellers} rowKey={(r: Row) => r.id} empty="مسافری ثبت نشده است." cols={[{label: 'نام', cell: (r: Row) => r.full_name}, {label: 'مدرک', cell: (r: Row) => <span className="pn-ltr">{r.document ?? '—'}</span>}]}/></Card>

@@ -725,3 +725,9 @@ a.cat-card:hover{box-shadow:0 12px 28px rgba(8,37,61,.12);transform:translateY(-
 }
 
 .kh-cmp-hotel{text-decoration:none;color:inherit;transition:transform .15s}.kh-cmp-hotel:hover{transform:translateY(-2px)}
+
+/* public voucher check (/v/[code]) */
+.vc-page{min-height:100vh;display:grid;place-items:center;background:#fdf5ea;padding:24px;font-family:Vazirmatn,Tahoma,sans-serif;color:#2a1530}
+.vc-card{background:#fff;border:1px solid #eadfd2;border-top:6px solid #b98319;border-radius:20px;padding:24px;max-width:420px;width:100%;display:grid;gap:12px;text-align:right}
+.vc-card.ok{border-top-color:#2f7d4f}.vc-card.bad{border-top-color:#c0392b}.vc-card h1{font-size:22px;font-weight:900;margin:0}.vc-brand{color:#6e5e70;font-size:13px;margin:0}
+.vc-card dl{display:grid;gap:6px;margin:0}.vc-card dl div{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid #f1e8dc;padding-bottom:6px}.vc-card dt{color:#6e5e70}.vc-card dd{margin:0;font-weight:700}.vc-muted{color:#6e5e70;font-size:13px;margin:0}
