@@ -100,3 +100,15 @@ test('staff document queue opens for backoffice', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'صف مدارک', exact: true })).toBeVisible();
   await page.screenshot({ path: `${artifactDir}/new-modules/documents-queue.png`, fullPage: true, animations: 'disabled' });
 });
+
+test('ledger and supplier reconciliation pages load for finance', async ({ page }) => {
+  await signIn(page, 'finance@aftab.test');
+  await open(page, '/finance/ledger');
+  await expect(page.getByRole('heading', { name: 'دوره‌های مالی (ماه شمسی)', exact: true })).toBeVisible();
+  await page.getByRole('tab', { name: 'سرفصل‌ها و قواعد' }).click();
+  await expect(page.getByRole('heading', { name: 'سرفصل حساب‌ها', exact: true })).toBeVisible();
+  await page.screenshot({ path: `${artifactDir}/new-modules/ledger.png`, fullPage: true, animations: 'disabled' });
+  await open(page, '/finance/suppliers');
+  await expect(page.getByRole('heading', { name: 'عملکرد تأمین‌کنندگان', exact: true })).toBeVisible();
+  await page.screenshot({ path: `${artifactDir}/new-modules/suppliers.png`, fullPage: true, animations: 'disabled' });
+});
