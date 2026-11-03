@@ -66,3 +66,20 @@ test('contact page trip-request form validates before sending', async ({ page })
   await page.getByRole('button', { name: 'ارسال درخواست' }).click();
   await expect(page.getByRole('heading', { name: 'درخواست شما رسید' })).toHaveCount(0); // required fields block the submit
 });
+
+test('ops dashboard and contract file render from real rows', async ({ page }) => {
+  await signIn(page, 'backoffice@aftab.test');
+  await open(page, '/admin/ops');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('پیشخوان عملیات');
+  await expect(page.getByRole('heading', { name: 'کارهای در انتظار' })).toBeVisible();
+  await expect(page.getByRole('img', { name: /نمودار ۳۰ روز/ })).toBeVisible();
+  await page.screenshot({ path: `${artifactDir}/new-modules/ops-dashboard.png`, fullPage: true, animations: 'disabled' });
+  await open(page, '/admin/contracts');
+  await expect(page.getByRole('heading', { name: 'جستجوی قرارداد' })).toBeVisible();
+  const first = page.getByRole('button', { name: 'پرونده' }).first();
+  if (await first.count()) {
+    await first.click();
+    await expect(page.getByRole('heading', { name: 'سامانه‌ی مؤدیان' })).toBeVisible();
+    await page.screenshot({ path: `${artifactDir}/new-modules/contract-file.png`, fullPage: true, animations: 'disabled' });
+  }
+});

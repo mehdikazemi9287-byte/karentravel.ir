@@ -5335,3 +5335,6 @@ app.include_router(receivables_router(get_db, current_user, role_has_permission,
 
 from .charter_quotas import charter_quotas_router  # noqa: E402  partner-agency seat quotas on own charter flights
 app.include_router(charter_quotas_router(get_db, current_user, role_has_permission, User, _platform_audit))
+
+from .ops_console import ops_console_router  # noqa: E402  unified ops dashboard, contract file, Moadian readiness
+app.include_router(ops_console_router(get_db, current_user, role_has_permission, User, _platform_audit))
