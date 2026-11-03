@@ -746,3 +746,19 @@ a.cat-card:hover{box-shadow:0 12px 28px rgba(8,37,61,.12);transform:translateY(-
 .cat-airport-list{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
 .cat-airport-list li{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line,#e7e2dc);border-radius:999px;padding:6px 12px;background:#fff;font-size:14px}
 .cat-airport-list small{color:var(--muted);font-size:11px}
+/* Jalali date picker: two months on wide screens, Fridays red, range highlight */
+.jalali-months{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media (max-width:720px){.jalali-months{grid-template-columns:1fr}.jalali-month--second{display:none}}
+.jalali-month-title{display:block;text-align:center;margin:2px 0 4px;font-size:14px}
+.jalali-grid button.is-friday{color:#d4372c}
+.jalali-grid button.is-friday:disabled{color:#efb3ad}
+.jalali-grid button.is-range{background:rgba(239,91,61,.12);border-radius:0}
+.jalali-grid button.is-today{box-shadow:inset 0 0 0 1.5px var(--fs-primary)}
+.jalali-grid button.is-selected{color:#fff}
+.jalali-today{font-size:12px!important;color:var(--fs-primary);text-decoration:underline;text-underline-offset:3px}
+.jalali-calendar-head button:disabled{opacity:.3;cursor:default}
+.jalali-targets{display:flex;gap:6px;margin-bottom:6px}
+.jalali-targets button{flex:1;border:1.5px solid var(--fs-line-2);background:#fff;border-radius:10px;padding:6px;font:inherit;font-size:13px;cursor:pointer}
+.jalali-targets .on{border-color:var(--fs-primary);color:var(--fs-primary);font-weight:700}
+.fs-pop--date{min-width:min(640px,calc(100vw - 32px))}
+.fs-pop-done:disabled{background:#d9cfd6;color:#6b5a66;cursor:not-allowed}
