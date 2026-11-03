@@ -146,3 +146,10 @@ test('ops panel shows the mobile bottom navigation on phones', async ({ page }) 
   await expect(bottom.getByRole('link', { name: /پیشخوان/ })).toHaveAttribute('aria-current', 'page');
   await page.screenshot({ path: `${artifactDir}/new-modules/ops-mobile.png`, fullPage: false, animations: 'disabled' });
 });
+
+test('flight results show neighbouring dates and a share link entry', async ({ page }) => {
+  await signIn(page, 'employee@aftab.test');
+  await open(page, '/search/results?vertical=flight&origin=THR&destination=MHD&depart=2099-05-10&trip_type=one_way&adults=1');
+  await expect(page.getByRole('navigation', { name: 'روزهای مجاور' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'نمایش قیمت روزهای مجاور' })).toBeVisible();
+});
