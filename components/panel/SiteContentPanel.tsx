@@ -1,7 +1,7 @@
 'use client';
 /* Site content management: edit homepage/footer slots as drafts, publish, restore earlier versions, and keep a media library.
    Fields are fixed per slot; prices and discounts are refused by the server and still come only from real offers. */
-import {useEffect, useState} from 'react';
+import {useState} from 'react';
 import {Async, Card, dateFa, errorOf, fa, useLoad} from './PanelKit';
 import {DEFAULT_CONTENT, imageSrc, invalidateSiteContent, type CmsCard} from '../../lib/site-content';
 
@@ -58,7 +58,6 @@ function BlockEditor({block, media, done}: {block: Block; media: Media[]; done: 
   const start = (block.draft ?? block.published ?? DEFAULT_CONTENT[block.key as keyof typeof DEFAULT_CONTENT]) as Json;
   const [v, setV] = useState<Json>(start);
   const [revs, setRevs] = useState<{id: string; version: number; created_at: string}[] | null>(null);
-  useEffect(() => {setV(start); setRevs(null);}, [block.key]); // eslint-disable-line react-hooks/exhaustive-deps
   const put = (k: string, x: unknown) => setV({...v, [k]: x});
   async function run(fn: () => Promise<unknown>, ok: string, publish = false) {
     try {await fn(); if (publish) invalidateSiteContent(); done({ok: true, text: ok});} catch (x) {done({ok: false, text: errorOf(x).message});}
@@ -132,6 +131,6 @@ export function SiteContentManager() {
       : <Async state={blocks.state}>{d => {const b = d.items.find(x => x.key === key) ?? d.items[0]; return <div className="cms-grid">
         <nav className="cms-list" aria-label="بخش‌های سایت">{d.items.map(x => <button key={x.key} className={x.key === b.key ? 'on' : ''} onClick={() => {setKey(x.key); setMsg(null);}}>
           <span>{x.label}</span><small>{x.published ? (x.has_unpublished_changes ? 'تغییر منتشرنشده' : 'منتشرشده') : 'پیش‌فرض سایت'}</small></button>)}</nav>
-        <Card title={b.label}><BlockEditor block={b} media={lib} done={done}/></Card></div>;}}</Async>}
+        <Card title={b.label}><BlockEditor key={b.key} block={b} media={lib} done={done}/></Card></div>;}}</Async>}
   </>;
 }
