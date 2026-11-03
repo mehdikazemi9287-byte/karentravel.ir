@@ -3,6 +3,7 @@
 import {useState, type FormEvent} from 'react';
 import {Async, Card, Stats, Table, errorOf, fa, useLoad} from './PanelKit';
 import {FormFields, Note, Tabs, type Row} from './CommercePanel';
+import {LoyaltyCalls} from './LoyaltyCallsPanel';
 
 type Msg = {ok: boolean; text: string} | null;
 
@@ -41,4 +42,4 @@ function Members() {
   </>}</Async>;
 }
 
-export function Loyalty() {return <Tabs tabs={[['اعضا و سطح‌ها', <Members key="m"/>], ['قواعد', <Settings key="s"/>]]}/>;}
+export function Loyalty() {return <Tabs tabs={[['اعضا و سطح‌ها', <Members key="m"/>], ['برنامه‌ی تماس', <LoyaltyCalls key="c"/>], ['قواعد', <Settings key="s"/>]]}/>;}
