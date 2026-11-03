@@ -16,6 +16,7 @@ export function roleLinks(role:string):Array<[string,string]>{
  if(['platform_admin','tenant_admin'].includes(role))links.push(['تأمین‌کنندگان و آژانس‌ها','/admin/partners'],['سازمان‌ها','/admin/organizations'],['سوابق ممیزی','/admin/audit']);
  if(['customer','employee'].includes(role))links.push(['پیشنهادهای قیمت','/quotes']);
  if(['platform_admin','supplier'].includes(role))links.push(['تسویه و قراردادها','/supplier/settlements'],['هتل‌های من','/supplier/hotels']);
+ if(['supplier','agency_partner'].includes(role))links.push(['تورهای من','/supplier/tours']);
  if(role==='platform_admin')links.push(['مستأجرها و وایت‌لیبل','/admin/tenants'],['امور مالی','/finance'],['تأمین‌کنندگان','/supplier']);
  return links.filter((item,index,all)=>all.findIndex(x=>x[1]===item[1])===index);
 }

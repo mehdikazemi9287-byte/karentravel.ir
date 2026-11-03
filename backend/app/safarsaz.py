@@ -61,7 +61,7 @@ class SafarsazTour(OperationalMixin, Base):
     source: Mapped[str] = mapped_column(String(24), default="manual")
     source_ref: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
     content_json: Mapped[str] = mapped_column(Text, default="{}")  # description, itinerary, hotels, services, documents, cancellation, deposit
-    status: Mapped[str] = mapped_column(String(24), default="draft", index=True)  # draft | published | archived
+    status: Mapped[str] = mapped_column(String(24), default="draft", index=True)  # draft | pending_review (sent by a contracted agency) | published | archived
     published_tour_id: Mapped[Optional[str]] = mapped_column(ForeignKey("tour_products.id"), nullable=True)
     published_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     created_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
@@ -232,13 +232,30 @@ def _dep_out(d: SafarsazDeparture, now: datetime) -> dict:
 def safarsaz_router(get_db, current_user, role_has_permission, User, audit=None):
     api = APIRouter(tags=["safarsaz"])
 
-    def staff(user=Depends(current_user)):
-        if user.role in ("employee", "customer") or not any(role_has_permission(user.role, p) for p in ("reservation:manage", "tenant:manage")):
+    PARTNER_ROLES = ("supplier", "agency_partner")
+
+    def _is_staff(user) -> bool:
+        return user.role not in ("employee", "customer", *PARTNER_ROLES) and any(role_has_permission(user.role, p) for p in ("reservation:manage", "tenant:manage"))
+
+    def _scope(db, user) -> Optional[set[str]]:
+        """None = staff (whole tenant); otherwise the supplier ids this contracted agency user is assigned to."""
+        if _is_staff(user):
+            return None
+        return set(db.scalars(select(m.SupplierMembership.supplier_id).where(m.SupplierMembership.tenant_id == user.tenant_id, m.SupplierMembership.user_id == user.id)).all())
+
+    def staff(user=Depends(current_user), db: Session = Depends(get_db)):
+        """Tenant staff, or a contracted agency (supplier member) working only on its own tours."""
+        if not _is_staff(user) and (user.role not in PARTNER_ROLES or not _scope(db, user)):
             raise HTTPException(status_code=403, detail="دسترسی سفرساز لازم است")
         return user
 
+    def tenant_staff(user=Depends(current_user)):
+        if not _is_staff(user):
+            raise HTTPException(status_code=403, detail="این کار با کارشناسان مجموعه است")
+        return user
+
     def publisher(user=Depends(current_user)):
-        if not (role_has_permission(user.role, "tenant:manage") or role_has_permission(user.role, "platform:manage")):
+        if user.role in ("supplier", "agency_partner") or not (role_has_permission(user.role, "tenant:manage") or role_has_permission(user.role, "platform:manage")):
             raise HTTPException(status_code=403, detail="انتشار تور با مدیر است")
         return user
 
@@ -249,6 +266,13 @@ def safarsaz_router(get_db, current_user, role_has_permission, User, audit=None)
     def _tour(db, tenant_id, tour_id) -> SafarsazTour:
         t = db.scalar(select(SafarsazTour).where(SafarsazTour.id == tour_id, SafarsazTour.tenant_id == tenant_id))
         if t is None:
+            raise HTTPException(status_code=404, detail="تور یافت نشد")
+        return t
+
+    def _own(db, user, tour_id) -> SafarsazTour:
+        t = _own(db, user, tour_id)
+        scope = _scope(db, user)
+        if scope is not None and t.supplier_id not in scope:
             raise HTTPException(status_code=404, detail="تور یافت نشد")
         return t
 
@@ -271,6 +295,12 @@ def safarsaz_router(get_db, current_user, role_has_permission, User, audit=None)
                 "ready": all(c["ok"] for c in checks), "updated_at": _aware(t.updated_at).isoformat() if t.updated_at else None}
 
     def _validate_refs(db, user, data: TourIn):
+        scope = _scope(db, user)
+        if scope is not None:
+            if data.supplier_id not in scope:
+                raise HTTPException(status_code=422, detail="تور را فقط برای آژانس خودتان می‌توانید ثبت کنید")
+            if data.source not in ("manual", "copy"):
+                raise HTTPException(status_code=422, detail="آژانس همکار تور را با ورود دستی یا کپی ثبت می‌کند")
         if data.supplier_id and db.scalar(select(m.Supplier.id).where(m.Supplier.id == data.supplier_id, m.Supplier.tenant_id == user.tenant_id)) is None:
             raise HTTPException(status_code=422, detail="تأمین‌کننده در این مستأجر نیست")
         if data.source == "copy":
@@ -287,9 +317,21 @@ def safarsaz_router(get_db, current_user, role_has_permission, User, audit=None)
         return {"sources": [{"key": k, "label": SOURCE_FA[k]} for k in SOURCES], "rooms": [{"key": k, "label": ROOM_FA[k]} for k in ROOMS], "boards": list(BOARDS),
                 "bookable_online": {"rooms": list(ROOMS), "child_infant_prices": True}}
 
+    @api.get("/safarsaz/suppliers")
+    def suppliers(user=Depends(staff), db: Session = Depends(get_db)):
+        """Organisers this user may pick: every active supplier for staff, only its own agency for a partner."""
+        q = select(m.Supplier.id, m.Supplier.display_name).where(m.Supplier.tenant_id == user.tenant_id, m.Supplier.status == "active")
+        scope = _scope(db, user)
+        if scope is not None:
+            q = q.where(m.Supplier.id.in_(scope or {""}))
+        return {"items": [{"id": i, "name": n} for i, n in db.execute(q.order_by(m.Supplier.display_name)).all()], "partner": scope is not None}
+
     @api.get("/safarsaz/tours")
     def list_tours(status: Optional[str] = None, user=Depends(staff), db: Session = Depends(get_db)):
         s = select(SafarsazTour).where(SafarsazTour.tenant_id == user.tenant_id)
+        scope = _scope(db, user)
+        if scope is not None:
+            s = s.where(SafarsazTour.supplier_id.in_(scope or {""}))
         if status:
             s = s.where(SafarsazTour.status == status)
         rows = db.scalars(s.order_by(SafarsazTour.updated_at.desc())).all()
@@ -319,11 +361,11 @@ def safarsaz_router(get_db, current_user, role_has_permission, User, audit=None)
 
     @api.get("/safarsaz/tours/{tour_id}")
     def get_tour(tour_id: str, user=Depends(staff), db: Session = Depends(get_db)):
-        return _out(db, _tour(db, user.tenant_id, tour_id))
+        return _out(db, _own(db, user, tour_id))
 
     @api.put("/safarsaz/tours/{tour_id}")
     def update(tour_id: str, data: TourIn, user=Depends(staff), db: Session = Depends(get_db)):
-        t = _tour(db, user.tenant_id, tour_id)
+        t = _own(db, user, tour_id)
         if t.status == "archived":
             raise HTTPException(status_code=409, detail="تور بایگانی‌شده قابل ویرایش نیست")
         _validate_refs(db, user, data)
@@ -341,7 +383,7 @@ def safarsaz_router(get_db, current_user, role_has_permission, User, audit=None)
 
     @api.post("/safarsaz/tours/{tour_id}/copy", status_code=201)
     def copy(tour_id: str, user=Depends(staff), db: Session = Depends(get_db)):
-        src = _tour(db, user.tenant_id, tour_id)
+        src = _own(db, user, tour_id)
         new_id = str(uuid.uuid4())
         t = SafarsazTour(id=new_id, tenant_id=user.tenant_id, title=src.title + " (کپی)", origin=src.origin, destination=src.destination, tour_type=src.tour_type,
                          supplier_id=src.supplier_id, source="copy", source_ref=src.id, content_json=src.content_json, status="draft", created_by=user.id,
@@ -353,7 +395,7 @@ def safarsaz_router(get_db, current_user, role_has_permission, User, audit=None)
 
     @api.post("/safarsaz/tours/{tour_id}/departures", status_code=201)
     def add_departure(tour_id: str, data: DepartureIn, user=Depends(staff), db: Session = Depends(get_db)):
-        t = _tour(db, user.tenant_id, tour_id)
+        t = _own(db, user, tour_id)
         if t.status == "archived":
             raise HTTPException(status_code=409, detail="تور بایگانی‌شده است")
         if _aware(data.booking_deadline) <= utcnow():
@@ -367,7 +409,7 @@ def safarsaz_router(get_db, current_user, role_has_permission, User, audit=None)
 
     @api.delete("/safarsaz/tours/{tour_id}/departures/{dep_id}")
     def remove_departure(tour_id: str, dep_id: str, user=Depends(staff), db: Session = Depends(get_db)):
-        t = _tour(db, user.tenant_id, tour_id)
+        t = _own(db, user, tour_id)
         d = db.scalar(select(SafarsazDeparture).where(SafarsazDeparture.id == dep_id, SafarsazDeparture.tour_id == t.id, SafarsazDeparture.tenant_id == user.tenant_id))
         if d is None:
             raise HTTPException(status_code=404, detail="حرکت یافت نشد")
@@ -379,7 +421,7 @@ def safarsaz_router(get_db, current_user, role_has_permission, User, audit=None)
 
     @api.post("/safarsaz/tours/{tour_id}/publish")
     def publish(tour_id: str, user=Depends(publisher), db: Session = Depends(get_db)):
-        t = _tour(db, user.tenant_id, tour_id)
+        t = _own(db, user, tour_id)
         if t.status == "archived":
             raise HTTPException(status_code=409, detail="تور بایگانی‌شده است")
         now = utcnow()
@@ -420,7 +462,7 @@ def safarsaz_router(get_db, current_user, role_has_permission, User, audit=None)
 
     @api.post("/safarsaz/tours/{tour_id}/unpublish")
     def unpublish(tour_id: str, user=Depends(publisher), db: Session = Depends(get_db)):
-        t = _tour(db, user.tenant_id, tour_id)
+        t = _own(db, user, tour_id)
         if t.published_tour_id:
             product = db.get(m.TourProduct, t.published_tour_id)
             if product is not None and product.tenant_id == t.tenant_id:
@@ -430,8 +472,33 @@ def safarsaz_router(get_db, current_user, role_has_permission, User, audit=None)
         db.commit()
         return _out(db, t)
 
+    @api.post("/safarsaz/tours/{tour_id}/submit")
+    def submit(tour_id: str, user=Depends(staff), db: Session = Depends(get_db)):
+        """A contracted agency sends a ready draft for review; staff then publish it from the same panel."""
+        t = _own(db, user, tour_id)
+        if t.status not in ("draft", "pending_review"):
+            raise HTTPException(status_code=409, detail="فقط پیش‌نویس برای بررسی فرستاده می‌شود")
+        checks = checklist(t, _deps(db, t), _supplier_ok(db, t), utcnow())
+        missing = [c["label"] for c in checks if not c["ok"]]
+        if missing:
+            raise HTTPException(status_code=422, detail="پیش از ارسال کامل کنید: " + "، ".join(missing))
+        t.status, t.updated_at = "pending_review", utcnow()
+        _a(db, user, "safarsaz.tour.submitted", t.id)
+        db.commit()
+        return _out(db, t)
+
+    @api.post("/safarsaz/tours/{tour_id}/reject")
+    def reject(tour_id: str, user=Depends(tenant_staff), db: Session = Depends(get_db)):
+        t = _own(db, user, tour_id)
+        if t.status != "pending_review":
+            raise HTTPException(status_code=409, detail="این تور در انتظار بررسی نیست")
+        t.status, t.updated_at = "draft", utcnow()
+        _a(db, user, "safarsaz.tour.returned", t.id)
+        db.commit()
+        return _out(db, t)
+
     @api.post("/safarsaz/expire")
-    def expire(user=Depends(staff), db: Session = Depends(get_db)):
+    def expire(user=Depends(tenant_staff), db: Session = Depends(get_db)):
         """Published tours with no departure still open for booking go back to draft (site and catalogue stop showing them)."""
         now = utcnow()
         moved = []

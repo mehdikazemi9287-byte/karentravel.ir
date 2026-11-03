@@ -8,13 +8,15 @@ import {FormFields, Note, type Opt, type Row} from './CommercePanel';
 const SOURCES: Opt = [['manual', 'ورود دستی'], ['supplier_contract', 'قرارداد تأمین‌کننده'], ['charter_block', 'بلوک چارتر'], ['catalog', 'تور مرجع'], ['copy', 'کپی تور قبلی']];
 const ROOMS: Opt = [['double', 'دوتخته (پایه)'], ['single', 'یک‌تخته'], ['triple', 'سه‌تخته'], ['extra_bed', 'تخت اضافه']];
 const BOARDS: Opt = [['RO', 'بدون صبحانه'], ['BB', 'با صبحانه'], ['HB', 'نیم‌پانسیون'], ['FB', 'فول‌برد'], ['AI', 'همه‌چیز آزاد']];
-const STATUS_FA: Record<string, [string, string]> = {draft: ['پیش‌نویس', 'warn'], published: ['منتشرشده', 'ok'], archived: ['بایگانی', '']};
+const STATUS_FA: Record<string, [string, string]> = {draft: ['پیش‌نویس', 'warn'], pending_review: ['در انتظار تأیید', 'warn'], published: ['منتشرشده', 'ok'], archived: ['بایگانی', '']};
 const lines = (s: string) => s.split('\n').map(x => x.trim()).filter(Boolean);
 type Msg = {ok: boolean; text: string} | null;
 
-function useSuppliers(): Opt {
-  const {state} = useLoad<{items: Row[]}>('/inventory/suppliers');
-  return state.kind === 'ready' ? [['', '—'], ...state.data.items.filter(s => s.status === 'active').map(s => [s.id, s.name] as [string, string])] : [['', '—']];
+function useSuppliers(): {options: Opt; partner: boolean} {
+  const {state} = useLoad<{items: Row[]; partner: boolean}>('/safarsaz/suppliers');
+  if (state.kind !== 'ready') return {options: [['', '—']], partner: false};
+  const opts = state.data.items.map(s => [s.id, s.name] as [string, string]);
+  return {options: state.data.partner ? opts : [['', '—'], ...opts], partner: state.data.partner};
 }
 
 function toForm(t?: Row): Row {
@@ -37,8 +39,9 @@ function toPayload(v: Row): Row {
 
 function TourForm({tour, saved}: {tour?: Row; saved: (t: Row) => void}) {
   const {api} = useLoad<unknown>(null);
-  const suppliers = useSuppliers();
-  const [v, setV] = useState<Row>(toForm(tour)); const [msg, setMsg] = useState<Msg>(null);
+  const {options: suppliers, partner} = useSuppliers();
+  const [v, setV] = useState<Row>(toForm(tour));
+  if (partner && !v.supplier_id && suppliers[0]) v.supplier_id = suppliers[0][0]; const [msg, setMsg] = useState<Msg>(null);
   async function submit(e: FormEvent) {
     e.preventDefault(); setMsg(null);
     try {const t = tour ? await api.put<Row>(`/safarsaz/tours/${tour.id}`, toPayload(v)) : await api.post<Row>('/safarsaz/tours', toPayload(v)); setMsg({ok: true, text: 'ذخیره شد.'}); saved(t);}
@@ -46,7 +49,7 @@ function TourForm({tour, saved}: {tour?: Row; saved: (t: Row) => void}) {
   }
   return <form className="pn-form" onSubmit={submit}>
     <FormFields value={v} set={setV} fields={[{key: 'title', label: 'عنوان تور', required: true}, {key: 'origin', label: 'مبدأ', required: true}, {key: 'destination', label: 'مقصد', required: true},
-      {key: 'supplier_id', label: 'برگزارکننده', type: 'select', options: suppliers}, {key: 'source', label: 'روش ورود', type: 'select', options: SOURCES},
+      {key: 'supplier_id', label: 'برگزارکننده', type: 'select', options: suppliers}, {key: 'source', label: 'روش ورود', type: 'select', options: partner ? SOURCES.filter(o => o[0] === 'manual' || o[0] === 'copy') : SOURCES},
       {key: 'source_ref', label: 'شناسه‌ی منبع', hint: 'برای قرارداد، چارتر و تور مرجع لازم است'}, {key: 'deposit_bps', label: 'بیعانه (درصد)', type: 'percent'},
       {key: 'visa_status', label: 'روادید', type: 'select', options: [['VISA_NOT_REQUIRED', 'لازم نیست'], ['VISA_REQUIRED', 'لازم است'], ['VISA_ON_ARRIVAL', 'فرودگاهی'], ['VISA_STATUS_UNKNOWN', 'نامشخص']]},
       {key: 'description', label: 'معرفی تور', type: 'textarea', wide: true},
@@ -79,7 +82,7 @@ function DepartureForm({tourId, saved}: {tourId: string; saved: (t: Row) => void
   </form>;
 }
 
-function Editor({id, back}: {id: string; back: () => void}) {
+function Editor({id, back, partner}: {id: string; back: () => void; partner: boolean}) {
   const {state, reload, api} = useLoad<Row>(`/safarsaz/tours/${id}`);
   const [msg, setMsg] = useState<Msg>(null);
   async function act(method: 'post' | 'delete', path: string, ok: string) {
@@ -93,8 +96,10 @@ function Editor({id, back}: {id: string; back: () => void}) {
       <h3>چک‌لیست انتشار</h3>
       <ul className="pn-list">{t.checklist.map((c: Row) => <li key={c.key}><span>{c.label}</span><span className={`pn-badge ${c.ok ? 'ok' : 'bad'}`}>{c.ok ? 'کامل' : 'ناقص'}</span></li>)}</ul>
       <div style={{display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12}}>
-        <button className="pn-btn" disabled={!t.ready} onClick={() => act('post', `/safarsaz/tours/${id}/publish`, 'منتشر شد.')}>انتشار (مدیر)</button>
-        {t.status === 'published' && <button className="pn-btn ghost" onClick={() => act('post', `/safarsaz/tours/${id}/unpublish`, 'به پیش‌نویس برگشت.')}>توقف انتشار</button>}
+        {partner ? (t.status === 'draft' && <button className="pn-btn" disabled={!t.ready} onClick={() => act('post', `/safarsaz/tours/${id}/submit`, 'برای بررسی فرستاده شد؛ پس از تأیید کارن‌سیر روی سایت نمایش داده می‌شود.')}>ارسال برای انتشار</button>)
+          : <button className="pn-btn" disabled={!t.ready} onClick={() => act('post', `/safarsaz/tours/${id}/publish`, 'منتشر شد.')}>{t.status === 'pending_review' ? 'تأیید و انتشار' : 'انتشار (مدیر)'}</button>}
+        {!partner && t.status === 'pending_review' && <button className="pn-btn ghost" onClick={() => act('post', `/safarsaz/tours/${id}/reject`, 'به آژانس برگشت داده شد.')}>برگرداندن به آژانس</button>}
+        {!partner && t.status === 'published' && <button className="pn-btn ghost" onClick={() => act('post', `/safarsaz/tours/${id}/unpublish`, 'به پیش‌نویس برگشت.')}>توقف انتشار</button>}
         <button className="pn-btn ghost" onClick={() => act('post', `/safarsaz/tours/${id}/copy`, 'کپی ساخته شد؛ در فهرست پیدایش کنید.')}>کپی تور</button>
       </div>
       <Note msg={msg}/>
@@ -112,15 +117,15 @@ function Editor({id, back}: {id: string; back: () => void}) {
   </>}</Async>;
 }
 
-export function Safarsaz() {
+export function Safarsaz({partner = false}: {partner?: boolean}) {
   const [status, setStatus] = useState('');
   const {state, reload, api} = useLoad<{items: Row[]}>(`/safarsaz/tours${status ? `?status=${status}` : ''}`);
   const [open, setOpen] = useState<string | null>(null); const [creating, setCreating] = useState(false); const [msg, setMsg] = useState<Msg>(null);
-  if (open) return <Editor id={open} back={() => {setOpen(null); reload();}}/>;
+  if (open) return <Editor id={open} partner={partner} back={() => {setOpen(null); reload();}}/>;
   return <>
     <Card title="تورها" action={<span style={{display: 'flex', gap: 8}}>
-      <select aria-label="وضعیت" value={status} onChange={e => setStatus(e.target.value)}><option value="">همه</option><option value="draft">پیش‌نویس</option><option value="published">منتشرشده</option></select>
-      <button className="pn-btn ghost" onClick={async () => {setMsg(null); try {const r = await api.post<Row>('/safarsaz/expire', {}); setMsg({ok: true, text: `${fa(r.returned_to_draft)} تور تاریخ‌گذشته به پیش‌نویس برگشت.`}); reload();} catch (x) {setMsg({ok: false, text: errorOf(x).message});}}}>بررسی تورهای تاریخ‌گذشته</button>
+      <select aria-label="وضعیت" value={status} onChange={e => setStatus(e.target.value)}><option value="">همه</option><option value="draft">پیش‌نویس</option><option value="pending_review">در انتظار تأیید</option><option value="published">منتشرشده</option></select>
+      {!partner && <button className="pn-btn ghost" onClick={async () => {setMsg(null); try {const r = await api.post<Row>('/safarsaz/expire', {}); setMsg({ok: true, text: `${fa(r.returned_to_draft)} تور تاریخ‌گذشته به پیش‌نویس برگشت.`}); reload();} catch (x) {setMsg({ok: false, text: errorOf(x).message});}}}>بررسی تورهای تاریخ‌گذشته</button>}
       <button className="pn-btn" onClick={() => setCreating(c => !c)}>{creating ? 'بستن' : 'تور جدید'}</button></span>}>
       <Note msg={msg}/>
       {creating && <TourForm saved={t => {setCreating(false); setOpen(t.id);}}/>}

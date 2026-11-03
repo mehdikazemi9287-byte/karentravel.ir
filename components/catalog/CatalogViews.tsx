@@ -298,7 +298,7 @@ export function RailDirectory() {
   const ops = useCatalog<{items: {id: string; name_fa: string; name_en: string | null; operator_kind: string | null; website: string | null}[]}>('/catalog/rail/operators');
   const [q, setQ] = useState('');
   const stations = useCatalog<{items: Station[]}>(`/catalog/rail/stations?limit=1000${q ? '&q=' + encodeURIComponent(q) : ''}`);
-  const towns = [...new Set(((stations.data ?? stations.stale)?.items ?? []).map(s => stationTown(s.name)).filter((t): t is string => !!t))].sort((a, b) => a.localeCompare(b, 'fa'));
+  const towns = Array.from(new Set(((stations.data ?? stations.stale)?.items ?? []).map(s => stationTown(s.name)).filter((t): t is string => !!t))).sort((a, b) => a.localeCompare(b, 'fa'));
   const major = MAJOR_RAIL.filter(t => towns.includes(t)); const rest = towns.filter(t => !MAJOR_RAIL.includes(t));
   const href = (t: string) => `/trains?vertical=train&destination=${encodeURIComponent(t)}`;
   return <section className="cat" aria-labelledby="cat-rail-title">

@@ -206,7 +206,10 @@ export function HomeSearchExperience({defaultVertical="flight",presentation}:{de
     const today=new Date().toISOString().slice(0,10);
     if(!destination.trim()||(service.origin&&!origin.trim())){setSearchError('مبدأ و مقصد لازم را وارد کنید.');return}
     if(service.origin&&origin.trim()===destination.trim()){setSearchError('مبدأ و مقصد باید متفاوت باشند.');return}
-    if(!depart||depart<today|| (showReturn&&(!returnDate||returnDate<depart||(isStay&&returnDate===depart)))){setSearchError('تاریخ رفت و برگشت معتبر انتخاب کنید؛ تاریخ خروج باید پس از ورود باشد.');setPopover('dates');return}
+    const dateIssue=!depart||depart<today?`${departLabel} را انتخاب کنید (امروز یا روزهای بعد).`
+      :showReturn&&!returnDate?(service.vertical==='flight'?'تاریخ برگشت را انتخاب کنید یا سفر را «یک‌طرفه» کنید.':`${returnLabel} را انتخاب کنید.`)
+      :showReturn&&(returnDate<depart||(isStay&&returnDate===depart))?(isStay?`${returnLabel} باید بعد از ${departLabel} باشد.`:`${returnLabel} نمی‌تواند قبل از ${departLabel} باشد.`):'';
+    if(dateIssue){setSearchError(dateIssue);setPopover('dates');return}
     if(travellerTotal<1||travellerTotal>20||adults<1||children<0||infants<0||rooms<1){setSearchError('تعداد مسافران باید بین ۱ تا ۲۰ نفر باشد.');return}
     setSearchError('');setPopover(null);
     const params=new URLSearchParams({vertical:service.vertical,origin:service.origin?origin:'',destination,depart,flexibility,adults:String(adults),children:String(children),infants:String(infants),rooms:String(rooms),cabin,sort:'recommended'});if(service.vertical==='flight')params.set('trip_type',tripType);if(showReturn)params.set('return',returnDate);router.push(`/search/results?${params.toString()}`)}
@@ -237,8 +240,8 @@ export function HomeSearchExperience({defaultVertical="flight",presentation}:{de
             <span className={showReturn?'fs-datecol':'fs-datecol is-disabled'}><span className="fs-field-label">{returnLabel}</span><span className={showReturn&&returnDate?'fs-field-value':'fs-field-value is-empty'}>{showReturn?(returnDate?formatJalali(returnDate):'انتخاب تاریخ'):'—'}</span></span>
           </button>
           {popover==='dates'&&<div className="fs-pop fs-pop--date" aria-label="انتخاب تاریخ">{service.vertical==='flight'&&presentation==='approved'&&<div className="fs-seg" role="group" aria-label="نوع سفر">{([['round_trip','رفت‌وبرگشت'],['one_way','یک‌طرفه'],['multi_city','چندمسیره']] as const).map(([value,label])=><button type="button" aria-pressed={tripType===value} className={tripType===value?'is-active':''} onClick={()=>{if(value==='multi_city'){setTripType(value);router.push('/?vertical=flight&trip_type=multi_city&edit=1')}else setTripType(value)}} key={value}>{label}</button>)}</div>}
-            <header><b>{dateLabel}</b><small>قیمت فقط پس از اتصال داده معتبر نمایش داده می‌شود.</small></header>
-            <JalaliCalendar depart={depart} returnDate={returnDate} showReturn={showReturn} minIso={todayIso()} onDepart={iso=>{setDepart(iso);if(returnDate<iso)setReturnDate('')}} onReturn={setReturnDate}/>
+            <header><b>{dateLabel}</b></header>
+            <JalaliCalendar depart={depart} returnDate={returnDate} showReturn={showReturn} minIso={todayIso()} onDepart={iso=>{setDepart(iso);setSearchError('');if(returnDate<iso)setReturnDate('')}} onReturn={iso=>{setReturnDate(iso);setSearchError('')}}/>
             <fieldset className="fs-flex"><legend>تاریخ منعطف</legend>{[['today','امروز'],['plus_minus_1','±۱ روز'],['plus_minus_3','±۳ روز']].map(([value,label])=>{const on=value==='today'?flexibility==='exact'&&depart===todayIso():flexibility===value;return <button type="button" aria-pressed={on} className={on?'is-active':''} onClick={()=>{if(value==='today'){setDepart(todayIso());setFlexibility('exact');if(returnDate&&returnDate<todayIso())setReturnDate('')}else setFlexibility(value)}} key={value}>{label}</button>})}</fieldset>
             <button type="button" className="fs-pop-done" onClick={()=>setPopover(null)}>تأیید تاریخ</button>
           </div>}

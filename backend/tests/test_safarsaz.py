@@ -119,3 +119,53 @@ def test_safarsaz_is_tenant_isolated(client):
     assert client.get(f"/safarsaz/tours/{t['id']}", headers=other).status_code == 404
     assert all(i["id"] != t["id"] for i in client.get("/safarsaz/tours", headers=other).json()["items"])
     assert client.post(f"/safarsaz/tours/{t['id']}/copy", headers=other).status_code == 404
+
+
+def test_contracted_agency_submits_tour_for_review(client):
+    """A contracted agency (supplier member) builds only its own tours, cannot publish, and sends them for review."""
+    from app import operations as om
+    from app.main import SessionLocal, User
+    from sqlalchemy import select as sel
+    admin = _h(client, "platform-admin@aftab.test")
+    tadmin = _h(client, "tenant-admin@aftab.test")
+    partner = _h(client, "supplier@aftab.test")
+    suffix = uuid.uuid4().hex[:8]
+    own = client.post("/inventory/suppliers", json={"name": f"آژانس همکار {suffix}", "supplier_type": "tour_operator"}, headers=admin).json()["id"]
+    other = client.post("/inventory/suppliers", json={"name": f"آژانس دیگر {suffix}", "supplier_type": "tour_operator"}, headers=admin).json()["id"]
+    with SessionLocal() as db:
+        u = db.scalar(sel(User).where(User.email == "supplier@aftab.test"))
+        db.add(om.SupplierMembership(tenant_id=u.tenant_id, user_id=u.id, supplier_id=own, role="owner")); db.commit()
+
+    names = [s["id"] for s in client.get("/safarsaz/suppliers", headers=partner).json()["items"]]
+    assert own in names and other not in names
+    body = {"title": f"مشهد ۲ شب {suffix}", "origin": "تهران", "destination": "مشهد", "source": "manual"}
+    assert client.post("/safarsaz/tours", json={**body, "supplier_id": other}, headers=partner).status_code == 422
+    assert client.post("/safarsaz/tours", json={**body, "supplier_id": own, "source": "charter_block", "source_ref": "x"}, headers=partner).status_code == 422
+    t = client.post("/safarsaz/tours", json={**body, "supplier_id": own}, headers=partner)
+    assert t.status_code == 201, t.text
+    tid = t.json()["id"]
+    staff_tour = client.post("/safarsaz/tours", json={**body, "title": f"تور داخلی {suffix}", "supplier_id": other}, headers=tadmin).json()["id"]
+    assert client.get(f"/safarsaz/tours/{staff_tour}", headers=partner).status_code == 404   # not its own
+    assert all(r["id"] != staff_tour for r in client.get("/safarsaz/tours", headers=partner).json()["items"])
+    assert client.post(f"/safarsaz/tours/{tid}/submit", headers=partner).status_code == 422   # checklist incomplete
+    assert client.post(f"/safarsaz/tours/{tid}/publish", headers=partner).status_code == 403
+    assert client.post("/safarsaz/expire", headers=partner).status_code == 403
+
+    full = {**body, "supplier_id": own, "description": "دو شب اقامت در مشهد با قطار رفت و برگشت و ترانسفر ایستگاه تا هتل، نزدیک حرم.",
+            "itinerary": [{"title": "روز اول", "body": "حرکت و تحویل اتاق"}], "hotels": [{"name": "هتل آزمون", "city": "مشهد", "nights": 2, "board": "BB", "stars": 3}],
+            "inclusions": ["قطار"], "documents": ["کارت ملی"], "cancellation": [{"days_before": 3, "penalty_bps": 2000}]}
+    assert client.put(f"/safarsaz/tours/{tid}", json=full, headers=partner).status_code == 200
+    start = datetime.now(timezone.utc) + timedelta(days=15)
+    dep = {"starts_at": start.isoformat(), "ends_at": (start + timedelta(days=2)).isoformat(), "booking_deadline": (start - timedelta(days=1)).isoformat(),
+           "capacity": 10, "prices": [{"room": "double", "adult": 8_000_000}]}
+    assert client.post(f"/safarsaz/tours/{tid}/departures", json=dep, headers=partner).status_code == 201
+    sub = client.post(f"/safarsaz/tours/{tid}/submit", headers=partner)
+    assert sub.status_code == 200, sub.text
+    assert sub.json()["status"] == "pending_review"
+    assert any(r["id"] == tid for r in client.get("/safarsaz/tours?status=pending_review", headers=tadmin).json()["items"])
+    assert client.post(f"/safarsaz/tours/{tid}/reject", headers=partner).status_code == 403
+    assert client.post(f"/safarsaz/tours/{tid}/reject", headers=tadmin).json()["status"] == "draft"
+    assert client.post(f"/safarsaz/tours/{tid}/submit", headers=partner).status_code == 200
+    pub = client.post(f"/safarsaz/tours/{tid}/publish", headers=tadmin)
+    assert pub.status_code == 200, pub.text
+    assert pub.json()["status"] == "published"
