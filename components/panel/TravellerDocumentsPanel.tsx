@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable @next/next/no-img-element -- previews are blob URLs of private documents, not optimizable images */
 /* Traveller documents: customer upload/list/delete; staff review queue with blurred preview and audited reveal. */
 import {useEffect, useState, type FormEvent} from 'react';
 import {Async, Card, Stats, Table, dateFa, errorOf, fa, useLoad} from './PanelKit';

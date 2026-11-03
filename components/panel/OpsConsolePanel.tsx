@@ -31,7 +31,7 @@ function DailyBars({data}: {data: {day: string; count: number; value: number}[]}
         return <g key={d.day} tabIndex={0} onMouseEnter={() => setHover(i)} onFocus={() => setHover(i)} aria-label={`${dayFa(d.day)}: ${fa(d.count)}`}>
           <rect x={x} y={0} width={bw + gap} height={H} fill="transparent"/>
           {bh > 0 && <path d={`M${x},${H} V${H - bh + 4} q0,-4 4,-4 h${bw - 8} q4,0 4,4 V${H} Z`} fill="#7a3f7e" opacity={hover === null || hover === i ? 1 : 0.45}/>}
-          {(i === 0 || i === data.length - 1 || i % 7 === 0) && <text x={x + bw / 2} y={H + 16} textAnchor="middle" fontSize="10" fill="var(--pn-muted)">{dayFa(d.day)}</text>}
+          {(i === data.length - 1 || (data.length - 1 - i) % 7 === 0) && <text x={x + bw / 2} y={H + 16} textAnchor="middle" fontSize="13" fill="var(--pn-muted)">{dayFa(d.day)}</text>}
         </g>;
       })}
     </svg>
@@ -42,7 +42,7 @@ export function OpsDashboard() {
   const {state, reload} = useLoad<Row>('/ops/dashboard');
   return <Async state={state}>{d => <>
     <div className="ops-row"><span className="pn-muted">امروز {dateFa(d.today)} — به‌روز شده ساعت {timeFa(d.generated_at)}</span><button className="pn-btn ghost" onClick={reload}>به‌روزرسانی</button></div>
-    <Stats items={d.kpis.map((k: Row) => ({label: k.label, value: k.unit === 'IRR' ? money(k.value, 'IRR') : fa(k.value), hint: k.hint}))}/>
+    <Stats items={d.kpis.map((k: Row) => ({label: k.label, value: k.unit === 'IRR' ? money(k.value, 'IRR') : fa(k.value), hint: k.hint?.replace(/\d/g, (x: string) => '۰۱۲۳۴۵۶۷۸۹'[Number(x)])}))}/>
     {d.alerts.length > 0 && <Card title="هشدارهای داده">
       <ul className="ops-alerts">{d.alerts.map((a: Row) => <li key={a.key} className={`pn-note ${a.level === 'bad' ? 'error' : ''}`}><b>{a.level === 'bad' ? '⛔' : '⚠️'} {fa(a.count)}</b> {a.label}</li>)}</ul></Card>}
     <div className="ops-grid">
@@ -68,6 +68,17 @@ export function OpsDashboard() {
     </div>
   </>}</Async>;
 }
+
+const POLICY_FA: Record<string, string> = {cancellation: 'کنسلی', penalty_amount: 'جریمه', penalty_percent: 'درصد جریمه', refundable: 'قابل استرداد', free_cancellation_until: 'کنسلی رایگان تا',
+  deadline: 'مهلت', tiers: 'پلکان جریمه', non_refundable: 'غیرقابل استرداد', notes: 'توضیح', description: 'توضیح'};
+const HIDDEN_POLICY = new Set(['source', 'verified', 'verified_at', 'version']);
+function policyValue(v: unknown): string {
+  if (typeof v === 'boolean') return v ? 'بله' : 'خیر';
+  if (typeof v === 'number') return fa(v);
+  if (v && typeof v === 'object') return Object.entries(v as Record<string, unknown>).filter(([k]) => !HIDDEN_POLICY.has(k)).map(([k, x]) => `${POLICY_FA[k] ?? k}: ${policyValue(x)}`).join('، ');
+  return String(v ?? '—');
+}
+const policyRows = (p: Record<string, unknown>): [string, string][] => Object.entries(p).filter(([k]) => !HIDDEN_POLICY.has(k)).map(([k, v]) => [POLICY_FA[k] ?? k, policyValue(v)]);
 
 const MO_BADGE: Record<string, string> = {not_ready: 'bad', ready: 'warn', waiting_for_provider: 'warn', sent: 'ok', accepted: 'ok', rejected: 'bad'};
 
@@ -97,7 +108,7 @@ function ContractDetail({id, close}: {id: string; close: () => void}) {
     <div className="ops-grid">
       <Card title="مسافران">{f.travellers_note && <p className="pn-note">{f.travellers_note}</p>}<Table rows={f.travellers} rowKey={(r: Row) => r.id} empty="مسافری ثبت نشده است." cols={[{label: 'نام', cell: (r: Row) => r.full_name}, {label: 'مدرک', cell: (r: Row) => <span className="pn-ltr">{r.document ?? '—'}</span>}]}/></Card>
       <Card title="کنسلی و درخواست‌ها">
-        {Object.keys(f.cancellation.policy_at_booking).length ? <dl className="ops-dl">{Object.entries(f.cancellation.policy_at_booking).map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{typeof v === 'object' ? JSON.stringify(v) : String(v)}</dd></div>)}</dl> : <p className="pn-muted">قانون کنسلی در لحظه‌ی رزرو ثبت نشده است.</p>}
+        {policyRows(f.cancellation.policy_at_booking).length ? <dl className="ops-dl">{policyRows(f.cancellation.policy_at_booking).map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl> : <p className="pn-muted">قانون کنسلی در لحظه‌ی رزرو ثبت نشده است.</p>}
         <Table rows={f.cancellation.requests} rowKey={(r: Row) => r.id} empty="درخواست کنسلی یا تغییری ثبت نشده است." cols={[{label: 'نوع', cell: (r: Row) => r.type}, {label: 'وضعیت', cell: (r: Row) => <span className="pn-badge">{r.status}</span>}, {label: 'تاریخ', cell: (r: Row) => dateFa(r.at)}]}/>
       </Card>
     </div>
