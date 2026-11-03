@@ -2,7 +2,7 @@
 
 # وضعیت پیاده‌سازی (PR #6)
 
-وضعیت: **در شاخه‌ی `production` ادغام شده (PR #6 و PR #7)**؛ استقرار روی سرور و اجرای مهاجرت‌ها (`20261102_53` تا `_58`) هنوز انجام نشده است.
+وضعیت: **در شاخه‌ی `production` ادغام شده (PR #6 و PR #7)**؛ استقرار روی سرور و اجرای مهاجرت‌ها (`20261102_53` تا `20261103_60`) هنوز انجام نشده است.
 
 | # | قابلیت | بک‌اند | جدول‌ها (RLS) | صفحه | آزمون |
 | --- | --- | --- | --- | --- | --- |
@@ -35,6 +35,13 @@
 | حالت آفلاین اپ | `public/sw.js`، `public/offline.html` | — | `/app` | — |
 
 متغیرهای محیطی ورودی‌ها: `SALES_DESK_PUBLIC_TENANT` (اختیاری؛ پیش‌فرض مستأجر مشتریان `karenseir-consumer`)، `SALES_DESK_WHATSAPP_APP_SECRET`، `SALES_DESK_WHATSAPP_VERIFY_TOKEN`، `SALES_DESK_BALE_WEBHOOK_TOKEN`، `SALES_DESK_PBX_SECRET`.
+
+## دور پنجم (PR #8)
+
+| قابلیت | بک‌اند | جدول‌ها (RLS) | صفحه | آزمون |
+| --- | --- | --- | --- | --- |
+| مطالبات سازمان‌ها | `backend/app/receivables.py` | `org_receivable_terms`، `org_settlements` (`20261103_59`) | `/finance/receivables` | `tests/test_receivables.py` |
+| سهمیه‌ی صندلی همکاران | `backend/app/charter_quotas.py` (+ `_held` در `inventory.py`) | `inv_seat_quotas` (`20261103_60`) | `/admin/charter-quotas` | `tests/test_charter_quotas.py` |
 
 ## محدودیت‌های فعلی
 
