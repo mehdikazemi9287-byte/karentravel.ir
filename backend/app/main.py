@@ -5358,3 +5358,9 @@ app.include_router(_account_security_api)
 
 from .traveller_documents import traveller_documents_router  # noqa: E402  traveller documents: upload, masked review queue, retention
 app.include_router(traveller_documents_router(get_db, current_user, role_has_permission, User, _platform_audit))
+
+from .ledger import ledger_router  # noqa: E402  general ledger: balanced vouchers, trial balance, period close
+app.include_router(ledger_router(get_db, current_user, role_has_permission, User, _platform_audit))
+
+from .supplier_insights import supplier_insights_router  # noqa: E402  supplier cancellation rate and purchase reconciliation
+app.include_router(supplier_insights_router(get_db, current_user, role_has_permission, User, _platform_audit))
