@@ -2,7 +2,7 @@
 import { FormEvent, Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ApiError } from '../../lib/api/karenseir-client';
+import { ApiError, MfaRequiredError } from '../../lib/api/karenseir-client';
 import { useAuth } from '../../lib/api/auth-context';
 import { ContactOptions } from '../../components/customer/CustomerHelp';
 import { roleHome } from '../../lib/role-navigation';
@@ -38,7 +38,7 @@ export default function LoginPage() {
 }
 
 function LoginPageInner() {
-  const { requestOtp, verifyOtp } = useAuth();
+  const { requestOtp, verifyOtp, verifyMfa } = useAuth();
   const router = useRouter();
   const redirectTarget = safeRedirectTarget(useSearchParams().get('redirect'));
   const [organizationLogin, setOrganizationLogin] = useState(false);
@@ -48,6 +48,9 @@ function LoginPageInner() {
   const [challengeId, setChallengeId] = useState('');
   const [otp, setOtp] = useState('');
   const [busy,setBusy]=useState(false);
+  const [mfaTicket, setMfaTicket] = useState('');
+  const [mfaCode, setMfaCode] = useState('');
+  const [useRecovery, setUseRecovery] = useState(false);
   const [message, setMessage] = useState('برای دریافت کد ورود، شماره همراه خود را وارد کنید.');
   async function requestCode(event: FormEvent) {
     event.preventDefault();
@@ -60,13 +63,30 @@ function LoginPageInner() {
     if(busy)return;setBusy(true);
     try {
       const authenticated = await verifyOtp(tenantSlug, challengeId, otp);
-      // Phase 6: return the caller to whatever it was doing (e.g. the
-      // Assistant's pending action) instead of stranding them here --
-      // only ever a same-origin in-app path, never an external one.
-      if (redirectTarget) { router.push(redirectTarget); return; }
-      router.push(roleHome[authenticated.user?.role||'customer']||'/account');
+      finish(authenticated.user?.role);
     }
-    catch (error) { setMessage(error instanceof ApiError ? 'کد ورود تأیید نشد؛ شماره و کد را بررسی کنید.' : 'کد ورود معتبر نیست.'); } finally {setBusy(false)}
+    catch (error) {
+      if (error instanceof MfaRequiredError) { setMfaTicket(error.ticket); setMessage('کد پیامکی تأیید شد. حالا کد شش‌رقمی برنامه‌ی Google Authenticator را وارد کنید.'); return; }
+      setMessage(error instanceof ApiError ? 'کد ورود تأیید نشد؛ شماره و کد را بررسی کنید.' : 'کد ورود معتبر نیست.');
+    } finally {setBusy(false)}
+  }
+  function finish(role?: string) {
+    // Phase 6: return the caller to whatever it was doing (e.g. the
+    // Assistant's pending action) instead of stranding them here --
+    // only ever a same-origin in-app path, never an external one.
+    if (redirectTarget) { router.push(redirectTarget); return; }
+    router.push(roleHome[role||'customer']||'/account');
+  }
+  async function verifySecondStep(event: FormEvent) {
+    event.preventDefault();
+    if(busy)return;setBusy(true);
+    try { const authenticated = await verifyMfa(tenantSlug, mfaTicket, useRecovery ? { recovery_code: mfaCode.trim() } : { code: mfaCode }); finish(authenticated.user?.role); }
+    catch (error) {
+      const status = error instanceof ApiError ? error.status : 0;
+      if (status === 423) setMessage('به‌خاطر کدهای اشتباه، حساب تا ۱۵ دقیقه قفل است.');
+      else if (status === 401 && /مهلت/.test(error instanceof Error ? error.message : '')) { setMfaTicket(''); setChallengeId(''); setMessage('مهلت ورود تمام شد؛ دوباره کد پیامکی بگیرید.'); }
+      else setMessage(useRecovery ? 'کد بازیابی درست نیست یا قبلاً استفاده شده است.' : 'کد برنامه درست نیست؛ ساعت گوشی را بررسی کنید.');
+    } finally {setBusy(false)}
   }
   return <Shell>
     <div className="page-hero">
@@ -81,7 +101,12 @@ function LoginPageInner() {
         <label>{organizationLogin?"شماره همراه یا شناسه ورود":"شماره همراه"}<input value={identifier} onChange={e => setIdentifier(e.target.value.replace(/[۰-۹]/g,c=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(c))).replace(/[٠-٩]/g,c=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(c))))} required inputMode={organizationLogin?"text":"tel"} pattern={organizationLogin?undefined:"09[0-9]{9}"} autoComplete="username" aria-label="شماره همراه یا شناسه ورود" style={{ display: 'block', width: '100%', marginTop: 4, padding: 10, borderRadius: 8, border: '1px solid var(--line)' }} /></label>
         <button className="button primary" type="submit" disabled={busy}>دریافت کد ورود</button>
       </form>
-      {challengeId && <form onSubmit={verifyCode} className="filters" style={{ display: 'grid', gap: 10 }}>
+      {mfaTicket && <form onSubmit={verifySecondStep} className="filters" style={{ display: 'grid', gap: 10 }} aria-label="ورود دومرحله‌ای">
+        <label>{useRecovery ? 'کد بازیابی (مثل ABCD-EF23)' : 'کد شش‌رقمی برنامه‌ی Authenticator'}<input value={mfaCode} onChange={e => setMfaCode(useRecovery ? e.target.value : e.target.value.replace(/[۰-۹]/g, c => String("۰۱۲۳۴۵۶۷۸۹".indexOf(c))).replace(/[٠-٩]/g, c => String("٠١٢٣٤٥٦٧٨٩".indexOf(c))))} inputMode={useRecovery ? 'text' : 'numeric'} pattern={useRecovery ? undefined : '[0-9]{6}'} maxLength={useRecovery ? 12 : 6} autoComplete="one-time-code" required aria-label={useRecovery ? 'کد بازیابی' : 'کد برنامه'} dir="ltr" style={{ display: 'block', width: '100%', marginTop: 4, padding: 10, borderRadius: 8, border: '1px solid var(--line)' }} /></label>
+        <button className="button primary" type="submit" disabled={busy}>تأیید و ورود</button>
+        <button className="button secondary" type="button" onClick={() => { setUseRecovery(!useRecovery); setMfaCode(''); }}>{useRecovery ? 'استفاده از کد برنامه' : 'گوشی در دسترس نیست؟ کد بازیابی'}</button>
+      </form>}
+      {challengeId && !mfaTicket && <form onSubmit={verifyCode} className="filters" style={{ display: 'grid', gap: 10 }}>
         <label>کد شش‌رقمی<input value={otp} onChange={e => setOtp(e.target.value.replace(/[۰-۹]/g, c => String("۰۱۲۳۴۵۶۷۸۹".indexOf(c))).replace(/[٠-٩]/g, c => String("٠١٢٣٤٥٦٧٨٩".indexOf(c))))} inputMode="numeric" pattern="[0-9]{6}" maxLength={6} autoComplete="one-time-code" required aria-label="کد شش‌رقمی" style={{ display: 'block', width: '100%', marginTop: 4, padding: 10, borderRadius: 8, border: '1px solid var(--line)' }} /></label>
         <button className="button primary" type="submit" disabled={busy}>تأیید و ورود</button>
       </form>}

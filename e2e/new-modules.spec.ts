@@ -83,3 +83,19 @@ test('ops dashboard and contract file render from real rows', async ({ page }) =
     await page.screenshot({ path: `${artifactDir}/new-modules/contract-file.png`, fullPage: true, animations: 'disabled' });
   }
 });
+
+test('account security setup shows QR, documents upload and staff queue', async ({ page, browser }) => {
+  await signIn(page, 'employee@aftab.test');
+  await open(page, '/account/security');
+  await page.getByRole('button', { name: 'شروع راه‌اندازی' }).click();
+  await expect(page.getByRole('img', { name: /کد QR/ })).toBeVisible();
+  await page.screenshot({ path: `${artifactDir}/new-modules/security-setup.png`, fullPage: true, animations: 'disabled' });
+  await open(page, '/account/documents');
+  await expect(page.getByRole('heading', { name: 'بارگذاری مدرک' })).toBeVisible();
+  const staff = await browser.newPage();
+  await signIn(staff, 'backoffice@aftab.test');
+  await open(staff, '/admin/documents');
+  await expect(staff.getByRole('heading', { name: 'صف مدارک' })).toBeVisible();
+  await staff.screenshot({ path: `${artifactDir}/new-modules/documents-queue.png`, fullPage: true, animations: 'disabled' });
+  await staff.close();
+});
