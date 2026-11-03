@@ -68,9 +68,10 @@ function Stars({value}: {value: number | null}) {
   return <span className="cat-stars" aria-label={`${fa(value)} ستاره`}>{'★'.repeat(value)}</span>;
 }
 function Thumb({src, credit, alt, label}: {src: string | null; credit: string | null; alt: string; label: string}) {
-  if (!src) return <div className="cat-thumb cat-thumb-empty" aria-hidden="true"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M16 10h3a1 1 0 0 1 1 1v10M3 21h18M8 7h4M8 11h4M8 15h4"/></svg><span>{label}</span></div>;
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) return <div className="cat-thumb cat-thumb-empty" aria-hidden="true"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M16 10h3a1 1 0 0 1 1 1v10M3 21h18M8 7h4M8 11h4M8 15h4"/></svg><span>{label}</span></div>;
   // eslint-disable-next-line @next/next/no-img-element -- remote Wikimedia Commons file with per-image credit
-  return <div className="cat-thumb"><img src={src} alt={alt} loading="lazy"/>{credit && <small title={credit}>{credit}</small>}</div>;
+  return <div className="cat-thumb"><img src={src} alt={alt} loading="lazy" onError={() => setFailed(true)}/>{credit && !credit.startsWith('کارن‌سیر') && <small title={credit}>{credit}</small>}</div>;
 }
 function Pager({total, limit, page, onPage}: {total: number; limit: number; page: number; onPage: (p: number) => void}) {
   const pages = Math.ceil(total / limit);
@@ -115,7 +116,6 @@ export function HotelCard({h}: {h: Hotel}) {
     <div className="cat-card-body">
       <div className="cat-card-top"><span className="cat-tag">{h.hotel_type_fa}</span><Stars value={h.stars}/></div>
       <h3>{h.name}</h3>
-      {h.name_en && h.name_en !== h.name && <p className="cat-en" dir="ltr" lang="en">{h.name_en}</p>}
       <p className="cat-where">{where}</p>
       {h.amenities.length > 0 && <ul className="cat-amen">{h.amenities.slice(0, 4).map(a => <li key={a.key}>{a.label}</li>)}</ul>}
       <p className="cat-price">{h.price_note}</p>
@@ -126,7 +126,7 @@ export function HotelCard({h}: {h: Hotel}) {
 const PAGE = 24;
 export function HotelCatalog({presetTypes, title = 'هتل‌ها و اقامتگاه‌های ثبت‌شده', intro}: {presetTypes?: string[]; title?: string; intro?: string}) {
   const {params, set} = useQueryState();
-  const country = params.get('country') || '', city = params.get('city') || '', region = params.get('region') || '', stars = params.get('stars') || '';
+  const countryParam = params.get('country') ?? 'IR', country = countryParam === 'all' ? '' : countryParam, city = params.get('city') || '', region = params.get('region') || '', stars = params.get('stars') || '';
   const type = params.get('hotel_type') || '', amenity = params.get('amenity') || '', policy = params.get('policy') || '', q = params.get('q') || '', page = Math.max(1, Number(params.get('page')) || 1);
   const scope = new URLSearchParams();
   if (country) scope.set('country', country);
@@ -143,7 +143,7 @@ export function HotelCatalog({presetTypes, title = 'هتل‌ها و اقامت�
   return <section className="cat" id="catalog" aria-labelledby="cat-hotels-title">
     <header className="cat-head"><div><h2 id="cat-hotels-title">{title}</h2><p>{intro ?? 'نام، موقعیت، درجه و امکانات هر اقامتگاه از منابع مرجع ثبت شده است. قیمت و ظرفیت پس از انتخاب تاریخ و استعلام از تأمین‌کننده اعلام می‌شود.'}</p></div>
       <SearchBox value={q} onSubmit={v => set({q: v || null})} placeholder="نام هتل، شهر یا کشور"/></header>
-    <div className="cat-chips" role="group" aria-label="کشور"><button className={!country ? 'on' : ''} onClick={() => set({country: null, city: null, region: null})}>همهٔ کشورها</button>
+    <div className="cat-chips" role="group" aria-label="کشور"><button className={!country ? 'on' : ''} onClick={() => set({country: 'all', city: null, region: null})}>همهٔ کشورها</button>
       {f?.countries.map(c => <button key={c.code} className={country === c.code ? 'on' : ''} onClick={() => set({country: c.code, city: null, region: null})}>{c.name} <small>{fa(c.count)}</small></button>)}</div>
     <div className="cat-filters">
       <label>شهر<select value={city} onChange={e => set({city: e.target.value || null, region: null})}><option value="">همهٔ شهرها</option>{f?.cities.map(c => <option key={c.id} value={c.id}>{c.name} ({fa(c.count)})</option>)}</select></label>
@@ -189,7 +189,7 @@ export function HotelDetail({slug}: {slug: string}) {
           {h.details.map_link && <p><a href={h.details.map_link} target="_blank" rel="noreferrer nofollow">جست‌وجوی این اقامتگاه روی نقشه</a> <span className="cat-muted">(مختصات دقیق در منبع ثبت نشده است)</span></p>}</section>}
         <section><h2>موقعیت و تماس</h2><dl className="cat-dl">
           {h.address && <><dt>نشانی</dt><dd>{h.address}</dd></>}
-          {h.latitude !== null && h.longitude !== null && <><dt>مختصات</dt><dd><a href={osmLink(h.latitude, h.longitude)} target="_blank" rel="noreferrer" dir="ltr">{h.latitude.toFixed(5)}, {h.longitude.toFixed(5)}</a> (نمایش روی نقشه)</dd></>}
+          {h.latitude !== null && h.longitude !== null && <><dt>موقعیت</dt><dd><a href={osmLink(h.latitude, h.longitude)} target="_blank" rel="noreferrer">نمایش روی نقشه</a></dd></>}
           {h.phone && <><dt>تلفن</dt><dd><a href={`tel:${h.phone.replace(/[^\d+]/g, '')}`} dir="ltr">{h.phone}</a></dd></>}
           {h.website && <><dt>وب‌سایت</dt><dd><a href={h.website} target="_blank" rel="noreferrer nofollow" dir="ltr">{h.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}</a></dd></>}
           {h.email && <><dt>ایمیل</dt><dd><a href={`mailto:${h.email}`} dir="ltr">{h.email}</a></dd></>}
@@ -225,7 +225,7 @@ export function VenueDirectory({kinds, title, intro}: {kinds: string[]; title: s
     {data && data.items.length > 0 && <div className={`cat-grid cat-grid-venue${list.loading ? ' is-loading' : ''}`}>{data.items.map(v => <article className="cat-card cat-venue" key={v.id}>
       {v.image_url && <Thumb src={v.image_url} credit={v.image_credit} alt={v.name} label=""/>}
       <div className="cat-card-body"><div className="cat-card-top"><span className="cat-tag">{v.kind_fa}</span>{v.detail && <span className="cat-detail-tag" dir="auto">{v.detail.replace(/[_;]/g, ' ')}</span>}</div>
-        <h3>{v.name}</h3>{v.name_en && v.name_en !== v.name && <p className="cat-en" dir="ltr" lang="en">{v.name_en}</p>}
+        <h3>{faName(v.name)}</h3>
         <p className="cat-where">{[v.city?.name, v.region?.name].filter(Boolean).join('، ')}{v.address ? ` — ${v.address}` : ''}</p>
         {v.opening_hours && <p className="cat-muted" dir="ltr">{v.opening_hours}</p>}
         <p className="cat-links"><a href={osmLink(v.latitude, v.longitude)} target="_blank" rel="noreferrer">نقشه</a>{v.phone && <a href={`tel:${v.phone.replace(/[^\d+]/g, '')}`} dir="ltr">{v.phone}</a>}{v.website && <a href={v.website} target="_blank" rel="noreferrer nofollow">وب‌سایت</a>}</p>
@@ -286,18 +286,30 @@ export function AirportDirectory() {
   </section>;
 }
 
+const MAJOR_RAIL = ['تهران', 'مشهد', 'اصفهان', 'شیراز', 'تبریز', 'اهواز', 'یزد', 'کرمان', 'قم', 'کاشان', 'رشت', 'قزوین', 'زنجان', 'سمنان', 'ساری', 'گرگان', 'بندرعباس', 'اراک', 'همدان', 'کرمانشاه', 'زاهدان', 'بجنورد', 'ارومیه', 'اردبیل', 'میانه', 'گرمسار', 'نیشابور', 'سبزوار', 'شاهرود', 'دامغان', 'خرمشهر', 'اندیمشک', 'بافق', 'سیرجان'];
+/* Station names from open data → the town a traveller would search for; drops emergency, freight and unfinished stops. */
+function stationTown(name: string): string | null {
+  if (/اضطراری|در حال ساخت|باری|صنعتی|[A-Za-z]/.test(name)) return null;
+  const t = name.replace(/^ا[یب]ستگاه\s*(راه[\s‌]*آهن)?\s*/, '').replace(/\(.*?\)/g, '').replace(/\s+/g, ' ').trim();
+  return t.length >= 2 ? t.replace(/ي/g, 'ی').replace(/ہ/g, 'ه') : null;
+}
+
 export function RailDirectory() {
   const ops = useCatalog<{items: {id: string; name_fa: string; name_en: string | null; operator_kind: string | null; website: string | null}[]}>('/catalog/rail/operators');
   const [q, setQ] = useState('');
   const stations = useCatalog<{items: Station[]}>(`/catalog/rail/stations?limit=1000${q ? '&q=' + encodeURIComponent(q) : ''}`);
-  const items = (stations.data ?? stations.stale)?.items ?? [];
+  const towns = [...new Set(((stations.data ?? stations.stale)?.items ?? []).map(s => stationTown(s.name)).filter((t): t is string => !!t))].sort((a, b) => a.localeCompare(b, 'fa'));
+  const major = MAJOR_RAIL.filter(t => towns.includes(t)); const rest = towns.filter(t => !MAJOR_RAIL.includes(t));
+  const href = (t: string) => `/trains?vertical=train&destination=${encodeURIComponent(t)}`;
   return <section className="cat" aria-labelledby="cat-rail-title">
-    <header className="cat-head"><div><h2 id="cat-rail-title">شرکت‌ها و ایستگاه‌های ریلی</h2><p>اطلاعات مرجع راه‌آهن. ساعت حرکت، ظرفیت و قیمت بلیت فقط از نتیجهٔ جست‌وجوی قطار اعلام می‌شود.</p></div><SearchBox value={q} onSubmit={setQ} placeholder="نام ایستگاه یا شهر"/></header>
+    <header className="cat-head"><div><h2 id="cat-rail-title">شرکت‌های ریلی و ایستگاه‌ها</h2><p>شهر مقصدت را انتخاب کن تا قطارهای آن مسیر را جست‌وجو کنی. ساعت حرکت، نوع واگن و قیمت در نتیجه‌ی جست‌وجو نمایش داده می‌شود.</p></div><SearchBox value={q} onSubmit={setQ} placeholder="نام شهر یا ایستگاه"/></header>
     {ops.data && <div className="cat-grid cat-grid-ref">{ops.data.items.map(o => <article className="cat-ref" key={o.id}><div className="cat-logo"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M7 4h10a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM5 11h14M9 14h.01M15 14h.01M8 21l2-4M16 21l-2-4"/></svg></div>
-      <div><h3>{o.name_fa}</h3>{o.name_en && <p className="cat-en" dir="ltr" lang="en">{o.name_en}</p>}<p className="cat-where">{o.operator_kind === 'national_infrastructure' ? 'شبکهٔ ملی راه‌آهن' : 'شرکت مسافری ریلی'}</p>{o.website && <a href={o.website} target="_blank" rel="noreferrer nofollow">وب‌سایت رسمی</a>}</div></article>)}</div>}
-    <h3 className="cat-sub">ایستگاه‌ها {items.length ? <small>({fa(items.length)})</small> : null}</h3>
-    <Status loading={stations.loading} error={stations.error} empty={items.length === 0}/>
-    <ul className="cat-station-list">{items.map(s => <li key={s.id}><a href={osmLink(s.latitude, s.longitude)} target="_blank" rel="noreferrer">{s.name}</a>{s.name_en && s.name_en !== s.name && <span className="cat-en" dir="ltr" lang="en">{s.name_en}</span>}</li>)}</ul>
+      <div><h3>{o.name_fa}</h3><p className="cat-where">{o.operator_kind === 'national_infrastructure' ? 'شبکهٔ ملی راه‌آهن' : 'شرکت مسافری ریلی'}</p>{o.website && <a href={o.website} target="_blank" rel="noreferrer nofollow">وب‌سایت رسمی</a>}</div></article>)}</div>}
+    <Status loading={stations.loading} error={stations.error} empty={towns.length === 0}/>
+    {major.length > 0 && <><h3 className="cat-sub">ایستگاه‌های اصلی</h3><div className="cat-grid cat-grid-airport">{major.map(t => <article className="cat-airport" key={t}>
+      <b className="cat-airport-code" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M7 4h10a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM5 11h14M8 21l2-4M16 21l-2-4"/></svg></b>
+      <div><h4>{t}</h4><p>ایستگاه راه‌آهن {t}</p><a href={href(t)}>قطار به {t} ←</a></div></article>)}</div></>}
+    {rest.length > 0 && <><h3 className="cat-sub">سایر ایستگاه‌ها <small>({fa(rest.length)})</small></h3><ul className="cat-airport-list">{rest.map(t => <li key={t}><a href={href(t)}>{t}</a></li>)}</ul></>}
     {ATTRIBUTION}
   </section>;
 }
@@ -311,7 +323,7 @@ export function DestinationDirectory() {
     <Status loading={loading} error={error} empty={!data || data.items.length === 0}/>
     {data && <div className="cat-grid cat-grid-dest">{data.items.map(p => <Link className="cat-card cat-dest" key={p.id} href={`/destinations/${p.id}`}>
       {p.image_url ? <Thumb src={p.image_url} credit={p.image_credit} alt={p.name} label=""/> : null}
-      <div className="cat-card-body"><h3>{p.name}</h3>{p.name_en && <p className="cat-en" dir="ltr" lang="en">{p.name_en}</p>}<p className="cat-where">{fa(p.hotel_count)} اقامتگاه ثبت‌شده</p></div></Link>)}</div>}
+      <div className="cat-card-body"><h3>{p.name}</h3><p className="cat-where">{fa(p.hotel_count)} اقامتگاه ثبت‌شده</p></div></Link>)}</div>}
     {ATTRIBUTION}
   </section>;
 }
@@ -359,7 +371,7 @@ const duration = (t: {duration_nights: number | null; duration_days: number | nu
 
 export function TourCard({t}: {t: TourBrief}) {
   return <Link className="cat-card" href={t.href}><Thumb src={t.image_url} credit={null} alt={t.title} label="تور"/>
-    <div className="cat-card-body"><h3>{t.title}</h3><p className="cat-where">{[t.destination?.name, duration(t), t.transport_fa].filter(Boolean).join(' · ')}</p>
+    <div className="cat-card-body"><h3>{t.title.replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[Number(d)])}</h3><p className="cat-where">{[t.destination?.name, duration(t), t.transport_fa].filter(Boolean).join(' · ')}</p>
       <p className="cat-price">قیمت و تاریخ جدید با استعلام</p></div></Link>;
 }
 
@@ -381,7 +393,7 @@ export function TourCatalog({title = 'برنامهٔ تورهای برگزارش
       <label>سال برگزاری<select value={year} onChange={e => set({year: e.target.value || null, tpage: null})}><option value="">همه</option>{data.years.map(y => <option key={y} value={y}>{fa(y).replace(/٬/g, '')}</option>)}</select></label></div>}
     <div className="cat-meta"><span aria-live="polite">{data ? `${fa(data.total)} تور` : ''}</span>{((destination && !presetDestination) || q || category || nights || year) && <button onClick={() => set({destination: null, tq: null, tpage: null, category: null, nights: null, year: null})}>حذف فیلترها</button>}</div>
     <Status loading={list.loading} error={list.error} empty={!data || data.items.length === 0}>توری با این شرایط ثبت نشده است.</Status>
-    {data && data.items.length > 0 && <div className={`cat-grid${list.loading ? ' is-loading' : ''}`}>{data.items.map(t => <TourCard key={t.id} t={t}/>)}</div>}
+    {data && data.items.length > 0 && <div className={`cat-grid${list.loading ? ' is-loading' : ''}`}>{data.items.filter((t, i, all) => all.findIndex(o => o.title === t.title && o.destination?.name === t.destination?.name && duration(o) === duration(t)) === i).map(t => <TourCard key={t.id} t={t}/>)}</div>}
     {data && !limit && <Pager total={data.total} limit={size} page={page} onPage={p => {set({tpage: p > 1 ? String(p) : null}); document.getElementById('tour-catalog')?.scrollIntoView();}}/>}
     {limit && data && data.total > data.items.length ? <Link className="button secondary" href="/tours/search">جست‌وجو در همهٔ برنامه‌های تور</Link> : null}
   </section>;
