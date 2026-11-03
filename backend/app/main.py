@@ -5376,3 +5376,6 @@ app.include_router(loyalty_calls_router(get_db, current_user, role_has_permissio
 
 from .site_cms import site_cms_router  # noqa: E402  site content slots (draft/publish/history) and media library
 app.include_router(site_cms_router(get_db, current_user, role_has_permission, _public_tenant, _platform_audit))
+
+from .train_requests import train_requests_router  # noqa: E402  train ticket requests issued by an agent in the rail supplier's panel
+app.include_router(train_requests_router(get_db, current_user, role_has_permission, User, _platform_audit))
