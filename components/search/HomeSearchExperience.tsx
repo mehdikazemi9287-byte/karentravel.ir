@@ -212,7 +212,7 @@ export function HomeSearchExperience({defaultVertical="flight",presentation}:{de
     if(dateIssue){setSearchError(dateIssue);setPopover('dates');return}
     if(travellerTotal<1||travellerTotal>20||adults<1||children<0||infants<0||rooms<1){setSearchError('تعداد مسافران باید بین ۱ تا ۲۰ نفر باشد.');return}
     setSearchError('');setPopover(null);
-    const params=new URLSearchParams({vertical:service.vertical,origin:service.origin?origin:'',destination,depart,flexibility,adults:String(adults),children:String(children),infants:String(infants),rooms:String(rooms),cabin,sort:'recommended'});if(service.vertical==='flight')params.set('trip_type',tripType);if(showReturn)params.set('return',returnDate);router.push(`/search/results?${params.toString()}`)}
+    const params=new URLSearchParams({vertical:service.vertical,origin:service.origin?origin:'',destination,depart,flexibility,adults:String(adults),children:String(children),infants:String(infants),rooms:String(rooms),cabin,sort:'recommended'});if(service.vertical==='flight')params.set('trip_type',tripType);if(showReturn)params.set('return',returnDate);router.push(service.vertical==='train'?`/trains/request?${params.toString()}`:`/search/results?${params.toString()}`)}
   const travellerTotal=adults+children+infants;
   const isStay=service.vertical==='hotel'||service.vertical==='vacation_rental';
   const showReturn=service.vertical==='hotel'||service.vertical==='vacation_rental'||service.vertical==='car_rental'||(service.vertical==='flight'&&tripType==='round_trip');
