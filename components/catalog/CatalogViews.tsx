@@ -235,19 +235,35 @@ export function VenueDirectory({kinds, title, intro}: {kinds: string[]; title: s
   </section>;
 }
 
+/* Persian spacing fixes for names imported from open data (missing zero-width non-joiners). */
+export const faName = (s?: string | null) => (s ?? '').replace(/بین ?المللی/g, 'بین‌المللی').replace(/هاشمی ?نژاد/g, 'هاشمی‌نژاد').replace(/\s+/g, ' ').trim();
+const IR_AIRPORT_CITY: Record<string, string> = {ABD: 'آبادان', AWZ: 'اهواز', BND: 'بندرعباس', GSM: 'قشم', IFN: 'اصفهان', IKA: 'تهران', THR: 'تهران', KER: 'کرمان', KIH: 'کیش', MHD: 'مشهد', PYK: 'کرج',
+  SYZ: 'شیراز', TBZ: 'تبریز', XBJ: 'بیرجند', ZAH: 'زاهدان', ACZ: 'زابل', ADU: 'اردبیل', AEU: 'ابوموسی', AFZ: 'سبزوار', AKW: 'آغاجاری', AZD: 'یزد', BDH: 'بندر لنگه', BJB: 'بجنورد', BUZ: 'بوشهر',
+  BXR: 'بم', CKT: 'سرخس', CQD: 'شهرکرد', DEF: 'دزفول', FAZ: 'فسا', GBT: 'گرگان', GCH: 'گچساران', GZW: 'قزوین', HDM: 'همدان', IHR: 'ایرانشهر', IIL: 'ایلام', JAR: 'جهرم', JWN: 'زنجان', JYR: 'جیرفت',
+  KHD: 'خرم‌آباد', KHK: 'خارک', KHY: 'خوی', KSH: 'کرمانشاه', LFM: 'لامرد', LRR: 'لار', LVP: 'لاوان', MRX: 'ماهشهر', NSH: 'نوشهر', OMH: 'ارومیه', PFQ: 'پارس‌آباد', RAS: 'رشت', RJN: 'رفسنجان',
+  RUD: 'شاهرود', RZR: 'رامسر', SDG: 'سنندج', SRY: 'ساری', SYJ: 'سیرجان', TCX: 'طبس', ZBR: 'چابهار', KNR: 'کنگان', YES: 'یاسوج', JSK: 'جاسک', PGU: 'عسلویه', YEH: 'عسلویه', IAQ: 'بهرگان', AJK: 'اراک',
+  SXI: 'سیری', ACP: 'مراغه', IMQ: 'ماکو', KLM: 'کلاله', SNX: 'سمنان'};
+const hasLatin = (s?: string | null) => !!s && /[A-Za-z]/.test(s);
+const airportCity = (a: Airport) => (a.country_code === 'IR' || !a.country_code) && IR_AIRPORT_CITY[a.iata] ? IR_AIRPORT_CITY[a.iata] : hasLatin(a.city_name) ? null : a.city_name ?? null;
+
+function AirlineLogo({a}: {a: Airline}) {
+  const [failed, setFailed] = useState(false);
+  const mark = (a.iata || a.name.replace(/^هواپیمایی\s*/, '').slice(0, 2)).toUpperCase();
+  // eslint-disable-next-line @next/next/no-img-element -- airline logo from Wikimedia Commons, credited in title; falls back to a code mark when blocked
+  return <div className="cat-logo">{a.logo_url && !failed ? <img src={a.logo_url} alt={`نشان ${a.name}`} title={a.logo_credit ?? undefined} loading="lazy" onError={() => setFailed(true)}/> : <b dir="ltr">{mark}</b>}</div>;
+}
+
 export function AirlineDirectory() {
   const [country, setCountry] = useState('IR');
   const {data, loading, error} = useCatalog<{items: Airline[]}>(`/catalog/airlines${country ? '?country=' + country : ''}`);
   return <section className="cat" aria-labelledby="cat-airlines-title">
-    <header className="cat-head"><div><h2 id="cat-airlines-title">شرکت‌های هواپیمایی</h2><p>مشخصات مرجع ایرلاین‌ها (نام، کد یاتا و ایکائو، وب‌سایت رسمی). برنامهٔ پرواز، ظرفیت و قیمت فقط از نتیجهٔ جست‌وجوی پرواز اعلام می‌شود.</p></div></header>
+    <header className="cat-head"><div><h2 id="cat-airlines-title">شرکت‌های هواپیمایی</h2><p>ایرلاین‌هایی که در جست‌وجوی پرواز می‌بینی. ساعت پرواز، ظرفیت و قیمت در نتیجه‌ی جست‌وجو نمایش داده می‌شود.</p></div></header>
     <div className="cat-chips" role="group" aria-label="کشور">{['IR', 'TR', 'AE', 'IQ', 'AM', 'GE', 'QA', 'OM', 'KW', 'AZ', ''].map(c => <button key={c || 'all'} className={country === c ? 'on' : ''} onClick={() => setCountry(c)}>{c ? COUNTRY_FA[c] : 'همه'}</button>)}</div>
     <Status loading={loading} error={error} empty={!data || data.items.length === 0}/>
     {data && <div className="cat-grid cat-grid-ref">{data.items.map(a => <article className="cat-ref" key={a.id}>
-      {/* eslint-disable-next-line @next/next/no-img-element -- airline logo from Wikimedia Commons, credited in title */}
-      <div className="cat-logo">{a.logo_url ? <img src={a.logo_url} alt={`نشان ${a.name}`} title={a.logo_credit ?? undefined} loading="lazy"/> : <b dir="ltr">{a.iata}</b>}</div>
-      <div><h3>{a.name}</h3>{a.name_en && <p className="cat-en" dir="ltr" lang="en">{a.name_en}</p>}
-        <p className="cat-codes" dir="ltr"><span>IATA {a.iata}</span>{a.icao && <span>ICAO {a.icao}</span>}</p>
-        <p className="cat-where">{COUNTRY_FA[a.country_code] ?? a.country_code}{a.airline_type && AIRLINE_TYPE_FA[a.airline_type] ? ` · ${AIRLINE_TYPE_FA[a.airline_type]}` : ''}</p>
+      <AirlineLogo a={a}/>
+      <div><h3>{faName(a.name)}</h3>
+        <p className="cat-where">{COUNTRY_FA[a.country_code] ?? a.country_code}{a.airline_type && AIRLINE_TYPE_FA[a.airline_type] ? ` · ${AIRLINE_TYPE_FA[a.airline_type]}` : ''} · <span dir="ltr">{a.iata}</span></p>
         {a.website && <a href={a.website} target="_blank" rel="noreferrer nofollow">وب‌سایت رسمی</a>}</div></article>)}</div>}
   </section>;
 }
@@ -255,12 +271,18 @@ export function AirlineDirectory() {
 export function AirportDirectory() {
   const [country, setCountry] = useState('IR');
   const {data, loading, error} = useCatalog<{items: Airport[]}>(`/catalog/airports?country=${country}`);
+  const items = (data?.items ?? []).map(a => ({...a, city: airportCity(a)}));
+  const main = items.filter(a => a.scope === 'international');
+  const rest = items.filter(a => a.scope !== 'international');
+  const searchHref = (city: string) => `/flights?vertical=flight&destination=${encodeURIComponent(city)}`;
   return <section className="cat" aria-labelledby="cat-airports-title">
-    <header className="cat-head"><div><h2 id="cat-airports-title">فرودگاه‌ها</h2><p>فرودگاه‌های دارای کد یاتا در ایران و مقاصد اصلی منطقه.</p></div></header>
+    <header className="cat-head"><div><h2 id="cat-airports-title">فرودگاه‌ها</h2><p>فرودگاه مقصدت را انتخاب کن تا پروازهای آن مسیر را جست‌وجو کنی.</p></div></header>
     <div className="cat-chips" role="group" aria-label="کشور">{['IR', 'TR', 'AE', 'IQ', 'AM', 'GE'].map(c => <button key={c} className={country === c ? 'on' : ''} onClick={() => setCountry(c)}>{COUNTRY_FA[c]}</button>)}</div>
     <Status loading={loading} error={error} empty={!data || data.items.length === 0}/>
-    {data && <div className="cat-table-wrap"><table className="cat-table"><thead><tr><th>فرودگاه</th><th>شهر</th><th>IATA</th><th>ICAO</th><th>منطقهٔ زمانی</th></tr></thead>
-      <tbody>{data.items.map(a => <tr key={a.iata}><td>{a.name}{a.scope === 'international' && <small> · بین‌المللی</small>}<span className="cat-en" dir="ltr" lang="en">{a.name_en}</span></td><td>{a.city_name ?? '—'}</td><td dir="ltr">{a.iata}</td><td dir="ltr">{a.icao ?? '—'}</td><td dir="ltr">{a.timezone ?? '—'}</td></tr>)}</tbody></table></div>}
+    {main.length > 0 && <><h3 className="cat-sub">فرودگاه‌های بین‌المللی</h3><div className="cat-grid cat-grid-airport">{main.map(a => <article className="cat-airport" key={a.iata}>
+      <b className="cat-airport-code" dir="ltr">{a.iata}</b>
+      <div><h4>{a.city ?? faName(a.name)}</h4><p>{faName(a.name)}</p>{a.city && <a href={searchHref(a.city)}>پرواز به {a.city} ←</a>}</div></article>)}</div></>}
+    {rest.length > 0 && <><h3 className="cat-sub">سایر فرودگاه‌ها</h3><ul className="cat-airport-list">{rest.map(a => <li key={a.iata}>{a.city ? <a href={searchHref(a.city)}>{a.city}</a> : <span>{faName(a.name)}</span>}<small dir="ltr">{a.iata}</small></li>)}</ul></>}
   </section>;
 }
 

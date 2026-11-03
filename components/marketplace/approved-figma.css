@@ -119,3 +119,6 @@
 .kh-account-popover p{padding:8px;font-family:Vazirmatn}
 /* services strip as in the approved render: large gold outline icon above the label */
 @media(min-width:701px){.kh-strip a{flex-direction:column;gap:10px;padding:6px 56px}.kh-strip svg{width:52px;height:52px;stroke-width:1.4}}
+/* CMS announcement bar */
+.kh-announce{position:relative;z-index:2;margin:0 auto 10px;max-width:1200px;padding:10px 16px;border-radius:12px;background:#3a1b3d;color:#fff;text-align:center;font-size:14px;line-height:1.7}
+.kh-announce a{color:#fff;text-decoration:underline;text-underline-offset:3px}

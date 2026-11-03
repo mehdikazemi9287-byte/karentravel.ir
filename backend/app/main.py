@@ -5373,3 +5373,6 @@ app.include_router(platform_tenants_router(get_db, current_user, User, Tenant, s
 
 from .loyalty_calls import loyalty_calls_router  # noqa: E402  loyalty call schedule from real trips and dormant members
 app.include_router(loyalty_calls_router(get_db, current_user, role_has_permission, User, _platform_audit))
+
+from .site_cms import site_cms_router  # noqa: E402  site content slots (draft/publish/history) and media library
+app.include_router(site_cms_router(get_db, current_user, role_has_permission, _public_tenant, _platform_audit))

@@ -7,6 +7,7 @@ export function roleLinks(role:string):Array<[string,string]>{
  if(['tenant_admin','platform_admin'].includes(role))links.push(['مدیریت کاربران','/admin']);
  if(['tenant_admin','platform_admin'].includes(role))links.push(['عملیات سفر','/backoffice']);
  if(['tenant_admin','platform_admin','backoffice_expert','finance_operator'].includes(role))links.push(['پیشخوان عملیات','/admin/ops'],['پرونده‌ی قرارداد','/admin/contracts']);
+ if(['tenant_admin','platform_admin','backoffice_expert'].includes(role))links.push(['محتوای سایت','/admin/content']);
  if(['tenant_admin','platform_admin','backoffice_expert'].includes(role))links.push(['صف مدارک مسافران','/admin/documents']);
  if(['tenant_admin','platform_admin','backoffice_expert'].includes(role))links.push(['میز گفتگو و فروش','/admin/sales-desk'],['سفرساز','/admin/safarsaz']);
  if(['platform_admin','backoffice_expert'].includes(role))links.push(['مدیریت هتل‌ها','/admin/catalog'],['تورهای مرجع','/admin/tours'],['داده‌های مرجع','/admin/catalog/reference'],['مرکز عملیات سفر','/backoffice/trip-events'],['میز پشتیبانی','/backoffice/support'],['وضعیت اعلان‌ها','/backoffice/notifications']);
