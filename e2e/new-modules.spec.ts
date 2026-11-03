@@ -129,13 +129,18 @@ test('platform tenants, loyalty call schedule and solutions site', async ({ page
   await open(page, '/solutions');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('از سایت تا سند حسابداری');
   await expect(page.getByRole('heading', { name: 'درخواست دمو و قیمت' })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBeTruthy();
   await page.screenshot({ path: `${artifactDir}/new-modules/solutions.png`, fullPage: true, animations: 'disabled' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBeTruthy();
+  await page.screenshot({ path: `${artifactDir}/new-modules/solutions-mobile.png`, fullPage: true, animations: 'disabled' });
 });
 
 test('ops panel shows the mobile bottom navigation on phones', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await signIn(page, 'backoffice@aftab.test');
   await open(page, '/admin/ops');
+  await expect(page.getByRole('heading', { name: 'کارهای در انتظار', exact: true })).toBeVisible();
   const bottom = page.getByRole('navigation', { name: 'میان‌بر پنل عملیات' });
   await expect(bottom).toBeVisible();
   await expect(bottom.getByRole('link', { name: /پیشخوان/ })).toHaveAttribute('aria-current', 'page');
