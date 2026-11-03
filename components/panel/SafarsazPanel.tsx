@@ -41,14 +41,15 @@ function TourForm({tour, saved}: {tour?: Row; saved: (t: Row) => void}) {
   const {api} = useLoad<unknown>(null);
   const {options: suppliers, partner} = useSuppliers();
   const [v, setV] = useState<Row>(toForm(tour));
-  if (partner && !v.supplier_id && suppliers[0]) v.supplier_id = suppliers[0][0]; const [msg, setMsg] = useState<Msg>(null);
+  const [msg, setMsg] = useState<Msg>(null);
+  const form: Row = partner && !v.supplier_id && suppliers[0] ? {...v, supplier_id: suppliers[0][0]} : v;
   async function submit(e: FormEvent) {
     e.preventDefault(); setMsg(null);
-    try {const t = tour ? await api.put<Row>(`/safarsaz/tours/${tour.id}`, toPayload(v)) : await api.post<Row>('/safarsaz/tours', toPayload(v)); setMsg({ok: true, text: 'ذخیره شد.'}); saved(t);}
+    try {const t = tour ? await api.put<Row>(`/safarsaz/tours/${tour.id}`, toPayload(form)) : await api.post<Row>('/safarsaz/tours', toPayload(form)); setMsg({ok: true, text: 'ذخیره شد.'}); saved(t);}
     catch (x) {setMsg({ok: false, text: errorOf(x).message});}
   }
   return <form className="pn-form" onSubmit={submit}>
-    <FormFields value={v} set={setV} fields={[{key: 'title', label: 'عنوان تور', required: true}, {key: 'origin', label: 'مبدأ', required: true}, {key: 'destination', label: 'مقصد', required: true},
+    <FormFields value={form} set={setV} fields={[{key: 'title', label: 'عنوان تور', required: true}, {key: 'origin', label: 'مبدأ', required: true}, {key: 'destination', label: 'مقصد', required: true},
       {key: 'supplier_id', label: 'برگزارکننده', type: 'select', options: suppliers}, {key: 'source', label: 'روش ورود', type: 'select', options: partner ? SOURCES.filter(o => o[0] === 'manual' || o[0] === 'copy') : SOURCES},
       {key: 'source_ref', label: 'شناسه‌ی منبع', hint: 'برای قرارداد، چارتر و تور مرجع لازم است'}, {key: 'deposit_bps', label: 'بیعانه (درصد)', type: 'percent'},
       {key: 'visa_status', label: 'روادید', type: 'select', options: [['VISA_NOT_REQUIRED', 'لازم نیست'], ['VISA_REQUIRED', 'لازم است'], ['VISA_ON_ARRIVAL', 'فرودگاهی'], ['VISA_STATUS_UNKNOWN', 'نامشخص']]},

@@ -270,7 +270,7 @@ def safarsaz_router(get_db, current_user, role_has_permission, User, audit=None)
         return t
 
     def _own(db, user, tour_id) -> SafarsazTour:
-        t = _own(db, user, tour_id)
+        t = _tour(db, user.tenant_id, tour_id)
         scope = _scope(db, user)
         if scope is not None and t.supplier_id not in scope:
             raise HTTPException(status_code=404, detail="تور یافت نشد")

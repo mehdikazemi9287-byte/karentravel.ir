@@ -243,7 +243,7 @@ export function HomeSearchExperience({defaultVertical="flight",presentation}:{de
             <header><b>{dateLabel}</b></header>
             <JalaliCalendar depart={depart} returnDate={returnDate} showReturn={showReturn} minIso={todayIso()} onDepart={iso=>{setDepart(iso);setSearchError('');if(returnDate<iso)setReturnDate('')}} onReturn={iso=>{setReturnDate(iso);setSearchError('')}}/>
             <fieldset className="fs-flex"><legend>تاریخ منعطف</legend>{[['today','امروز'],['plus_minus_1','±۱ روز'],['plus_minus_3','±۳ روز']].map(([value,label])=>{const on=value==='today'?flexibility==='exact'&&depart===todayIso():flexibility===value;return <button type="button" aria-pressed={on} className={on?'is-active':''} onClick={()=>{if(value==='today'){setDepart(todayIso());setFlexibility('exact');if(returnDate&&returnDate<todayIso())setReturnDate('')}else setFlexibility(value)}} key={value}>{label}</button>})}</fieldset>
-            <button type="button" className="fs-pop-done" onClick={()=>setPopover(null)}>تأیید تاریخ</button>
+            <button type="button" className="fs-pop-done" disabled={!depart||(showReturn&&!returnDate)} onClick={()=>setPopover(null)}>{!depart?`${departLabel} را انتخاب کنید`:showReturn&&!returnDate?`${returnLabel} را انتخاب کنید`:"تأیید تاریخ"}</button>
           </div>}
         </div>
         <div className="fs-field fs-field--pax">
