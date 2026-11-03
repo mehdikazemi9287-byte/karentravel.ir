@@ -421,11 +421,10 @@
       "evidence": "PRs #6-#14 merged to production; CI ci-verify/feature2 (new tests pass, baseline failures unchanged); see docs/product/checkline-analysis/IMPLEMENTATION.md. Released 2026-11-03 to 188.121.123.218 (release-20261103 = GitHub a0002cf + server pip mirror; DB backup karenseir-20261103T1232Z.dump); /solutions verified live."
     },
     "site_cms": {
-      "status": "READY_BLOCKED_APPROVAL",
+      "status": "LIVE",
       "reason": "homepage/footer content slots with draft, publish, revisions and media library at /admin/content",
-      "blocker": "release to production server",
       "last_verified_at": "2026-11-03",
-      "evidence": "backend/tests/test_site_cms.py passes in CI ci-verify/feature2; baseline failures unchanged; migration 20261103_66"
+      "evidence": "backend/tests/test_site_cms.py passes in CI ci-verify/feature2; baseline failures unchanged; migration 20261103_66; released 2026-11-03 to 188.121.123.218, /admin/content and public site-content endpoint verified live"
     }
   }
 }
