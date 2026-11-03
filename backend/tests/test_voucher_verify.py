@@ -18,7 +18,7 @@ def test_code_signing():
     rid = str(uuid.uuid4())
     code = make_code("s" * 40, 3, rid)
     assert parse_code("s" * 40, code) == (3, rid)
-    assert parse_code("x" * 40, code) is None and parse_code("s" * 40, code.replace(".3", ".4", 1)) is None and parse_code("s" * 40, "junk") is None
+    assert parse_code("x" * 40, code) is None and parse_code("s" * 40, "4" + code[1:]) is None and parse_code("s" * 40, "junk") is None
     assert mask_ref("KS-TOUR-ABCDEF") == "••••••••••CDEF"
 
 
