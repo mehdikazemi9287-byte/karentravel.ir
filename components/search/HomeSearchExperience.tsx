@@ -117,7 +117,7 @@ export function HomeSearchExperience({defaultVertical="flight",presentation}:{de
       active,
       origin:params.get('origin')??(svc.vertical==='visa'?'':svc.origin?'تهران':''),
       destination:params.get('destination')||defaultDestinationFor(svc.vertical),
-      depart:params.get('depart')||'',
+      depart:params.get('depart')||todayIso(),
       returnDate:params.get('return')||'',
       flexibility:params.get('flexibility')||'exact',
       tripType:(params.get('trip_type') as TripType|null)||'round_trip',
@@ -239,7 +239,7 @@ export function HomeSearchExperience({defaultVertical="flight",presentation}:{de
           {popover==='dates'&&<div className="fs-pop fs-pop--date" aria-label="انتخاب تاریخ">{service.vertical==='flight'&&presentation==='approved'&&<div className="fs-seg" role="group" aria-label="نوع سفر">{([['round_trip','رفت‌وبرگشت'],['one_way','یک‌طرفه'],['multi_city','چندمسیره']] as const).map(([value,label])=><button type="button" aria-pressed={tripType===value} className={tripType===value?'is-active':''} onClick={()=>{if(value==='multi_city'){setTripType(value);router.push('/?vertical=flight&trip_type=multi_city&edit=1')}else setTripType(value)}} key={value}>{label}</button>)}</div>}
             <header><b>{dateLabel}</b><small>قیمت فقط پس از اتصال داده معتبر نمایش داده می‌شود.</small></header>
             <JalaliCalendar depart={depart} returnDate={returnDate} showReturn={showReturn} minIso={todayIso()} onDepart={iso=>{setDepart(iso);if(returnDate<iso)setReturnDate('')}} onReturn={setReturnDate}/>
-            <fieldset className="fs-flex"><legend>تاریخ منعطف</legend>{[['exact','دقیق'],['plus_minus_1','±۱ روز'],['plus_minus_3','±۳ روز']].map(([value,label])=><button type="button" aria-pressed={flexibility===value} className={flexibility===value?'is-active':''} onClick={()=>setFlexibility(value)} key={value}>{label}</button>)}</fieldset>
+            <fieldset className="fs-flex"><legend>تاریخ منعطف</legend>{[['today','امروز'],['plus_minus_1','±۱ روز'],['plus_minus_3','±۳ روز']].map(([value,label])=>{const on=value==='today'?flexibility==='exact'&&depart===todayIso():flexibility===value;return <button type="button" aria-pressed={on} className={on?'is-active':''} onClick={()=>{if(value==='today'){setDepart(todayIso());setFlexibility('exact');if(returnDate&&returnDate<todayIso())setReturnDate('')}else setFlexibility(value)}} key={value}>{label}</button>})}</fieldset>
             <button type="button" className="fs-pop-done" onClick={()=>setPopover(null)}>تأیید تاریخ</button>
           </div>}
         </div>
