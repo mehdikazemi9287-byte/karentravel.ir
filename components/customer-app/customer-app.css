@@ -36,3 +36,4 @@
 .ca-scroll>*{scroll-snap-align:start}
 .ca-ltr{direction:ltr;unicode-bidi:isolate}
 @media (min-width:561px){.ca{border-inline:1px solid var(--line)}}
+.ca-qr{flex-basis:100%;display:grid;gap:8px;justify-items:center;background:#fff;border:1px solid #eadfd2;border-radius:16px;padding:12px;margin-top:6px}.ca-qr [role=img]{width:200px;max-width:100%}.ca-qr svg{width:100%;height:auto;display:block}

@@ -112,3 +112,8 @@ test('ledger and supplier reconciliation pages load for finance', async ({ page 
   await expect(page.getByRole('heading', { name: 'عملکرد تأمین‌کنندگان', exact: true })).toBeVisible();
   await page.screenshot({ path: `${artifactDir}/new-modules/suppliers.png`, fullPage: true, animations: 'disabled' });
 });
+
+test('public voucher check rejects an unsigned code without leaking data', async ({ page }) => {
+  await open(page, '/v/1.00000000-0000-0000-0000-000000000000.AAAAAAAAAAAAAAAA');
+  await expect(page.getByRole('heading', { name: 'واچر معتبر نیست', exact: true })).toBeVisible();
+});

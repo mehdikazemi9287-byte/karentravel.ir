@@ -5364,3 +5364,6 @@ app.include_router(ledger_router(get_db, current_user, role_has_permission, User
 
 from .supplier_insights import supplier_insights_router  # noqa: E402  supplier cancellation rate and purchase reconciliation
 app.include_router(supplier_insights_router(get_db, current_user, role_has_permission, User, _platform_audit))
+
+from .voucher_verify import voucher_verify_router  # noqa: E402  voucher QR and public verification
+app.include_router(voucher_verify_router(get_db, current_user, JWT_SECRET, set_tenant_context))

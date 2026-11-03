@@ -82,6 +82,27 @@ export function Home() {
   </>;
 }
 
+const REBOOK: Record<string, string> = {flight: '/flights', hotel: '/hotels', tour: '/tours', train: '/trains', visa: '/visa', vacation_rental: '/villas', car_rental: '/car-rental', package: '/search'};
+
+/* Voucher QR: shown only when the voucher is really issued; the QR opens a public check that reveals no personal data. */
+function VoucherQr({id}: {id: string}) {
+  const {api} = useAuth();
+  const [qr, setQr] = useState<{qr_svg: string; verify_url: string} | null>(null); const [err, setErr] = useState<string | null>(null); const [open, setOpen] = useState(false);
+  async function toggle() {
+    if (open) {setOpen(false); return;}
+    setOpen(true);
+    if (!qr) {try {setQr(await api.get(`/me/reservations/${id}/voucher-qr`));} catch (e) {setErr(errorOf(e).message);}}
+  }
+  return <>
+    <button type="button" className="ca-btn ghost" onClick={() => void toggle()} aria-expanded={open}>{open ? 'بستن QR' : 'کد QR واچر'}</button>
+    {open && <div className="ca-qr">{err ? <p className="ca-error" role="alert">{err}</p> : qr ? <>
+      <div role="img" aria-label="کد QR واچر" dangerouslySetInnerHTML={{__html: qr.qr_svg}}/>
+      <p className="ca-muted">این کد را در هتل یا به راهنمای تور نشان دهید. با اسکن آن فقط اعتبار واچر دیده می‌شود، نه اطلاعات شخصی شما.</p>
+      <a className="ca-btn ghost" href={`${api.apiBase}/reservations/${id}/voucher`} onClick={async e => {e.preventDefault(); try {const html = await api.getBlob(`/reservations/${id}/voucher`); window.open(URL.createObjectURL(html), '_blank', 'noopener');} catch (x) {setErr(errorOf(x).message);}}}>واچر کامل برای چاپ</a>
+    </> : <p className="ca-muted" role="status">در حال ساخت کد…</p>}</div>}
+  </>;
+}
+
 export function Trips() {
   const {session} = useAuth();
   const trips = useLoad<Trip[]>(session ? '/me/trips' : null);
@@ -105,7 +126,9 @@ export function Trips() {
         <div className="ca-row"><strong>{SERVICE[r.service_type] ?? r.service_type}</strong><Badge s={r.status}/></div>
         <span className="ca-muted"><span className="ca-ltr">{r.booking_reference ?? r.id.slice(0, 8)}</span> — {money(r.price_snapshot?.total_amount, r.price_snapshot?.currency)}</span>
         <div className="ca-row"><Link className="ca-btn ghost" href={r.manage_link || `/manage-booking/${r.id}`}>مدیریت رزرو</Link>
-          {['reserved', 'awaiting_payment', 'pending_payment'].includes(r.status) && <Link className="ca-btn" href={`/checkout/${r.id}`}>پرداخت</Link>}</div></li>)}</ul>}</Async>
+          {['reserved', 'awaiting_payment', 'pending_payment'].includes(r.status) && <Link className="ca-btn" href={`/checkout/${r.id}`}>پرداخت</Link>}
+          {['issued', 'changed'].includes(r.status) && <VoucherQr id={r.id}/>}
+          {['completed', 'cancelled', 'expired', 'refunded'].includes(r.status) && <Link className="ca-btn ghost" href={REBOOK[r.service_type] ?? '/search'}>رزرو دوباره</Link>}</div></li>)}</ul>}</Async>
     </section>
   </>;
 }
