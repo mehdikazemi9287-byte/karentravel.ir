@@ -132,7 +132,7 @@ def test_stage_quote_reservation_flow(client):
     assert lost.json()["lost_reason"] == "قیمت بالا"
     assert client.post(f"/sales-desk/cases/{second['id']}/stage", json={"stage": "new"}, headers=desk).json()["lost_reason"] is None
     found = client.get("/sales-desk/cases", params={"q": case["code"]}, headers=desk).json()["items"]
-    assert [i["id"] for i in found] == [cid]
+    assert [i["id"] for i in found if i["code"] == case["code"]] == [cid]  # q is a substring search
 
 
 def test_sla_sweep_reassigns_unanswered(client):
