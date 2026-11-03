@@ -508,9 +508,10 @@ const TRAIN_FAQ: [string, string][] = [
 ];
 
 export function TrainLanding() {
-  const places = useCatalog<{items: Place[]}>('/catalog/places?kind=city&country=IR&with_image=true&limit=300');
+  const places = useCatalog<{items: Place[]}>('/catalog/places?kind=city&country=IR&with_image=true&limit=500');
   const ops = useCatalog<{items: {id: string; name_fa: string; website: string | null}[]}>('/catalog/rail/operators');
-  const img = (city: string) => places.data?.items.find(x => x.name === city || x.name_fa === city)?.image_url ?? null;
+  const LOCAL: Record<string, string> = {شیراز: '/images/figma/tile-shiraz.jpeg', اصفهان: '/images/approved-figma/imgTileIsfahan.jpg', یزد: '/images/figma/hero-yazd.jpeg'};
+  const img = (city: string) => LOCAL[city] ?? places.data?.items.find(x => x.name === city || x.name_fa === city)?.image_url ?? null;
   const href = (city: string) => `/trains?vertical=train&origin=${encodeURIComponent('تهران')}&destination=${encodeURIComponent(city)}`;
   return <>
     <section className="tl-sec" aria-labelledby="tl-routes"><h2 id="tl-routes">خرید بلیط قطار فوری</h2>
