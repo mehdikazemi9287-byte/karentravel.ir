@@ -300,6 +300,125 @@
         "Rail passenger operators limited to those verified on their official site"
       ],
       "updated": "2026-10-03"
+    },
+    "sales_desk_crm": {
+      "status": "READY_BLOCKED_EXTERNAL",
+      "reason": "Sales desk: cases, round-robin, SLA, quotes, public form, Excel import",
+      "blocker": "WhatsApp/Bale/PBX secrets; SALES_DESK_PUBLIC_TENANT",
+      "last_verified_at": "2026-11-03",
+      "evidence": "PRs #6-#14 merged to production; CI ci-verify/feature2 (new tests pass, baseline failures unchanged); see docs/product/checkline-analysis/IMPLEMENTATION.md. Not deployed: LIVE only after release to 95.38.184.209."
+    },
+    "markup_revenue": {
+      "status": "READY_FOR_RELEASE",
+      "reason": "Applied markup as revenue with automatic reversal",
+      "blocker": null,
+      "last_verified_at": "2026-11-03",
+      "evidence": "PRs #6-#14 merged to production; CI ci-verify/feature2 (new tests pass, baseline failures unchanged); see docs/product/checkline-analysis/IMPLEMENTATION.md. Not deployed: LIVE only after release to 95.38.184.209."
+    },
+    "safarsaz_tour_builder": {
+      "status": "READY_FOR_RELEASE",
+      "reason": "Tour builder publishing into tour_products/tour_departures, child/infant prices",
+      "blocker": null,
+      "last_verified_at": "2026-11-03",
+      "evidence": "PRs #6-#14 merged to production; CI ci-verify/feature2 (new tests pass, baseline failures unchanged); see docs/product/checkline-analysis/IMPLEMENTATION.md. Not deployed: LIVE only after release to 95.38.184.209."
+    },
+    "customer_pwa": {
+      "status": "READY_FOR_RELEASE",
+      "reason": "/app shell, offline page, voucher QR + public check /v/<code>, rebook",
+      "blocker": null,
+      "last_verified_at": "2026-11-03",
+      "evidence": "PRs #6-#14 merged to production; CI ci-verify/feature2 (new tests pass, baseline failures unchanged); see docs/product/checkline-analysis/IMPLEMENTATION.md. Not deployed: LIVE only after release to 95.38.184.209."
+    },
+    "loyalty_circle": {
+      "status": "READY_FOR_RELEASE",
+      "reason": "Levels, points, referral, call schedule",
+      "blocker": "off by default until the tenant enables it",
+      "last_verified_at": "2026-11-03",
+      "evidence": "PRs #6-#14 merged to production; CI ci-verify/feature2 (new tests pass, baseline failures unchanged); see docs/product/checkline-analysis/IMPLEMENTATION.md. Not deployed: LIVE only after release to 95.38.184.209."
+    },
+    "sms_campaigns": {
+      "status": "READY_BLOCKED_EXTERNAL",
+      "reason": "Campaigns with opt-out; never reports undelivered as sent",
+      "blocker": "SMS provider credentials",
+      "last_verified_at": "2026-11-03",
+      "evidence": "PRs #6-#14 merged to production; CI ci-verify/feature2 (new tests pass, baseline failures unchanged); see docs/product/checkline-analysis/IMPLEMENTATION.md. Not deployed: LIVE only after release to 95.38.184.209."
+    },
+    "faranegar_export": {
+      "status": "READY_BLOCKED_EXTERNAL",
+      "reason": "Treasury/voucher export for Faranegar",
+      "blocker": "sample Faranegar import file to match columns",
+      "last_verified_at": "2026-11-03",
+      "evidence": "PRs #6-#14 merged to production; CI ci-verify/feature2 (new tests pass, baseline failures unchanged); see docs/product/checkline-analysis/IMPLEMENTATION.md. Not deployed: LIVE only after release to 95.38.184.209."
+    },
+    "org_receivables": {
+      "status": "READY_FOR_RELEASE",
+      "reason": "Organization receivables: terms, FIFO settlement, ageing",
+      "blocker": null,
+      "last_verified_at": "2026-11-03",
+      "evidence": "PRs #6-#14 merged to production; CI ci-verify/feature2 (new tests pass, baseline failures unchanged); see docs/product/checkline-analysis/IMPLEMENTATION.md. Not deployed: LIVE only after release to 95.38.184.209."
+    },
+    "charter_seat_quotas": {
+      "status": "READY_FOR_RELEASE",
+      "reason": "Partner-agency seat quotas with auto release",
+      "blocker": null,
+      "last_verified_at": "2026-11-03",
+      "evidence": "PRs #6-#14 merged to production; CI ci-verify/feature2 (new tests pass, baseline failures unchanged); see docs/product/checkline-analysis/IMPLEMENTATION.md. Not deployed: LIVE only after release to 95.38.184.209."
+    },
+    "ops_dashboard_contract_file": {
+      "status": "READY_FOR_RELEASE",
+      "reason": "/admin/ops and /admin/contracts from real rows",
+      "blocker": null,
+      "last_verified_at": "2026-11-03",
+      "evidence": "PRs #6-#14 merged to production; CI ci-verify/feature2 (new tests pass, baseline failures unchanged); see docs/product/checkline-analysis/IMPLEMENTATION.md. Not deployed: LIVE only after release to 95.38.184.209."
+    },
+    "moadian_readiness": {
+      "status": "READY_BLOCKED_EXTERNAL",
+      "reason": "Moadian invoice checks and payload; stays waiting_for_provider",
+      "blocker": "company signing key and official Moadian connection",
+      "last_verified_at": "2026-11-03",
+      "evidence": "PRs #6-#14 merged to production; CI ci-verify/feature2 (new tests pass, baseline failures unchanged); see docs/product/checkline-analysis/IMPLEMENTATION.md. Not deployed: LIVE only after release to 95.38.184.209."
+    },
+    "authenticator_2fa": {
+      "status": "READY_FOR_RELEASE",
+      "reason": "TOTP two-step login with recovery codes and lockout",
+      "blocker": null,
+      "last_verified_at": "2026-11-03",
+      "evidence": "PRs #6-#14 merged to production; CI ci-verify/feature2 (new tests pass, baseline failures unchanged); see docs/product/checkline-analysis/IMPLEMENTATION.md. Not deployed: LIVE only after release to 95.38.184.209."
+    },
+    "traveller_documents": {
+      "status": "READY_FOR_RELEASE",
+      "reason": "Document upload, blurred review queue, audited reveal, retention",
+      "blocker": null,
+      "last_verified_at": "2026-11-03",
+      "evidence": "PRs #6-#14 merged to production; CI ci-verify/feature2 (new tests pass, baseline failures unchanged); see docs/product/checkline-analysis/IMPLEMENTATION.md. Not deployed: LIVE only after release to 95.38.184.209."
+    },
+    "general_ledger": {
+      "status": "READY_BLOCKED_EXTERNAL",
+      "reason": "Balanced vouchers, trial balance, Jalali period close",
+      "blocker": "finance team chart of accounts and posting rules",
+      "last_verified_at": "2026-11-03",
+      "evidence": "PRs #6-#14 merged to production; CI ci-verify/feature2 (new tests pass, baseline failures unchanged); see docs/product/checkline-analysis/IMPLEMENTATION.md. Not deployed: LIVE only after release to 95.38.184.209."
+    },
+    "supplier_insights": {
+      "status": "READY_FOR_RELEASE",
+      "reason": "Supplier cancellation rate and statement reconciliation",
+      "blocker": null,
+      "last_verified_at": "2026-11-03",
+      "evidence": "PRs #6-#14 merged to production; CI ci-verify/feature2 (new tests pass, baseline failures unchanged); see docs/product/checkline-analysis/IMPLEMENTATION.md. Not deployed: LIVE only after release to 95.38.184.209."
+    },
+    "platform_tenants": {
+      "status": "READY_FOR_RELEASE",
+      "reason": "Platform-admin tenant and white-label management",
+      "blocker": null,
+      "last_verified_at": "2026-11-03",
+      "evidence": "PRs #6-#14 merged to production; CI ci-verify/feature2 (new tests pass, baseline failures unchanged); see docs/product/checkline-analysis/IMPLEMENTATION.md. Not deployed: LIVE only after release to 95.38.184.209."
+    },
+    "solutions_site": {
+      "status": "READY_BLOCKED_APPROVAL",
+      "reason": "/solutions marketing site with demo request",
+      "blocker": "real plan prices, stats and portfolio",
+      "last_verified_at": "2026-11-03",
+      "evidence": "PRs #6-#14 merged to production; CI ci-verify/feature2 (new tests pass, baseline failures unchanged); see docs/product/checkline-analysis/IMPLEMENTATION.md. Not deployed: LIVE only after release to 95.38.184.209."
     }
   }
 }
