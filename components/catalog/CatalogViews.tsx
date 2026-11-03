@@ -494,3 +494,35 @@ export function CatalogHotelsForSearch({mode = 'complement', fallback = null}: {
     {data.total > data.items.length && all}
   </section>;
 }
+
+/* Train landing after the common pattern of Iranian booking sites (Alibaba, MrBilit): quick routes with city photos,
+   what the customer gets, rail companies, and short answers to common questions. No station dump, no prices. */
+const TRAIN_CITIES = ['مشهد', 'اصفهان', 'تبریز', 'شیراز', 'یزد', 'اهواز', 'کرمان', 'رشت', 'بندرعباس', 'گرگان'];
+const TRAIN_FAQ: [string, string][] = [
+  ['برای سوار شدن به قطار چه مدرکی لازم است؟', 'کارت شناسایی معتبر (کارت ملی یا شناسنامه برای کودکان) مسافرانی که بلیت به نامشان صادر شده است. مأمور قطار ممکن است مدرک را با مشخصات بلیت تطبیق دهد.'],
+  ['چه زمانی باید در ایستگاه باشم؟', 'بهتر است دست‌کم نیم ساعت پیش از ساعت حرکت در ایستگاه باشید تا سکو و واگن خود را پیدا کنید؛ قطار رأس ساعت اعلام‌شده حرکت می‌کند.'],
+  ['استرداد بلیت قطار چطور انجام می‌شود؟', 'درخواست استرداد را از «سفرهای من» ثبت کنید. مبلغ جریمه را قوانین شرکت ریلی و فاصله تا زمان حرکت تعیین می‌کند و پیش از تأیید به شما نمایش داده می‌شود.'],
+  ['قیمت بلیت کودک و نوزاد چطور حساب می‌شود؟', 'نرخ کودک و نوزاد را شرکت ریلی تعیین می‌کند و هنگام انتخاب قطار، جدا از بزرگسال نمایش داده می‌شود.'],
+  ['کوپه‌ی دربست یا کوپه‌ی ویژه‌ی بانوان را چطور بگیرم؟', 'اگر قطار انتخابی این امکان را داشته باشد، در جزئیات همان قطار نمایش داده می‌شود؛ برای هماهنگی سفر گروهی با پشتیبانی تماس بگیرید.'],
+  ['اگر بلیت را گم کنم چه کنم؟', 'بلیت الکترونیکی است و همیشه در «سفرهای من» در دسترس است؛ کافی است کارت شناسایی همراه داشته باشید.'],
+];
+
+export function TrainLanding() {
+  const places = useCatalog<{items: Place[]}>('/catalog/places?kind=city&country=IR&with_image=true&limit=500');
+  const ops = useCatalog<{items: {id: string; name_fa: string; website: string | null}[]}>('/catalog/rail/operators');
+  const LOCAL: Record<string, string> = {شیراز: '/images/figma/tile-shiraz.jpeg', اصفهان: '/images/approved-figma/imgTileIsfahan.jpg', یزد: '/images/figma/hero-yazd.jpeg'};
+  const img = (city: string) => LOCAL[city] ?? places.data?.items.find(x => x.name === city || x.name_fa === city)?.image_url ?? null;
+  const href = (city: string) => `/trains?vertical=train&origin=${encodeURIComponent('تهران')}&destination=${encodeURIComponent(city)}`;
+  return <>
+    <section className="tl-sec" aria-labelledby="tl-routes"><h2 id="tl-routes">خرید بلیط قطار فوری</h2>
+      <div className="tl-routes">{TRAIN_CITIES.map(c => <a key={c} href={href(c)} className="tl-route"><Thumb src={img(c)} credit={null} alt={c} label={c}/><span>بلیط قطار {c}</span></a>)}</div></section>
+    <section className="tl-sec tl-perks" aria-label="مزایای خرید">
+      {[['همه‌ی قطارها کنار هم', 'ساعت حرکت، نوع واگن و قیمت قطارهای شرکت‌های مختلف را در یک صفحه مقایسه کن.'], ['خرید ساده', 'انتخاب قطار، ثبت مسافران و پرداخت در چند قدم.'], ['استرداد از حساب کاربری', 'درخواست استرداد را از «سفرهای من» ثبت کن؛ جریمه پیش از تأیید نمایش داده می‌شود.'], ['پشتیبان سفر', 'از خرید تا پایان سفر، کارشناس پشتیبانی کنار توست.']]
+        .map(([t, d]) => <article key={t}><b>{t}</b><p>{d}</p></article>)}
+    </section>
+    {ops.data && ops.data.items.length > 0 && <section className="tl-sec" aria-labelledby="tl-ops"><h2 id="tl-ops">شرکت‌های ریلی</h2>
+      <ul className="tl-ops">{ops.data.items.map(o => <li key={o.id}>{o.website ? <a href={o.website} target="_blank" rel="noreferrer nofollow">{o.name_fa}</a> : o.name_fa}</li>)}</ul></section>}
+    <section className="tl-sec" aria-labelledby="tl-faq"><h2 id="tl-faq">پرسش‌های شما</h2>
+      <div className="tl-faq">{TRAIN_FAQ.map(([q, a]) => <details key={q}><summary>{q}</summary><p>{a}</p></details>)}</div></section>
+  </>;
+}
