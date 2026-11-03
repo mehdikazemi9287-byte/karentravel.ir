@@ -122,6 +122,30 @@ def _credit(db: Session, acc: LoyaltyAccount, kind: str, points: int, ref: str, 
     return True
 
 
+def sync_level_group(db: Session, tenant_id: int, user_id: int, earned: int, levels: list[dict]) -> Optional[str]:
+    """Put the member in the customer group of their level so the existing sales rules (markup/discount per group)
+    price their bookings. A member already in a group that no level uses (e.g. an organization group) is left alone."""
+    from .commerce import CustomerGroup, CustomerGroupMember
+
+    codes = {lv.get("group_code") for lv in levels if lv.get("group_code")}
+    if not codes:
+        return None
+    groups = {g.code: g.id for g in db.scalars(select(CustomerGroup).where(CustomerGroup.tenant_id == tenant_id, CustomerGroup.code.in_(codes))).all()}
+    target = groups.get(level_for(levels, earned)[0].get("group_code") or "")
+    member = db.scalar(select(CustomerGroupMember).where(CustomerGroupMember.tenant_id == tenant_id, CustomerGroupMember.user_id == user_id))
+    if member is not None and member.group_id not in set(groups.values()):
+        return None
+    if target is None:
+        if member is not None:
+            db.delete(member)
+        return None
+    if member is None:
+        db.add(CustomerGroupMember(tenant_id=tenant_id, user_id=user_id, group_id=target))
+    else:
+        member.group_id = target
+    return target
+
+
 def award_trip(db: Session, reservation) -> None:
     """Called when a reservation becomes `completed`. Never raises."""
     try:
@@ -144,6 +168,8 @@ def award_trip(db: Session, reservation) -> None:
                 ref_acc = account_for(db, reservation.tenant_id, acc.referred_by_user_id)
                 if _credit(db, ref_acc, "referral", st.referral_bonus_points, f"referral:{acc.user_id}", "اولین سفر دوست معرفی‌شده"):
                     acc.referral_rewarded = True
+                    sync_level_group(db, reservation.tenant_id, ref_acc.user_id, ref_acc.points_earned, levels_of(st))
+            sync_level_group(db, reservation.tenant_id, acc.user_id, acc.points_earned, levels_of(st))
     except Exception:  # pragma: no cover - loyalty must never block a status change
         return
 
@@ -154,6 +180,7 @@ class LevelIn(BaseModel):
     name: str = Field(min_length=1, max_length=40)
     min_points: int = Field(ge=0, le=10_000_000)
     benefits: str = Field(default="", max_length=300)
+    group_code: Optional[str] = Field(default=None, max_length=40)  # commerce customer group whose sales rules (e.g. a discount) apply to this level
 
 
 class SettingsIn(BaseModel):
@@ -248,7 +275,15 @@ def loyalty_router(get_db, current_user, role_has_permission, User, audit=None):
     def put_settings(data: SettingsIn, user=Depends(manager), db: Session = Depends(get_db)):
         st = _settings(db, user.tenant_id)
         st.enabled, st.irr_per_point, st.referral_bonus_points = data.enabled, data.irr_per_point, data.referral_bonus_points
+        from .commerce import CustomerGroup
+        codes = {lv.group_code for lv in data.levels if lv.group_code}
+        found = set(db.scalars(select(CustomerGroup.code).where(CustomerGroup.tenant_id == user.tenant_id, CustomerGroup.code.in_(codes))).all()) if codes else set()
+        if codes - found:
+            raise HTTPException(status_code=422, detail="گروه مشتری یافت نشد: " + "، ".join(sorted(codes - found)))
         st.levels_json = json.dumps([lv.model_dump() for lv in data.levels], ensure_ascii=False)
+        levels = levels_of(st)
+        for acc in db.scalars(select(LoyaltyAccount).where(LoyaltyAccount.tenant_id == user.tenant_id)).all():
+            sync_level_group(db, user.tenant_id, acc.user_id, acc.points_earned, levels)
         if audit:
             audit(db, user, "loyalty.settings.saved", "loyalty_settings", {"enabled": data.enabled, "irr_per_point": data.irr_per_point})
         db.commit()
@@ -276,6 +311,7 @@ def loyalty_router(get_db, current_user, role_has_permission, User, audit=None):
         if acc.points_balance + data.points < 0:
             raise HTTPException(status_code=409, detail="موجودی امتیاز کافی نیست")
         _credit(db, acc, "adjust", data.points, f"adjust:{secrets.token_hex(8)}", data.reason.strip(), user.id)
+        sync_level_group(db, user.tenant_id, acc.user_id, acc.points_earned, levels_of(_settings(db, user.tenant_id)))
         if audit:
             audit(db, user, "loyalty.adjusted", "loyalty_account", {"user_id": data.user_id, "points": data.points, "reason": data.reason})
         db.commit()

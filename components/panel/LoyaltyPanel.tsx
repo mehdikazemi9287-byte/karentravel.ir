@@ -11,17 +11,17 @@ function Settings() {
   const {state, reload, api} = useLoad<Row>('/loyalty/settings');
   const [draft, setDraft] = useState<Row | null>(null); const [msg, setMsg] = useState<Msg>(null);
   return <Async state={state}>{s => {
-    const v = draft ?? {...s, levels_text: s.levels.map((l: Row) => [l.key, l.name, l.min_points, l.benefits || ''].join(' | ')).join('\n')};
+    const v = draft ?? {...s, levels_text: s.levels.map((l: Row) => [l.key, l.name, l.min_points, l.benefits || '', l.group_code || ''].join(' | ')).join('\n')};
     async function save(e: FormEvent) {
       e.preventDefault(); setMsg(null);
-      const levels = String(v.levels_text || '').split('\n').map((l: string) => l.trim()).filter(Boolean).map((l: string) => {const [key, name, min, benefits] = l.split('|').map(x => x.trim()); return {key, name, min_points: Number(min) || 0, benefits: benefits || ''};});
+      const levels = String(v.levels_text || '').split('\n').map((l: string) => l.trim()).filter(Boolean).map((l: string) => {const [key, name, min, benefits, group] = l.split('|').map(x => x.trim()); return {key, name, min_points: Number(min) || 0, benefits: benefits || '', group_code: group || null};});
       try {await api.put('/loyalty/settings', {enabled: !!v.enabled, irr_per_point: v.irr_per_point, referral_bonus_points: v.referral_bonus_points || 0, levels}); setDraft(null); setMsg({ok: true, text: 'ذخیره شد.'}); reload();}
       catch (x) {setMsg({ok: false, text: errorOf(x).message});}
     }
     return <Card title="قواعد حلقه‌ی همسفران">
       <form className="pn-form" onSubmit={save}><FormFields value={v} set={setDraft} fields={[{key: 'enabled', label: 'فعال', type: 'bool'},
         {key: 'irr_per_point', label: 'هر چند ریال = ۱ امتیاز', type: 'money', required: true}, {key: 'referral_bonus_points', label: 'امتیاز معرف (پس از اولین سفر دوست)', type: 'number'},
-        {key: 'levels_text', label: 'سطح‌ها', type: 'textarea', wide: true, hint: 'هر خط: کلید لاتین | نام | حداقل امتیاز | مزایا. سطح اول از صفر شروع شود.'}]}/>
+        {key: 'levels_text', label: 'سطح‌ها', type: 'textarea', wide: true, hint: 'هر خط: کلید لاتین | نام | حداقل امتیاز | مزایا | کد گروه مشتری (اختیاری). سطح اول از صفر شروع شود. تخفیف هر سطح را در «قوانین فروش» برای همان گروه تعریف کنید؛ عضو گروه سازمانی جابه‌جا نمی‌شود.'}]}/>
         <p className="pn-muted">امتیاز فقط برای سفری داده می‌شود که «تکمیل شد» شده باشد. مزایای هر سطح همان متنی است که اینجا می‌نویسید؛ قیمت‌ها را خودکار تغییر نمی‌دهد.</p>
         <button className="pn-btn">ذخیره</button></form><Note msg={msg}/></Card>;
   }}</Async>;
