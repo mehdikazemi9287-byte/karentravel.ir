@@ -5332,3 +5332,6 @@ app.include_router(data_exchange_router(get_db, current_user, role_has_permissio
 
 from .receivables import receivables_router  # noqa: E402  organization receivables: terms, FIFO settlement, ageing
 app.include_router(receivables_router(get_db, current_user, role_has_permission, User, _platform_audit))
+
+from .charter_quotas import charter_quotas_router  # noqa: E402  partner-agency seat quotas on own charter flights
+app.include_router(charter_quotas_router(get_db, current_user, role_has_permission, User, _platform_audit))

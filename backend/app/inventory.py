@@ -174,11 +174,17 @@ def _aw(dt: datetime) -> datetime:
     return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
 
 
+def _held(db: Session, inst: FlightInstance) -> int:
+    """Seats held for partner agencies (charter quotas): neither publicly available nor sold."""
+    from .charter_quotas import held_seats  # lazy: charter_quotas imports this module's tables
+    return held_seats(db, inst.tenant_id, inst.id) if inst.id else 0
+
+
 def _sold(db: Session, inst: FlightInstance) -> int:
     if not inst.offer_id:
         return 0
     offer = db.get(m.Offer, inst.offer_id)
-    return max(0, inst.capacity - (offer.available_units if offer else inst.capacity))
+    return max(0, inst.capacity - (offer.available_units if offer else inst.capacity) - _held(db, inst))
 
 
 def _sync_offer(db: Session, tenant_id: int, s: FlightSeries, r: FlightRoute, inst: FlightInstance, now: datetime, sold: Optional[int] = None) -> None:
@@ -210,7 +216,7 @@ def _sync_offer(db: Session, tenant_id: int, s: FlightSeries, r: FlightRoute, in
         return
     offer.title, offer.amount, offer.currency, offer.supplier_id = title, s.adult_fare, s.currency, s.supplier_id
     if sold is not None:
-        offer.available_units = max(0, inst.capacity - sold)
+        offer.available_units = max(0, inst.capacity - sold - _held(db, inst))
     offer.status, offer.valid_until = status, stop
     offer.attributes_json = json.dumps(attrs, ensure_ascii=False, sort_keys=True)
     offer.policy_json = json.dumps(policy, ensure_ascii=False, sort_keys=True)
@@ -375,13 +381,14 @@ def inventory_router(get_db, current_user, role_has_permission, User, audit=None
     # ---- flights (dated instances)
     def _inst_dict(db, i: FlightInstance, s: FlightSeries, r: FlightRoute) -> dict:
         sold = _sold(db, i)
+        held = _held(db, i)
         now = datetime.now(timezone.utc)
         dep = i.departure_at if i.departure_at.tzinfo else i.departure_at.replace(tzinfo=timezone.utc)
         mins = int((dep - now).total_seconds() // 60)
         return {"id": i.id, "series_id": s.id, "flight_date": i.flight_date, "departure_at": dep.isoformat(), "arrival_at": i.arrival_at.isoformat(),
                 "route": f"{r.origin}-{r.destination}", "route_name": f"{r.origin_city or r.origin} ← {r.destination_city or r.destination}",
-                "flight": f"{s.airline_code}{s.flight_number}", "airline": s.airline_name or s.airline_code, "capacity": i.capacity, "sold": sold,
-                "remaining": max(0, i.capacity - sold), "status": i.status, "offer_id": i.offer_id, "adult_fare": s.adult_fare, "currency": s.currency,
+                "flight": f"{s.airline_code}{s.flight_number}", "airline": s.airline_name or s.airline_code, "capacity": i.capacity, "sold": sold, "held_quota": held,
+                "remaining": max(0, i.capacity - sold - held), "status": i.status, "offer_id": i.offer_id, "adult_fare": s.adult_fare, "currency": s.currency,
                 "minutes_to_departure": mins, "sale_open": i.status == "open" and mins > s.stop_sale_minutes,
                 "quota_open": mins > s.stop_quota_minutes, "list_due": mins <= s.send_list_minutes and i.list_sent_at is None and i.status != "cancelled",
                 "list_sent_at": i.list_sent_at.isoformat() if i.list_sent_at else None}
@@ -406,8 +413,9 @@ def inventory_router(get_db, current_user, role_has_permission, User, audit=None
         r = _get(db, FlightRoute, user.tenant_id, s.route_id)
         sold = _sold(db, i)
         if data.capacity is not None:
-            if data.capacity < sold:
-                raise HTTPException(status_code=409, detail=f"ظرفیت نمی‌تواند کمتر از {sold} صندلی فروخته‌شده باشد")
+            held = _held(db, i)
+            if data.capacity < sold + held:
+                raise HTTPException(status_code=409, detail=f"ظرفیت نمی‌تواند کمتر از {sold} صندلی فروخته‌شده و {held} صندلی سهمیه‌ی همکاران باشد")
             i.capacity = data.capacity
         if data.status:
             if data.status == "cancelled" and sold:
