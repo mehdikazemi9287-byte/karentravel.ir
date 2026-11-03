@@ -24,7 +24,7 @@ function DailyBars({data}: {data: {day: string; count: number; value: number}[]}
   return <div className="ops-chart">
     <div className="ops-chart-head"><span className="pn-muted">{h ? `${dayFa(h.day)}: ${fa(h.count)} قرارداد، ${money(h.value, 'IRR')}` : 'تعداد قراردادهای تأییدشده در هر روز (به وقت تهران)'}</span>
       <button className="pn-btn ghost" onClick={() => setAsTable(true)}>نمایش جدول</button></div>
-    <svg viewBox={`0 0 ${W} ${H + 22}`} role="img" aria-label="نمودار ۳۰ روز قراردادهای تأییدشده" dir="ltr" onMouseLeave={() => setHover(null)}>
+    <svg viewBox={`0 0 ${W} ${H + 22}`} role="img" aria-label="نمودار ۳۰ روز قراردادهای تأییدشده" style={{direction: 'ltr'}} onMouseLeave={() => setHover(null)}>
       <line x1="0" x2={W} y1={H} y2={H} stroke="var(--pn-line)"/>
       {data.map((d, i) => {
         const x = i * (bw + gap), bh = d.count ? Math.max(4, (d.count / max) * (H - 8)) : 0;
