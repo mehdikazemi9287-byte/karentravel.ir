@@ -263,7 +263,7 @@ export function HomeSearchExperience({defaultVertical="flight",presentation}:{de
       </div>
     </form>}
     {searchError&&<p className="fs-validation" role="alert">{searchError}</p>}
-    <div className="fs-tools"><span>قیمت و موجودی نیازمند استعلام</span><span>استعلام مجدد پیش از خرید</span><button type="button" className="nl-toggle" onClick={()=>setNlOpen(value=>!value)} aria-expanded={nlOpen}><Icon name="chat"/> {presentation==='approved'?'✦ با دستیار هوشمند برنامه‌ریزی کن':'با زبان خودت بگو'}</button></div>
+    <div className="fs-tools"><button type="button" className="nl-toggle" onClick={()=>setNlOpen(value=>!value)} aria-expanded={nlOpen}><Icon name="chat"/> {presentation==='approved'?'✦ با دستیار هوشمند برنامه‌ریزی کن':'با زبان خودت بگو'}</button></div>
     {nlOpen&&<div className="nl-panel" aria-label="جست‌وجوی زبان طبیعی">
       <div className="nl-input-row">
         <textarea aria-label="سفرت را با جمله فارسی توصیف کن" placeholder="مثلاً: آخر شهریور برای دو نفر از تهران یه سفر چهار روزه به شیراز می‌خوام" value={nlText} onChange={event=>{setNlText(event.target.value);setNlIntent(null)}} rows={2}/>
