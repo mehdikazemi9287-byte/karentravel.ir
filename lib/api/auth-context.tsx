@@ -10,6 +10,7 @@ type AuthContextValue = {
   requestOtp(tenant: string, identifier: string): ReturnType<KarenSeirApi['requestOtp']>;
   register(mobile: string, name?: string): ReturnType<KarenSeirApi['register']>;
   verifyOtp(tenant: string, challenge: string, code: string): Promise<AuthSession>;
+  verifyMfa(tenant: string, ticket: string, factor: { code?: string; recovery_code?: string }): Promise<AuthSession>;
   logout(): Promise<void>;
 };
 
@@ -25,6 +26,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     requestOtp(tenant, identifier) { return api.requestOtp(tenant, identifier); },
     register(mobile, name) { return api.register(mobile, name); },
     async verifyOtp(tenant, challenge, code) { const next = await api.verifyOtp(tenant, challenge, code); setSession(next); return next; },
+    async verifyMfa(tenant, ticket, factor) { const next = await api.verifyMfa(tenant, ticket, factor); setSession(next); return next; },
     async logout() { const pending=api.logout(); setSession(null); await pending; },
   }), [api, session]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

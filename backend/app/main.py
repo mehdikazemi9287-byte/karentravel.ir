@@ -852,6 +852,10 @@ def verify_otp(data: OTPVerifyIn, request: Request, db: Session = Depends(get_db
     user = db.scalar(select(User).where(User.id == challenge.user_id, User.tenant_id == tenant.id))
     if user is None:
         raise HTTPException(status_code=401, detail="کد ورود معتبر نیست")
+    if _mfa_enabled(db, tenant.id, user.id):  # two-step login: the authenticator code completes it at /auth/2fa/verify
+        db.add(operational_models.AuthenticationAudit(tenant_id=tenant.id, user_id=user.id, action="otp.verified_mfa_pending", challenge_id=challenge.id, device_hash=device_hash, ip_hash=ip_hash))
+        db.commit()
+        return {"mfa_required": True, "mfa_ticket": _account_security_api.ticket_for(user, tenant, challenge.id), "user": {"name": user.name}}
     refresh_token, _ = operational_models.create_refresh_session(db, tenant_id=tenant.id, user_id=user.id, expires_at=now + timedelta(days=30), device_hash=device_hash, ip_hash=ip_hash)
     db.add(operational_models.AuthenticationAudit(tenant_id=tenant.id, user_id=user.id, action="otp.verified", challenge_id=challenge.id, device_hash=device_hash, ip_hash=ip_hash))
     db.commit()
@@ -5338,3 +5342,19 @@ app.include_router(charter_quotas_router(get_db, current_user, role_has_permissi
 
 from .ops_console import ops_console_router  # noqa: E402  unified ops dashboard, contract file, Moadian readiness
 app.include_router(ops_console_router(get_db, current_user, role_has_permission, User, _platform_audit))
+
+from .account_security import account_security_router, mfa_enabled as _mfa_enabled  # noqa: E402  authenticator-app two-step login
+
+
+def _issue_login_session(db: Session, tenant: Tenant, user: User, request: Request, device_id: str) -> dict:
+    device_hash, ip_hash = _request_fingerprints(request, device_id)
+    refresh_token, _ = operational_models.create_refresh_session(db, tenant_id=tenant.id, user_id=user.id, expires_at=datetime.now(timezone.utc) + timedelta(days=30), device_hash=device_hash, ip_hash=ip_hash)
+    db.commit()
+    return {"access_token": token_for(user, tenant), "refresh_token": refresh_token, "token_type": "bearer", "user": {"name": user.name, "role": user.role, "tenant": tenant.name}}
+
+
+_account_security_api = account_security_router(get_db, current_user, User, Tenant, JWT_SECRET, _issue_login_session, _request_fingerprints, set_tenant_context)
+app.include_router(_account_security_api)
+
+from .traveller_documents import traveller_documents_router  # noqa: E402  traveller documents: upload, masked review queue, retention
+app.include_router(traveller_documents_router(get_db, current_user, role_has_permission, User, _platform_audit))

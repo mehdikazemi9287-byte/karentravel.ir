@@ -20,6 +20,11 @@ export class ApiError extends Error {
   constructor(public readonly status: number, message: string, public readonly detail?: unknown) { super(message); }
 }
 
+/** Thrown by verifyOtp when the account has authenticator-app two-step login: finish with verifyMfa(ticket, ...). */
+export class MfaRequiredError extends Error {
+  constructor(public readonly ticket: string, public readonly tenantSlug: string) { super('mfa_required'); }
+}
+
 export class KarenSeirApi {
   private session: AuthSession | null = null;
   private refreshPending: Promise<void> | null = null;
@@ -48,7 +53,14 @@ export class KarenSeirApi {
   }
 
   async verifyOtp(tenant_slug: string, challenge_id: string, code: string) {
-    const session = await this.request<AuthSession>('/auth/otp/verify', { method: 'POST', body: JSON.stringify({ tenant_slug, challenge_id, code, device_id: this.deviceId }) }, false);
+    const session = await this.request<AuthSession & { mfa_required?: boolean; mfa_ticket?: string }>('/auth/otp/verify', { method: 'POST', body: JSON.stringify({ tenant_slug, challenge_id, code, device_id: this.deviceId }) }, false);
+    if (session.mfa_required && session.mfa_ticket) throw new MfaRequiredError(session.mfa_ticket, tenant_slug);
+    this.setSession(session);
+    return session as AuthSession;
+  }
+
+  async verifyMfa(tenant_slug: string, mfa_ticket: string, factor: { code?: string; recovery_code?: string }) {
+    const session = await this.request<AuthSession>('/auth/2fa/verify', { method: 'POST', body: JSON.stringify({ tenant_slug, mfa_ticket, ...factor, device_id: this.deviceId }) }, false);
     this.setSession(session);
     return session;
   }
@@ -99,6 +111,9 @@ export class KarenSeirApi {
   async putForm<T>(path: string, form: FormData) {
     return this.request<T>(path, { method: 'PUT', body: form }, true, true, true);
   }
+  /** Binary responses (document previews) with the same auth/refresh handling. */
+  async getBlob(path: string) { return this.request<Blob>(path, {}, true, true, false, false, true); }
+  async postBlob(path: string, body: unknown) { return this.request<Blob>(path, { method: 'POST', body: JSON.stringify(body) }, true, true, false, false, true); }
   get apiBase() { return this.baseUrl; }
   async delete<T>(path: string, body: unknown) {
     return this.request<T>(path, { method: 'DELETE', body: JSON.stringify(body) });
@@ -117,7 +132,7 @@ export class KarenSeirApi {
     try { await pending; } finally { if (this.refreshPending === pending) this.refreshPending = null; }
   }
 
-  private async request<T>(path: string, init: RequestInit = {}, authenticated: boolean | 'optional' = true, retry = true, isMultipart = false, asText = false): Promise<T> {
+  private async request<T>(path: string, init: RequestInit = {}, authenticated: boolean | 'optional' = true, retry = true, isMultipart = false, asText = false, asBlob = false): Promise<T> {
     const headers = new Headers(init.headers);
     if (!isMultipart) headers.set('Content-Type', 'application/json');
     headers.set('X-Correlation-ID', newId());
@@ -131,7 +146,7 @@ export class KarenSeirApi {
     if (response.status === 401 && authenticated === true && retry && this.session?.refresh_token) {
       // A delayed 401 may belong to the token another request already refreshed.
       if (headers.get('Authorization') === `Bearer ${this.session.access_token}`) await this.refresh();
-      return this.request<T>(path, init, true, false, isMultipart, asText);
+      return this.request<T>(path, init, true, false, isMultipart, asText, asBlob);
     }
     if (!response.ok) {
       let message = 'ارتباط با سرویس انجام نشد.';
@@ -140,6 +155,6 @@ export class KarenSeirApi {
       throw new ApiError(response.status, message, detail);
     }
     if (response.status === 204) return undefined as T;
-    return (asText ? response.text() : response.json()) as Promise<T>;
+    return (asBlob ? response.blob() : asText ? response.text() : response.json()) as Promise<T>;
   }
 }

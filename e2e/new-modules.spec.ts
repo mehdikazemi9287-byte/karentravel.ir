@@ -71,7 +71,7 @@ test('ops dashboard and contract file render from real rows', async ({ page }) =
   await signIn(page, 'backoffice@aftab.test');
   await open(page, '/admin/ops');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('پیشخوان عملیات');
-  await expect(page.getByRole('heading', { name: 'کارهای در انتظار' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'کارهای در انتظار', exact: true })).toBeVisible();
   await expect(page.getByRole('img', { name: /نمودار ۳۰ روز/ })).toBeVisible();
   await page.screenshot({ path: `${artifactDir}/new-modules/ops-dashboard.png`, fullPage: true, animations: 'disabled' });
   await open(page, '/admin/contracts');
@@ -82,4 +82,21 @@ test('ops dashboard and contract file render from real rows', async ({ page }) =
     await expect(page.getByRole('heading', { name: 'سامانه‌ی مؤدیان' })).toBeVisible();
     await page.screenshot({ path: `${artifactDir}/new-modules/contract-file.png`, fullPage: true, animations: 'disabled' });
   }
+});
+
+test('account security setup shows QR and customer documents page', async ({ page }) => {
+  await signIn(page, 'employee@aftab.test');
+  await open(page, '/account/security');
+  await page.getByRole('button', { name: 'شروع راه‌اندازی' }).click();
+  await expect(page.getByRole('img', { name: /کد QR/ })).toBeVisible();
+  await page.screenshot({ path: `${artifactDir}/new-modules/security-setup.png`, fullPage: true, animations: 'disabled' });
+  await open(page, '/account/documents');
+  await expect(page.getByRole('heading', { name: 'بارگذاری مدرک', exact: true })).toBeVisible();
+});
+
+test('staff document queue opens for backoffice', async ({ page }) => {
+  await signIn(page, 'backoffice@aftab.test');
+  await open(page, '/admin/documents');
+  await expect(page.getByRole('heading', { name: 'صف مدارک', exact: true })).toBeVisible();
+  await page.screenshot({ path: `${artifactDir}/new-modules/documents-queue.png`, fullPage: true, animations: 'disabled' });
 });
