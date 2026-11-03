@@ -762,3 +762,15 @@ a.cat-card:hover{box-shadow:0 12px 28px rgba(8,37,61,.12);transform:translateY(-
 .jalali-targets .on{border-color:var(--fs-primary);color:var(--fs-primary);font-weight:700}
 .fs-pop--date{min-width:min(640px,calc(100vw - 32px))}
 .fs-pop-done:disabled{background:#d9cfd6;color:#6b5a66;cursor:not-allowed}
+/* train landing (pattern of Alibaba / MrBilit) */
+.tl-sec{margin-block:28px}.tl-sec h2{font-size:20px;margin:0 0 14px;color:#2a1530}
+.tl-routes{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+@media(max-width:900px){.tl-routes{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:560px){.tl-routes{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tl-route{position:relative;display:block;border-radius:14px;overflow:hidden;color:#fff;background:#2a1530;text-decoration:none}
+.tl-route .cat-thumb{aspect-ratio:3/4;background:#4a2d4e}.tl-route .cat-thumb img{width:100%;height:100%;object-fit:cover}.tl-route .cat-thumb small{display:none}
+.tl-route .cat-thumb-empty{color:#e9dbe6}
+.tl-route>span{position:absolute;inset-inline:0;bottom:0;padding:28px 10px 10px;background:linear-gradient(transparent,rgba(26,10,28,.85));font-weight:700;font-size:14px}
+.tl-perks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}@media(max-width:900px){.tl-perks{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tl-perks article{background:#fff;border:1px solid #e7dcd4;border-radius:14px;padding:16px}.tl-perks b{color:#ef5b3d}.tl-perks p{margin:6px 0 0;color:#7f6d79;font-size:13px;line-height:1.8}
+.tl-ops{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px}.tl-ops li{border:1px solid #e7dcd4;background:#fff;border-radius:999px;padding:8px 16px;font-size:14px}
+.tl-faq details{background:#fff;border:1px solid #e7dcd4;border-radius:12px;padding:12px 16px;margin-bottom:8px}.tl-faq summary{cursor:pointer;font-weight:600}.tl-faq p{margin:8px 0 0;color:#5c4b56;font-size:14px;line-height:1.9}
