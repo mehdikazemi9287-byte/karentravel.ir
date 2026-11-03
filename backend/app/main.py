@@ -5367,3 +5367,9 @@ app.include_router(supplier_insights_router(get_db, current_user, role_has_permi
 
 from .voucher_verify import voucher_verify_router  # noqa: E402  voucher QR and public verification
 app.include_router(voucher_verify_router(get_db, current_user, JWT_SECRET, set_tenant_context))
+
+from .platform_tenants import platform_tenants_router  # noqa: E402  platform-level tenant and white-label management
+app.include_router(platform_tenants_router(get_db, current_user, User, Tenant, set_tenant_context, _platform_audit))
+
+from .loyalty_calls import loyalty_calls_router  # noqa: E402  loyalty call schedule from real trips and dormant members
+app.include_router(loyalty_calls_router(get_db, current_user, role_has_permission, User, _platform_audit))

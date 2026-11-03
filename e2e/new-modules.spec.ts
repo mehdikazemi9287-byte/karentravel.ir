@@ -117,3 +117,32 @@ test('public voucher check rejects an unsigned code without leaking data', async
   await open(page, '/v/1.00000000-0000-0000-0000-000000000000.AAAAAAAAAAAAAAAA');
   await expect(page.getByRole('heading', { name: 'واچر معتبر نیست', exact: true })).toBeVisible();
 });
+
+test('platform tenants, loyalty call schedule and solutions site', async ({ page }) => {
+  await signIn(page, 'platform-admin@aftab.test');
+  await open(page, '/admin/tenants');
+  await expect(page.getByRole('heading', { name: 'مستأجرها', exact: true })).toBeVisible();
+  await page.screenshot({ path: `${artifactDir}/new-modules/tenants.png`, fullPage: true, animations: 'disabled' });
+  await open(page, '/admin/loyalty');
+  await page.getByRole('tab', { name: 'برنامه‌ی تماس' }).click();
+  await expect(page.getByRole('heading', { name: 'برنامه‌ی تماس', exact: true })).toBeVisible();
+  await open(page, '/solutions');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('از سایت تا سند حسابداری');
+  await expect(page.getByRole('heading', { name: 'درخواست دمو و قیمت' })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBeTruthy();
+  await page.screenshot({ path: `${artifactDir}/new-modules/solutions.png`, fullPage: true, animations: 'disabled' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBeTruthy();
+  await page.screenshot({ path: `${artifactDir}/new-modules/solutions-mobile.png`, fullPage: true, animations: 'disabled' });
+});
+
+test('ops panel shows the mobile bottom navigation on phones', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page, 'backoffice@aftab.test');
+  await open(page, '/admin/ops');
+  await expect(page.getByRole('heading', { name: 'کارهای در انتظار', exact: true })).toBeVisible();
+  const bottom = page.getByRole('navigation', { name: 'میان‌بر پنل عملیات' });
+  await expect(bottom).toBeVisible();
+  await expect(bottom.getByRole('link', { name: /پیشخوان/ })).toHaveAttribute('aria-current', 'page');
+  await page.screenshot({ path: `${artifactDir}/new-modules/ops-mobile.png`, fullPage: false, animations: 'disabled' });
+});
