@@ -5382,3 +5382,6 @@ app.include_router(train_requests_router(get_db, current_user, role_has_permissi
 
 from .shahrshad_sync import shahrshad_router  # noqa: E402  ShahrShad partner places (restaurants, pools, attractions, events)
 app.include_router(shahrshad_router(get_db, require_role("platform_admin", "tenant_admin")))
+
+from .partner_requests import partner_requests_router  # noqa: E402  requests to Padvira and Gift Asan on the customer's behalf
+app.include_router(partner_requests_router(get_db, current_user, _platform_audit))
