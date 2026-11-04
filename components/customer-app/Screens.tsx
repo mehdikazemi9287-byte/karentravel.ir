@@ -68,7 +68,7 @@ export function Home() {
   return <>
     <section className="ca-hero">
       <h1>{session?.user ? `سلام ${session.user.name}، کجا برویم؟` : 'سفر بعدی‌ات را همین‌جا بساز'}</h1>
-      <p>پرواز، هتل، تور و خدمات سفر با قیمت تأییدشده و پشتیبانی کارن‌سیر.</p>
+      <p>پرواز، هتل، تور و خدمات سفر با قیمت تأییدشده و پشتیبانی کارن تراول.</p>
       <nav className="ca-services" aria-label="خدمات">{SERVICES.map(([href, label, glyph]) => <Link key={href} href={href}><span aria-hidden="true">{glyph}</span><span>{label}</span></Link>)}</nav>
       <Link className="ca-btn" href="/search">جستجوی همه‌ی خدمات</Link>
     </section>

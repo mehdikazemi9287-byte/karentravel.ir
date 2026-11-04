@@ -34,7 +34,7 @@ export function ApprovedHomeLower() {
         </div>
       </div>
     </section>
-    <nav className="kh-strip" aria-label="خدمات کارن‌سیر">{SERVICES.map(s => <Link key={s.href} href={s.href}>{s.icon}<span>{s.label}</span></Link>)}</nav>
+    <nav className="kh-strip" aria-label="خدمات کارن تراول">{SERVICES.map(s => <Link key={s.href} href={s.href}>{s.icon}<span>{s.label}</span></Link>)}</nav>
   </div>;
 }
 
@@ -43,14 +43,14 @@ export function ApprovedFooterLight() {
   return <div className="kh kh-foot" role="contentinfo">
     <div className="kh-foot-grid">
       <div className="kh-foot-brand">
-        <Link href="/" className="kh-foot-logo" aria-label="کارن‌سیر، صفحه اصلی">
+        <Link href="/" className="kh-foot-logo" aria-label="کارن تراول، صفحه اصلی">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={A + 'imgComponentLogoMark.svg'} alt=""/>کارن‌سیر</Link>
+          <img src={A + 'imgComponentLogoMark.svg'} alt=""/>کارن تراول</Link>
         <p>{c.footer.tagline}</p>
         <p>پشتیبانی: <a href={supportPhone.href} dir="ltr">{supportPhone.display}</a></p>
       </div>
       <div className="kh-foot-col"><h3>پشتیبانی</h3><Link href="/support">مرکز راهنمایی</Link><Link href="/support">پرسش‌های متداول</Link><Link href="/terms">شرایط استرداد</Link><Link href="/support">گزارش تخلف</Link></div>
-      <div className="kh-foot-col"><h3>کارن‌سیر</h3><Link href="/contact">درباره ما</Link><Link href="/contact">تماس با ما</Link><Link href="/terms">قوانین و مقررات</Link><Link href="/privacy">حریم خصوصی</Link></div>
+      <div className="kh-foot-col"><h3>کارن تراول</h3><Link href="/contact">درباره ما</Link><Link href="/contact">تماس با ما</Link><Link href="/terms">قوانین و مقررات</Link><Link href="/privacy">حریم خصوصی</Link></div>
     </div>
     <p className="kh-foot-copy">{c.footer.copyright}</p>
   </div>;

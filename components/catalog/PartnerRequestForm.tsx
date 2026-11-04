@@ -19,7 +19,7 @@ export function PartnerRequestForm({partner, service, city, venueId, onClose}: P
     try {
       if (partner === 'shahrshad') {
         const r = await api.post<{reference: string}>('/partners/shahrshad/requests', {venue_id: venueId, full_name: v.full_name, contact: v.contact, date: v.date || null, people: Number(v.people) || 1, message: v.message || null});
-        setDone(`درخواست رزرو ثبت شد (کد ${r.reference}). کارشناس کارن‌سیر ظرفیت و قیمت را بررسی می‌کند و نتیجه در حسابتان نمایش داده می‌شود.`);
+        setDone(`درخواست رزرو ثبت شد (کد ${r.reference}). کارشناس کارن تراول ظرفیت و قیمت را بررسی می‌کند و نتیجه در حسابتان نمایش داده می‌شود.`);
       } else if (partner === 'padvira') {
         const r = await api.post<{reference: string}>('/partners/padvira/requests', {full_name: v.full_name, contact: v.contact, service, message: v.message, category: v.category});
         setDone(`درخواست در پادویرا ثبت شد (کد ${r.reference}). کارشناس پادویرا زمان، ظرفیت و هزینه را اعلام می‌کند.`);

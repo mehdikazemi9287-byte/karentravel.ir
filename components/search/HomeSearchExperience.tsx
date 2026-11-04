@@ -174,7 +174,7 @@ export function HomeSearchExperience({defaultVertical="flight",presentation}:{de
           const win=window as unknown as {SpeechRecognition?:new()=>SpeechRecognitionLike;webkitSpeechRecognition?:new()=>SpeechRecognitionLike};
           const SpeechRecognitionCtor=win.SpeechRecognition??win.webkitSpeechRecognition;
           if(SpeechRecognitionCtor){
-            setNlError('سرویس گفتار کارن‌سیر در دسترس نیست؛ در حال استفاده از تشخیص گفتار مرورگر…');
+            setNlError('سرویس گفتار کارن تراول در دسترس نیست؛ در حال استفاده از تشخیص گفتار مرورگر…');
             try{
               const recognition=new SpeechRecognitionCtor(); recognition.lang='fa-IR'; recognition.interimResults=false;
               recognition.onresult=(event)=>{void nlUseTranscript(event.results[0][0].transcript)};

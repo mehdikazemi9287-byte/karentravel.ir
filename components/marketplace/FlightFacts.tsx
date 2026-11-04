@@ -11,7 +11,7 @@ export function SearchRecovery({vertical,origin,destination,depart,returnDate,tr
   const trip=[kind,origin?`${origin} به ${destination}`:destination,depart?`از ${formatJalali(depart)}`:'',returnDate?`تا ${formatJalali(returnDate)}`:''].filter(Boolean).join(' ');
   return <section className="search-recovery" aria-label="ثبت درخواست سفر">
     <h2>{kind} {origin?`${origin} به ${destination}`:destination} را کارشناس ما برایت پیدا می‌کند</h2>
-    <p>برای این جست‌وجو گزینه‌ی آنلاین در سایت نیست. درخواستت را ثبت کن؛ کارشناس کارن‌سیر گزینه‌ها و قیمت را تلفنی اعلام می‌کند.</p>
+    <p>برای این جست‌وجو گزینه‌ی آنلاین در سایت نیست. درخواستت را ثبت کن؛ کارشناس کارن تراول گزینه‌ها و قیمت را تلفنی اعلام می‌کند.</p>
     <TripRequestForm compact title="ثبت درخواست" initial={{trip,travel_date:depart||'',travellers:String(travellers||1)}}/>
     <div className="recovery-actions"><button className="button secondary" onClick={onEdit}>تغییر مسیر یا تاریخ</button><button className="button secondary" onClick={onClear}>پاک‌کردن فیلترها</button></div>
     {depart&&<div className="recovery-dates"><b>تاریخ دیگری را ببین</b><div>{[1,3,7].map(n=><button key={n} onClick={()=>onDate(n)}>{n.toLocaleString('fa-IR')} روز بعد</button>)}</div></div>}

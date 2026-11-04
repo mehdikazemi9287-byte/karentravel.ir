@@ -101,7 +101,7 @@ class SouvenirIn(Contact):
 
 def padvira_create(data: PadviraIn, key: str, post=None) -> str:
     body = {"fullName": data.full_name, "contact": data.contact, "category": data.category,
-            "message": f"[از کارن‌سیر] {data.service}\n{data.message}"}
+            "message": f"[از کارن تراول] {data.service}\n{data.message}"}
     if post is None:
         with _client() as c:
             r = c.post(f"{padvira_base()}/api/requests", json=body, headers={"Idempotency-Key": key})
@@ -133,7 +133,7 @@ def giftasan_create(data: SouvenirIn, ref: str, post=None) -> str:
     auth = giftasan_auth()
     if auth is None and post is None:
         raise HTTPException(status_code=503, detail="ثبت مستقیم در گیفت آسان هنوز فعال نشده است؛ از واتساپ گیفت آسان درخواست بدهید")
-    note = f"درخواست گیفت سوغات از کارن‌سیر\nسوغات {data.city}: {data.items}\nارسال به: {data.deliver_to}" + (f"\nتوضیح: {data.note}" if data.note else "")
+    note = f"درخواست گیفت سوغات از کارن تراول\nسوغات {data.city}: {data.items}\nارسال به: {data.deliver_to}" + (f"\nتوضیح: {data.note}" if data.note else "")
     first, _, last = data.full_name.partition(" ")
     body = {"status": "on-hold", "set_paid": False, "customer_note": note, "created_via": "karenseir",
             "billing": {"first_name": first, "last_name": last, "phone": data.contact if "@" not in data.contact else "", "email": data.contact if "@" in data.contact else "", "city": data.deliver_to[:100]},

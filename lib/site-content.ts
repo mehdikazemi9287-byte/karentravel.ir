@@ -19,7 +19,7 @@ export type SiteContent = {
 const A = '/images/approved-figma/';
 export const DEFAULT_CONTENT: SiteContent = {
   announcement: {active: false, text: '', href: ''},
-  hero: {title: 'سفر را', title2: 'زندگی کن', subtitle: 'از اولین جست‌وجو تا آخرین خاطره،', subtitle2: 'همه‌چیز در کارن‌سیر کنار هم است.',
+  hero: {title: 'سفر را', title2: 'زندگی کن', subtitle: 'از اولین جست‌وجو تا آخرین خاطره،', subtitle2: 'همه‌چیز در کارن تراول کنار هم است.',
     image: A + 'refHeroTop.jpg', image_alt: 'مسافری که از زیر طاقی آجری به بام‌های شهر نگاه می‌کند',
     minis: [{title: 'شیراز', href: '/destinations/shiraz', image: A + 'imgThumb2.jpg'}, {title: 'کیش', href: '/destinations/kish', image: A + 'imgThumb3.jpg'}]},
   bento: {title: 'کجای ایران', title2: 'صدایت می‌زند؟', tiles: [
@@ -29,12 +29,12 @@ export const DEFAULT_CONTENT: SiteContent = {
     {href: '/destinations/masuleh', image: A + 'refTripNorth.jpg', title: 'مسیر سبز', title2: 'شمال', meta: '۳ روز و ۲ شب'},
     {href: '/destinations/qeshm', image: A + 'refTripQeshm.jpg', title: 'آرامش در', title2: 'جزیره قشم', meta: '۴ روز و ۳ شب'},
     {href: '/destinations/shiraz', image: A + 'refTripShiraz.jpg', title: 'سه روز در', title2: 'شیراز', meta: '۳ روز و ۲ شب'}]},
-  assistant: {title: 'همراه هوشمند کارن‌سیر', prompts: ['با ۲۰ میلیون کجا برم؟', 'سفر خانوادگی ۴ روزه', 'بهترین مقصد پاییزی']},
+  assistant: {title: 'همراه هوشمند کارن تراول', prompts: ['با ۲۰ میلیون کجا برم؟', 'سفر خانوادگی ۴ روزه', 'بهترین مقصد پاییزی']},
   compare: {title: 'دو انتخاب داری؟ کنار هم ببین', items: [
     {title: 'هتل زندیه شیراز', image: A + 'imgThumb1.jpg', href: '/hotels/zandiyeh-hotel-w999233441'},
     {title: 'هتل عباسی اصفهان', image: A + 'imgThumb.jpg', href: '/hotels/abbasi-hotel-r4769549'}]},
   organization: {title: 'سفر سازمانی، بدون پیچیدگی', items: ['اعتبار کارکنان', 'تأیید مرحله‌ای', 'گزارش مالی']},
-  footer: {tagline: 'سفر، قصه‌ی ماست. کارن‌سیر، همراه هر سفر توست.', copyright: '© کارن‌سیر. همهٔ حقوق محفوظ است.'},
+  footer: {tagline: 'سفر، قصه‌ی ماست. کارن تراول، همراه هر سفر توست.', copyright: '© کارن تراول. همهٔ حقوق محفوظ است.'},
 };
 
 export const tenantSlug = () => process.env.NEXT_PUBLIC_TENANT_SLUG || 'aftab-bank';

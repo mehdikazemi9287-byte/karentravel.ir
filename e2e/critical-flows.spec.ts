@@ -43,7 +43,7 @@ test('frozen Homepage keeps approved structure on desktop and mobile', async ({ 
     await expect(page.getByRole('heading', { level: 1 })).toContainText('سفر را');
     await expect(page.getByRole('tab', { name: 'پرواز', exact: true })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'هتل', exact: true })).toBeVisible();
-    await expect(page.getByText('دستیار هوشمند سفر کارن‌سیر')).toBeVisible();
+    await expect(page.getByText('دستیار هوشمند سفر کارن تراول')).toBeVisible();
     await expect(page.getByText('قبل از انتخاب، کنار هم ببین.')).toBeVisible();
     await expect(page.locator('.ref-footer')).toHaveCount(1);
     const screenshot = await page.screenshot({ fullPage: true, animations: 'disabled' });

@@ -72,7 +72,7 @@ function Thumb({src, credit, alt, label}: {src: string | null; credit: string | 
   const [failed, setFailed] = useState(false);
   if (!src || failed) return <div className="cat-thumb cat-thumb-empty" aria-hidden="true"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M16 10h3a1 1 0 0 1 1 1v10M3 21h18M8 7h4M8 11h4M8 15h4"/></svg><span>{label}</span></div>;
   // eslint-disable-next-line @next/next/no-img-element -- remote Wikimedia Commons file with per-image credit
-  return <div className="cat-thumb"><img src={src} alt={alt} loading="lazy" onError={() => setFailed(true)}/>{credit && !credit.startsWith('کارن‌سیر') && <small title={credit}>{credit}</small>}</div>;
+  return <div className="cat-thumb"><img src={src} alt={alt} loading="lazy" onError={() => setFailed(true)}/>{credit && !credit.startsWith('کارن تراول') && <small title={credit}>{credit}</small>}</div>;
 }
 function Pager({total, limit, page, onPage}: {total: number; limit: number; page: number; onPage: (p: number) => void}) {
   const pages = Math.ceil(total / limit);
@@ -431,7 +431,7 @@ export function TourReferenceDetail({id}: {id: string}) {
         <InquiryRequest subject={`استعلام تور: ${t.title}`} context={`درخواست استعلام تاریخ حرکت و قیمت جدید برای «${t.title}» (شناسهٔ فهرست: ${t.id}).`} reason={t.request.reason}/>
         <Link className="button secondary" href="/tours">تورهای قابل رزرو</Link></aside>
     </div>
-    <p className="cat-attrib">منبع این صفحه: فهرست تورهای کارن‌سیر (سابقهٔ برگزاری). این صفحه قیمت، ظرفیت یا تاریخ قابل رزرو نشان نمی‌دهد.</p>
+    <p className="cat-attrib">منبع این صفحه: فهرست تورهای کارن تراول (سابقهٔ برگزاری). این صفحه قیمت، ظرفیت یا تاریخ قابل رزرو نشان نمی‌دهد.</p>
   </main>;
 }
 
@@ -491,7 +491,7 @@ export function CatalogHotelsForSearch({mode = 'complement', fallback = null}: {
     {data.total > data.items.length && all}
   </section>;
   return <section className="cat container" id="catalog-for-search" aria-labelledby="cat-search-title">
-    <header className="cat-head"><div><h2 id="cat-search-title">اقامتگاه‌های بیشتر در «{destination}»</h2><p>این اقامتگاه‌ها در فهرست کارن‌سیر ثبت شده‌اند ولی هنوز نرخ آنلاین ندارند؛ برای هر کدام می‌توانید استعلام قیمت بگیرید.</p></div></header>
+    <header className="cat-head"><div><h2 id="cat-search-title">اقامتگاه‌های بیشتر در «{destination}»</h2><p>این اقامتگاه‌ها در فهرست کارن تراول ثبت شده‌اند ولی هنوز نرخ آنلاین ندارند؛ برای هر کدام می‌توانید استعلام قیمت بگیرید.</p></div></header>
     <div className="cat-grid">{data.items.map(h => <HotelCard key={h.id} h={h}/>)}</div>
     {data.total > data.items.length && all}
   </section>;

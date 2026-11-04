@@ -772,7 +772,7 @@ def register_request(data: RegisterRequestIn, request: Request, db: Session = De
         # via a migration: a migration-inserted row would grab a low
         # auto-increment id ahead of seed()'s demo tenants on any fresh
         # database, shifting ids other tests/code may assume are stable.
-        tenant = Tenant(slug=CONSUMER_TENANT_SLUG, name="مشتریان کارن‌سیر", primary_color="#0E7490")
+        tenant = Tenant(slug=CONSUMER_TENANT_SLUG, name="مشتریان کارن تراول", primary_color="#0E7490")
         db.add(tenant)
         try:
             db.flush()
@@ -782,7 +782,7 @@ def register_request(data: RegisterRequestIn, request: Request, db: Session = De
     set_tenant_context(db, tenant.id)
     user = db.scalar(select(User).where(User.tenant_id == tenant.id, User.mobile_e164 == mobile_e164))
     if user is None:
-        user = User(tenant_id=tenant.id, email=f"{mobile_receptor}@mobile.karenseir.local", name=(data.name or "مشتری کارن‌سیر"), role="customer", mobile_e164=mobile_e164)
+        user = User(tenant_id=tenant.id, email=f"{mobile_receptor}@mobile.karenseir.local", name=(data.name or "مشتری کارن تراول"), role="customer", mobile_e164=mobile_e164)
         db.add(user)
         try:
             db.flush()
@@ -1275,7 +1275,7 @@ def _voucher_html(*, reservation, booking_item, user, tenant, voucher, tickets) 
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="utf-8" />
-<title>واچر / بلیت کارن‌سیر — {safe(reservation.booking_reference or reservation.id)}</title>
+<title>واچر / بلیت کارن تراول — {safe(reservation.booking_reference or reservation.id)}</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;800&display=swap" />
 <style>
   :root{{--ink:#08253d;--ocean:#0e7490;--sun:#f4b942;--mist:#f7fafc;--muted:#617184;--line:#dce6eb;--surface:#fff}}
@@ -1303,7 +1303,7 @@ def _voucher_html(*, reservation, booking_item, user, tenant, voucher, tickets) 
 <body>
   <div class="sheet">
     <div class="header">
-      <div class="brand">کارن‌سیر<small>KarenSeir Travel</small></div>
+      <div class="brand">کارن تراول<small>Karen Travel</small></div>
       <div class="status-pill">{safe(status_label)}</div>
     </div>
     <div class="body">
@@ -1314,9 +1314,9 @@ def _voucher_html(*, reservation, booking_item, user, tenant, voucher, tickets) 
       {detail_rows}
       {voucher_row}
       {qr_rows}
-      <div class="note">این سند به صورت خودکار توسط کارن‌سیر صادر شده است. لطفاً هنگام مراجعه، شماره رزرو یا کد QR فوق را همراه داشته باشید.</div>
+      <div class="note">این سند به صورت خودکار توسط کارن تراول صادر شده است. لطفاً هنگام مراجعه، شماره رزرو یا کد QR فوق را همراه داشته باشید.</div>
     </div>
-    <div class="footer">KarenSeir Travel &middot; صادرشده در {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}</div>
+    <div class="footer">Karen Travel &middot; صادرشده در {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}</div>
   </div>
 </body>
 </html>"""
