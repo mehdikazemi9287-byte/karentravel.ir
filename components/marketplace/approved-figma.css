@@ -122,3 +122,14 @@
 /* CMS announcement bar */
 .kh-announce{position:relative;z-index:2;margin:0 auto 10px;max-width:1200px;padding:10px 16px;border-radius:12px;background:#3a1b3d;color:#fff;text-align:center;font-size:14px;line-height:1.7}
 .kh-announce a{color:#fff;text-decoration:underline;text-underline-offset:3px}
+
+/* "همه‌ی سفر، در یک جا" — service grid after the Figma refinement frame 75:435 / 80:236 */
+.kh-eco-sub{margin:-12px 0 18px;color:#6b5a6e;font-size:16px}
+.kh-eco{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.kh-eco-card{display:grid;gap:8px;align-content:start;background:#fffcf9;border-radius:20px;padding:20px;box-shadow:0 4px 20px rgba(102,77,51,.08);color:#2a1530!important;text-decoration:none!important;transition:transform .15s,box-shadow .15s}
+.kh-eco-card:hover,.kh-eco-card:focus-visible{transform:translateY(-2px);box-shadow:0 8px 26px rgba(102,77,51,.14)}
+.kh-eco-card b{font-size:18px}
+.kh-eco-card span:last-child{font-size:14px;color:#6b5a6e;line-height:1.8}
+.kh-eco-icon{width:44px;height:44px;border-radius:14px;background:#fbe3d8;color:#ef5b3d;display:grid;place-items:center;font-size:22px}
+@media(max-width:900px){.kh-eco{grid-template-columns:repeat(2,1fr);gap:12px}.kh-eco-card{padding:16px}}
+@media(max-width:420px){.kh-eco-card b{font-size:16px}}

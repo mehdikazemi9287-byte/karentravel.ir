@@ -585,8 +585,11 @@ async def request_context(request: Request, call_next):
     request.state.correlation_id = correlation_id
     decision = None
     if request.url.path not in {"/health", "/ready", "/metrics"}:
-        route_class = "auth" if request.url.path.startswith("/auth/") else "api"
-        limit, window = ((10, 60) if route_class == "auth" else (300, 60)) if rate_limiter.distributed else (10_000, 60)
+        path = request.url.path
+        # Anonymous website forms (trip/expert requests) get their own small bucket so a script cannot flood the sales desk.
+        is_form = request.method == "POST" and path.startswith("/public/") and "/inbound/" not in path
+        route_class = "auth" if path.startswith("/auth/") else "form" if is_form else "api"
+        limit, window = {"auth": (10, 60), "form": (12, 600), "api": (300, 60)}[route_class] if rate_limiter.distributed else (10_000, 60)
         identity = _rate_limit_identity(request, route_class)
         try:
             decision = await rate_limiter.hit(f"karenseir:rl:{route_class}:{fingerprint(identity)}", limit, window)

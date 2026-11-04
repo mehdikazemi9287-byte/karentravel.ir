@@ -16,9 +16,25 @@ const SERVICES: {href: string; label: string; icon: ReactNode}[] = [
   {href: '/flights', label: 'پرواز', icon: svg(<><path d="M5 30l36-13a3.4 3.4 0 0 0-2.3-6.4L28 14.5 14 9l-4 1.6 9.5 7.7-8 3-4.5-2-2.5 1 4.5 6.5z"/><path d="M12 39h26"/></>)},
 ];
 
+const ECOSYSTEM: {href: string; icon: string; title: string; text: string}[] = [
+  {href: '/flights', icon: '✈', title: 'پرواز، قطار و حمل‌ونقل', text: 'بلیط هواپیما و قطار برای مسیرهای داخلی و خارجی'},
+  {href: '/hotels', icon: '⌂', title: 'هتل و اقامتگاه', text: 'هتل، ویلا و بوم‌گردی متناسب با بودجه'},
+  {href: '/tours', icon: '⌘', title: 'تور و تجربه', text: 'تورهای آژانس‌های همکار و سفرهای گروهی'},
+  {href: '/car-rental', icon: '⌁', title: 'خودرو و ترانسفر', text: 'اجاره‌ی خودرو و ترانسفر فرودگاهی و بین‌شهری'},
+  {href: '/restaurants', icon: '♨', title: 'رستوران و تفریح', text: 'رستوران، استخر و تفریح‌های شهری'},
+  {href: '/destinations', icon: '◎', title: 'راهنمای مقصد', text: 'شهرها، جاذبه‌ها و بهترین زمان سفر'},
+  {href: '/souvenirs', icon: '✿', title: 'سوغات شهرها', text: 'سوغات هر شهر، تا درِ خانه'},
+  {href: '/visa', icon: '▣', title: 'ویزا و خدمات سفر', text: 'ویزا، بیمه‌ی مسافرتی و تشریفات فرودگاهی'},
+];
+
 export function ApprovedHomeLower() {
   const c = useSiteContent();
   return <div className="kh">
+    <section className="kh-sec" aria-labelledby="kh-eco-title">
+      <h2 id="kh-eco-title" className="kh-h2">همه‌ی سفر، در یک جا</h2>
+      <p className="kh-eco-sub">از بلیط و اقامت تا تور، تفریح و سوغات</p>
+      <div className="kh-eco">{ECOSYSTEM.map(e => <Link key={e.href} href={e.href} className="kh-eco-card"><span className="kh-eco-icon" aria-hidden="true">{e.icon}</span><b>{e.title}</b><span>{e.text}</span></Link>)}</div>
+    </section>
     <section className="kh-sec" aria-labelledby="kh-org-title">
       <div className="kh-org">
         <div className="kh-org-text">

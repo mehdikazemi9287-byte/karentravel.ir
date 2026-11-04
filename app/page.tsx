@@ -110,7 +110,7 @@ function FloatingAssistant(){
 }
 function Home(){return <ApprovedFigmaHome/>}
 function Hotels(){return <Shell><ServiceIntro title="هتل و اقامتگاه" description="مقصدتان را انتخاب کنید و گزینه‌های موجود را بررسی کنید. برای راهنمایی انتخاب محل اقامت با ما تماس بگیرید." vertical="hotel"/></Shell>}
-function Compare(){return <Shell><div className="page-hero"><span className="eyebrow">مقایسه حرفه‌ای · داده معتبر</span><h1>تفاوت‌ها را یک‌جا ببینید.</h1><p>برای مقایسه، ابتدا از نتایج جست‌وجو دست‌کم دو گزینه انتخاب کنید. اگر گزینه‌ای موجود نیست، برای راهنمایی با پشتیبانی تماس بگیرید.</p><p className="mt-2 text-sm"><a className="text-link" href="/compare/package">مقایسه و رزرو بسته پرواز + هتل ←</a></p></div><div className="container"><Link className="button primary" href="/hotels">جست‌وجوی اقامت</Link><ContactOptions/></div><ConnectedCompare/></Shell>}
+function Compare(){return <Shell><div className="page-hero"><span className="eyebrow">مقایسه</span><h1>تفاوت‌ها را یک‌جا ببینید.</h1><p>برای مقایسه، ابتدا از نتایج جست‌وجو دست‌کم دو گزینه انتخاب کنید. اگر گزینه‌ای موجود نیست، برای راهنمایی با پشتیبانی تماس بگیرید.</p><p className="mt-2 text-sm"><a className="text-link" href="/compare/package">مقایسه و رزرو بسته پرواز + هتل ←</a></p></div><div className="container"><Link className="button primary" href="/hotels">جست‌وجوی اقامت</Link><ContactOptions/></div><ConnectedCompare/></Shell>}
 const policyIntents=['هتل کیش برای دو نفر یک اتاق','پرواز تهران استانبول جمعه تا دوشنبه','ارزون‌ترین گزینه رو نشون بده','می‌خوام کنسل کنم','با یک نفر صحبت کنم'];
 
 function formatOfferPrice(entity: AssistantEntity): string {
