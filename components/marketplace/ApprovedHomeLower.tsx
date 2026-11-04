@@ -15,37 +15,10 @@ const SERVICES: {href: string; label: string; icon: ReactNode}[] = [
   {href: '/hotels', label: 'اقامت', icon: svg(<><path d="M10 41V12l14-5 14 5v29M6 41h36"/><path d="M17 17h3M28 17h3M17 24h3M28 24h3M17 31h3M28 31h3M22 41v-5h4v5"/></>)},
   {href: '/flights', label: 'پرواز', icon: svg(<><path d="M5 30l36-13a3.4 3.4 0 0 0-2.3-6.4L28 14.5 14 9l-4 1.6 9.5 7.7-8 3-4.5-2-2.5 1 4.5 6.5z"/><path d="M12 39h26"/></>)},
 ];
-const Moon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>;
-const Arrow = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>;
 
 export function ApprovedHomeLower() {
   const c = useSiteContent();
   return <div className="kh">
-    <section className="kh-sec" aria-labelledby="kh-trips-title">
-      <h2 id="kh-trips-title" className="kh-h2">{c.trips.title}</h2>
-      <div className="kh-trips">{c.trips.items.map(t => <Link key={t.href + t.title} href={t.href} className="kh-trip">
-        <div className="kh-trip-body"><h3>{t.title}{t.title2 ? <><br/>{t.title2}</> : null}</h3>{t.meta ? <p className="kh-trip-meta"><Moon/>{t.meta}</p> : null}<p className="kh-trip-price">استعلام قیمت</p><span className="kh-trip-go"><Arrow/></span></div>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={imageSrc(t.image)} alt="" loading="lazy"/>
-      </Link>)}</div>
-    </section>
-    <section className="kh-sec" aria-labelledby="kh-ai-title">
-      <div className="kh-ai">
-        <svg className="kh-ai-path" viewBox="0 0 1200 120" preserveAspectRatio="none" aria-hidden="true"><path d="M20 90C180 10 320 110 480 50s300-60 440 10 180 30 240-20" fill="none" stroke="#fff" strokeWidth="2" strokeDasharray="7 9"/></svg>
-        <h2 id="kh-ai-title">{c.assistant.title}</h2>
-        <Link href="/assistant" className="kh-ai-cta"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-8 8H5l-2 2V12a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8z"/></svg>شروع گفتگو</Link>
-        <div className="kh-ai-chips">{c.assistant.prompts.map(p => <Link key={p} href={`/assistant?q=${encodeURIComponent(p)}`}>{p}</Link>)}</div>
-      </div>
-    </section>
-    <section className="kh-sec" aria-labelledby="kh-cmp-title">
-      <div className="kh-cmp">
-        <h2 id="kh-cmp-title">{c.compare.title}</h2>
-        {c.compare.items.map(h => <Link key={h.href + h.title} href={h.href} className="kh-cmp-hotel" aria-label={h.title + ' — مشاهده و استعلام قیمت'}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={imageSrc(h.image)} alt="" loading="lazy"/><div><b>{h.title}</b><span>قیمت پس از استعلام</span></div></Link>)}
-        <Link href="/compare" className="kh-cmp-cta"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 4v16M6 20h12M5 8h14M5 8l-3 7a3 3 0 0 0 6 0zM19 8l-3 7a3 3 0 0 0 6 0z"/></svg>مقایسه کن</Link>
-      </div>
-    </section>
     <section className="kh-sec" aria-labelledby="kh-org-title">
       <div className="kh-org">
         <div className="kh-org-text">
@@ -78,7 +51,6 @@ export function ApprovedFooterLight() {
       </div>
       <div className="kh-foot-col"><h3>پشتیبانی</h3><Link href="/support">مرکز راهنمایی</Link><Link href="/support">پرسش‌های متداول</Link><Link href="/terms">شرایط استرداد</Link><Link href="/support">گزارش تخلف</Link></div>
       <div className="kh-foot-col"><h3>کارن‌سیر</h3><Link href="/contact">درباره ما</Link><Link href="/contact">تماس با ما</Link><Link href="/terms">قوانین و مقررات</Link><Link href="/privacy">حریم خصوصی</Link></div>
-      <div className="kh-foot-col kh-foot-app"><h3>دانلود اپلیکیشن کارن‌سیر</h3><div className="kh-badges" aria-label="به‌زودی"><span>بازار</span><span dir="ltr">Google Play</span></div><small>به‌زودی</small></div>
     </div>
     <p className="kh-foot-copy">{c.footer.copyright}</p>
   </div>;
@@ -98,17 +70,10 @@ export function ApprovedHomeHero({search}: {search: ReactNode}) {
       <picture>{!custom && <source media="(min-width:1200px)" srcSet={A + 'refHero.jpg'}/>}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={imageSrc(h.image)} alt={h.image_alt}/></picture>
-      {h.minis.map((m, i) => <Link key={m.href + i} href={m.href} className={`kh-mini kh-mini-${i + 1}`}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={imageSrc(m.image)} alt=""/><span><b>{m.title}</b><Arrow/></span></Link>)}
     </div>
     <div className="kh-hero-text">
       <h1>{h.title}{h.title2 ? <><br/>{h.title2}</> : null}</h1>
       <p>{h.subtitle}{h.subtitle2 ? <><br/>{h.subtitle2}</> : null}</p>
-      <ul>
-        <li><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 14v-2a8 8 0 0 1 16 0v2M4 14a2 2 0 0 1 2-2h1v6H6a2 2 0 0 1-2-2zM20 14a2 2 0 0 0-2-2h-1v6h1a2 2 0 0 0 2-2zM17 18v1a3 3 0 0 1-3 3h-2"/></svg><span>پشتیبانی<small>همراه شما</small></span></li>
-        <li><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.8 2.8L16 9.5"/></svg><span>رزرو<small>قابل پیگیری</small></span></li>
-      </ul>
     </div>
     {search}
   </div>;

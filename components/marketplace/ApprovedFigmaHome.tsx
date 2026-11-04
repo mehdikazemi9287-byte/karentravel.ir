@@ -214,7 +214,7 @@ export default function ApprovedFigmaHome() {
           <div className="content-stretch flex gap-[8px] items-center overflow-clip relative shrink-0" data-node-id="45:15" data-name="Logo">
             <ComponentLogoMark className="relative shrink-0 size-[34px]" />
             <p className="[word-break:break-word] font-[Vazirmatn] font-bold leading-[normal] relative shrink-0 text-[#3a1b3d] text-[19px] whitespace-nowrap" dir="auto" data-node-id="45:17">
-              <Link href="/" aria-label="کارن سیر، صفحه اصلی">کارن سیر</Link>
+              <Link href="/" aria-label="کارن‌سیر، صفحه اصلی">کارن‌سیر</Link>
             </p>
           </div>
         </div>
@@ -240,7 +240,7 @@ export function ApprovedHeader(){return (<div className="bg-[#fffcf9] content-st
           <div className="content-stretch flex gap-[8px] items-center overflow-clip relative shrink-0" data-node-id="45:15" data-name="Logo">
             <ComponentLogoMark className="relative shrink-0 size-[34px]" />
             <p className="[word-break:break-word] font-[Vazirmatn] font-bold leading-[normal] relative shrink-0 text-[#3a1b3d] text-[19px] whitespace-nowrap" dir="auto" data-node-id="45:17">
-              <Link href="/" aria-label="کارن سیر، صفحه اصلی">کارن سیر</Link>
+              <Link href="/" aria-label="کارن‌سیر، صفحه اصلی">کارن‌سیر</Link>
             </p>
           </div>
         </div>)}

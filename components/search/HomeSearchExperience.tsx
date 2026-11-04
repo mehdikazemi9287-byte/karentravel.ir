@@ -121,7 +121,7 @@ export function HomeSearchExperience({defaultVertical="flight",presentation}:{de
       returnDate:params.get('return')||'',
       flexibility:params.get('flexibility')||'exact',
       tripType:(params.get('trip_type') as TripType|null)||'round_trip',
-      adults:Number(params.get('adults')||2),
+      adults:Number(params.get('adults')||1),
       children:Number(params.get('children')||0),
       infants:Number(params.get('infants')||0),
       rooms:Number(params.get('rooms')||1),

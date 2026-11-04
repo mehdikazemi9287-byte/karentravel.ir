@@ -7,24 +7,26 @@ import {ApiError} from '../../lib/api/karenseir-client';
 type State = {kind: 'idle' | 'sending' | 'done'} | {kind: 'error'; message: string};
 const blank = {customer_name: '', mobile: '', trip: '', travel_date: '', travellers: '1', description: '', consent: false, website: ''};
 
-export function TripRequestForm({compact = false}: {compact?: boolean}) {
+type Initial = Partial<Pick<typeof blank, 'trip' | 'travel_date' | 'travellers' | 'description'>>;
+
+export function TripRequestForm({compact = false, initial, title = 'درخواست سفر و مشاوره', intro}: {compact?: boolean; initial?: Initial; title?: string; intro?: string}) {
   const {api} = useAuth();
-  const [v, setV] = useState(blank);
+  const [v, setV] = useState({...blank, ...initial});
   const [state, setState] = useState<State>({kind: 'idle'});
   const set = (k: keyof typeof blank) => (e: {target: {value: string; checked?: boolean; type?: string}}) => setV({...v, [k]: e.target.type === 'checkbox' ? !!e.target.checked : e.target.value});
   async function submit(e: FormEvent) {
     e.preventDefault(); setState({kind: 'sending'});
     try {
       await api.publicPost('/public/sales-desk/requests', {...v, travellers: Number(v.travellers) || 1, travel_date: v.travel_date || null, description: v.description || null, website: v.website || null});
-      setState({kind: 'done'}); setV(blank);
+      setState({kind: 'done'}); setV({...blank, ...initial});
     } catch (x) {
       const status = x instanceof ApiError ? x.status : 0;
       setState({kind: 'error', message: status === 503 ? 'ثبت آنلاین درخواست فعلاً فعال نیست؛ لطفاً با پشتیبانی تماس بگیرید.' : status === 422 ? 'نام، شماره‌ی موبایل و سفر موردنظر را درست وارد کنید و رضایت تماس را تأیید کنید.' : status === 429 ? 'درخواست‌ها زیاد بوده؛ کمی بعد دوباره تلاش کنید.' : 'ارسال انجام نشد؛ اتصال را بررسی کنید.'});
     }
   }
   if (state.kind === 'done') return <article className="panel" role="status"><h2>درخواست شما رسید</h2><p>کارشناس فروش برای پیشنهاد گزینه‌ها با شماره‌ی شما تماس می‌گیرد. این پیام به معنی رزرو یا تأیید قیمت نیست.</p><button className="button secondary" onClick={() => setState({kind: 'idle'})}>ثبت درخواست دیگر</button></article>;
-  return <article className="panel" id="request"><h2>درخواست سفر و مشاوره</h2>
-    {!compact && <p>مقصد، تاریخ و تعداد مسافران را بنویسید تا کارشناس فروش بهترین گزینه‌ها را برایتان آماده کند.</p>}
+  return <article className="panel" id="request"><h2>{title}</h2>
+    {!compact && <p>{intro ?? 'مقصد، تاریخ و تعداد مسافران را بنویسید تا کارشناس فروش بهترین گزینه‌ها را برایتان آماده کند.'}</p>}
     <form onSubmit={submit} noValidate={false}>
       <label>نام و نام خانوادگی<input required minLength={2} maxLength={160} value={v.customer_name} onChange={set('customer_name')} autoComplete="name"/></label>
       <label>شماره‌ی موبایل<input required inputMode="tel" dir="ltr" placeholder="09xxxxxxxxx" value={v.mobile} onChange={set('mobile')} autoComplete="tel"/></label>
