@@ -42,8 +42,26 @@ def test_parsing_and_helpers():
     assert refund_inputs({"Fare": "100", "TAXES": [{"TaxCode": "LP", "TaxAmount": "5"}, {"TaxCode": "YQ", "TaxAmount": "7"}, {"TaxCode": "KU", "TaxAmount": "3"}]}) == (Decimal(100), Decimal(10), Decimal(5))
 
 
+def test_office_auth_b64_key_and_sign(monkeypatch):
+    import base64
+    monkeypatch.setenv("MAHAN_QAA_API_KEY_B64", base64.b64encode(b"k$1$2").decode())
+    monkeypatch.setenv("MAHAN_QAA_OFFICE_USER", "THR1.WS")
+    monkeypatch.setenv("MAHAN_QAA_OFFICE_PASS", "p@$$w")
+    fake = Fake({"AvailabilityFareJS": (200, AVAIL)})
+    cli = MahanClient(env="qaa", transport=fake)
+    assert cli.key == "k$1$2"
+    cli.availability("THR", "KIH", "2026-12-01", 1)
+    url = fake.calls[-1][1]
+    assert "OfficeUser=THR1.WS" in url and "OfficePass=p%40%24w" in url
+    sign = MahanClient(env="qaa", transport=lambda m, u, json=None, headers=None: httpx.Response(200, content=b"SIGN", headers={"content-type": "application/json"}))
+    with pytest.raises(MahanError) as e:
+        sign.availability("THR", "KIH", "2026-12-01", 1)
+    assert e.value.code == "SIGN"
+
+
 def test_client_requests(monkeypatch):
     monkeypatch.delenv("MAHAN_QAA_API_KEY", raising=False)
+    monkeypatch.delenv("MAHAN_QAA_API_KEY_B64", raising=False)
     with pytest.raises(MahanError):
         MahanClient(env="qaa")
     fake = Fake({"AvailabilityFareJS": (200, AVAIL), "FareQuote": (200, QUOTE), "Res/Book": (200, {"result": {"PNR": "ABC123"}, "errorCode": 0})})
@@ -74,8 +92,17 @@ def test_cert_passengers_and_runner(monkeypatch, capsys):
     assert mc.main([]) == 2                                                  # never against Live
     monkeypatch.setenv("MAHAN_ENV", "qaa")
     monkeypatch.setenv("MAHAN_QAA_API_KEY", "k")
-    fake = Fake({"AvailabilityFareJS": (200, AVAIL), "FareQuote": (200, QUOTE), "Res/Book": (200, {"result": {"PNR": "PNR777"}, "errorCode": 0})})
-    monkeypatch.setattr(mc, "MahanClient", lambda env: MahanClient(env=env, api_key="k", transport=fake))
+    def send(method, url, json=None, headers=None):
+        if "AvailabilityFareJS" in url:
+            return httpx.Response(200, content=json_dumps(AVAIL), headers={"content-type": "application/json"})
+        if "FareQuote" in url:
+            biz = json["Segments"][0]["FlightClass"] == "C"
+            q = {**QUOTE, "result": {**QUOTE["result"], "Cabin": "C" if biz else "Y"}}
+            return httpx.Response(200, content=json_dumps(q), headers={"content-type": "application/json"})
+        return httpx.Response(200, content=json_dumps({"result": {"PNR": "PNR777"}, "errorCode": 0}), headers={"content-type": "application/json"})
+    monkeypatch.setattr(mc, "MahanClient", lambda env: MahanClient(env=env, api_key="k", transport=send))
     assert mc.main(["--only", "1,5"]) == 0
     out = capsys.readouterr().out
     assert "PNR777" in out and "64000000 IRR" in out and "MAHAN-CERT-DONE 2/2" in out
+    assert "W5 1063 (C)" not in out and "W51063 (C)" in out and "W51063 (Y)" in out   # scenario 5 business = class C, scenario 1 economy = Y
+    assert mc.is_business("C+C") and not mc.is_business("Y") and not mc.is_business("")
