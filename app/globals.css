@@ -794,3 +794,8 @@ a.cat-card:hover{box-shadow:0 12px 28px rgba(8,37,61,.12);transform:translateY(-
 .pdv-card:hover{border-color:#ef5b3d}.pdv-card em{align-self:flex-start;font-style:normal;font-size:11px;background:#f3ecf6;color:#3a1b3d;border-radius:999px;padding:2px 10px}
 .pdv-card b{font-size:15px}.pdv-card p{margin:0;color:#6b5a66;font-size:13px;line-height:1.8;flex:1}.pdv-card span{color:#ef5b3d;font-weight:700;font-size:13px}
 .pdv~.pv-muted,.pdv .pv-muted{margin-top:8px}
+/* Gift Asan souvenirs */
+.gs{margin-block:28px;background:linear-gradient(135deg,#fff6ea,#fdf0f3);border:1px solid #efdccb;border-radius:18px;padding:20px 22px;display:flex;flex-direction:column;gap:14px}
+.gs h2{margin:0 0 6px;font-size:19px;color:#2a1530}.gs p{margin:0;color:#5c4b56;font-size:14px;line-height:1.9}
+.gs-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:10px}.gs-btn{background:#1f9d55;color:#fff!important;border-radius:10px;padding:9px 16px;font-weight:700;text-decoration:none}.gs-link{color:#ef5b3d;font-weight:700}
+.gs-cities{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}.gs-cities a{display:inline-block;background:#fff;border:1px solid #efdccb;border-radius:999px;padding:5px 12px;font-size:13px;color:#2a1530;text-decoration:none}
