@@ -52,6 +52,7 @@ def test_train_request_flow(client):
     offers = o.json()["offers"]
     assert offers[0]["total"] == 2 * 30_000_000 + 20_000_000 and o.json()["status"] == "offered"
 
+    assert any(n["topic"] == "train_request" and n["title"] == "پیشنهاد قطار آماده است" for n in client.get("/me/notifications", headers=cust).json())
     mine = client.get("/me/train-requests", headers=cust).json()["items"]
     assert mine[0]["id"] == req["id"] and len(mine[0]["offers"]) == 2
     assert client.post(f"/me/train-requests/{req['id']}/accept", json={"offer_ids": ["nope"]}, headers=cust).status_code == 422
