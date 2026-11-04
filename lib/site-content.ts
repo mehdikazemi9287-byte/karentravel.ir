@@ -1,6 +1,7 @@
 'use client';
 /* Published site content (CMS slots). The built-in defaults below are what the site shows for any slot never
    published; an editor's published version replaces a slot as a whole. No price, rating or availability lives here. */
+import { resolveApiBase } from './api/karenseir-client';
 import {useEffect, useState} from 'react';
 
 export type CmsCard = {title: string; title2?: string; meta?: string; href: string; image: string};
@@ -37,7 +38,7 @@ export const DEFAULT_CONTENT: SiteContent = {
 };
 
 export const tenantSlug = () => process.env.NEXT_PUBLIC_TENANT_SLUG || 'aftab-bank';
-const apiBase = () => (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000').replace(/\/$/, '');
+const apiBase = () => resolveApiBase(process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000');
 
 /** `media:<id>` → public media URL; site paths are returned as they are. */
 export function imageSrc(ref: string): string {
