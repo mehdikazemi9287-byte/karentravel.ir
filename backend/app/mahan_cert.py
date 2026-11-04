@@ -12,6 +12,7 @@ import argparse
 import csv
 import io
 import os
+import random
 import sys
 from datetime import date, timedelta
 
@@ -36,24 +37,35 @@ def log(msg: str) -> None:
     print(msg, flush=True)
 
 
-def _docs(scope: str, gender: str, dob: str, surname: str, given: str) -> str:
+def national_code(rng: random.Random) -> str:
+    """A synthetic 10-digit Iranian national code with a valid check digit (Mahan rejects a document repeated on a flight)."""
+    d = [rng.randint(0, 9) for _ in range(9)]
+    r = sum(x * (10 - i) for i, x in enumerate(d)) % 11
+    return "".join(map(str, d)) + str(r if r < 2 else 11 - r)
+
+
+def _docs(scope: str, gender: str, dob: str, surname: str, given: str, rng: random.Random) -> str:
     if scope == "domestic":
-        return docs_text("I", "IRN", "0050298750", "IRN", dob, gender, "16NOV28", surname, given)
-    return docs_text("P", "IRN", "T97648553", "IRN", dob, gender, "16NOV28", surname, given)
+        return docs_text("I", "IRN", national_code(rng), "IRN", dob, gender, "16NOV28", surname, given)
+    return docs_text("P", "IRN", f"T{rng.randint(10000000, 99999999)}", "IRN", dob, gender, "16NOV28", surname, given)
 
 
-def passengers(scope: str, adults: int, children: int, infants: int, segments: list[dict]) -> list[dict]:
+def passengers(scope: str, adults: int, children: int, infants: int, segments: list[dict], rng: Optional[random.Random] = None) -> list[dict]:
+    """Each passenger gets its own synthetic document, the same one on every segment."""
+    rng = rng or random.Random()
     out = []
     names = ["TESTA", "TESTB", "TESTC", "TESTD"]
     for i in range(adults):
         given, gender = names[i], ("F" if i == 0 else "M")
-        ssrs = [{"SSRType": "DOCS", "FlightNo": s["FlightNo"], "DepartureDate": s["DepartureDate"], "FreeText": _docs(scope, gender, "07JAN86", "TEST", given)} for s in segments]
+        doc = _docs(scope, gender, "07JAN86", "TEST", given, rng)
+        ssrs = [{"SSRType": "DOCS", "FlightNo": s["FlightNo"], "DepartureDate": s["DepartureDate"], "FreeText": doc} for s in segments]
         if i == 0 and infants:
             ssrs += [{"SSRType": "INFT", "FlightNo": s["FlightNo"], "DepartureDate": s["DepartureDate"], "FreeText": "TESTINFANT/TESTINFANT 10JAN26"} for s in segments]
         out.append({"FirstName": given, "LastName": "TEST", "AgeType": "AD", "Title": "MS" if gender == "F" else "MR", "Parent": "", "SSRs": ssrs})
     for i in range(children):
         given = "TESTCHILD" + "ABCD"[i]
-        ssrs = [{"SSRType": "DOCS", "FlightNo": s["FlightNo"], "DepartureDate": s["DepartureDate"], "FreeText": _docs(scope, "M", "07JAN16", "TEST", given)} for s in segments]
+        doc = _docs(scope, "M", "07JAN16", "TEST", given, rng)
+        ssrs = [{"SSRType": "DOCS", "FlightNo": s["FlightNo"], "DepartureDate": s["DepartureDate"], "FreeText": doc} for s in segments]
         out.append({"FirstName": given, "LastName": "TEST", "AgeType": "CH", "Title": "MR", "Parent": "", "SSRs": ssrs})
     return out
 
