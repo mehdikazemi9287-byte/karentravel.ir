@@ -10,6 +10,7 @@ Rules taken from the reference and kept here on purpose:
 """
 from __future__ import annotations
 
+import base64
 import os
 import re
 from dataclasses import dataclass, field
@@ -134,6 +135,7 @@ class Quote:
     surcharge: Decimal
     coupons: list[dict]
     breakdown: list[dict]
+    cabin: str = ""
     raw: dict = field(default_factory=dict, repr=False)
 
 
@@ -150,7 +152,7 @@ def parse_quote(payload: dict) -> Quote:
     if tf is None or tp is None:
         raise MahanError("FareQuote without totals")
     return Quote(currency=r.get("Currency") or "IRR", total_fare=tf, total_tax=tt or Decimal(0), total_price=tp, surcharge=surcharge,
-                 coupons=r.get("Coupons") or [], breakdown=r.get("PassengerBreakdown") or [], raw=payload)
+                 coupons=r.get("Coupons") or [], breakdown=r.get("PassengerBreakdown") or [], cabin=str(r.get("Cabin") or ""), raw=payload)
 
 
 def docs_text(doc_type: str, country: str, number: str, nationality: str, dob: str, gender: str, expiry: str, surname: str, given: str) -> str:
@@ -168,12 +170,20 @@ class MahanClient:
         self.env = (env or os.environ.get("MAHAN_ENV") or "qaa").lower()
         if self.env not in ENVS:
             raise ValueError("MAHAN_ENV must be qaa or live")
-        self.key = api_key or os.environ.get("MAHAN_QAA_API_KEY" if self.env == "qaa" else "MAHAN_API_KEY") or ""
+        prefix = "MAHAN_QAA_" if self.env == "qaa" else "MAHAN_"
+        b64 = os.environ.get(prefix + "API_KEY_B64")
+        self.key = (api_key or (base64.b64decode(b64).decode() if b64 else os.environ.get(prefix + "API_KEY")) or "").strip()
         if not self.key:
             raise MahanError("کلید وب‌سرویس ماهان تنظیم نشده است", code="NO_KEY")
+        # The JSP/CGI query methods (AvailabilityFareJS, NRSRT, ETIssueJS, ...) authenticate with the office user/password
+        # (verified on QAA: X-API-Key alone answers "SIGN"); the REST methods (FareQuote, Book) with X-API-Key.
+        self.office = {"OfficeUser": os.environ.get(prefix + "OFFICE_USER", "").strip(), "OfficePass": os.environ.get(prefix + "OFFICE_PASS", "").strip().replace("$$", "$")}
         self.urls = ENVS[self.env]
         self._send = transport
         self.timeout = timeout
+
+    def _q(self, params: dict) -> str:
+        return urlencode({**params, **{k: v for k, v in self.office.items() if v}})
 
     def _request(self, method: str, url: str, json: Optional[dict] = None) -> Any:
         headers = {"X-API-Key": self.key, "Accept": "application/json"}
@@ -191,14 +201,17 @@ class MahanClient:
             raise MahanError("سرویس ماهان موقتاً در دسترس نیست", code="UNAVAILABLE", status=503)
         if r.status_code >= 400:
             raise MahanError(f"HTTP {r.status_code}", status=r.status_code)
+        text = (r.text or "").strip()
+        if text in ("SIGN", '"SIGN"'):
+            raise MahanError("ماهان ورود را نپذیرفت (نام کاربری/رمز دفتر یا کلید)", code="SIGN")
         try:
             return r.json()
         except ValueError as exc:
-            raise MahanError("پاسخ ماهان JSON نبود", code="BAD_RESPONSE") from exc
+            raise MahanError(f"پاسخ ماهان JSON نبود: {text[:80]}", code="BAD_RESPONSE") from exc
 
     # ---- shopping ----
     def availability(self, origin: str, destination: str, date: str, adults: int, children: int = 0, infants: int = 0) -> list[Flight]:
-        q = urlencode({"AirLine": AIRLINE, "cbSource": origin, "cbTarget": destination, "cbAdultQty": adults, "cbChildQty": children, "cbInfantQty": infants, "DepartureDate": date})
+        q = self._q({"AirLine": AIRLINE, "cbSource": origin, "cbTarget": destination, "cbAdultQty": adults, "cbChildQty": children, "cbInfantQty": infants, "DepartureDate": date})
         return parse_availability(self._request("GET", f"{self.urls['ws1']}/AvailabilityFareJS.jsp?{q}"))
 
     def fare_quote(self, segments: list[dict], adults: int, children: int = 0, infants: int = 0, currency: Optional[str] = None) -> Quote:
@@ -218,11 +231,11 @@ class MahanClient:
 
     # ---- after sale ----
     def retrieve_pnr(self, pnr: str) -> dict:
-        return self._request("GET", f"{self.urls['ws1']}/NRSRT.jsp?{urlencode({'AirLine': AIRLINE, 'PNR': pnr})}")
+        return self._request("GET", f"{self.urls['ws1']}/NRSRT.jsp?{self._q({'AirLine': AIRLINE, 'PNR': pnr})}")
 
     def issue(self, pnr: str, email: str) -> list[str]:
         """Financial. On timeout the caller must reconcile with retrieve_pnr/retrieve_ticket, not call issue again."""
-        data = self._request("GET", f"{self.urls['cgi']}/ETIssueJS?{urlencode({'AirLine': AIRLINE, 'PNR': pnr, 'EMail': email})}")
+        data = self._request("GET", f"{self.urls['cgi']}/ETIssueJS?{self._q({'AirLine': AIRLINE, 'PNR': pnr, 'EMail': email})}")
         tickets = []
         for row in (data.get("AirNRSTICKETS") or []):
             text = str(row.get("Tickets") or "")
@@ -232,23 +245,23 @@ class MahanClient:
         return tickets
 
     def retrieve_ticket(self, ticket_no: str) -> dict:
-        return self._request("GET", f"{self.urls['ws1']}/NRSETR.jsp?{urlencode({'AirLine': AIRLINE, 'TicketNo': ticket_no})}")
+        return self._request("GET", f"{self.urls['ws1']}/NRSETR.jsp?{self._q({'AirLine': AIRLINE, 'TicketNo': ticket_no})}")
 
     def cancel_pnr(self, pnr: str) -> str:
-        data = self._request("GET", f"{self.urls['cgi']}/CancelPNRJS?{urlencode({'AirLine': AIRLINE, 'PNR': pnr})}")
+        data = self._request("GET", f"{self.urls['cgi']}/CancelPNRJS?{self._q({'AirLine': AIRLINE, 'PNR': pnr})}")
         rows = data.get("AirCancelPNR") or [{}]
         return str(rows[0].get("Error") or "")
 
     def cancel_seat(self, pnr: str, first: str, last: str, date: str, flight_no: str) -> dict:
-        q = urlencode({"AirLine": AIRLINE, "PNR": pnr, "PassengerName": first, "PassengerLastName": last, "DepartureDate": date, "FlightNo": flight_no})
+        q = self._q({"AirLine": AIRLINE, "PNR": pnr, "PassengerName": first, "PassengerLastName": last, "DepartureDate": date, "FlightNo": flight_no})
         return (self._request("GET", f"{self.urls['cgi']}/CancelSeatJS?{q}").get("AirCancelSeat") or [{}])[0]
 
     def penalty(self, ticket_no: str, now: bool = True) -> dict:
-        return self._request("GET", f"{self.urls['ws1']}/{'NRSPenaltyNow' if now else 'NRSPenalty'}.jsp?{urlencode({'AirLine': AIRLINE, 'TicketNo': ticket_no})}")
+        return self._request("GET", f"{self.urls['ws1']}/{'NRSPenaltyNow' if now else 'NRSPenalty'}.jsp?{self._q({'AirLine': AIRLINE, 'TicketNo': ticket_no})}")
 
     def refund(self, ticket_no: str, fare: Decimal, ku: Decimal, lp: Decimal, penalty: Decimal) -> dict:
         """Financial. Values must come from NRSETR (Fare, taxes except LP = KU, LP) and NRSPenalty after seat cancellation."""
-        q = urlencode({"AirLine": AIRLINE, "TicketNo": ticket_no, "Fare": str(fare), "KU": str(ku), "LP": str(lp), "Penalty": str(penalty)})
+        q = self._q({"AirLine": AIRLINE, "TicketNo": ticket_no, "Fare": str(fare), "KU": str(ku), "LP": str(lp), "Penalty": str(penalty)})
         row = (self._request("GET", f"{self.urls['cgi']}/ETRefundJS?{q}").get("AirNRSRefund") or [{}])[0]
         if str(row.get("Done")) != "0":
             raise MahanError(row.get("Desc") or "Refund failed", code=str(row.get("Done")))

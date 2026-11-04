@@ -58,53 +58,64 @@ def passengers(scope: str, adults: int, children: int, infants: int, segments: l
     return out
 
 
-def candidates(flights: list[Flight], business: bool, need: int) -> list[tuple[Flight, str]]:
-    out = []
-    for f in flights:
-        for c in f.open_classes(business=business):
-            if c.seats >= need:
-                out.append((f, c.rbd))
-    return out
+def candidates(flights: list[Flight], need: int) -> list[tuple[Flight, str]]:
+    """Every open class with enough seats; cabin (economy/business) is decided by FareQuote's Cabin, not guessed from the RBD."""
+    return [(f, c.rbd) for f in flights for c in f.classes if c.seats >= need]
 
 
-def run_one(cli: MahanClient, sc: tuple, routes: dict, out_day: str, back_day: str, contact: str) -> dict:
+def is_business(cabin: str) -> bool:
+    c = cabin.upper()
+    return "BUS" in c or any(part.strip() in ("C", "J", "F", "BUSINESS") for part in c.replace("/", "+").split("+"))
+
+
+def run_one(cli: MahanClient, sc: tuple, routes: dict, days: list[str], stay: int, contact: str, max_quotes: int = 24) -> dict:
     sid, title, scope, rt, ad, ch, inf, biz = sc
     org, dst = routes[scope]
-    row = {"ID": sid, "Test Case": title, "Departure date": out_day, "Return date": back_day if rt else ""}
-    seat_need = ad + ch
-    out_opts = candidates(cli.availability(org, dst, out_day, ad, ch, inf), biz, seat_need)
-    back_opts = candidates(cli.availability(dst, org, back_day, ad, ch, inf), biz, seat_need) if rt else [(None, None)]
-    log(f"  [{sid}] availability: {len(out_opts)} outbound option(s){f', {len(back_opts)} return option(s)' if rt else ''}")
-    if not out_opts or not back_opts:
-        raise MahanError(f"no open {'business' if biz else 'economy'} class for {seat_need} seat(s)")
+    need = ad + ch
+    quotes = 0
     last_err: Optional[Exception] = None
-    for (fo, ro) in out_opts[:4]:
-        for (fb, rb) in back_opts[:3]:
-            segs = [{"Origin": org, "Destination": dst, "FlightNo": fo.flight_no, "DepartureDate": out_day, "FlightClass": ro}]
-            if fb is not None:
-                segs.append({"Origin": dst, "Destination": org, "FlightNo": fb.flight_no, "DepartureDate": back_day, "FlightClass": rb})
-            quote_segs = [{"Origin": s["Origin"], "Destination": s["Destination"], "FlightClass": s["FlightClass"], "Departure": s["DepartureDate"], "FlightNo": s["FlightNo"]} for s in segs]
-            try:
-                q = cli.fare_quote(quote_segs, ad, ch, inf)
-            except MahanError as exc:
-                last_err = exc
-                log(f"  [{sid}] FareQuote {'/'.join(s['FlightNo'] + s['FlightClass'] for s in segs)}: {exc}")
-                continue
-            log(f"  [{sid}] FareQuote {'/'.join(s['FlightNo'] + s['FlightClass'] for s in segs)}: {q.total_price} {q.currency}")
-            pnr = cli.book(segs, passengers(scope, ad, ch, inf, segs), contact)
-            log(f"  [{sid}] Book: PNR {pnr}")
-            base = q.total_fare
-            row.update({"Flight no": " / ".join(f"W5{s['FlightNo']} ({s['FlightClass']})" for s in segs), "Total Fare": str(q.total_fare), "Total Tax": str(q.total_tax),
-                        "Base Price": str(base), "Total Surcharge": str(q.surcharge), "Payment Amount and Currency": f"{q.total_price} {q.currency}", "Booking ReferenceID (PNR)": pnr})
-            return row
-    raise MahanError(f"no priceable combination ({last_err})")
+    for out_day in days:
+        back_day = (date.fromisoformat(out_day) + timedelta(days=stay)).isoformat()
+        out_opts = candidates(cli.availability(org, dst, out_day, ad, ch, inf), need)
+        if not out_opts:
+            continue
+        back_opts = candidates(cli.availability(dst, org, back_day, ad, ch, inf), need) if rt else [(None, None)]
+        if not back_opts:
+            continue
+        log(f"  [{sid}] {out_day}: {len(out_opts)} outbound class option(s){f', {len(back_opts)} return' if rt else ''}")
+        for (fo, ro) in out_opts:
+            for (fb, rb) in back_opts[:4]:
+                if quotes >= max_quotes:
+                    raise MahanError(f"no priceable {'business' if biz else 'economy'} combination after {quotes} quotes ({last_err})")
+                segs = [{"Origin": org, "Destination": dst, "FlightNo": str(fo.flight_no), "DepartureDate": out_day, "FlightClass": ro}]
+                if fb is not None:
+                    segs.append({"Origin": dst, "Destination": org, "FlightNo": str(fb.flight_no), "DepartureDate": back_day, "FlightClass": rb})
+                label = " / ".join(f"W5{s['FlightNo']}{s['FlightClass']} {s['DepartureDate']}" for s in segs)
+                quotes += 1
+                try:
+                    q = cli.fare_quote([{"Origin": s["Origin"], "Destination": s["Destination"], "FlightClass": s["FlightClass"], "Departure": s["DepartureDate"], "FlightNo": s["FlightNo"]} for s in segs], ad, ch, inf)
+                except MahanError as exc:
+                    last_err = exc
+                    log(f"  [{sid}] FareQuote {label}: {exc}")
+                    continue
+                if is_business(q.cabin) != biz:
+                    log(f"  [{sid}] FareQuote {label}: cabin {q.cabin or '?'} — not {'business' if biz else 'economy'}, next")
+                    continue
+                log(f"  [{sid}] FareQuote {label}: {q.total_price} {q.currency} (cabin {q.cabin})")
+                pnr = cli.book(segs, passengers(scope, ad, ch, inf, segs), contact)
+                log(f"  [{sid}] Book: PNR {pnr}")
+                return {"ID": sid, "Test Case": title, "Departure date": out_day, "Return date": back_day if rt else "",
+                        "Flight no": " / ".join(f"W5{s['FlightNo']} ({s['FlightClass']})" for s in segs), "Total Fare": str(q.total_fare), "Total Tax": str(q.total_tax),
+                        "Base Price": str(q.total_fare), "Total Surcharge": str(q.surcharge), "Payment Amount and Currency": f"{q.total_price} {q.currency}", "Booking ReferenceID (PNR)": pnr}
+    raise MahanError(f"no priceable {'business' if biz else 'economy'} combination in the date window ({last_err})")
 
 
 def main(argv: Optional[list[str]] = None) -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--days", type=int, default=21)
+    ap.add_argument("--days", type=int, default=7)
+    ap.add_argument("--window", type=int, default=30, help="how many departure days to try")
     ap.add_argument("--stay", type=int, default=4)
-    ap.add_argument("--domestic", default="THR-MHD")
+    ap.add_argument("--domestic", default="THR-KIH")
     ap.add_argument("--international", default="IKA-IST")
     ap.add_argument("--only", default="", help="comma-separated scenario ids")
     a = ap.parse_args(argv)
@@ -117,8 +128,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         print(f"MAHAN-CERT-ERROR {exc}", file=sys.stderr)
         return 2
     routes = {"domestic": tuple(a.domestic.split("-")), "international": tuple(a.international.split("-"))}
-    out_day = (date.today() + timedelta(days=a.days)).isoformat()
-    back_day = (date.today() + timedelta(days=a.days + a.stay)).isoformat()
+    days = [(date.today() + timedelta(days=a.days + i)).isoformat() for i in range(a.window)]
     contact = os.environ.get("MAHAN_TEST_CONTACT") or "+989191258009"
     only = {int(x) for x in a.only.split(",") if x.strip()}
     rows = []
@@ -127,10 +137,10 @@ def main(argv: Optional[list[str]] = None) -> int:
             continue
         log(f"== scenario {sc[0]}: {sc[1]} ({sc[2]})")
         try:
-            rows.append(run_one(cli, sc, routes, out_day, back_day, contact))
+            rows.append(run_one(cli, sc, routes, days, a.stay, contact))
         except MahanError as exc:
             log(f"  [{sc[0]}] FAILED: {exc}")
-            rows.append({"ID": sc[0], "Test Case": sc[1], "Departure date": out_day, "Return date": back_day if sc[3] else "", "Booking ReferenceID (PNR)": f"FAILED: {exc}"})
+            rows.append({"ID": sc[0], "Test Case": sc[1], "Booking ReferenceID (PNR)": f"FAILED: {exc}"})
     buf = io.StringIO()
     w = csv.DictWriter(buf, fieldnames=COLUMNS)
     w.writeheader()
@@ -148,4 +158,4 @@ if __name__ == "__main__":
     raise SystemExit(main())
 
 
-__all__ = ["main", "SCENARIOS", "passengers", "candidates"]
+__all__ = ["main", "SCENARIOS", "passengers", "candidates", "is_business"]
