@@ -63,6 +63,12 @@ def candidates(flights: list[Flight], need: int) -> list[tuple[Flight, str]]:
     return [(f, c.rbd) for f in flights for c in f.classes if c.seats >= need]
 
 
+def flight_day(f: Optional[Flight], asked: str) -> str:
+    """Book needs the flight's own departure date (DepartureDateTime), which can differ from the searched day."""
+    d = (getattr(f, "departure", "") or "")[:10]
+    return d if len(d) == 10 and d[4] == "-" else asked
+
+
 def is_business(cabin: str) -> bool:
     c = cabin.upper()
     return "BUS" in c or any(part.strip() in ("C", "J", "F", "BUSINESS") for part in c.replace("/", "+").split("+"))
@@ -83,30 +89,36 @@ def run_one(cli: MahanClient, sc: tuple, routes: dict, days: list[str], stay: in
         if not back_opts:
             continue
         log(f"  [{sid}] {out_day}: {len(out_opts)} outbound class option(s){f', {len(back_opts)} return' if rt else ''}")
-        for (fo, ro) in out_opts:
-            for (fb, rb) in back_opts[:4]:
-                if quotes >= max_quotes:
-                    raise MahanError(f"no priceable {'business' if biz else 'economy'} combination after {quotes} quotes ({last_err})")
-                segs = [{"Origin": org, "Destination": dst, "FlightNo": str(fo.flight_no), "DepartureDate": out_day, "FlightClass": ro}]
-                if fb is not None:
-                    segs.append({"Origin": dst, "Destination": org, "FlightNo": str(fb.flight_no), "DepartureDate": back_day, "FlightClass": rb})
-                label = " / ".join(f"W5{s['FlightNo']}{s['FlightClass']} {s['DepartureDate']}" for s in segs)
-                quotes += 1
-                try:
-                    q = cli.fare_quote([{"Origin": s["Origin"], "Destination": s["Destination"], "FlightClass": s["FlightClass"], "Departure": s["DepartureDate"], "FlightNo": s["FlightNo"]} for s in segs], ad, ch, inf)
-                except MahanError as exc:
-                    last_err = exc
-                    log(f"  [{sid}] FareQuote {label}: {exc}")
-                    continue
-                if is_business(q.cabin) != biz:
-                    log(f"  [{sid}] FareQuote {label}: cabin {q.cabin or '?'} — not {'business' if biz else 'economy'}, next")
-                    continue
-                log(f"  [{sid}] FareQuote {label}: {q.total_price} {q.currency} (cabin {q.cabin})")
+        pairs = [(o, b) for o in out_opts for b in back_opts]
+        pairs.sort(key=lambda p: 0 if p[1][1] is None or p[0][1] == p[1][1] else 1)   # same RBD both ways prices most often
+        for ((fo, ro), (fb, rb)) in pairs:
+            if quotes >= max_quotes:
+                raise MahanError(f"no priceable {'business' if biz else 'economy'} combination after {quotes} quotes ({last_err})")
+            segs = [{"Origin": org, "Destination": dst, "FlightNo": str(fo.flight_no), "DepartureDate": flight_day(fo, out_day), "FlightClass": ro}]
+            if fb is not None:
+                segs.append({"Origin": dst, "Destination": org, "FlightNo": str(fb.flight_no), "DepartureDate": flight_day(fb, back_day), "FlightClass": rb})
+            label = " / ".join(f"W5{s['FlightNo']}{s['FlightClass']} {s['DepartureDate']}" for s in segs)
+            quotes += 1
+            try:
+                q = cli.fare_quote([{"Origin": s["Origin"], "Destination": s["Destination"], "FlightClass": s["FlightClass"], "Departure": s["DepartureDate"], "FlightNo": s["FlightNo"]} for s in segs], ad, ch, inf)
+            except MahanError as exc:
+                last_err = exc
+                log(f"  [{sid}] FareQuote {label}: {exc}")
+                continue
+            if is_business(q.cabin) != biz:
+                log(f"  [{sid}] FareQuote {label}: cabin {q.cabin or '?'} — not {'business' if biz else 'economy'}, next")
+                continue
+            log(f"  [{sid}] FareQuote {label}: {q.total_price} {q.currency} (cabin {q.cabin})")
+            try:
                 pnr = cli.book(segs, passengers(scope, ad, ch, inf, segs), contact)
-                log(f"  [{sid}] Book: PNR {pnr}")
-                return {"ID": sid, "Test Case": title, "Departure date": out_day, "Return date": back_day if rt else "",
-                        "Flight no": " / ".join(f"W5{s['FlightNo']} ({s['FlightClass']})" for s in segs), "Total Fare": str(q.total_fare), "Total Tax": str(q.total_tax),
-                        "Base Price": str(q.total_fare), "Total Surcharge": str(q.surcharge), "Payment Amount and Currency": f"{q.total_price} {q.currency}", "Booking ReferenceID (PNR)": pnr}
+            except MahanError as exc:
+                last_err = exc
+                log(f"  [{sid}] Book {label}: {exc}")
+                continue
+            log(f"  [{sid}] Book: PNR {pnr}")
+            return {"ID": sid, "Test Case": title, "Departure date": segs[0]["DepartureDate"], "Return date": segs[1]["DepartureDate"] if len(segs) > 1 else "",
+                    "Flight no": " / ".join(f"W5{s['FlightNo']} ({s['FlightClass']})" for s in segs), "Total Fare": str(q.total_fare), "Total Tax": str(q.total_tax),
+                    "Base Price": str(q.total_fare), "Total Surcharge": str(q.surcharge), "Payment Amount and Currency": f"{q.total_price} {q.currency}", "Booking ReferenceID (PNR)": pnr}
     raise MahanError(f"no priceable {'business' if biz else 'economy'} combination in the date window ({last_err})")
 
 

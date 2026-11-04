@@ -226,7 +226,7 @@ class MahanClient:
         data = self._request("POST", f"{self.urls['ws2']}/Res/Book", json=body)
         pnr = (data.get("result") or {}).get("PNR") if isinstance(data, dict) else None
         if str(data.get("errorCode", "0")) != "0" or not pnr:
-            raise MahanError(data.get("description_fa") or data.get("description_en") or "Book failed", code=str(data.get("errorCode")))
+            raise MahanError(" — ".join(x for x in (data.get("description_fa"), data.get("description_en")) if x) or "Book failed", code=str(data.get("errorCode")))
         return str(pnr)
 
     # ---- after sale ----
