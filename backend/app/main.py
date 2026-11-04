@@ -530,9 +530,13 @@ async def lifespan(_: FastAPI):
         Base.metadata.create_all(engine)
         with SessionLocal() as db:
             seed(db)
+    from .bale_bot import start_in_background as _start_bale
+    bale_task = _start_bale(SessionLocal)  # Bale bot (long polling) only when BALE_BOT_TOKEN is set
     try:
         yield
     finally:
+        if bale_task is not None:
+            bale_task.cancel()
         engine.dispose()
 
 

@@ -187,4 +187,10 @@
 - `components/marketplace/FlightFacts.tsx` (`SearchRecovery`): نتیجه‌ی خالی یا خطای جست‌وجو → `TripRequestForm` با سفر، تاریخ و تعداد مسافر پرشده → `/public/sales-desk/requests` (کانال web_form).
 - صفحه‌ی اصلی (`ApprovedHomeLower.tsx`): بخش‌های trips، assistant و compare نمایش داده نمی‌شوند (محتوای CMS آن‌ها دست نخورده)، کارت‌های mini و دو ادعای تصویر اصلی و ستون اپلیکیشن پانویس حذف شد.
 
+## بازوی بله (۱۵ آبان ۱۴۰۵)
+
+- `backend/app/bale_bot.py`: `BaleBot.handle` (بدون شبکه و دیتابیس، آزمون‌پذیر) و `run_forever` (getUpdates با timeout ۲۵ ثانیه، sendMessage). در `lifespan` اگر `BALE_BOT_TOKEN` باشد یک task پس‌زمینه شروع می‌شود (API یک پروسه‌ی uvicorn است).
+- `sales_desk.BALE_CASE`: همان `_inbound` میز فروش با کانال `bale`؛ شناسه‌ی پیام `bale:<update_id>` تکرار را می‌گیرد.
+- شماره‌ای که `contact.user_id` آن با فرستنده یکی نباشد رد می‌شود؛ متن‌های پیش از ارسال شماره به‌عنوان «سفر موردنظر» پرونده ثبت می‌شوند.
+
 </div>
