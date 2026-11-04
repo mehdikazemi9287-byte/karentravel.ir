@@ -2,7 +2,7 @@
 import {useState} from 'react';
 import {PartnerRequestForm} from './PartnerRequestForm';
 /* Services from Padvira (پادویرا دنیا, sister business): request-based programs; time, capacity and cost are set by
-   Padvira after reviewing the request, so no price is shown here. Each card opens the request page on padviradonia.com. */
+   Padvira after reviewing the request, so no price is shown here. Requests are sent from KarenSeir through Padvira's request API. */
 const P = 'https://padviradonia.com';
 type S = {title: string; text: string; href: string; tag: string};
 export const PADVIRA: Record<'travel' | 'events' | 'organizations' | 'family', S[]> = {
@@ -36,7 +36,7 @@ export function PadviraServices({group, title}: {group: keyof typeof PADVIRA; ti
     <header className="pv-head"><h2 id={`pdv-${group}`}>{title}</h2><small>با همکاری پادویرا</small></header>
     <div className="pdv-grid">{PADVIRA[group].map(s => <article key={s.title} className="pdv-card">
       <em>{s.tag}</em><b>{s.title}</b><p>{s.text}</p>
-      <span className="pdv-actions"><button type="button" onClick={() => setOpen(open === s.title ? null : s.title)}>ثبت درخواست</button><a href={s.href} target="_blank" rel="noreferrer">جزئیات در پادویرا ←</a></span></article>)}</div>
+      <span className="pdv-actions"><button type="button" onClick={() => setOpen(open === s.title ? null : s.title)}>ثبت درخواست</button></span></article>)}</div>
     {PADVIRA[group].filter(s => s.title === open).map(s => <PartnerRequestForm key={s.title} partner="padvira" service={s.title} onClose={() => setOpen(null)}/>)}
     <p className="pv-muted">زمان، ظرفیت و هزینه را پادویرا پس از بررسی درخواست اعلام می‌کند.</p>
   </section>;

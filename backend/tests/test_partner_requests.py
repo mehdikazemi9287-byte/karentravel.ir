@@ -64,3 +64,26 @@ def test_endpoints_and_status_refresh(client, monkeypatch):
     assert items["cmvvpadvira0001"]["status_fa"] == "در حال بررسی" and items["cmvvpadvira0001"]["public_note"] == "کارشناس تماس می‌گیرد"
     assert items["5555"]["status_fa"] == "در حال آماده‌سازی"
     assert all(i["reference"] not in ("cmvvpadvira0001",) for i in client.get("/me/partner-requests", headers=_h(client, "backoffice@aftab.test")).json()["items"])
+
+
+def test_shahrshad_place_request_and_desk(client):
+    from app import shahrshad_sync as ss
+    from app.main import SessionLocal
+    with SessionLocal() as db:
+        ss.apply(db, [{"id": "sh-place-1", "slug": "کافه-آزمون", "name": "کافه آزمون", "category": "restaurant", "city": "تهران"}])
+    d = client.get("/public/partner-venues/sh-place-1").json()
+    assert d["name"] == "کافه آزمون" and "book_url" not in d
+    assert client.get("/public/partner-venues/nope").status_code == 404
+    cust = _h(client, "employee@aftab.test")
+    r = client.post("/partners/shahrshad/requests", json={"venue_id": "sh-place-1", "full_name": "سارا آزمون", "contact": "09121234567", "people": 4, "date": "2026-12-01"}, headers=cust)
+    assert r.status_code == 201, r.text
+    req = r.json()
+    assert req["partner_fa"] == "شهرشاد" and req["reference"].startswith("SH-") and req["status_fa"] == "ثبت شد"
+    agent = _h(client, "backoffice@aftab.test")
+    assert client.get("/partner-desk/requests", headers=cust).status_code == 403
+    items = client.get("/partner-desk/requests?partner=shahrshad", headers=agent).json()["items"]
+    assert any(i["id"] == req["id"] and i["contact"] == "09121234567" for i in items)
+    u = client.post(f"/partner-desk/requests/{req['id']}/status", json={"status": "done", "public_note": "میز ساعت ۲۰ رزرو شد"}, headers=agent)
+    assert u.status_code == 200 and u.json()["status_fa"] == "رسیدگی شد"
+    mine = {i["id"]: i for i in client.get("/me/partner-requests", headers=cust).json()["items"]}
+    assert mine[req["id"]]["public_note"] == "میز ساعت ۲۰ رزرو شد"

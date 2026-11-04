@@ -1,6 +1,7 @@
 'use client';
 /* Places from ShahrShad (sister business): restaurants, cafés, pools, sports, events and attractions.
-   Booking and session choice happen on shahrshad.ir; a price shows only when ShahrShad has published it. */
+   Each opens an in-site page with a booking request; a price shows only when ShahrShad has published it. */
+import Link from 'next/link';
 import {useEffect, useState} from 'react';
 import {useAuth} from '../../lib/api/auth-context';
 
@@ -41,7 +42,7 @@ export function PartnerVenues({section, title}: {section: 'restaurants' | 'attra
           {v.description && <p className="pv-desc">{v.description}</p>}
           {(v.admission.length > 0 || v.facilities.length > 0) && <ul className="pv-tags">{[...v.admission, ...v.facilities].slice(0, 5).map(t => <li key={t}>{t}</li>)}</ul>}
           <footer>{v.price_from_irr ? <span className="pv-price">از {fa(Math.round(v.price_from_irr / 10))} تومان</span> : <span className="pv-muted">قیمت در شهرشاد</span>}
-            <span className="pv-links">{v.map_url && <a href={v.map_url} target="_blank" rel="noreferrer">نقشه</a>}<a className="pv-book" href={v.book_url} target="_blank" rel="noreferrer">مشاهده و رزرو</a></span></footer>
+            <span className="pv-links"><Link className="pv-book" href={`/places/${encodeURIComponent(v.id)}`}>مشاهده و رزرو</Link></span></footer>
         </div></article>)}</div>}
     {pages > 1 && <nav className="pv-pager" aria-label="صفحه‌بندی"><button disabled={page === 0} onClick={() => setPage(page - 1)}>قبلی</button><span>صفحه‌ی {fa(page + 1)} از {fa(pages)}</span><button disabled={page + 1 >= pages} onClick={() => setPage(page + 1)}>بعدی</button></nav>}
   </section>;

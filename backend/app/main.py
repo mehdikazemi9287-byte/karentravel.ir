@@ -5384,4 +5384,4 @@ from .shahrshad_sync import shahrshad_router  # noqa: E402  ShahrShad partner pl
 app.include_router(shahrshad_router(get_db, require_role("platform_admin", "tenant_admin")))
 
 from .partner_requests import partner_requests_router  # noqa: E402  requests to Padvira and Gift Asan on the customer's behalf
-app.include_router(partner_requests_router(get_db, current_user, _platform_audit))
+app.include_router(partner_requests_router(get_db, current_user, _platform_audit, role_has_permission))
