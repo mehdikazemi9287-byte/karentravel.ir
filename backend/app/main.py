@@ -5379,3 +5379,6 @@ app.include_router(site_cms_router(get_db, current_user, role_has_permission, _p
 
 from .train_requests import train_requests_router  # noqa: E402  train ticket requests issued by an agent in the rail supplier's panel
 app.include_router(train_requests_router(get_db, current_user, role_has_permission, User, _platform_audit))
+
+from .shahrshad_sync import shahrshad_router  # noqa: E402  ShahrShad partner places (restaurants, pools, attractions, events)
+app.include_router(shahrshad_router(get_db, require_role("platform_admin", "tenant_admin")))
