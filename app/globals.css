@@ -788,3 +788,9 @@ a.cat-card:hover{box-shadow:0 12px 28px rgba(8,37,61,.12);transform:translateY(-
 .pv-body footer{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:8px;padding-top:8px;border-top:1px solid #f1e8e0}
 .pv-price{font-weight:700;color:#2a1530;font-size:14px}.pv-links{display:flex;gap:10px;align-items:center;font-size:13px}.pv-book{background:#ef5b3d;color:#fff!important;border-radius:9px;padding:6px 12px;font-weight:700;text-decoration:none}
 .pv-pager{display:flex;justify-content:center;align-items:center;gap:12px;margin-top:16px}.pv-pager button{font:inherit;border:1px solid #e7dcd4;background:#fff;border-radius:9px;padding:6px 14px;cursor:pointer}.pv-pager button:disabled{opacity:.4;cursor:default}
+/* Padvira services */
+.pdv{margin-block:28px}.pdv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin-top:12px}
+.pdv-card{display:flex;flex-direction:column;gap:6px;background:#fff;border:1px solid #e7dcd4;border-radius:16px;padding:16px;color:#2a1530;text-decoration:none;transition:border-color .15s}
+.pdv-card:hover{border-color:#ef5b3d}.pdv-card em{align-self:flex-start;font-style:normal;font-size:11px;background:#f3ecf6;color:#3a1b3d;border-radius:999px;padding:2px 10px}
+.pdv-card b{font-size:15px}.pdv-card p{margin:0;color:#6b5a66;font-size:13px;line-height:1.8;flex:1}.pdv-card span{color:#ef5b3d;font-weight:700;font-size:13px}
+.pdv~.pv-muted,.pdv .pv-muted{margin-top:8px}
