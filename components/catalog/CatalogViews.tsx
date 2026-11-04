@@ -2,6 +2,7 @@
 /* Master-data views. Everything rendered here is reference data (name, place, facilities, contact);
    price, availability and rooms come only from real supplier offers and are never shown from this catalog. */
 import Link from 'next/link';
+import {GiftasanSouvenir} from './GiftasanSouvenir';
 import {usePathname, useRouter, useSearchParams} from 'next/navigation';
 import {useEffect, useState, type ReactNode} from 'react';
 import {useAuth} from '../../lib/api/auth-context';
@@ -352,6 +353,7 @@ export function CatalogPlaceView({slug, fallback}: {slug: string; fallback: Reac
     {p.children.filter(c => c.hotel_count > 0).length > 0 && <section><h2>شهرها و مقصدهای این منطقه</h2><div className="cat-chips">{p.children.filter(c => c.hotel_count > 0).map(c => <Link key={c.id} href={`/destinations/${c.id}`}>{c.name} <small>{fa(c.hotel_count)}</small></Link>)}</div></section>}
     {p.reference_tours && p.reference_tours.length > 0 && <p><Link className="button secondary" href={`/tours/destination/${p.id}`}>همهٔ تورهای {p.name}</Link></p>}
     {p.related && p.related.length > 0 && <section><h2>مقصدهای مرتبط</h2><div className="cat-chips">{p.related.map(r => <Link key={r.id} href={`/destinations/${r.id}`}>{r.name}{r.hotel_count ? <small> {fa(r.hotel_count)}</small> : null}</Link>)}</div></section>}
+    <GiftasanSouvenir city={p.name}/>
     <p className="cat-price">قیمت و ظرفیت خدمات این مقصد پس از انتخاب تاریخ و استعلام اعلام می‌شود.</p>
     <div className="customer-actions"><Link className="button primary" href={hotelsHref}>اقامتگاه‌های {p.name}</Link><Link className="button secondary" href={`/search/results?vertical=hotel&destination=${encodeURIComponent(p.name)}`}>جست‌وجوی اقامت با تاریخ</Link></div>
     {ATTRIBUTION}

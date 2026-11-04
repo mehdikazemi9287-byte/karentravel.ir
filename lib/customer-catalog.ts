@@ -13,5 +13,5 @@ export const customerGroups = [
  {title:'اقامت',copy:'برای انتخاب اقامت، مقصد و تاریخ ورود و خروج را مشخص کنید.',items:[['هتل','/hotels'],['ویلا و اقامتگاه','/villas']]},
  {title:'رستوران و غذا',copy:'رستوران‌ها و کافه‌های مقصد.',items:[['رستوران و کافه','/restaurants']]},
  {title:'تفریح و تجربه',copy:'بازدید و تجربهٔ مقصد را متناسب با برنامهٔ سفر خود انتخاب کنید.',items:[['تور','/tours'],['جاذبه‌ها','/attractions'],['راهنمای سفر','/travel-guides'],['استخر و ورزش','/pools-sports'],['رویداد و تالار','/events-venues']]},
- {title:'ملزومات سفر',copy:'صنایع‌دستی و راهنمایی برای آماده‌شدن سفر.',items:[['صنایع‌دستی','/handicrafts'],['راهنمایی و تماس','/contact?subject=travel-essentials']]},
+ {title:'ملزومات سفر',copy:'سوغات شهرها، صنایع‌دستی و راهنمایی برای آماده‌شدن سفر.',items:[['سوغات شهرها (گیفت آسان)','https://giftasan.com/travel-souvenirs/'],['صنایع‌دستی','/handicrafts'],['راهنمایی و تماس','/contact?subject=travel-essentials']]},
 ] as const;
