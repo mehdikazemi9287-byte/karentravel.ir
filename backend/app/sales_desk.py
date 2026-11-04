@@ -41,6 +41,7 @@ STAGE_FA = {"new": "جدید", "contacted": "تماس گرفته شد", "quoted"
             "paid": "پرداخت شد", "issued": "صادر شد", "travelled": "سفر انجام شد", "lost": "لغو / منصرف"}
 OPEN_STAGES = ("new", "contacted", "quoted", "awaiting_payment")
 WON_STAGES = ("paid", "issued", "travelled")
+BALE_CASE = None  # set by sales_desk_router; (db, mobile, name, text, ext_id) -> "created" | "appended" | "duplicate"
 CHANNELS = ("web_form", "whatsapp", "bale", "phone", "manual", "rebook", "referral", "abandoned", "trip_request",
             "campaign", "complaint", "instagram", "walk_in")
 ACTIVITY_KINDS = ("note", "call", "message")
@@ -653,6 +654,13 @@ def sales_desk_router(get_db, current_user, role_has_permission, User, audit=Non
             _log(db, case, None, kind, text[:4000], {**detail, "ext_id": ext_id + "#body"})
         db.commit()
         return "created"
+
+    def _bale_case(db: Session, mobile: str, name: Optional[str], text: str, ext_id: str) -> str:
+        """Used by the Bale bot (app.bale_bot): open or update the case of a customer who shared their own number."""
+        return _inbound(db, _tenant_or_503(db), "bale", mobile, name, text, ext_id)
+
+    global BALE_CASE
+    BALE_CASE = _bale_case
 
     def _tenant_or_503(db: Session) -> int:
         if public_tenant is None:
