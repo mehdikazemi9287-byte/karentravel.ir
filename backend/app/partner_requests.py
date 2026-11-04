@@ -80,6 +80,18 @@ class PadviraIn(Contact):
     category: str = Field(default="family", pattern="^(family|org)$")
 
 
+class PlaceIn(Contact):
+    venue_id: str = Field(min_length=2, max_length=40)
+    date: Optional[str] = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    people: int = Field(default=2, ge=1, le=200)
+    message: Optional[str] = Field(default=None, max_length=1000)
+
+
+class DeskStatusIn(BaseModel):
+    status: str = Field(pattern="^(review|done|rejected)$")
+    public_note: Optional[str] = Field(default=None, max_length=1000)
+
+
 class SouvenirIn(Contact):
     city: str = Field(min_length=2, max_length=60)
     items: str = Field(min_length=2, max_length=500)
@@ -153,14 +165,21 @@ def giftasan_status(ref: str, get=None) -> Optional[dict]:
         return None
 
 
-def partner_requests_router(get_db, current_user, audit=None) -> APIRouter:
+def partner_requests_router(get_db, current_user, audit=None, role_has_permission=None) -> APIRouter:
+    from .shahrshad_sync import PartnerVenue, venue_out
     api = APIRouter(tags=["partner-requests"])
 
+    def agent(user=Depends(current_user)):
+        allowed = role_has_permission is not None and any(role_has_permission(user.role, p) for p in ("support:manage", "reservation:manage", "tenant:manage"))
+        if user.role in ("customer", "employee", "supplier", "agency_partner") or not allowed:
+            raise HTTPException(status_code=403, detail="این بخش برای کارشناسان است")
+        return user
+
     def _out(r: PartnerRequest) -> dict:
-        fa = (PADVIRA_STATUS_FA if r.partner == "padvira" else GIFTASAN_STATUS_FA).get(r.status, r.status)
-        return {"id": r.id, "partner": r.partner, "partner_fa": "پادویرا" if r.partner == "padvira" else "گیفت آسان", "service": r.service, "reference": r.reference,
-                "summary": r.summary, "status": r.status, "status_fa": fa, "public_note": r.public_note, "created_at": r.created_at.isoformat(),
-                "track_url": f"{padvira_base()}/request" if r.partner == "padvira" else f"{giftasan_base()}/my-account/"}
+        fa = (GIFTASAN_STATUS_FA if r.partner == "giftasan" else PADVIRA_STATUS_FA).get(r.status, r.status)
+        return {"id": r.id, "partner": r.partner, "partner_fa": {"padvira": "پادویرا", "giftasan": "گیفت آسان", "shahrshad": "شهرشاد"}.get(r.partner, r.partner),
+                "service": r.service, "reference": r.reference, "summary": r.summary, "status": r.status, "status_fa": fa, "public_note": r.public_note,
+                "created_at": r.created_at.isoformat()}
 
     @api.get("/partners/status")
     def status(user=Depends(current_user)):
@@ -190,6 +209,53 @@ def partner_requests_router(get_db, current_user, audit=None) -> APIRouter:
         db.commit()
         return _out(r)
 
+    @api.get("/public/partner-venues/{venue_id}")
+    def place(venue_id: str, db: Session = Depends(get_db)):
+        v = db.get(PartnerVenue, venue_id)
+        if v is None or not v.active:
+            raise HTTPException(status_code=404, detail="این مجموعه پیدا نشد")
+        out = venue_out(v)
+        out.pop("book_url", None)
+        out["latitude"], out["longitude"] = v.latitude, v.longitude
+        return out
+
+    @api.post("/partners/shahrshad/requests", status_code=201)
+    def place_request(data: PlaceIn, user=Depends(current_user), db: Session = Depends(get_db)):
+        """A booking request for a ShahrShad place, kept in KarenSeir; an agent confirms it with ShahrShad."""
+        v = db.get(PartnerVenue, data.venue_id)
+        if v is None or not v.active:
+            raise HTTPException(status_code=404, detail="این مجموعه پیدا نشد")
+        code = "SH-" + uuid.uuid4().hex[:8].upper()
+        when = f"تاریخ {data.date}، " if data.date else ""
+        r = PartnerRequest(tenant_id=user.tenant_id, user_id=user.id, partner="shahrshad", service=v.name[:160], reference=code, contact=data.contact,
+                           summary=f"{when}{data.people} نفر — {data.full_name}" + (f"\n{data.message}" if data.message else ""), status="new", checked_at=utcnow())
+        db.add(r)
+        if audit:
+            audit(db, user, "partner.shahrshad.request", "partner_request", {"venue": v.id, "ref": code})
+        db.commit()
+        return _out(r)
+
+    @api.get("/partner-desk/requests")
+    def desk(partner: Optional[str] = None, user=Depends(agent), db: Session = Depends(get_db)):
+        s = select(PartnerRequest).where(PartnerRequest.tenant_id == user.tenant_id)
+        if partner in ("padvira", "giftasan", "shahrshad"):
+            s = s.where(PartnerRequest.partner == partner)
+        rows = db.scalars(s.order_by(PartnerRequest.created_at.desc()).limit(200)).all()
+        return {"items": [_out(r) | {"contact": r.contact, "manual": r.partner == "shahrshad"} for r in rows]}
+
+    @api.post("/partner-desk/requests/{rid}/status")
+    def desk_status(rid: str, data: DeskStatusIn, user=Depends(agent), db: Session = Depends(get_db)):
+        r = db.scalar(select(PartnerRequest).where(PartnerRequest.id == rid, PartnerRequest.tenant_id == user.tenant_id).with_for_update())
+        if r is None:
+            raise HTTPException(status_code=404, detail="درخواست یافت نشد")
+        if r.partner != "shahrshad":
+            raise HTTPException(status_code=409, detail="وضعیت این درخواست را خود همان مجموعه تعیین می‌کند")
+        r.status, r.public_note = data.status, (data.public_note or r.public_note)
+        if audit:
+            audit(db, user, "partner.request.status", "partner_request", {"ref": r.reference, "status": r.status})
+        db.commit()
+        return _out(r)
+
     @api.get("/me/partner-requests")
     def mine(user=Depends(current_user), db: Session = Depends(get_db)):
         rows = db.scalars(select(PartnerRequest).where(PartnerRequest.tenant_id == user.tenant_id, PartnerRequest.user_id == user.id).order_by(PartnerRequest.created_at.desc()).limit(50)).all()
@@ -197,7 +263,7 @@ def partner_requests_router(get_db, current_user, audit=None) -> APIRouter:
         changed = False
         for r in rows[:10]:   # refresh recent ones, at most every 10 minutes
             last = r.checked_at if r.checked_at is None or r.checked_at.tzinfo else r.checked_at.replace(tzinfo=timezone.utc)
-            if r.status in ("done", "rejected", "completed", "cancelled") or (last and now - last < timedelta(minutes=10)):
+            if r.partner == "shahrshad" or r.status in ("done", "rejected", "completed", "cancelled") or (last and now - last < timedelta(minutes=10)):
                 continue
             info = padvira_track(r.reference, r.contact) if r.partner == "padvira" else giftasan_status(r.reference)
             r.checked_at = now
