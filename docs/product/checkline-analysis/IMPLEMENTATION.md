@@ -179,6 +179,7 @@
 
 - `backend/app/mahan_mrs.py`: متدهای GET (JSP/CGI) با `OfficeUser`/`OfficePass` در query؛ FareQuote و Book با `X-API-Key`. کلید از `MAHAN_QAA_API_KEY_B64` (base64) خوانده می‌شود؛ در رمز دفتر `$$` به `$` برمی‌گردد (docker compose `$` را در `.env` تفسیر می‌کند). پاسخ `SIGN` خطای احراز هویت است. `Quote.cabin` از `result.Cabin`.
 - `backend/app/mahan_cert.py`: برای هر سناریو تا ۳۰ روز (`--window`) از `--days` به بعد، همه‌ی کلاس‌های با صندلی کافی امتحان می‌شود (حداکثر ۲۴ قیمت‌گیری)، بیزینس/اکونومی از Cabin پاسخ FareQuote تعیین می‌شود؛ مسیر پیش‌فرض THR-KIH و IKA-IST (روی QAA پرواز دارند). صدور بلیت انجام نمی‌شود.
+- وضعیت QAA (۱۴ آبان): فقط IKA-BKK قیمت‌دار است (`--international IKA-BKK --days 1`)؛ سناریوی ۵ با PNR TL27U رزرو شد. رزرو باید تاریخ `DepartureDateTime` خود پرواز را داشته باشد و هر مسافر سند جدا (`DUPLICATE DOC` در غیر این صورت). برای سناریوهای داخلی، مسیر باز از ماهان پرسیده شود.
 
 ## سفر مشتری و ظاهر عادی (۱۴ آبان ۱۴۰۵)
 

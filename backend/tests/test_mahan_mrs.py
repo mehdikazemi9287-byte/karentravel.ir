@@ -86,8 +86,14 @@ def test_cert_passengers_and_runner(monkeypatch, capsys):
     segs = [{"FlightNo": "1063", "DepartureDate": "2026-12-01"}, {"FlightNo": "1064", "DepartureDate": "2026-12-05"}]
     p = mc.passengers("domestic", 1, 1, 1, segs)
     assert [x["AgeType"] for x in p] == ["AD", "CH"]                      # infant is an INFT SSR, not a passenger
-    assert sum(1 for s in p[0]["SSRs"] if s["SSRType"] == "INFT") == 2 and p[0]["SSRs"][0]["FreeText"].startswith("I/IRN/0050298750")
-    assert mc.passengers("international", 2, 0, 0, segs[:1])[1]["SSRs"][0]["FreeText"].startswith("P/IRN/T97648553")
+    assert sum(1 for s in p[0]["SSRs"] if s["SSRType"] == "INFT") == 2 and p[0]["SSRs"][0]["FreeText"].startswith("I/IRN/")
+    two = mc.passengers("international", 2, 0, 0, segs)
+    docs = [x["SSRs"][0]["FreeText"].split("/")[2] for x in two]
+    assert docs[0] != docs[1] and all(d.startswith("T") and len(d) == 9 for d in docs)
+    assert two[0]["SSRs"][0]["FreeText"] == two[0]["SSRs"][-1]["FreeText"]          # same document on every segment
+    import random as _r
+    nc = mc.national_code(_r.Random(1))
+    assert len(nc) == 10 and int(nc[9]) == (lambda r: r if r < 2 else 11 - r)(sum(int(nc[i]) * (10 - i) for i in range(9)) % 11)
     monkeypatch.setenv("MAHAN_ENV", "live")
     assert mc.main([]) == 2                                                  # never against Live
     monkeypatch.setenv("MAHAN_ENV", "qaa")
