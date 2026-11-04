@@ -17,7 +17,7 @@ def test_padvira_payload_and_errors():
         return 201, {"id": "cmvvabc1234567"}
     data = pr.PadviraIn(full_name="مریم آزمون", contact="۰۹۱۲۱۲۳۴۵۶۷", service="بوت‌کمپ طبیعت", message="برای دو نفر در آذر", category="family")
     assert pr.padvira_create(data, "k" * 20, post=ok) == "cmvvabc1234567"
-    assert seen["body"]["contact"] == "09121234567" and seen["body"]["message"].startswith("[از کارن‌سیر] بوت‌کمپ طبیعت") and seen["key"] == "k" * 20
+    assert seen["body"]["contact"] == "09121234567" and seen["body"]["message"].startswith("[از کارن تراول] بوت‌کمپ طبیعت") and seen["key"] == "k" * 20
     with pytest.raises(HTTPException) as e:
         pr.padvira_create(data, "k" * 20, post=lambda b, k: (422, {"fieldErrors": {"message": "کوتاه"}}))
     assert e.value.status_code == 422

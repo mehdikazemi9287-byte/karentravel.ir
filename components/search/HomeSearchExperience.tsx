@@ -121,7 +121,7 @@ export function HomeSearchExperience({defaultVertical="flight",presentation}:{de
       returnDate:params.get('return')||'',
       flexibility:params.get('flexibility')||'exact',
       tripType:(params.get('trip_type') as TripType|null)||'round_trip',
-      adults:Number(params.get('adults')||2),
+      adults:Number(params.get('adults')||1),
       children:Number(params.get('children')||0),
       infants:Number(params.get('infants')||0),
       rooms:Number(params.get('rooms')||1),
@@ -174,7 +174,7 @@ export function HomeSearchExperience({defaultVertical="flight",presentation}:{de
           const win=window as unknown as {SpeechRecognition?:new()=>SpeechRecognitionLike;webkitSpeechRecognition?:new()=>SpeechRecognitionLike};
           const SpeechRecognitionCtor=win.SpeechRecognition??win.webkitSpeechRecognition;
           if(SpeechRecognitionCtor){
-            setNlError('سرویس گفتار کارن‌سیر در دسترس نیست؛ در حال استفاده از تشخیص گفتار مرورگر…');
+            setNlError('سرویس گفتار کارن تراول در دسترس نیست؛ در حال استفاده از تشخیص گفتار مرورگر…');
             try{
               const recognition=new SpeechRecognitionCtor(); recognition.lang='fa-IR'; recognition.interimResults=false;
               recognition.onresult=(event)=>{void nlUseTranscript(event.results[0][0].transcript)};

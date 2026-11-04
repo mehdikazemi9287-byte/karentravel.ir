@@ -3,9 +3,9 @@ import type {MetadataRoute} from 'next';
 // Installable customer app (PWA). Opens on the mobile app shell; every screen reads real account data.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'کارن‌سیر — سفر و رفاه',
-    short_name: 'کارن‌سیر',
-    description: 'جستجو و رزرو سفر، سفرهای من، کیف پول و حساب کاربری کارن‌سیر.',
+    name: 'کارن تراول — سفر و رفاه',
+    short_name: 'کارن تراول',
+    description: 'جستجو و رزرو سفر، سفرهای من، کیف پول و حساب کاربری کارن تراول.',
     id: '/app',
     start_url: '/app',
     scope: '/',

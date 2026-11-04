@@ -465,7 +465,7 @@ def _hotel(row: CatalogHotel, places: dict[str, CatalogPlace], full: bool = Fals
                      "email": row.email, "provenance": _provenance(row), "rules_text": row.rules_text,
                      "details": {k: v for k, v in source_details(row).items() if k in ("district", "room_count", "bed_count", "built_year_jalali", "floors", "hotel_view", "board_plans", "nearby", "restaurants", "review", "map_link", "traffic")},
                      "request": {"mode": "inquiry", "online_booking": False, "reason": "برای این اقامتگاه نرخ و موجودی تأییدشدهٔ تأمین‌کننده متصل نیست."},
-                     "seo": {"title": f"{row.name_fa or row.name_en} | هتل‌های کارن‌سیر", "description": (row.description or row.address or "")[:160]}, "stars_status": row.stars_status,
+                     "seo": {"title": f"{row.name_fa or row.name_en} | هتل‌های کارن تراول", "description": (row.description or row.address or "")[:160]}, "stars_status": row.stars_status,
                      "stars_status_fa": STARS_STATUS.get(row.stars_status or ""),
                      "policies": [{"key": k, "label": label, "value": getattr(row, k), "value_fa": POLICY_VALUES[getattr(row, k)]} for k, label in POLICY_FIELDS.items() if getattr(row, k) in POLICY_VALUES]})
     return data
@@ -554,7 +554,7 @@ def catalog_router(get_db) -> APIRouter:
             db.scalars(select(CatalogPlace).where(CatalogPlace.kind == "country", CatalogPlace.id != row.id, CatalogPlace.description.is_not(None)).order_by(CatalogPlace.hotel_count.desc()).limit(8)).all() if row.kind == "country" else []
         label = "سفر به " + (row.name_fa or row.name_en or "")
         return {**_place(row), "breadcrumbs": crumbs, "related": [{"id": x.id, "name": x.name_fa or x.name_en, "hotel_count": x.hotel_count} for x in related],
-                "seo": {"title": f"{label} | راهنمای مقصد کارن‌سیر", "description": (row.description or label)[:160]},
+                "seo": {"title": f"{label} | راهنمای مقصد کارن تراول", "description": (row.description or label)[:160]},
                 "reference_tours": [tour_brief(t, {row.id: row, **{c.id: c for c in children}}, tour_departures.get(t.id, [])) for t in tours],
                 "parent": _place(db.get(CatalogPlace, row.parent_id)) if row.parent_id else None, "children": [_place(c) for c in children],
                 "hotels": row.hotel_count if scope is not None else db.scalar(select(func.count()).select_from(CatalogHotel).where(CatalogHotel.country_code == row.country_code)),
@@ -702,7 +702,7 @@ def catalog_router(get_db) -> APIRouter:
                 "travel_requirements": (lambda c: {"country_id": c.id, "country": c.name_fa, "visa_note": source_details(c).get("visa_note")} if c is not None and source_details(c).get("visa_note") else None)(
                     db.get(CatalogPlace, (db.get(CatalogPlace, row.destination_place_id).country_code.lower())) if row.destination_place_id and db.get(CatalogPlace, row.destination_place_id) else None),
                 "request": {"mode": "inquiry", "online_booking": False, "reason": "برای این تور تاریخ حرکت، ظرفیت و قیمت معتبرِ برگزارکننده ثبت نشده است."},
-                "seo": {"title": f"{row.title_fa} | تورهای کارن‌سیر", "description": (row.description or d.get("services_text") or row.title_fa)[:160]},
+                "seo": {"title": f"{row.title_fa} | تورهای کارن تراول", "description": (row.description or d.get("services_text") or row.title_fa)[:160]},
                 "itinerary": [{"day_no": i.day_no, "title": i.title, "description": i.description} for i in db.scalars(select(CatalogTourItineraryDay).where(CatalogTourItineraryDay.tour_id == row.id).order_by(CatalogTourItineraryDay.day_no))],
                 "hotels": [{"id": h.id, "name": h.name_fa or h.name_en, "stars": h.stars, "slug": h.slug if h.status == "published" and h.duplicate_of is None else None, "nights": x.nights} for x in links for h in [hotels.get(x.hotel_id)] if h is not None],
                 "departures": [{"starts_jalali": x.starts_jalali, "ends_jalali": x.ends_jalali, "starts_on": x.starts_on.isoformat() if x.starts_on else None, "past": bool(x.starts_on and x.starts_on < date.today())} for x in departures],

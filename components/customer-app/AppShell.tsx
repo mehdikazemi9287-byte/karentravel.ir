@@ -26,7 +26,7 @@ export function AppShell({children}: {children: ReactNode}) {
   const active = (href: string) => (href === '/app' ? path === '/app' : path?.startsWith(href));
   return <div className="ca">
     <header className="ca-top">
-      <Link href="/app" className="ca-brand" aria-label="کارن‌سیر — خانه">کارن‌سیر</Link>
+      <Link href="/app" className="ca-brand" aria-label="کارن تراول — خانه">کارن تراول</Link>
       {session?.user ? <Link href="/account/notifications" className="ca-top-link">اعلان‌ها</Link> : <Link href="/login?redirect=/app" className="ca-top-link strong">ورود</Link>}
     </header>
     <main className="ca-main">{children}</main>

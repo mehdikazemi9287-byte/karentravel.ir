@@ -54,7 +54,7 @@ export function PanelShell({area, title, intro, children}: {area: Area; title: s
   const role = (session as {user?: {role?: string}} | null)?.user?.role ?? '';
   const nativeTitle = nav.links.find(([, href]) => href === path)?.[0] ?? title;
   return <div className="pn-page" data-figma-page="129:11966">
-    <header className="pn-page-header"><Link className="pn-page-brand" href="/">کارن‌سیر</Link>
+    <header className="pn-page-header"><Link className="pn-page-brand" href="/">کارن تراول</Link>
       {session?.user ? <AccountMenu variant="panel"/> : <Link className="pn-page-login" href="/login">ورود / ثبت‌نام</Link>}
     </header><div className="pn" data-area={area}>
     <nav className="pn-nav" id="pn-nav" aria-label={nav.title}><span className="pn-nav-title">{nav.title}</span>

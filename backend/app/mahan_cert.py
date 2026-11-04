@@ -12,6 +12,7 @@ import argparse
 import csv
 import io
 import os
+import random
 import sys
 from datetime import date, timedelta
 
@@ -36,24 +37,35 @@ def log(msg: str) -> None:
     print(msg, flush=True)
 
 
-def _docs(scope: str, gender: str, dob: str, surname: str, given: str) -> str:
+def national_code(rng: random.Random) -> str:
+    """A synthetic 10-digit Iranian national code with a valid check digit (Mahan rejects a document repeated on a flight)."""
+    d = [rng.randint(0, 9) for _ in range(9)]
+    r = sum(x * (10 - i) for i, x in enumerate(d)) % 11
+    return "".join(map(str, d)) + str(r if r < 2 else 11 - r)
+
+
+def _docs(scope: str, gender: str, dob: str, surname: str, given: str, rng: random.Random) -> str:
     if scope == "domestic":
-        return docs_text("I", "IRN", "0050298750", "IRN", dob, gender, "16NOV28", surname, given)
-    return docs_text("P", "IRN", "T97648553", "IRN", dob, gender, "16NOV28", surname, given)
+        return docs_text("I", "IRN", national_code(rng), "IRN", dob, gender, "16NOV28", surname, given)
+    return docs_text("P", "IRN", f"T{rng.randint(10000000, 99999999)}", "IRN", dob, gender, "16NOV28", surname, given)
 
 
-def passengers(scope: str, adults: int, children: int, infants: int, segments: list[dict]) -> list[dict]:
+def passengers(scope: str, adults: int, children: int, infants: int, segments: list[dict], rng: Optional[random.Random] = None) -> list[dict]:
+    """Each passenger gets its own synthetic document, the same one on every segment."""
+    rng = rng or random.Random()
     out = []
     names = ["TESTA", "TESTB", "TESTC", "TESTD"]
     for i in range(adults):
         given, gender = names[i], ("F" if i == 0 else "M")
-        ssrs = [{"SSRType": "DOCS", "FlightNo": s["FlightNo"], "DepartureDate": s["DepartureDate"], "FreeText": _docs(scope, gender, "07JAN86", "TEST", given)} for s in segments]
+        doc = _docs(scope, gender, "07JAN86", "TEST", given, rng)
+        ssrs = [{"SSRType": "DOCS", "FlightNo": s["FlightNo"], "DepartureDate": s["DepartureDate"], "FreeText": doc} for s in segments]
         if i == 0 and infants:
             ssrs += [{"SSRType": "INFT", "FlightNo": s["FlightNo"], "DepartureDate": s["DepartureDate"], "FreeText": "TESTINFANT/TESTINFANT 10JAN26"} for s in segments]
         out.append({"FirstName": given, "LastName": "TEST", "AgeType": "AD", "Title": "MS" if gender == "F" else "MR", "Parent": "", "SSRs": ssrs})
     for i in range(children):
         given = "TESTCHILD" + "ABCD"[i]
-        ssrs = [{"SSRType": "DOCS", "FlightNo": s["FlightNo"], "DepartureDate": s["DepartureDate"], "FreeText": _docs(scope, "M", "07JAN16", "TEST", given)} for s in segments]
+        doc = _docs(scope, "M", "07JAN16", "TEST", given, rng)
+        ssrs = [{"SSRType": "DOCS", "FlightNo": s["FlightNo"], "DepartureDate": s["DepartureDate"], "FreeText": doc} for s in segments]
         out.append({"FirstName": given, "LastName": "TEST", "AgeType": "CH", "Title": "MR", "Parent": "", "SSRs": ssrs})
     return out
 
@@ -61,6 +73,12 @@ def passengers(scope: str, adults: int, children: int, infants: int, segments: l
 def candidates(flights: list[Flight], need: int) -> list[tuple[Flight, str]]:
     """Every open class with enough seats; cabin (economy/business) is decided by FareQuote's Cabin, not guessed from the RBD."""
     return [(f, c.rbd) for f in flights for c in f.classes if c.seats >= need]
+
+
+def flight_day(f: Optional[Flight], asked: str) -> str:
+    """Book needs the flight's own departure date (DepartureDateTime), which can differ from the searched day."""
+    d = (getattr(f, "departure", "") or "")[:10]
+    return d if len(d) == 10 and d[4] == "-" else asked
 
 
 def is_business(cabin: str) -> bool:
@@ -83,30 +101,36 @@ def run_one(cli: MahanClient, sc: tuple, routes: dict, days: list[str], stay: in
         if not back_opts:
             continue
         log(f"  [{sid}] {out_day}: {len(out_opts)} outbound class option(s){f', {len(back_opts)} return' if rt else ''}")
-        for (fo, ro) in out_opts:
-            for (fb, rb) in back_opts[:4]:
-                if quotes >= max_quotes:
-                    raise MahanError(f"no priceable {'business' if biz else 'economy'} combination after {quotes} quotes ({last_err})")
-                segs = [{"Origin": org, "Destination": dst, "FlightNo": str(fo.flight_no), "DepartureDate": out_day, "FlightClass": ro}]
-                if fb is not None:
-                    segs.append({"Origin": dst, "Destination": org, "FlightNo": str(fb.flight_no), "DepartureDate": back_day, "FlightClass": rb})
-                label = " / ".join(f"W5{s['FlightNo']}{s['FlightClass']} {s['DepartureDate']}" for s in segs)
-                quotes += 1
-                try:
-                    q = cli.fare_quote([{"Origin": s["Origin"], "Destination": s["Destination"], "FlightClass": s["FlightClass"], "Departure": s["DepartureDate"], "FlightNo": s["FlightNo"]} for s in segs], ad, ch, inf)
-                except MahanError as exc:
-                    last_err = exc
-                    log(f"  [{sid}] FareQuote {label}: {exc}")
-                    continue
-                if is_business(q.cabin) != biz:
-                    log(f"  [{sid}] FareQuote {label}: cabin {q.cabin or '?'} — not {'business' if biz else 'economy'}, next")
-                    continue
-                log(f"  [{sid}] FareQuote {label}: {q.total_price} {q.currency} (cabin {q.cabin})")
+        pairs = [(o, b) for o in out_opts for b in back_opts]
+        pairs.sort(key=lambda p: 0 if p[1][1] is None or p[0][1] == p[1][1] else 1)   # same RBD both ways prices most often
+        for ((fo, ro), (fb, rb)) in pairs:
+            if quotes >= max_quotes:
+                raise MahanError(f"no priceable {'business' if biz else 'economy'} combination after {quotes} quotes ({last_err})")
+            segs = [{"Origin": org, "Destination": dst, "FlightNo": str(fo.flight_no), "DepartureDate": flight_day(fo, out_day), "FlightClass": ro}]
+            if fb is not None:
+                segs.append({"Origin": dst, "Destination": org, "FlightNo": str(fb.flight_no), "DepartureDate": flight_day(fb, back_day), "FlightClass": rb})
+            label = " / ".join(f"W5{s['FlightNo']}{s['FlightClass']} {s['DepartureDate']}" for s in segs)
+            quotes += 1
+            try:
+                q = cli.fare_quote([{"Origin": s["Origin"], "Destination": s["Destination"], "FlightClass": s["FlightClass"], "Departure": s["DepartureDate"], "FlightNo": s["FlightNo"]} for s in segs], ad, ch, inf)
+            except MahanError as exc:
+                last_err = exc
+                log(f"  [{sid}] FareQuote {label}: {exc}")
+                continue
+            if is_business(q.cabin) != biz:
+                log(f"  [{sid}] FareQuote {label}: cabin {q.cabin or '?'} — not {'business' if biz else 'economy'}, next")
+                continue
+            log(f"  [{sid}] FareQuote {label}: {q.total_price} {q.currency} (cabin {q.cabin})")
+            try:
                 pnr = cli.book(segs, passengers(scope, ad, ch, inf, segs), contact)
-                log(f"  [{sid}] Book: PNR {pnr}")
-                return {"ID": sid, "Test Case": title, "Departure date": out_day, "Return date": back_day if rt else "",
-                        "Flight no": " / ".join(f"W5{s['FlightNo']} ({s['FlightClass']})" for s in segs), "Total Fare": str(q.total_fare), "Total Tax": str(q.total_tax),
-                        "Base Price": str(q.total_fare), "Total Surcharge": str(q.surcharge), "Payment Amount and Currency": f"{q.total_price} {q.currency}", "Booking ReferenceID (PNR)": pnr}
+            except MahanError as exc:
+                last_err = exc
+                log(f"  [{sid}] Book {label}: {exc}")
+                continue
+            log(f"  [{sid}] Book: PNR {pnr}")
+            return {"ID": sid, "Test Case": title, "Departure date": segs[0]["DepartureDate"], "Return date": segs[1]["DepartureDate"] if len(segs) > 1 else "",
+                    "Flight no": " / ".join(f"W5{s['FlightNo']} ({s['FlightClass']})" for s in segs), "Total Fare": str(q.total_fare), "Total Tax": str(q.total_tax),
+                    "Base Price": str(q.total_fare), "Total Surcharge": str(q.surcharge), "Payment Amount and Currency": f"{q.total_price} {q.currency}", "Booking ReferenceID (PNR)": pnr}
     raise MahanError(f"no priceable {'business' if biz else 'economy'} combination in the date window ({last_err})")
 
 

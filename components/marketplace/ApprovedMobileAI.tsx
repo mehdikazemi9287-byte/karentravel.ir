@@ -16,7 +16,7 @@ export default function ApprovedMobileAI() {
           </div>
         </div>
         <p className="[word-break:break-word] font-[Vazirmatn] font-bold leading-[1.6] relative shrink-0 text-[#220e2e] text-[24px] text-right w-[310px]" dir="auto" data-node-id="95:264">
-          دستیار هوشمند سفر کارن‌سیر
+          دستیار هوشمند سفر کارن تراول
         </p>
         <p className="[word-break:break-word] font-[Vazirmatn] font-normal leading-[1.6] relative shrink-0 text-[#291b29] text-[16px] text-right w-[310px]" dir="auto" data-node-id="95:265">
           مقصد، بودجه و شرایطت را بگو؛ سفرت را هوشمندانه طراحی و مقایسه می‌کنم.

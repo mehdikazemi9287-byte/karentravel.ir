@@ -133,7 +133,7 @@ export function CatalogAdmin() {
         <Text label="جست‌وجو" value={filter.q} onChange={v => setFilter({...filter, q: v})}/>
         <Select label="وضعیت" value={filter.status} onChange={v => setFilter({...filter, status: v})} options={opts.status} empty="همه"/>
         <Select label="بازبینی" value={filter.review} onChange={v => setFilter({...filter, review: v})} options={{duplicates: 'تکراری‌های احتمالی', no_city: 'بدون شهر', incomplete: 'محتوای ناقص', complete: 'محتوای کامل'}} empty="همه"/>
-        <Select label="منبع" value={filter.source} onChange={v => setFilter({...filter, source: v})} options={{inhouse: 'In-house', openstreetmap: 'OpenStreetMap', karenseir: 'کارن‌سیر'}} empty="همه"/>
+        <Select label="منبع" value={filter.source} onChange={v => setFilter({...filter, source: v})} options={{inhouse: 'In-house', openstreetmap: 'OpenStreetMap', karenseir: 'کارن تراول'}} empty="همه"/>
         <button className="button primary" type="submit">اعمال</button>
         <button className="button secondary" type="button" onClick={() => {setForm(EMPTY); setMeta(null); setEvents([]); setEditing('new'); setNotice(null);}}>هتل جدید</button>
       </form>

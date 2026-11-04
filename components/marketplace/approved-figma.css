@@ -48,7 +48,7 @@
 .kh-strip{margin-top:26px;background:#3a1b3d;border-radius:50% 50% 0 0/70px 70px 0 0;padding:46px 64px 86px;display:flex;justify-content:center;gap:0;flex-wrap:wrap}
 .kh-strip a{display:flex;align-items:center;gap:14px;color:#e9b44c!important;font-size:21px;font-weight:700;padding:6px 44px}.kh-strip a+a{border-inline-start:1px solid rgba(233,180,76,.28)}.kh-strip a:hover{color:#fff!important}
 .kh-foot{background:#fdf7ee;border-radius:48px 48px 0 0;margin-top:-44px;position:relative;padding:40px 64px 22px}.approved-site>.kh-foot{margin-top:0;border-top:1px solid #eadfd2;border-radius:0}
-.kh-foot-grid{max-width:1312px;margin:0 auto;display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:32px}
+.kh-foot-grid{max-width:1312px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr;gap:32px}
 .kh-foot-logo{display:inline-flex;align-items:center;gap:10px;font-size:24px;font-weight:900;color:#3a1b3d!important}.kh-foot-logo img{width:38px;height:38px}
 .kh-foot-brand{display:grid;gap:8px;align-content:start;font-size:13px;color:#6e5e70}.kh-foot-brand a[dir=ltr]{font-weight:700;color:#3a1b3d;unicode-bidi:isolate}
 .kh-foot-col{display:grid;gap:8px;align-content:start;font-size:13px}.kh-foot-col h3{font-size:14px;font-weight:800;color:#2a1530;margin-bottom:4px!important}.kh-foot-col a{color:#6e5e70}.kh-foot-col a:hover{color:#e0492b}
@@ -122,3 +122,14 @@
 /* CMS announcement bar */
 .kh-announce{position:relative;z-index:2;margin:0 auto 10px;max-width:1200px;padding:10px 16px;border-radius:12px;background:#3a1b3d;color:#fff;text-align:center;font-size:14px;line-height:1.7}
 .kh-announce a{color:#fff;text-decoration:underline;text-underline-offset:3px}
+
+/* "همه‌ی سفر، در یک جا" — service grid after the Figma refinement frame 75:435 / 80:236 */
+.kh-eco-sub{margin:-12px 0 18px;color:#6b5a6e;font-size:16px}
+.kh-eco{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.kh-eco-card{display:grid;gap:8px;align-content:start;background:#fffcf9;border-radius:20px;padding:20px;box-shadow:0 4px 20px rgba(102,77,51,.08);color:#2a1530!important;text-decoration:none!important;transition:transform .15s,box-shadow .15s}
+.kh-eco-card:hover,.kh-eco-card:focus-visible{transform:translateY(-2px);box-shadow:0 8px 26px rgba(102,77,51,.14)}
+.kh-eco-card b{font-size:18px}
+.kh-eco-card span:last-child{font-size:14px;color:#6b5a6e;line-height:1.8}
+.kh-eco-icon{width:44px;height:44px;border-radius:14px;background:#fbe3d8;color:#ef5b3d;display:grid;place-items:center;font-size:22px}
+@media(max-width:900px){.kh-eco{grid-template-columns:repeat(2,1fr);gap:12px}.kh-eco-card{padding:16px}}
+@media(max-width:420px){.kh-eco-card b{font-size:16px}}

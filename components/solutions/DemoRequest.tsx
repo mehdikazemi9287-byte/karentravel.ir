@@ -16,7 +16,7 @@ export function DemoRequest() {
     e.preventDefault(); setState({kind: 'sending'});
     const description = [`مجموعه: ${v.organization}`, v.city && `شهر: ${v.city}`, `ماژول‌ها: ${picks.join('، ') || '—'}`].filter(Boolean).join(' | ');
     try {
-      await api.publicPost('/public/sales-desk/requests', {customer_name: v.customer_name, mobile: v.mobile, trip: 'درخواست دمو و قیمت کارن‌سیر', travellers: 1, description, consent: v.consent, website: v.website || null});
+      await api.publicPost('/public/sales-desk/requests', {customer_name: v.customer_name, mobile: v.mobile, trip: 'درخواست دمو و قیمت کارن تراول', travellers: 1, description, consent: v.consent, website: v.website || null});
       setState({kind: 'done'});
     } catch (x) {
       const s = x instanceof ApiError ? x.status : 0;

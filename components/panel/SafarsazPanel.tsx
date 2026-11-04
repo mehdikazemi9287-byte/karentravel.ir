@@ -97,7 +97,7 @@ function Editor({id, back, partner}: {id: string; back: () => void; partner: boo
       <h3>چک‌لیست انتشار</h3>
       <ul className="pn-list">{t.checklist.map((c: Row) => <li key={c.key}><span>{c.label}</span><span className={`pn-badge ${c.ok ? 'ok' : 'bad'}`}>{c.ok ? 'کامل' : 'ناقص'}</span></li>)}</ul>
       <div style={{display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12}}>
-        {partner ? (t.status === 'draft' && <button className="pn-btn" disabled={!t.ready} onClick={() => act('post', `/safarsaz/tours/${id}/submit`, 'برای بررسی فرستاده شد؛ پس از تأیید کارن‌سیر روی سایت نمایش داده می‌شود.')}>ارسال برای انتشار</button>)
+        {partner ? (t.status === 'draft' && <button className="pn-btn" disabled={!t.ready} onClick={() => act('post', `/safarsaz/tours/${id}/submit`, 'برای بررسی فرستاده شد؛ پس از تأیید کارن تراول روی سایت نمایش داده می‌شود.')}>ارسال برای انتشار</button>)
           : <button className="pn-btn" disabled={!t.ready} onClick={() => act('post', `/safarsaz/tours/${id}/publish`, 'منتشر شد.')}>{t.status === 'pending_review' ? 'تأیید و انتشار' : 'انتشار (مدیر)'}</button>}
         {!partner && t.status === 'pending_review' && <button className="pn-btn ghost" onClick={() => act('post', `/safarsaz/tours/${id}/reject`, 'به آژانس برگشت داده شد.')}>برگرداندن به آژانس</button>}
         {!partner && t.status === 'published' && <button className="pn-btn ghost" onClick={() => act('post', `/safarsaz/tours/${id}/unpublish`, 'به پیش‌نویس برگشت.')}>توقف انتشار</button>}

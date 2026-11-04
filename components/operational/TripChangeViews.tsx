@@ -11,7 +11,7 @@ type Values = Record<string, string> | null;
 type Change = {id: string; trip_id: string; category: string | null; category_fa: string | null; severity: string; source: string; title: string; message: string; old_value: Values; new_value: Values;
   affected_reference: string | null; requires_action: boolean; created_at: string; acknowledged: boolean; acknowledged_at: string | null; visibility?: string; actor?: {name: string; role: string} | null};
 type State<T> = {kind: 'loading'} | {kind: 'ready'; data: T} | {kind: 'error'; status: number};
-const SOURCE_FA: Record<string, string> = {human_agent: 'کارشناس کارن‌سیر', supplier: 'تأمین‌کننده', provider: 'سامانهٔ تأمین‌کننده', system: 'سیستم', support: 'پشتیبانی'};
+const SOURCE_FA: Record<string, string> = {human_agent: 'کارشناس کارن تراول', supplier: 'تأمین‌کننده', provider: 'سامانهٔ تأمین‌کننده', system: 'سیستم', support: 'پشتیبانی'};
 const SEVERITY_FA: Record<string, string> = {info: 'اطلاع', warning: 'مهم', critical: 'فوری'};
 const tone = (s: string) => s === 'critical' ? 'border-rose-300 bg-rose-50' : s === 'warning' ? 'border-amber-300 bg-amber-50' : 'border-slate-200 bg-slate-50';
 const chip = (s: string) => s === 'critical' ? 'bg-rose-600 text-white' : s === 'warning' ? 'bg-amber-600 text-white' : 'bg-slate-200 text-slate-700';

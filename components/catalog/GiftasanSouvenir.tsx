@@ -17,7 +17,7 @@ export function GiftasanSouvenir({city}: {city?: string}) {
   return <section className="gs" aria-labelledby="gs-title">
     <div className="gs-text">
       <h2 id="gs-title">{known ? `سوغات ${city} را بی‌دردسر به خانه بفرست` : 'سوغات هر شهر، تا درِ خانه'}</h2>
-      <p>سوغاتی را که می‌خواهی بگو؛ گیفت آسان تهیه، بسته‌بندی و ارسالش را تا درِ خانه یا سازمان هماهنگ می‌کند و قیمت و زمان تحویل را پس از بررسی اعلام می‌کند. پیگیری در حساب کاربری‌ات در کارن‌سیر است.</p>
+      <p>سوغاتی را که می‌خواهی بگو؛ گیفت آسان تهیه، بسته‌بندی و ارسالش را تا درِ خانه یا سازمان هماهنگ می‌کند و قیمت و زمان تحویل را پس از بررسی اعلام می‌کند. پیگیری در حساب کاربری‌ات در کارن تراول است.</p>
       {known && <div className="gs-actions"><button type="button" className="gs-btn gs-primary" onClick={() => setOpen(o => !o)}>ثبت درخواست سوغات</button></div>}
     </div>
     {!known && <ul className="gs-cities" aria-label="شهرها">{GIFTASAN_CITIES.map(c => <li key={c}><button type="button" className={pick === c ? 'on' : ''} onClick={() => {setPick(c); setOpen(true);}}>{c}</button></li>)}</ul>}

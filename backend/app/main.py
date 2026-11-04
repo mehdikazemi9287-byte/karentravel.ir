@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import json
 import logging
+import ipaddress
 import os
 import re
 import secrets
@@ -542,7 +543,27 @@ app.add_middleware(CORSMiddleware, allow_origins=os.getenv("CORS_ORIGINS","http:
 
 
 def _client_ip(request: Request) -> str:
-    return request.client.host if request.client else "unknown"
+    """The visitor's address. Behind our own nginx (host or container) the TCP peer is a private/loopback address, so
+    the last X-Forwarded-For hop — the one our nginx appended — is the real client; earlier hops are client-supplied and
+    never trusted. A public peer (no proxy in front) is used as is."""
+    peer = request.client.host if request.client else "unknown"
+    try:
+        private_peer = ipaddress.ip_address(peer).is_private or ipaddress.ip_address(peer).is_loopback
+    except ValueError:
+        private_peer = False
+    if private_peer:
+        hops = [h.strip() for h in (request.headers.get("x-forwarded-for") or "").split(",") if h.strip()]
+        if hops:
+            try:
+                return str(ipaddress.ip_address(hops[-1]))
+            except ValueError:
+                pass
+        real = (request.headers.get("x-real-ip") or "").strip()
+        try:
+            return str(ipaddress.ip_address(real)) if real else peer
+        except ValueError:
+            return peer
+    return peer
 
 
 def _rate_limit_identity(request: Request, route_class: str) -> str:
@@ -585,8 +606,11 @@ async def request_context(request: Request, call_next):
     request.state.correlation_id = correlation_id
     decision = None
     if request.url.path not in {"/health", "/ready", "/metrics"}:
-        route_class = "auth" if request.url.path.startswith("/auth/") else "api"
-        limit, window = ((10, 60) if route_class == "auth" else (300, 60)) if rate_limiter.distributed else (10_000, 60)
+        path = request.url.path
+        # Anonymous website forms (trip/expert requests) get their own small bucket so a script cannot flood the sales desk.
+        is_form = request.method == "POST" and path.startswith("/public/") and "/inbound/" not in path
+        route_class = "auth" if path.startswith("/auth/") else "form" if is_form else "api"
+        limit, window = {"auth": (10, 60), "form": (12, 600), "api": (300, 60)}[route_class] if rate_limiter.distributed else (10_000, 60)
         identity = _rate_limit_identity(request, route_class)
         try:
             decision = await rate_limiter.hit(f"karenseir:rl:{route_class}:{fingerprint(identity)}", limit, window)
@@ -772,7 +796,7 @@ def register_request(data: RegisterRequestIn, request: Request, db: Session = De
         # via a migration: a migration-inserted row would grab a low
         # auto-increment id ahead of seed()'s demo tenants on any fresh
         # database, shifting ids other tests/code may assume are stable.
-        tenant = Tenant(slug=CONSUMER_TENANT_SLUG, name="مشتریان کارن‌سیر", primary_color="#0E7490")
+        tenant = Tenant(slug=CONSUMER_TENANT_SLUG, name="مشتریان کارن تراول", primary_color="#0E7490")
         db.add(tenant)
         try:
             db.flush()
@@ -782,7 +806,7 @@ def register_request(data: RegisterRequestIn, request: Request, db: Session = De
     set_tenant_context(db, tenant.id)
     user = db.scalar(select(User).where(User.tenant_id == tenant.id, User.mobile_e164 == mobile_e164))
     if user is None:
-        user = User(tenant_id=tenant.id, email=f"{mobile_receptor}@mobile.karenseir.local", name=(data.name or "مشتری کارن‌سیر"), role="customer", mobile_e164=mobile_e164)
+        user = User(tenant_id=tenant.id, email=f"{mobile_receptor}@mobile.karenseir.local", name=(data.name or "مشتری کارن تراول"), role="customer", mobile_e164=mobile_e164)
         db.add(user)
         try:
             db.flush()
@@ -1275,7 +1299,7 @@ def _voucher_html(*, reservation, booking_item, user, tenant, voucher, tickets) 
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="utf-8" />
-<title>واچر / بلیت کارن‌سیر — {safe(reservation.booking_reference or reservation.id)}</title>
+<title>واچر / بلیت کارن تراول — {safe(reservation.booking_reference or reservation.id)}</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;800&display=swap" />
 <style>
   :root{{--ink:#08253d;--ocean:#0e7490;--sun:#f4b942;--mist:#f7fafc;--muted:#617184;--line:#dce6eb;--surface:#fff}}
@@ -1303,7 +1327,7 @@ def _voucher_html(*, reservation, booking_item, user, tenant, voucher, tickets) 
 <body>
   <div class="sheet">
     <div class="header">
-      <div class="brand">کارن‌سیر<small>KarenSeir Travel</small></div>
+      <div class="brand">کارن تراول<small>Karen Travel</small></div>
       <div class="status-pill">{safe(status_label)}</div>
     </div>
     <div class="body">
@@ -1314,9 +1338,9 @@ def _voucher_html(*, reservation, booking_item, user, tenant, voucher, tickets) 
       {detail_rows}
       {voucher_row}
       {qr_rows}
-      <div class="note">این سند به صورت خودکار توسط کارن‌سیر صادر شده است. لطفاً هنگام مراجعه، شماره رزرو یا کد QR فوق را همراه داشته باشید.</div>
+      <div class="note">این سند به صورت خودکار توسط کارن تراول صادر شده است. لطفاً هنگام مراجعه، شماره رزرو یا کد QR فوق را همراه داشته باشید.</div>
     </div>
-    <div class="footer">KarenSeir Travel &middot; صادرشده در {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}</div>
+    <div class="footer">Karen Travel &middot; صادرشده در {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}</div>
   </div>
 </body>
 </html>"""

@@ -25,6 +25,19 @@ export class MfaRequiredError extends Error {
   constructor(public readonly ticket: string, public readonly tenantSlug: string) { super('mfa_required'); }
 }
 
+/** In the browser, call a path-mounted API on the page's own origin (the same nginx serves /api for the IP and for karentravel.ir);
+ *  an absolute build-time URL on another host would be a cross-origin call that CORS blocks. Server-side keeps the configured URL. */
+export function resolveApiBase(configured: string): string {
+  const base = configured.replace(/\/$/, '');
+  if (typeof window === 'undefined' || !/^https?:\/\//.test(base)) return base;
+  try {
+    const u = new URL(base);
+    // Only a path-mounted API ("…/api" behind our nginx) exists on every host; a bare API origin (dev :8000) is kept.
+    if (u.origin === window.location.origin || u.pathname === '/' || u.pathname === '') return base;
+    return window.location.origin + u.pathname.replace(/\/$/, '');
+  } catch { return base; }
+}
+
 export class KarenSeirApi {
   private session: AuthSession | null = null;
   private refreshPending: Promise<void> | null = null;
@@ -32,7 +45,7 @@ export class KarenSeirApi {
   readonly deviceId: string;
 
   constructor(baseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000') {
-    this.baseUrl = baseUrl.replace(/\/$/, '');
+    this.baseUrl = resolveApiBase(baseUrl);
     this.deviceId = typeof window === 'undefined' ? 'server-render' : (sessionStorage.getItem('karenseir-device-id') ?? newId());
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('karenseir-device-id', this.deviceId);

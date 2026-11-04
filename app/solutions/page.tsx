@@ -4,14 +4,14 @@ import {DemoRequest} from '../../components/solutions/DemoRequest';
 import {FAQ, MODULES, PLANS, STEPS} from '../../components/solutions/content';
 
 export const metadata = {
-  title: 'راهکارهای کارن‌سیر برای آژانس‌ها و سازمان‌ها',
+  title: 'راهکارهای کارن تراول برای آژانس‌ها و سازمان‌ها',
   description: 'سایت و اپ با برند خودتان، اتصال به تأمین‌کنندگان، قرارداد و صندوق، میز فروش، باشگاه مشتریان، پیامک و خروجی فرانگر — روی یک پرونده.',
 };
 const fa = (n: number) => n.toLocaleString('fa-IR');
 
 export default function SolutionsPage() {
   return <div className="so" dir="rtl">
-    <header className="so-top"><Link href="/" className="so-brand">کارن‌سیر</Link><span className="so-tag">برای کسب‌وکارها</span>
+    <header className="so-top"><Link href="/" className="so-brand">کارن تراول</Link><span className="so-tag">برای کسب‌وکارها</span>
       <nav aria-label="راهکارها"><a href="#modules">راهکارها</a><a href="#steps">روش کار</a><a href="#pricing">تعرفه</a><a href="#faq">پرسش‌ها</a></nav>
       <span className="so-top-actions"><a className="so-btn" href="#demo">درخواست قیمت</a><Link className="so-btn ghost" href="/login?redirect=/admin/ops">ورود به پنل</Link></span></header>
 
@@ -43,6 +43,6 @@ export default function SolutionsPage() {
       <div id="faq" className="so-faq"><h2>پرسش‌های پرتکرار</h2>{FAQ.map(([q, a]) => <details key={q}><summary>{q}</summary><p>{a}</p></details>)}</div>
       <DemoRequest/>
     </section>
-    <footer className="so-foot"><span>کارن‌سیر — بخشی از گروه کارن تراول</span><Link href="/">صفحه‌ی اصلی</Link></footer>
+    <footer className="so-foot"><span>کارن تراول — بخشی از گروه کارن تراول</span><Link href="/">صفحه‌ی اصلی</Link></footer>
   </div>;
 }

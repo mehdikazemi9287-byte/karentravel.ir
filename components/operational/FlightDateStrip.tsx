@@ -40,7 +40,7 @@ export function SharePurchaseLink({href, title}: {href: string; title: string}) 
   const [done, setDone] = useState('');
   async function share() {
     const url = new URL(href, window.location.origin).toString();
-    const text = `${title} — کارن‌سیر`;
+    const text = `${title} — کارن تراول`;
     try {
       if (navigator.share) {await navigator.share({title: text, url}); return;}
       await navigator.clipboard.writeText(`${text}\n${url}`); setDone('لینک کپی شد');

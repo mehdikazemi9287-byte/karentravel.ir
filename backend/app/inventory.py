@@ -492,7 +492,7 @@ def inventory_router(get_db, current_user, role_has_permission, User, audit=None
         values = {"customer_name": buyer.name if buyer else "—", "booking_reference": res.booking_reference or res.id, "service": SERVICE_FA.get(res.service_type, res.service_type),
                   "title": title, "amount": f"{int(price.get('total_amount') or 0):,}", "currency": "ریال" if price.get("currency", "IRR") == "IRR" else price.get("currency"),
                   "booking_date": (res.created_at or datetime.now(timezone.utc)).astimezone(TEHRAN).strftime("%Y-%m-%d"), "travellers": "، ".join(names) or "—",
-                  "company_name": "کارن‌سیر", "policy": json.dumps(policy.get("cancellation", {}), ensure_ascii=False) if policy.get("cancellation") else "طبق قوانین خدمت"}
+                  "company_name": "کارن تراول", "policy": json.dumps(policy.get("cancellation", {}), ensure_ascii=False) if policy.get("cancellation") else "طبق قوانین خدمت"}
         return {"template_id": tpl.id, "version": tpl.version, "title": tpl.title, "html": render_contract(tpl.body, values).replace("\n", "<br>")}
 
     # ---- sales report
