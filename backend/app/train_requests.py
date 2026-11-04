@@ -201,6 +201,10 @@ def train_requests_router(get_db, current_user, role_has_permission, User, audit
             db.flush()
         return s
 
+    def _notify(db, r: TrainRequest, title: str, message: str, link: str = "/account/train-requests"):
+        """In-app notification for the customer (shown in حساب من › اعلان‌ها); SMS waits for an SMS provider."""
+        db.add(m.NotificationRecord(tenant_id=r.tenant_id, user_id=r.user_id, topic="train_request", title=title, message=message, deep_link=link))
+
     def _offers(r: TrainRequest) -> list[dict]:
         return json.loads(r.offers_json or "[]")
 
@@ -363,6 +367,7 @@ def train_requests_router(get_db, current_user, role_has_permission, User, audit
         minutes = data.valid_minutes or _settings(db, user.tenant_id).offer_valid_minutes
         r.offers_json, r.status, r.offer_expires_at = json.dumps(out, ensure_ascii=False), "offered", utcnow() + timedelta(minutes=minutes)
         r.staff_note = data.staff_note or r.staff_note
+        _notify(db, r, "پیشنهاد قطار آماده است", f"برای {r.origin} به {r.destination}، {len(out)} قطار پیشنهاد شده است؛ تا {minutes} دقیقه برای انتخاب و پرداخت فرصت دارید.")
         _a(db, user, "train.offered", r.id, {"count": len(out)})
         db.commit()
         return _out(r, True)
@@ -374,6 +379,7 @@ def train_requests_router(get_db, current_user, role_has_permission, User, audit
             raise HTTPException(status_code=409, detail="وضعیت درخواست اجازه‌ی این کار را نمی‌دهد")
         _mine(r, user)
         r.status, r.staff_note = "unavailable", data.note or "برای این تاریخ ظرفیت پیدا نشد."
+        _notify(db, r, "ظرفیت قطار پیدا نشد", f"برای {r.origin} به {r.destination} در تاریخ درخواستی ظرفیتی پیدا نشد. می‌توانید تاریخ دیگری درخواست کنید.")
         _a(db, user, "train.unavailable", r.id)
         db.commit()
         return _out(r, True)
@@ -389,6 +395,7 @@ def train_requests_router(get_db, current_user, role_has_permission, User, audit
         _mine(r, user)
         m.transition_reservation(db, res, "issued", user.id, f"train-issue:{r.id}")
         r.status, r.ticket_numbers = "issued", data.ticket_numbers.strip()
+        _notify(db, r, "بلیت قطار صادر شد", f"شماره‌ی بلیت: {r.ticket_numbers}", f"/manage-booking/{res.id}")
         if res.trip_id:
             m.record_trip_event(db, tenant_id=user.tenant_id, trip_id=res.trip_id, reservation_id=res.id, event_key=f"train-issued:{r.id}", event_type="booking.issued", source="human_agent",
                                 title="بلیت قطار صادر شد", message=f"شماره‌ی بلیت: {r.ticket_numbers}", requires_action=False, deep_link=f"/manage-booking/{res.id}")
@@ -417,6 +424,7 @@ def train_requests_router(get_db, current_user, role_has_permission, User, audit
         db.flush()
         _log(db, case, user.id, "created", None, {"channel": "trip_request", "from_train_request": r.code})
         r.status, r.sales_case_id = "referred", case.id
+        _notify(db, r, "درخواست شما به کارشناس تور سپرده شد", "کارشناس تور برای برنامه‌ی کامل سفر با شما تماس می‌گیرد.")
         _a(db, user, "train.referred", r.id, {"case": case.code})
         db.commit()
         return _out(r, True) | {"sales_case_code": case.code}
