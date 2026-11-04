@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import json
 import logging
+import ipaddress
 import os
 import re
 import secrets
@@ -542,7 +543,27 @@ app.add_middleware(CORSMiddleware, allow_origins=os.getenv("CORS_ORIGINS","http:
 
 
 def _client_ip(request: Request) -> str:
-    return request.client.host if request.client else "unknown"
+    """The visitor's address. Behind our own nginx (host or container) the TCP peer is a private/loopback address, so
+    the last X-Forwarded-For hop — the one our nginx appended — is the real client; earlier hops are client-supplied and
+    never trusted. A public peer (no proxy in front) is used as is."""
+    peer = request.client.host if request.client else "unknown"
+    try:
+        private_peer = ipaddress.ip_address(peer).is_private or ipaddress.ip_address(peer).is_loopback
+    except ValueError:
+        private_peer = False
+    if private_peer:
+        hops = [h.strip() for h in (request.headers.get("x-forwarded-for") or "").split(",") if h.strip()]
+        if hops:
+            try:
+                return str(ipaddress.ip_address(hops[-1]))
+            except ValueError:
+                pass
+        real = (request.headers.get("x-real-ip") or "").strip()
+        try:
+            return str(ipaddress.ip_address(real)) if real else peer
+        except ValueError:
+            return peer
+    return peer
 
 
 def _rate_limit_identity(request: Request, route_class: str) -> str:
