@@ -51,7 +51,8 @@ const nextConfig = {
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(self), geolocation=(self)' },
           { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
-          ...(isDev || allowHttpPreview ? [] : [{ key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' }]),
+          // No Strict-Transport-Security here: the TLS terminator (nginx, deploy/karenseir-https.sh) owns HSTS so it is
+          // sent exactly once and its max-age can start short and be raised without a rebuild.
         ],
       },
     ];

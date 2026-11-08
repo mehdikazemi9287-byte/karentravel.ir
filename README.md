@@ -55,6 +55,22 @@ uvicorn app.main:app --reload
 python -m app.outbox_worker
 ```
 
+## استقرار HTTPS روی سرور (karentravel.ir)
+
+اسکریپت `deploy/karenseir-https.sh` روی سرور (`/opt/karenseir`، nginx میزبان) اجرا می‌شود؛ گام صفر فقط بررسی است و با هر مورد غیرمنتظره بدون تغییر متوقف می‌شود. ترتیب اجرا از مک:
+
+```bash
+ssh karen@188.121.123.218 'bash -s' < ~/Downloads/karenseir-server-audit.sh          # بررسی فقط‌خواندنی
+ssh karen@188.121.123.218 'bash -s -- --check' < ~/Downloads/karenseir-https.sh      # پیش‌بررسی، بدون تغییر
+ssh karen@188.121.123.218 'bash -s' < ~/Downloads/karenseir-https.sh                 # اجرا (sudo بدون رمز)
+# اگر sudo رمز می‌خواهد:
+scp ~/Downloads/karenseir-https.sh karen@188.121.123.218:/tmp/ && ssh -t karen@188.121.123.218 'bash /tmp/karenseir-https.sh'
+```
+
+- پشتیبان هر اجرا در `/opt/karenseir/backups/https-<زمان>` (کل `/etc/nginx` و `.env`)؛ برگشت: `deploy/karenseir-https-rollback.sh` به همان دو شکل.
+- مالکیت سرآیندها: nginx فقط HSTS (شروع با `max-age=300`)؛ بقیه‌ی سرآیندهای امنیتی از `next.config.mjs` و FastAPI. بالا بردن HSTS پس از یک هفته: `ssh karen@188.121.123.218 'HSTS_MAX_AGE=31536000 bash -s' < ~/Downloads/karenseir-https.sh`.
+- اجرای دوباره بی‌خطر است (گواهی معتبر دوباره صادر نمی‌شود و اگر `.env` تغییری نکند web دوباره ساخته نمی‌شود). نسخه‌ی مرجع پیکربندی: `deploy/nginx.karentravel-https.conf`.
+
 ## اسناد
 
 تمام دامنه اکوسیستم، مرز پایلوت و تصمیم‌های اصلی در فایل‌های ریشه و `docs/adr` ثبت شده‌اند.

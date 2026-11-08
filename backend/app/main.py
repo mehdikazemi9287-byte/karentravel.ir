@@ -597,8 +597,7 @@ def _security_headers(request: Request, response) -> None:
         response.headers.setdefault("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
     if request.url.path == "/me" or request.url.path.startswith(("/auth/", "/me/", "/payments", "/admin", "/backoffice", "/finance")):
         response.headers["Cache-Control"] = "no-store"
-    if IS_PRODUCTION and request.headers.get("x-forwarded-proto", request.url.scheme) == "https":
-        response.headers.setdefault("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
+    # HSTS is owned by the TLS terminator (nginx via deploy/karenseir-https.sh), never by the app: one header, one max-age.
 
 
 @app.middleware("http")

@@ -88,10 +88,11 @@ def test_api_security_headers(client):
     assert r.headers["cache-control"] == "no-store"
 
 
-def test_hsts_only_in_production_over_https(client, monkeypatch):
+def test_app_never_sends_hsts_nginx_owns_it(client, monkeypatch):
+    # nginx (deploy/karenseir-https.sh) adds HSTS once; a second copy from the app would contradict its max-age.
     monkeypatch.setattr(m, "IS_PRODUCTION", True)
     r = client.get("/health", headers={"X-Forwarded-Proto": "https"})
-    assert "max-age=" in r.headers.get("strict-transport-security", "")
+    assert "strict-transport-security" not in r.headers
 
 
 # ---- internal endpoints hidden in production ----
