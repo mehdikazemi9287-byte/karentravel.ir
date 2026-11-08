@@ -112,3 +112,65 @@ def test_cert_passengers_and_runner(monkeypatch, capsys):
     assert "PNR777" in out and "64000000 IRR" in out and "MAHAN-CERT-DONE 2/2" in out
     assert "W5 1063 (C)" not in out and "W51063 (C)" in out and "W51063 (Y)" in out   # scenario 5 business = class C, scenario 1 economy = Y
     assert mc.is_business("C+C") and not mc.is_business("Y") and not mc.is_business("")
+
+
+def test_book_refusal_keeps_every_reason_and_the_request():
+    refusal = {"errorCode": 1, "description_fa": "رزرو انجام نشد.", "description_en": "", "result": {"Errors": [{"Message": "DUPLICATE NAME ON FLIGHT"}]}}
+    cli = MahanClient(env="qaa", api_key="secret-key", transport=Fake({"Res/Book": (200, refusal)}))
+    with pytest.raises(MahanError) as e:
+        cli.book([{"Origin": "IKA", "FlightNo": "51"}], [{"FirstName": "TESTA"}], "+989121234567")
+    assert "رزرو انجام نشد." in str(e.value) and "DUPLICATE NAME ON FLIGHT" in str(e.value) and e.value.code == "1"
+    assert e.value.payload == refusal and e.value.request["Passengers"] == [{"FirstName": "TESTA"}] and "secret-key" not in json.dumps(e.value.request)
+    bad = MahanClient(env="qaa", api_key="k", transport=Fake({"Res/Book": (400, {"title": "Passengers[1].Title is invalid"})}))
+    with pytest.raises(MahanError, match="Title is invalid") as e:
+        bad.book([{}], [{}], "+98")
+    assert e.value.status == 400 and e.value.request is not None
+
+
+def test_cert_passengers_unique_names_and_ages():
+    from datetime import date
+    segs = [{"FlightNo": "51", "DepartureDate": "2026-11-20"}, {"FlightNo": "50", "DepartureDate": "2026-11-24"}]
+    p = mc.passengers("international", 1, 1, 1, segs, tag="QWER", travel=date(2026, 11, 20))
+    assert p[0]["FirstName"] == "TESTQWERA" and p[1]["FirstName"] == "TESTCHDQWERA" and p[1]["Title"] == "MR"
+    assert p[1]["SSRs"][0]["FreeText"].split("/")[4] == "20NOV19"                      # child 7 years old
+    inft = [s["FreeText"] for s in p[0]["SSRs"] if s["SSRType"] == "INFT"]
+    assert inft == ["TEST/TESTINFQWERA 20FEB26"] * 2                                     # infant 9 months old
+    iata = mc.passengers("international", 1, 1, 1, segs, tag="QWER", travel=date(2026, 11, 20), variant="iata")
+    inf_docs = [s["FreeText"] for s in iata[0]["SSRs"] if s["SSRType"] == "DOCS" and "/FI/" in s["FreeText"]]
+    assert len(inf_docs) == 2 and inf_docs[0].endswith("/TEST/TESTINFQWERA") and iata[1]["Title"] == "MSTR"
+    docs = {s["FreeText"].split("/")[2] for x in iata for s in x["SSRs"] if s["SSRType"] == "DOCS"}
+    assert len(docs) == 3                                                                # adult, infant, child: all different
+
+
+def test_cert_runner_learns_cabin_retries_variant_and_dumps(monkeypatch, capsys):
+    avail = {"AvailableFlights": [{"FlightNo": "51", "Origin": "IKA", "Destination": "BKK", "DepartureDateTime": "2026-12-01 02:00",
+                                   "ClassesStatus": [{"FlightClass": c, "Cap": c + "9"} for c in ("BK", "Y", "R")]},
+                                  {"FlightNo": "50", "Origin": "BKK", "Destination": "IKA", "DepartureDateTime": "2026-12-05 10:00",
+                                   "ClassesStatus": [{"FlightClass": c, "Cap": c + "9"} for c in ("BK", "Y", "R")]}]}
+    quoted, booked = [], []
+
+    def send(method, url, json=None, headers=None):
+        ok = lambda b: httpx.Response(200, content=json_dumps(b), headers={"content-type": "application/json"})
+        if "AvailabilityFareJS" in url:
+            return ok(avail)
+        if "FareQuote" in url:
+            rbd = json["Segments"][0]["FlightClass"]
+            quoted.append(rbd)
+            if rbd == "Y":
+                return ok({"errorCode": 1, "description_fa": "نرخ یافت نشد."})
+            return ok({**QUOTE, "result": {**QUOTE["result"], "Cabin": "C+C" if rbd == "R" else "Y+Y"}})
+        child = [p for p in json["Passengers"] if p["AgeType"] == "CH"]
+        booked.append([p["FirstName"] for p in json["Passengers"]])
+        if child and child[0]["Title"] != "MSTR":
+            return ok({"errorCode": 1, "description_fa": "رزرو انجام نشد.", "description_en": "CHILD TITLE INVALID"})
+        return ok({"result": {"PNR": f"PNR{len(booked)}"}, "errorCode": 0})
+
+    monkeypatch.setenv("MAHAN_ENV", "qaa")
+    monkeypatch.setattr(mc, "MahanClient", lambda env: MahanClient(env=env, api_key="k", transport=send))
+    assert mc.main([], default_only="6,7,8") == 0
+    out = capsys.readouterr().out
+    assert "scenario 5" not in out and "MAHAN-CERT-DONE 3/3" in out
+    assert quoted == ["R", "BK", "R"]                          # 6: hint R first; 7: R learnt as business, skipped; 8: R again
+    assert "CHILD TITLE INVALID" in out and "==MAHAN-BOOK-FAIL== scenario 7" in out and '"Title": "MR"' in out
+    names = [n for b in booked for n in b]
+    assert len(names) == len(set(names))                       # fresh names on every Book
