@@ -13,6 +13,8 @@ Lessons from QAA runs (1405-08-14/17):
 * Every Book gets fresh synthetic names: run 3 re-used TESTA/TEST on W5 51 of the same day that already holds
   TL27U, which an airline host may refuse as a duplicate booking (hypothesis; Mahan only said «رزرو انجام نشد.»).
 * Child/infant birth dates are derived from the travel date (child 7 y, infant 9 months) so they stay in age range.
+* A Book that times out (or loses the connection) may still have created a PNR on QAA: that scenario stops there and
+  is reported, it is never retried with fresh names.
 """
 from __future__ import annotations
 
@@ -41,6 +43,11 @@ SCENARIOS = [  # (id, title, scope, round_trip, adults, children, infants, busin
 ]
 COLUMNS = ["ID", "Test Case", "Departure date", "Return date", "Flight no", "Total Fare", "Total Tax", "Base Price", "Total Surcharge", "Payment Amount and Currency", "Booking ReferenceID (PNR)"]
 MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
+
+
+def _today() -> date:
+    """The run's "today" (one place, so tests can move the clock)."""
+    return date.today()
 
 
 def log(msg: str) -> None:
@@ -84,7 +91,7 @@ def passengers(scope: str, adults: int, children: int, infants: int, segments: l
     variant "iata": also an infant DOCS on the adult (gender FI per IATA) and child Title MSTR — tried when "base" is refused.
     """
     rng = rng or random.Random()
-    travel = travel or date.today()
+    travel = travel or _today()
     child_dob, infant_dob = ddmmmyy(years_before(travel, 7)), ddmmmyy(years_before(travel, 0, 9))
     out = []
     for i in range(adults):
@@ -123,7 +130,9 @@ def is_business(cabin: str) -> bool:
 
 
 class Learnt:
-    """What QAA told us so far, shared by all scenarios of a run: cabin per (origin, destination, RBD), RBDs without fare."""
+    """What QAA told us so far, shared by all scenarios of a run: cabin per (origin, destination, RBD), and RBD pairs
+    without fare per (origin, destination, adults, children, infants, RBDs) — a no-fare on one route/passenger mix says
+    nothing about another."""
 
     def __init__(self, business_hint: str = ""):
         self.cabin: dict[tuple[str, str, str], bool] = {}
@@ -147,6 +156,10 @@ class Learnt:
         if biz:
             return 1 if rbd in self.hint else 2 if rbd in BUSINESS_RBD else 3
         return 3 if rbd in self.hint or rbd in BUSINESS_RBD else 2
+
+
+def nofare_key(org: str, dst: str, ad: int, ch: int, inf: int, rbds: tuple) -> tuple:
+    return (org, dst, ad, ch, inf, rbds)
 
 
 def dump_failure(sid: int, label: str, variant: str, exc: MahanError) -> None:
@@ -178,7 +191,7 @@ def run_one(cli: MahanClient, sc: tuple, routes: dict, days: list[str], stay: in
         except MahanError as exc:
             log(f"  [{sid}] {out_day}: availability failed: {exc}")
             continue
-        out_opts = [o for o in out_opts if not learnt.wrong_cabin(org, dst, o[1], biz) and flight_day(o[0], out_day) >= date.today().isoformat()]
+        out_opts = [o for o in out_opts if not learnt.wrong_cabin(org, dst, o[1], biz) and flight_day(o[0], out_day) >= _today().isoformat()]
         if rt:
             back_opts = [b for b in back_opts if not learnt.wrong_cabin(dst, org, b[1], biz)]
         if not out_opts or not back_opts:
@@ -199,8 +212,8 @@ def run_one(cli: MahanClient, sc: tuple, routes: dict, days: list[str], stay: in
             if fb is not None:
                 segs.append({"Origin": dst, "Destination": org, "FlightNo": str(fb.flight_no), "DepartureDate": flight_day(fb, back_day), "FlightClass": rb})
             label = " / ".join(f"W5{s['FlightNo']}{s['FlightClass']} {s['DepartureDate']}" for s in segs)
-            rbds = tuple(s["FlightClass"] for s in segs)
-            if label in tried or learnt.nofare.get(rbds, 0) >= 2:
+            nf = nofare_key(org, dst, ad, ch, inf, tuple(s["FlightClass"] for s in segs))
+            if label in tried or learnt.nofare.get(nf, 0) >= 2:
                 continue
             tried.add(label)
             quotes += 1
@@ -208,7 +221,7 @@ def run_one(cli: MahanClient, sc: tuple, routes: dict, days: list[str], stay: in
                 q = cli.fare_quote([{"Origin": s["Origin"], "Destination": s["Destination"], "FlightClass": s["FlightClass"], "Departure": s["DepartureDate"], "FlightNo": s["FlightNo"]} for s in segs], ad, ch, inf)
             except MahanError as exc:
                 last_err = exc
-                learnt.nofare[rbds] = learnt.nofare.get(rbds, 0) + 1
+                learnt.nofare[nf] = learnt.nofare.get(nf, 0) + 1
                 log(f"  [{sid}] FareQuote {label}: {exc}")
                 continue
             learnt.record(segs, q.cabin)
@@ -229,6 +242,12 @@ def run_one(cli: MahanClient, sc: tuple, routes: dict, days: list[str], stay: in
                     if reason not in reasons:
                         reasons.append(reason)
                     log(f"  [{sid}] Book {label} ({variant}): {reason}")
+                    if exc.ambiguous or exc.code in ("TIMEOUT", "NETWORK"):
+                        # The answer was lost, not refused: a PNR may exist. Re-booking with fresh names could double-book.
+                        msg = f"Book outcome unknown (timeout/network) on {label} ({variant}) — a PNR may exist on QAA; check manually before re-running"
+                        log(f"  [{sid}] {msg}")
+                        dump_failure(sid, label, variant, exc)
+                        raise MahanError(msg, code="BOOK_UNKNOWN", ambiguous=True, request=exc.request) from exc
                     if (str(exc), variant) not in dumped:
                         dumped.add((str(exc), variant))
                         dump_failure(sid, label, variant, exc)
@@ -262,12 +281,17 @@ def main(argv: Optional[list[str]] = None, default_only: str = "") -> int:
         print(f"MAHAN-CERT-ERROR {exc}", file=sys.stderr)
         return 2
     routes = {"domestic": tuple(a.domestic.split("-")), "international": tuple(a.international.split("-"))}
-    days = [(date.today() + timedelta(days=a.days + i)).isoformat() for i in range(a.window)]
+    days = [(_today() + timedelta(days=a.days + i)).isoformat() for i in range(a.window)]
     contact = os.environ.get("MAHAN_TEST_CONTACT") or "+989191258009"
     only_s = "" if a.all else (a.only if a.only is not None else default_only)
-    only = {int(x) for x in only_s.split(",") if x.strip()}
+    try:
+        only = {int(x) for x in only_s.split(",") if x.strip()}
+    except ValueError:
+        ap.error(f"--only: comma-separated scenario ids expected, got {only_s!r}")
+    if only - {sc[0] for sc in SCENARIOS}:
+        ap.error(f"--only: unknown scenario id(s) {sorted(only - {sc[0] for sc in SCENARIOS})} (valid: 1-{len(SCENARIOS)})")
     learnt, rng = Learnt(a.business_hint), random.Random()
-    log(f"MAHAN-CERT QAA {date.today().isoformat()} days {days[0]}..{days[-1]} routes {routes} scenarios {sorted(only) or 'all'}")
+    log(f"MAHAN-CERT QAA {_today().isoformat()} days {days[0]}..{days[-1]} routes {routes} scenarios {sorted(only) or 'all'}")
     rows = []
     for sc in SCENARIOS:
         if only and sc[0] not in only:

@@ -29,7 +29,11 @@ BUSINESS_RBD = set("JCDIZ")
 
 
 class MahanError(RuntimeError):
-    """`payload` is Mahan's raw answer and `request` the body we sent (never contains the key) — for support tickets."""
+    """`payload` is Mahan's raw answer and `request` the body we sent (never contains the key) — for support tickets.
+
+    Warning: `request` (and a Book `payload`) can hold passenger PII — names, document numbers, birth dates, contact.
+    Only log or forward it for QAA synthetic passengers; never dump it for real customers.
+    """
     def __init__(self, message: str, *, code: Optional[str] = None, status: Optional[int] = None, ambiguous: bool = False,
                  payload: Any = None, request: Any = None):
         super().__init__(message)
@@ -38,6 +42,17 @@ class MahanError(RuntimeError):
 
 
 _ERR_KEY = re.compile(r"desc|message|error|reason|remark|warning|detail", re.I)
+_NOT_ERR_KEY = re.compile(r"success|errorcode", re.I)       # SuccessMessage etc. are not reasons
+_SECRET = re.compile(r"((?:office)?pass(?:word)?|pwd|api[_-]?key|x-api-key|secret|token)(\W{0,3}[=:]\W{0,3})([^&\s\"',;}<]+)", re.I)
+
+
+def redact(text: str, *secrets: str) -> str:
+    """Hide OfficePass=/password=/key= values (and any known secret) that Mahan may echo back in an error page."""
+    out = _SECRET.sub(lambda m: m.group(1) + m.group(2) + "***", text)
+    for v in secrets:
+        if v and len(v) >= 3:
+            out = out.replace(v, "***")
+    return out
 
 
 def error_text(data: Any) -> str:
@@ -51,7 +66,7 @@ def error_text(data: Any) -> str:
         elif isinstance(x, list):
             for v in x:
                 walk(v, key)
-        elif isinstance(x, str) and key and _ERR_KEY.search(key) and key.lower() != "errorcode":
+        elif isinstance(x, str) and key and _ERR_KEY.search(key) and not _NOT_ERR_KEY.search(key):
             t = x.strip()
             if t and t not in seen:
                 seen.append(t)
@@ -131,6 +146,8 @@ def _flight_rows(payload: Any) -> list[dict]:
 
 
 def parse_availability(payload: Any) -> list[Flight]:
+    if not isinstance(payload, (dict, list)):
+        raise MahanError("Availability: unexpected answer", code="BAD_RESPONSE", payload=payload)
     flights = []
     for row in _flight_rows(payload):
         classes = []
@@ -164,10 +181,14 @@ class Quote:
     raw: dict = field(default_factory=dict, repr=False)
 
 
-def parse_quote(payload: dict) -> Quote:
+def parse_quote(payload: Any) -> Quote:
+    if not isinstance(payload, dict):
+        raise MahanError("FareQuote: unexpected answer", code="BAD_RESPONSE", payload=payload)
     if str(payload.get("errorCode", "0")) not in ("0", "0.0"):
         raise MahanError(error_text(payload) or "FareQuote failed", code=str(payload.get("errorCode")), payload=payload)
     r = payload.get("result") or {}
+    if not isinstance(r, dict):
+        raise MahanError("FareQuote: unexpected answer", code="BAD_RESPONSE", payload=payload)
     surcharge = Decimal(0)
     for b in r.get("PassengerBreakdown") or []:
         for t in b.get("Taxes") or []:
@@ -226,7 +247,8 @@ class MahanClient:
             raise MahanError("سرویس ماهان موقتاً در دسترس نیست", code="UNAVAILABLE", status=503)
         text = (r.text or "").strip()
         if r.status_code >= 400:
-            raise MahanError(f"HTTP {r.status_code}" + (f": {text[:300]}" if text else ""), status=r.status_code, payload=text[:4000], request=json)
+            safe = redact(text, self.key, self.office.get("OfficePass", ""))
+            raise MahanError(f"HTTP {r.status_code}" + (f": {safe[:300]}" if safe else ""), status=r.status_code, payload=safe[:4000], request=json)
         if text in ("SIGN", '"SIGN"'):
             raise MahanError("ماهان ورود را نپذیرفت (نام کاربری/رمز دفتر یا کلید)", code="SIGN")
         try:

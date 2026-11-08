@@ -1,4 +1,5 @@
 """Mahan MRS client: request shape (header key, URLs per env), parsing, DOCS, cert scenario passengers."""
+from datetime import timedelta
 from decimal import Decimal
 import json
 
@@ -6,9 +7,13 @@ import httpx
 import pytest
 
 from app import mahan_cert as mc
-from app.mahan_mrs import MahanClient, MahanError, docs_text, parse_availability, refund_inputs, seats
+from app.mahan_mrs import MahanClient, MahanError, docs_text, error_text, parse_availability, parse_quote, redact, refund_inputs, seats
 
-AVAIL = {"AvailableFlights": [{"FlightNo": "1063", "Origin": "THR", "Destination": "MHD", "DepartureDateTime": "2026-12-01 07:30", "ArrivalDateTime": "2026-12-01 09:00",
+# Dates relative to the runner's "today" (mc._today) so the tests never expire: the runner drops flights before today.
+OUT_DAY = (mc._today() + timedelta(days=10)).isoformat()
+BACK_DAY = (mc._today() + timedelta(days=14)).isoformat()          # default --stay 4
+
+AVAIL = {"AvailableFlights": [{"FlightNo": "1063", "Origin": "THR", "Destination": "MHD", "DepartureDateTime": f"{OUT_DAY} 07:30", "ArrivalDateTime": f"{OUT_DAY} 09:00",
                                "ClassesStatus": [{"FlightClass": "Y", "Cap": "YA", "Price": "35000000", "CurrencyCode": "IRR"}, {"FlightClass": "B", "Cap": "BX", "Price": "-", "CurrencyCode": "IRR"},
                                                  {"FlightClass": "C", "Cap": "C2", "Price": "0", "CurrencyCode": "IRR"}]}]}
 QUOTE = {"errorCode": 0, "result": {"Currency": "IRR", "TotalFare": "60000000", "TotalTax": "4000000", "TotalPrice": "64000000", "Coupons": [{"CouponNo": 1}],
@@ -50,12 +55,12 @@ def test_office_auth_b64_key_and_sign(monkeypatch):
     fake = Fake({"AvailabilityFareJS": (200, AVAIL)})
     cli = MahanClient(env="qaa", transport=fake)
     assert cli.key == "k$1$2"
-    cli.availability("THR", "KIH", "2026-12-01", 1)
+    cli.availability("THR", "KIH", OUT_DAY, 1)
     url = fake.calls[-1][1]
     assert "OfficeUser=THR1.WS" in url and "OfficePass=p%40%24w" in url
     sign = MahanClient(env="qaa", transport=lambda m, u, json=None, headers=None: httpx.Response(200, content=b"SIGN", headers={"content-type": "application/json"}))
     with pytest.raises(MahanError) as e:
-        sign.availability("THR", "KIH", "2026-12-01", 1)
+        sign.availability("THR", "KIH", OUT_DAY, 1)
     assert e.value.code == "SIGN"
 
 
@@ -66,10 +71,10 @@ def test_client_requests(monkeypatch):
         MahanClient(env="qaa")
     fake = Fake({"AvailabilityFareJS": (200, AVAIL), "FareQuote": (200, QUOTE), "Res/Book": (200, {"result": {"PNR": "ABC123"}, "errorCode": 0})})
     cli = MahanClient(env="qaa", api_key="k-123", transport=fake)
-    cli.availability("THR", "MHD", "2026-12-01", 1)
+    cli.availability("THR", "MHD", OUT_DAY, 1)
     m, url, _, h = fake.calls[-1]
     assert m == "GET" and url.startswith("https://api.mahanair.co.ir/ws1-qaa/AvailabilityFareJS.jsp?AirLine=W5&cbSource=THR") and h["X-API-Key"] == "k-123" and "k-123" not in url
-    q = cli.fare_quote([{"Origin": "THR", "Destination": "MHD", "FlightClass": "Y", "Departure": "2026-12-01", "FlightNo": "1063"}], 1, 0, 1)
+    q = cli.fare_quote([{"Origin": "THR", "Destination": "MHD", "FlightClass": "Y", "Departure": OUT_DAY, "FlightNo": "1063"}], 1, 0, 1)
     assert q.total_price == Decimal(64000000) and q.surcharge == Decimal(1000000)
     assert fake.calls[-1][2]["Passengers"] == [{"AgeType": "AD", "Quantity": 1}, {"AgeType": "IN", "Quantity": 1}] and fake.calls[-1][2]["Segments"][0]["AirlineCode"] == "W5"
     assert cli.book([{"Origin": "THR"}], [], "+989121234567") == "ABC123" and fake.calls[-1][1] == "https://api.mahanair.co.ir/ws2-qaa/Res/Book"
@@ -83,7 +88,7 @@ def test_client_requests(monkeypatch):
 
 
 def test_cert_passengers_and_runner(monkeypatch, capsys):
-    segs = [{"FlightNo": "1063", "DepartureDate": "2026-12-01"}, {"FlightNo": "1064", "DepartureDate": "2026-12-05"}]
+    segs = [{"FlightNo": "1063", "DepartureDate": OUT_DAY}, {"FlightNo": "1064", "DepartureDate": BACK_DAY}]
     p = mc.passengers("domestic", 1, 1, 1, segs)
     assert [x["AgeType"] for x in p] == ["AD", "CH"]                      # infant is an INFT SSR, not a passenger
     assert sum(1 for s in p[0]["SSRs"] if s["SSRType"] == "INFT") == 2 and p[0]["SSRs"][0]["FreeText"].startswith("I/IRN/")
@@ -143,9 +148,9 @@ def test_cert_passengers_unique_names_and_ages():
 
 
 def test_cert_runner_learns_cabin_retries_variant_and_dumps(monkeypatch, capsys):
-    avail = {"AvailableFlights": [{"FlightNo": "51", "Origin": "IKA", "Destination": "BKK", "DepartureDateTime": "2026-12-01 02:00",
+    avail = {"AvailableFlights": [{"FlightNo": "51", "Origin": "IKA", "Destination": "BKK", "DepartureDateTime": f"{OUT_DAY} 02:00",
                                    "ClassesStatus": [{"FlightClass": c, "Cap": c + "9"} for c in ("BK", "Y", "R")]},
-                                  {"FlightNo": "50", "Origin": "BKK", "Destination": "IKA", "DepartureDateTime": "2026-12-05 10:00",
+                                  {"FlightNo": "50", "Origin": "BKK", "Destination": "IKA", "DepartureDateTime": f"{BACK_DAY} 10:00",
                                    "ClassesStatus": [{"FlightClass": c, "Cap": c + "9"} for c in ("BK", "Y", "R")]}]}
     quoted, booked = [], []
 
@@ -174,3 +179,99 @@ def test_cert_runner_learns_cabin_retries_variant_and_dumps(monkeypatch, capsys)
     assert "CHILD TITLE INVALID" in out and "==MAHAN-BOOK-FAIL== scenario 7" in out and '"Title": "MR"' in out
     names = [n for b in booked for n in b]
     assert len(names) == len(set(names))                       # fresh names on every Book
+
+
+def _ok(b):
+    return httpx.Response(200, content=json_dumps(b), headers={"content-type": "application/json"})
+
+
+IKA_BKK = {"AvailableFlights": [{"FlightNo": "51", "Origin": "IKA", "Destination": "BKK", "DepartureDateTime": f"{OUT_DAY} 02:00",
+                                 "ClassesStatus": [{"FlightClass": c, "Cap": c + "9"} for c in ("Y", "R")]},
+                                {"FlightNo": "50", "Origin": "BKK", "Destination": "IKA", "DepartureDateTime": f"{BACK_DAY} 10:00",
+                                 "ClassesStatus": [{"FlightClass": c, "Cap": c + "9"} for c in ("Y", "R")]}]}
+
+
+def test_cert_stops_on_ambiguous_book(monkeypatch, capsys):
+    books = []
+
+    def send(method, url, json=None, headers=None):
+        if "AvailabilityFareJS" in url:
+            return _ok(IKA_BKK)
+        if "FareQuote" in url:
+            return _ok({**QUOTE, "result": {**QUOTE["result"], "Cabin": "Y+Y"}})
+        books.append(json)
+        raise httpx.ReadTimeout("timed out")
+
+    monkeypatch.setenv("MAHAN_ENV", "qaa")
+    monkeypatch.setattr(mc, "MahanClient", lambda env: MahanClient(env=env, api_key="k", transport=send))
+    assert mc.main(["--only", "7"]) == 1
+    out = capsys.readouterr().out
+    assert len(books) == 1                                         # never re-booked with fresh names
+    assert "Book outcome unknown (timeout/network)" in out and "check manually before re-running" in out
+    assert "==MAHAN-BOOK-FAIL== scenario 7" in out and "FAILED: Book outcome unknown" in out
+
+
+def test_cert_nofare_is_scoped_to_route_and_passengers():
+    learnt = mc.Learnt()
+    rejected = set()
+
+    def send(method, url, json=None, headers=None):
+        if "AvailabilityFareJS" in url:
+            return _ok(IKA_BKK)
+        if "FareQuote" in url:
+            pax = tuple((p["AgeType"], p["Quantity"]) for p in json["Passengers"])
+            rbd = json["Segments"][0]["FlightClass"]
+            if pax == (("AD", 2),) or rbd == "R":                  # no fare for 2 adults; R never priced in this fake
+                rejected.add((pax, rbd))
+                return _ok({"errorCode": 1, "description_en": "FARE NOT FOUND"})
+            return _ok({**QUOTE, "result": {**QUOTE["result"], "Cabin": "Y+Y"}})
+        return _ok({"result": {"PNR": "PNRX"}, "errorCode": 0})
+
+    cli = MahanClient(env="qaa", api_key="k", transport=send)
+    routes = {"international": ("IKA", "BKK"), "domestic": ("THR", "KIH")}
+    days = [OUT_DAY, (mc._today() + timedelta(days=11)).isoformat()]
+    with pytest.raises(MahanError):
+        mc.run_one(cli, (6, "2 adult", "international", True, 2, 0, 0, False), routes, days, 4, "+98", learnt)
+    assert learnt.nofare.get(("IKA", "BKK", 2, 0, 0, ("Y", "Y")), 0) >= 1 and all(k[2:5] == (2, 0, 0) for k in learnt.nofare)
+    row = mc.run_one(cli, (7, "1 adult 1 child", "international", True, 1, 1, 0, False), routes, days, 4, "+98", learnt)
+    assert row["Booking ReferenceID (PNR)"] == "PNRX" and "(Y)" in row["Flight no"]    # 2-adult no-fare did not exclude Y
+
+
+def test_non_dict_answers_raise_mahan_error():
+    for bad in ([1, 2], "oops", None, 7):
+        with pytest.raises(MahanError) as e:
+            parse_quote(bad)
+        assert e.value.code == "BAD_RESPONSE" and e.value.payload == bad
+    with pytest.raises(MahanError) as e:
+        parse_quote({"errorCode": 0, "result": ["x"]})
+    assert e.value.code == "BAD_RESPONSE"
+    for bad in ("oops", 7, None):
+        with pytest.raises(MahanError) as e:
+            parse_availability(bad)
+        assert e.value.payload == bad
+    assert parse_availability([]) == []
+    cli = MahanClient(env="qaa", api_key="k", transport=Fake({"FareQuote": (200, ["not", "a", "dict"])}))
+    with pytest.raises(MahanError, match="unexpected answer"):
+        cli.fare_quote([{}], 1)
+
+
+def test_http_error_is_redacted_and_success_message_is_not_a_reason(monkeypatch):
+    monkeypatch.setenv("MAHAN_QAA_OFFICE_PASS", "s3cretP")
+    page = "Bad request: AvailabilityFareJS.jsp?AirLine=W5&OfficeUser=THR1.WS&OfficePass=s3cretP&cbSource=THR password: hunter2 key=k-999"
+    cli = MahanClient(env="qaa", api_key="k-999", transport=lambda m, u, json=None, headers=None: httpx.Response(400, content=page.encode()))
+    with pytest.raises(MahanError) as e:
+        cli.availability("THR", "KIH", OUT_DAY, 1)
+    for leaked in ("s3cretP", "hunter2", "k-999"):
+        assert leaked not in str(e.value) and leaked not in e.value.payload
+    assert "OfficePass=***" in e.value.payload and "OfficeUser=THR1.WS" in e.value.payload
+    assert redact('{"OfficePass": "abc", "Passengers": 2}') == '{"OfficePass": "***", "Passengers": 2}'
+    assert error_text({"SuccessMessage": "OK", "errorCode": "1", "Errors": [{"Message": "NO SEAT"}]}) == "NO SEAT"
+
+
+def test_only_rejects_bad_ids(monkeypatch, capsys):
+    monkeypatch.setenv("MAHAN_ENV", "qaa")
+    monkeypatch.setattr(mc, "MahanClient", lambda env: MahanClient(env=env, api_key="k", transport=lambda *a, **k: _ok({})))
+    for bad in ("6,x", "9"):
+        with pytest.raises(SystemExit) as e:
+            mc.main(["--only", bad])
+        assert e.value.code == 2 and "--only" in capsys.readouterr().err
