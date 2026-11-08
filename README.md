@@ -75,6 +75,23 @@ scp ~/Downloads/karenseir-https.sh karen@188.121.123.218:/tmp/ && ssh -t karen@1
 - اسکریپت‌ها با `'bash -s'` امن‌اند: کل بدنه داخل تابع است و خط آخر `main` را اجرا می‌کند، پس bash پیش از اجرا همه را خوانده است. قفل اجرا `/run/karenseir-https.lock` است (پوشه‌ی متعلق به root که با `mkdir` ساخته می‌شود).
 - پرداخت: آدرس callback به `ZARINPAL_CALLBACK_URL=https://karentravel.ir/api/payments/zarinpal/callback` تغییر کرده است. پیش از فعال کردن پرداخت (`ZARINPAL_MODE`) همین آدرس و دامنه را در پنل پذیرنده‌ی زرین‌پال هم به‌روز کنید؛ وگرنه زرین‌پال callback را رد می‌کند.
 
+## HTTPS روی چیدمان فعلی سرور (nginx داخل container)
+
+سرور فعلی nginx را به‌صورت container (سرویس `nginx` در `/opt/karenseir`) اجرا می‌کند، نه روی میزبان؛ برای آن از `deploy/karenseir-https-container.sh` استفاده کنید (`deploy/karenseir-https.sh` فقط برای nginx میزبان است و این سرور را رد می‌کند). به sudo نیاز نیست: گواهی با سرویس `certbot` (profile `ssl`) در `./certs` نوشته می‌شود و پیکربندی در `nginx/default.conf` در جا (`cat > default.conf`، همان inode) بازنویسی و با `nginx -s reload` بارگذاری می‌شود.
+
+```bash
+ssh karen@188.121.123.218 'bash -s -- --check' < ~/Downloads/karenseir-https-container.sh            # پیش‌بررسی فقط‌خواندنی → PREFLIGHT-OK
+ssh karen@188.121.123.218 'bash -s' < ~/Downloads/karenseir-https-container.sh                       # اجرا → HTTPS-OK
+ssh karen@188.121.123.218 'bash -s -- --check' < ~/Downloads/karenseir-https-container-rollback.sh   # پیش‌نمایش برگشت
+ssh karen@188.121.123.218 'bash -s' < ~/Downloads/karenseir-https-container-rollback.sh              # برگشت به آخرین پشتیبان پیش از HTTPS
+```
+
+- مراحل: پیش‌بررسی → پشتیبان (`/opt/karenseir/backups/https-<زمان>`: `default.conf`، `.env`، فایل‌های compose و برچسب `karenseir-web:pre-https-<زمان>`) → آزمون ACME و `certbot --dry-run` و صدور → (A) سرور 443 با کپی دقیق بلوک پورت 80، HTTP بدون تغییر → (B) `.env`/compose به `https://karentravel.ir`، ساخت دوباره‌ی web و راه‌اندازی web/api/worker → (C) redirect همه‌ی HTTP (دامنه، www، IP) به `https://karentravel.ir` به‌جز ACME، و `www` روی 443 به apex → cron تمدید روزانه برای کاربر karen → بررسی نهایی.
+- هر خطا پیش از کامل شدن مرحله‌ی C همه‌چیز را خودکار برمی‌گرداند (`AUTO-RESTORE-OK`)؛ گواهی گرفته‌شده می‌ماند. exit 3 یعنی Let's Encrypt یا image `certbot/certbot` در دسترس نیست (Docker Hub) و راه‌های جایگزین چاپ می‌شود: گواهی خریداری‌شده با `CERT_FULLCHAIN=… CERT_KEY=…`، certbot روی میزبان با `--config-dir /opt/karenseir/certs`، یا `docker save | docker load`. exit 4 یعنی 443 از بیرون باز نیست (security group ابرآروان).
+- مالکیت سرآیندها: `X-Content-Type-Options`، `X-Frame-Options`، `Referrer-Policy` و `Permissions-Policy` فقط از nginx می‌آیند (`add_header … always` در سطح server، و تکرار در locationهایی که `add_header` خودشان را دارند چون ارث نمی‌برند)، و نسخه‌ی upstream با `proxy_hide_header` پنهان می‌شود؛ پس هر سرآیند روی صفحه، API، 404، `/_next/static` و redirect دقیقاً یک‌بار است. HSTS فقط روی 443 (شروع `max-age=300`؛ بالا بردن: `'HSTS_MAX_AGE=31536000 bash -s'`). CSP همچنان از Next می‌آید.
+- مقادیرِ ثابت‌نوشته‌شده در `docker-compose.yml` سرور (مثل build arg `NEXT_PUBLIC_API_URL`) ویرایش نمی‌شوند؛ در `docker-compose.https.yml` (از طریق `COMPOSE_FILE` در `.env`) بازنویسی می‌شوند. مقادیری که از `${VAR}` می‌آیند در `.env` عوض می‌شوند. پیش‌بررسی فهرست دقیق تغییرات را نشان می‌دهد.
+- برگشت در صورت `max-age` بزرگ‌تر از 86400 بدون `FORCE=1` انجام نمی‌شود؛ با 300، مرورگرهایی که HSTS را دیده‌اند تا ۵ دقیقه فقط https می‌خواهند.
+
 ## اسناد
 
 تمام دامنه اکوسیستم، مرز پایلوت و تصمیم‌های اصلی در فایل‌های ریشه و `docs/adr` ثبت شده‌اند.
