@@ -67,9 +67,13 @@ ssh karen@188.121.123.218 'bash -s' < ~/Downloads/karenseir-https.sh            
 scp ~/Downloads/karenseir-https.sh karen@188.121.123.218:/tmp/ && ssh -t karen@188.121.123.218 'bash /tmp/karenseir-https.sh'
 ```
 
-- پشتیبان هر اجرا در `/opt/karenseir/backups/https-<زمان>` (کل `/etc/nginx` و `.env`)؛ برگشت: `deploy/karenseir-https-rollback.sh` به همان دو شکل.
-- مالکیت سرآیندها: nginx فقط HSTS (شروع با `max-age=300`)؛ بقیه‌ی سرآیندهای امنیتی از `next.config.mjs` و FastAPI. بالا بردن HSTS پس از یک هفته: `ssh karen@188.121.123.218 'HSTS_MAX_AGE=31536000 bash -s' < ~/Downloads/karenseir-https.sh`.
-- اجرای دوباره بی‌خطر است (گواهی معتبر دوباره صادر نمی‌شود و اگر `.env` تغییری نکند web دوباره ساخته نمی‌شود). نسخه‌ی مرجع پیکربندی: `deploy/nginx.karentravel-https.conf`.
+- برگشت (rollback): `ssh karen@188.121.123.218 'bash -s' < ~/Downloads/karenseir-https-rollback.sh` (پیش‌نمایش: `'bash -s -- --check'`؛ sudo با رمز: همان روش scp و `ssh -t`).
+- پشتیبان هر اجرا در `/opt/karenseir/backups/https-<زمان>`: کل `/etc/nginx`، `.env` و برچسب image در حال اجرای web (`<image>:pre-https-<زمان>`). اگر اجرایی پس از اولین تغییر شکست بخورد، اسکریپت خودکار `/etc/nginx` و `.env` (و در صورت لزوم image قبلی web) را از پشتیبان همان اجرا برمی‌گرداند، `nginx -t` و reload می‌کند و `AUTO-RESTORE-OK` چاپ می‌کند. استثنا: پس از فعال شدن redirect و HSTS (گام ۷) یا توقف عمدی پیش از redirect (exit 4) چیزی خودکار برگردانده نمی‌شود و دستور rollback چاپ می‌شود.
+- rollback، image قبلی web را دوباره برچسب می‌زند و با `--no-build` بالا می‌آورد؛ فقط اگر آن برچسب نباشد یا web از آن پس با release دیگری ساخته شده باشد، با هشدار web را دوباره می‌سازد.
+- مالکیت سرآیندها (هر سرآیند دقیقاً یک‌بار): HSTS فقط از nginx (شروع با `max-age=300`، روی redirect `www` هم)، و نسخه‌ی احتمالی upstream پنهان می‌شود. `X-Content-Type-Options`، `X-Frame-Options`، `Referrer-Policy`، CSP و `Permissions-Policy` برای پاسخ‌های برنامه از `next.config.mjs` و FastAPI می‌آیند (در FastAPI روی پاسخ‌های زودهنگام 429/503 و خطای 500 هم). nginx سه سرآیند اول را فقط وقتی اضافه می‌کند که upstream آن را نفرستاده باشد (`map $upstream_http_…`)، یعنی روی پاسخ‌های خود nginx: redirectها، ACME، 502/504 و 503 محدودیت نرخ. بالا بردن HSTS پس از یک هفته: `ssh karen@188.121.123.218 'HSTS_MAX_AGE=31536000 bash -s' < ~/Downloads/karenseir-https.sh`.
+- اجرای دوباره بی‌خطر است: گواهی معتبر دوباره صادر نمی‌شود؛ اگر گواهی موجود نزدیک انقضا باشد یا نام `www` را نداشته باشد، پورت 443 با همان گواهی سرویس می‌دهد تا certbot تمدید یا گسترش دهد، و هیچ‌وقت سرور 443 کار‌کننده حذف نمی‌شود. اگر `.env` تغییری نکند web دوباره ساخته نمی‌شود. نسخه‌ی مرجع پیکربندی: `deploy/nginx.karentravel-https.conf`.
+- اسکریپت‌ها با `'bash -s'` امن‌اند: کل بدنه داخل تابع است و خط آخر `main` را اجرا می‌کند، پس bash پیش از اجرا همه را خوانده است. قفل اجرا `/run/karenseir-https.lock` است (پوشه‌ی متعلق به root که با `mkdir` ساخته می‌شود).
+- پرداخت: آدرس callback به `ZARINPAL_CALLBACK_URL=https://karentravel.ir/api/payments/zarinpal/callback` تغییر کرده است. پیش از فعال کردن پرداخت (`ZARINPAL_MODE`) همین آدرس و دامنه را در پنل پذیرنده‌ی زرین‌پال هم به‌روز کنید؛ وگرنه زرین‌پال callback را رد می‌کند.
 
 ## اسناد
 

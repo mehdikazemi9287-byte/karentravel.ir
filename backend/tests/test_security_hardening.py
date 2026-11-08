@@ -95,6 +95,58 @@ def test_app_never_sends_hsts_nginx_owns_it(client, monkeypatch):
     assert "strict-transport-security" not in r.headers
 
 
+def _assert_api_security_headers(r):
+    assert r.headers["x-content-type-options"] == "nosniff"
+    assert r.headers["x-frame-options"] == "DENY"
+    assert r.headers["referrer-policy"] == "no-referrer"
+    assert "frame-ancestors 'none'" in r.headers["content-security-policy"]
+    assert "strict-transport-security" not in r.headers
+
+
+class _Decision:
+    allowed, retry_after, remaining = False, 7, 0
+
+
+class _DenyLimiter:
+    distributed = False
+
+    async def hit(self, *args):
+        return _Decision()
+
+
+class _BrokenLimiter:
+    distributed = False
+
+    async def hit(self, *args):
+        raise RuntimeError("redis down")
+
+
+def test_early_rate_limit_responses_carry_security_headers(client, monkeypatch):
+    # 429/503 are returned before call_next, so they must get the headers explicitly.
+    monkeypatch.setattr(m, "rate_limiter", _DenyLimiter())
+    r = client.get("/public/anything")
+    assert r.status_code == 429 and r.headers["retry-after"] == "7"
+    _assert_api_security_headers(r)
+    monkeypatch.setattr(m, "rate_limiter", _BrokenLimiter())
+    r = client.get("/public/anything")
+    assert r.status_code == 503
+    _assert_api_security_headers(r)
+
+
+def test_unhandled_exception_500_carries_security_headers(monkeypatch):
+    from fastapi.testclient import TestClient
+
+    path = "/__test_security_boom"
+    if not any(getattr(rt, "path", None) == path for rt in m.app.router.routes):
+        @m.app.get(path)
+        def _boom():
+            raise RuntimeError("boom")
+    with TestClient(m.app, raise_server_exceptions=False) as c:
+        r = c.get(path)
+    assert r.status_code == 500 and r.json()["detail"] == "خطای داخلی سرویس"
+    _assert_api_security_headers(r)
+
+
 # ---- internal endpoints hidden in production ----
 
 def test_metrics_and_version_hidden_in_production(client, monkeypatch):

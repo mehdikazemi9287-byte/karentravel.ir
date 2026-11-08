@@ -89,7 +89,7 @@ Migration RLS افزایشی است و داده را تغییر نمی‌دهد.
 
 worker روی شبکه داخلی `/health` و `/metrics` در پورت 9101 ارائه می‌کند؛ این پورت نباید public expose شود. Prometheus از شبکه private آن را scrape می‌کند و backlog/dead-letter alert دارد.
 
-قالب Nginx فقط TLS 1.2/1.3، redirect HTTPS، HSTS، body/timeouts، gzip و request/correlation headers را تعریف می‌کند؛ بقیه‌ی headerهای امنیتی فقط از برنامه (`next.config.mjs` و FastAPI) می‌آیند تا هر header یک‌بار فرستاده شود. روی سرور فعلی از `deploy/karenseir-https.sh` استفاده کنید. Brotli فقط در صورت module رسمی و تست‌شده روی target فعال می‌شود. CSP پس از inventory دامنه‌های image/API و browser regression test اضافه می‌شود.
+قالب Nginx فقط TLS 1.2/1.3، redirect HTTPS، HSTS، body/timeouts، gzip و request/correlation headers را تعریف می‌کند؛ بقیه‌ی headerهای امنیتی برای پاسخ‌های برنامه فقط از `next.config.mjs` و FastAPI می‌آیند تا هر header یک‌بار فرستاده شود. در پیکربندی تولیدشده‌ی `deploy/karenseir-https.sh` (و `deploy/nginx.karentravel-https.conf`)، nginx سرآیندهای `X-Content-Type-Options`، `X-Frame-Options` و `Referrer-Policy` را فقط روی پاسخ‌های خودش اضافه می‌کند (redirect، ACME، 502/504، 503)، یعنی وقتی upstream آنها را نفرستاده است. روی سرور فعلی از `deploy/karenseir-https.sh` استفاده کنید (پشتیبان، بازگردانی خودکار و rollback در README آمده است). با تغییر `ZARINPAL_CALLBACK_URL` به `https://karentravel.ir/api/payments/zarinpal/callback`، پیش از فعال کردن پرداخت همین آدرس را در پنل پذیرنده‌ی زرین‌پال هم ثبت کنید. Brotli فقط در صورت module رسمی و تست‌شده روی target فعال می‌شود. CSP پس از inventory دامنه‌های image/API و browser regression test اضافه می‌شود.
 
 ## ادامه استقرار روی سرور مجاز
 

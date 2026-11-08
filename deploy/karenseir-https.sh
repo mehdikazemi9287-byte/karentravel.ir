@@ -21,43 +21,108 @@
 #        4 certificate → 5 nginx TLS (no redirect yet) + reachability → 6 .env + rebuild web + restart api/web →
 #        7 nginx final (HTTP→HTTPS redirect, HTTP/2, short HSTS) → 8 renewal check → 9 verification → HTTPS-OK
 # Idempotent: reruns reuse the valid certificate, rewrite the same managed nginx file and skip the web rebuild when .env is unchanged.
-set -euo pipefail
+#
+# The whole body is functions; only the last line runs main, so with  ssh ... 'bash -s' < script  bash has parsed
+# everything before anything runs (stdin is then closed with exec </dev/null and cannot be consumed by a command).
+set -Eeuo pipefail
 
-DOMAIN=karentravel.ir
-WWW=www.$DOMAIN
-EXPECTED_IP=${EXPECTED_IP:-188.121.123.218}
-APP_DIR=${APP_DIR:-/opt/karenseir}
-HSTS_MAX_AGE=${HSTS_MAX_AGE:-300}
-WITH_WWW=${WITH_WWW:-1}
-CERTBOT_EMAIL=${CERTBOT_EMAIL:-}
-CERT_FULLCHAIN=${CERT_FULLCHAIN:-}
-CERT_KEY=${CERT_KEY:-}
-IGNORE_NGINX_EXTRAS=${IGNORE_NGINX_EXTRAS:-0}
-ASSUME_443_OPEN=${ASSUME_443_OPEN:-0}
-WEBROOT=/var/www/letsencrypt
-MANAGED_NAME=karentravel-https.conf
-MARKER="managed-by: karenseir-https.sh"
-TS=$(date -u +%Y%m%d-%H%M%S)
-BK="$APP_DIR/backups/https-$TS"
-CHECK_ONLY=0; [ "${1:-}" = "--check" ] && CHECK_ONLY=1
-SSH_CMD="ssh karen@$EXPECTED_IP"
-RUN_TTY="scp ~/Downloads/karenseir-https.sh karen@$EXPECTED_IP:/tmp/ && ssh -t karen@$EXPECTED_IP 'bash /tmp/karenseir-https.sh'"
-ROLLBACK_CMD="$SSH_CMD 'bash -s' < ~/Downloads/karenseir-https-rollback.sh   (password sudo: scp it to /tmp and ssh -t karen@$EXPECTED_IP 'bash /tmp/karenseir-https-rollback.sh')"
-CHANGED=0
-FAILS=()
-WARNS=()
+config() {
+  DOMAIN=karentravel.ir
+  WWW=www.$DOMAIN
+  EXPECTED_IP=${EXPECTED_IP:-188.121.123.218}
+  APP_DIR=${APP_DIR:-/opt/karenseir}
+  HSTS_MAX_AGE=${HSTS_MAX_AGE:-300}
+  WITH_WWW=${WITH_WWW:-1}
+  CERTBOT_EMAIL=${CERTBOT_EMAIL:-}
+  CERT_FULLCHAIN=${CERT_FULLCHAIN:-}
+  CERT_KEY=${CERT_KEY:-}
+  IGNORE_NGINX_EXTRAS=${IGNORE_NGINX_EXTRAS:-0}
+  ASSUME_443_OPEN=${ASSUME_443_OPEN:-0}
+  WEBROOT=/var/www/letsencrypt
+  MANAGED_NAME=karentravel-https.conf
+  MARKER="managed-by: karenseir-https.sh"
+  TS=$(date -u +%Y%m%d-%H%M%S)
+  BK="$APP_DIR/backups/https-$TS"
+  CHECK_ONLY=0; [ "${1:-}" = "--check" ] && CHECK_ONLY=1
+  SSH_CMD="ssh karen@$EXPECTED_IP"
+  RUN_TTY="scp ~/Downloads/karenseir-https.sh karen@$EXPECTED_IP:/tmp/ && ssh -t karen@$EXPECTED_IP 'bash /tmp/karenseir-https.sh'"
+  ROLLBACK_CMD="$SSH_CMD 'bash -s' < ~/Downloads/karenseir-https-rollback.sh   (password sudo: scp it to /tmp and ssh -t karen@$EXPECTED_IP 'bash /tmp/karenseir-https-rollback.sh')"
+  # change tracking for the EXIT handler (auto-restore of this run's backup)
+  CHANGED=0          # 1 once this run's backup exists (step 1)
+  AUTO_RESTORE=1     # 0 once HTTPS is deliberately left live (exit 4, or after step 7 when HSTS may be cached)
+  KEEP_REASON=""
+  NGINX_TOUCHED=0 IMG_TOUCHED=0 UP_TOUCHED=0
+  WEB_IMAGE_REF="" WEB_PRE_TAG=""
+  FAILS=(); WARNS=(); WORK=""; LOCK=""; LOCK_HELD=0; SUDO=NONE
+}
 
 say()  { printf '%s\n' "$*"; }
 ok()   { printf '  ok   %s\n' "$*"; }
 warn() { printf '  WARN %s\n' "$*"; WARNS+=("$*"); }
 fail() { printf '  FAIL %s\n' "$*"; FAILS+=("$*"); }
-die()  {
-  printf '\nHTTPS-FAILED: %s\n' "$*" >&2
-  if [ "$CHANGED" = 1 ]; then printf 'Backups: %s\nRollback: %s\n' "$BK" "$ROLLBACK_CMD" >&2
-  else printf 'Nothing was changed on the server.\n' >&2; fi
-  exit 1
+die()  { printf '\nHTTPS-FAILED: %s\n' "$*" >&2; exit 1; }   # on_exit restores this run's backup
+
+# ERR (inherited by functions thanks to set -E) only reports; the exit then runs on_exit, which decides what to restore.
+# Commands in if/while conditions and in && / || lists (the "|| true" patterns) do not fire ERR.
+on_err() {
+  local rc=$1 line=$2
+  [ "$BASHPID" = "$$" ] || exit "$rc"   # inside $(...) / subshells: just propagate
+  printf '\nHTTPS-FAILED at line %s (exit %s)\n' "$line" "$rc" >&2
+  exit "$rc"
 }
-trap 'rc=$?; printf "\nHTTPS-FAILED at line %s (exit %s)\n" "$LINENO" "$rc" >&2; [ "$CHANGED" = 1 ] && printf "Backups: %s\nRollback: %s\n" "$BK" "$ROLLBACK_CMD" >&2; exit $rc' ERR
+on_exit() {
+  local rc=$?
+  [ "$BASHPID" = "$$" ] || return 0
+  set +e; trap - ERR
+  if [ "$rc" != 0 ] && [ "$CHANGED" = 1 ]; then
+    if [ "$AUTO_RESTORE" = 1 ]; then auto_restore
+    else printf '\n%s\nBackups: %s\nRollback: %s\n' "${KEEP_REASON:-Changes were left in place.}" "$BK" "$ROLLBACK_CMD" >&2; fi
+  elif [ "$rc" != 0 ]; then printf 'Nothing was changed on the server.\n' >&2; fi
+  [ -z "$WORK" ] || rm -rf "$WORK"
+  [ "$LOCK_HELD" != 1 ] || S rm -rf "$LOCK"
+}
+restore_nginx_from() { # $1 = tar of /etc/nginx from step 1: put the whole tree back (this also re-enables disabled site files)
+  local tgz=$1 stage="/etc/.karenseir-restore-$TS" failed="/etc/nginx.failed-$TS"
+  S rm -rf "$stage" && S mkdir -m 0700 "$stage" && S tar -xzf "$tgz" -C "$stage" && S test -d "$stage/etc/nginx" || { S rm -rf "$stage"; return 1; }
+  S mv /etc/nginx "$failed" || { S rm -rf "$stage"; return 1; }
+  if ! S mv "$stage/etc/nginx" /etc/nginx; then S mv "$failed" /etc/nginx; S rm -rf "$stage"; return 1; fi
+  S rm -rf "$stage"
+  S mv "$failed" "$BK/etc-nginx-failed-run" 2>/dev/null || S rm -rf "$failed"   # kept for inspection
+  # the backed-up tree passed nginx -t in preflight; if it does not now, it stays (exact prior state) but is not reloaded
+  S nginx -t >/dev/null 2>&1 && S systemctl reload nginx
+}
+auto_restore() {
+  local st=0
+  printf '\n-- restoring the state before this run from %s\n' "$BK" >&2
+  if [ "$NGINX_TOUCHED" = 1 ]; then
+    if restore_nginx_from "$BK/etc-nginx.tgz"; then printf '   /etc/nginx restored, nginx -t ok, reloaded\n' >&2
+    else st=1; printf '   /etc/nginx could NOT be restored (see: sudo nginx -t)\n' >&2; fi
+  fi
+  if [ -f "$BK/env.bak" ] && ! cmp -s "$BK/env.bak" .env; then
+    if cat "$BK/env.bak" >.env; then printf '   .env restored\n' >&2; else st=1; printf '   .env could NOT be restored (copy %s/env.bak)\n' "$BK" >&2; fi
+  fi
+  if [ "$IMG_TOUCHED" = 1 ] || [ "$UP_TOUCHED" = 1 ]; then
+    if [ -n "$WEB_PRE_TAG" ] && docker tag "$WEB_PRE_TAG" "$WEB_IMAGE_REF"; then printf '   web image %s → previous image (%s)\n' "$WEB_IMAGE_REF" "$WEB_PRE_TAG" >&2
+    else st=1; printf '   previous web image unknown — web keeps the new build\n' >&2; fi
+  fi
+  if [ "$UP_TOUCHED" = 1 ]; then
+    if docker compose up -d --no-build --force-recreate web >/dev/null 2>&1 && docker compose up -d --no-build api >/dev/null 2>&1; then printf '   api/web restarted with the previous .env/image\n' >&2
+    else st=1; printf '   docker compose up of the previous api/web failed\n' >&2; fi
+  fi
+  if [ "$st" = 0 ]; then printf 'AUTO-RESTORE-OK: the server is back to its state before this run (backup kept: %s)\n' "$BK" >&2
+  else printf 'AUTO-RESTORE-INCOMPLETE: run the rollback: %s\n' "$ROLLBACK_CMD" >&2; fi
+}
+lock_acquire() { # mkdir is atomic and never follows a symlink; root-owned under /run when sudo works
+  if sudo_ok; then LOCK=/run/karenseir-https.lock; else LOCK="$HOME/.karenseir-https.lock"; fi
+  local old
+  if ! S mkdir -m 0700 "$LOCK" 2>/dev/null; then
+    old=$(S cat "$LOCK/pid" 2>/dev/null || true)
+    if [ -n "$old" ] && ps -p "$old" >/dev/null 2>&1; then echo "another karenseir-https run is active (pid $old, lock $LOCK)"; exit 1; fi
+    S rm -rf "$LOCK"; S mkdir -m 0700 "$LOCK" 2>/dev/null || { echo "cannot take lock $LOCK"; exit 1; }
+  fi
+  LOCK_HELD=1
+  echo "$$" | S tee "$LOCK/pid" >/dev/null
+}
 
 print_fallbacks() {
   cat <<EOF
@@ -75,23 +140,160 @@ Let's Encrypt cannot be used from this server right now. Nothing was changed. Op
 EOF
 }
 
-# ---------------------------------------------------------------- sudo (detect, never hang)
+setup_sudo() {
 INTERACTIVE=0; [ -t 0 ] && [ -t 1 ] && INTERACTIVE=1
 if [ "$(id -u)" -eq 0 ]; then SUDO=""
 elif sudo -n true 2>/dev/null; then SUDO="sudo -n"
 elif [ "$INTERACTIVE" = 1 ]; then
   say "sudo needs a password (asked once):"; sudo -v || { echo "sudo refused"; exit 1; }; SUDO="sudo"
-  ( while kill -0 $$ 2>/dev/null; do sudo -n true 2>/dev/null; sleep 50; done ) &
+  ( while kill -0 $$ 2>/dev/null; do sudo -n true 2>/dev/null || true; sleep 50; done ) &
 else
   SUDO=NONE
 fi
-exec </dev/null   # nothing below may read the script from stdin ('bash -s')
+}
+
 sudo_ok() { [ "$SUDO" != NONE ]; }
 S() { case "$SUDO" in ""|NONE) "$@";; *) $SUDO "$@";; esac; }
+envget() { awk -F= -v k="$1" '$1==k{v=substr($0,index($0,"=")+1); gsub(/^["'\'']|["'\'']$/,"",v); print v; exit}' .env; }
+envset() { # KEY VALUE — replace first, drop duplicates, append if absent
+  awk -F= -v k="$1" -v v="$2" 'BEGIN{d=0} $1==k{ if(!d){print k"="v; d=1}; next } {print} END{ if(!d) print k"="v }' .env >"$WORK/env.new"
+  cat "$WORK/env.new" >.env
+}
 
-WORK=$(mktemp -d); trap 'rm -rf "$WORK"' EXIT
-exec 9>"/tmp/karenseir-https.lock"; flock -n 9 || { echo "another karenseir-https run is active"; exit 1; }
+proxy_block() { # $1 upstream
+  cat <<EOF
+        proxy_pass $1;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Request-ID \$request_id;
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 60s;
+EOF
+}
+sec_fallback() { # server-level fallback security headers; the $kt_sec_* maps are empty when the upstream already sent the header
+  cat <<'EOF'
+    # nginx-generated responses only (redirects, ACME, 502/504, limit_req 503); proxied app responses keep the app's own
+    # headers (empty map value = add_header sends nothing), so each header still appears exactly once.
+    add_header X-Content-Type-Options $kt_sec_xcto always;
+    add_header X-Frame-Options $kt_sec_xfo always;
+    add_header Referrer-Policy $kt_sec_refpol always;
+EOF
+}
+render() { # $1 = precert | tls | final
+  local mode=$1 acme="    location ^~ /.well-known/acme-challenge/ { root $WEBROOT; default_type text/plain; }"
+  cat <<EOF
+# $MARKER (mode=$mode, $(date -u +%FT%TZ), hsts=$HSTS_MAX_AGE) — do not edit by hand; rerun the script.
+# Repo reference: deploy/nginx.karentravel-https.conf. Header ownership (each header exactly once):
+#   HSTS — nginx only (upstream copy hidden). Other security headers — the app (next.config.mjs, FastAPI
+#   _security_headers) on proxied responses; nginx adds X-Content-Type-Options / X-Frame-Options / Referrer-Policy
+#   only when the upstream did not send them, i.e. on nginx's own responses (redirects, ACME, 502/504, 503).
+limit_req_zone \$binary_remote_addr zone=kt_https_api:10m rate=20r/s;
+map \$upstream_http_x_content_type_options \$kt_sec_xcto { "" nosniff; default ""; }
+map \$upstream_http_x_frame_options \$kt_sec_xfo { "" DENY; default ""; }
+map \$upstream_http_referrer_policy \$kt_sec_refpol { "" strict-origin-when-cross-origin; default ""; }
 
+# Bare IP / unknown hosts: pages go to the brand domain (in final mode).
+server {
+    listen 80 default_server;
+    ${V6_80:+$V6_80 default_server;}
+    server_name _;
+    client_max_body_size $CMB;
+$(sec_fallback)
+$acme
+EOF
+  if [ "$mode" != final ] || envget NEXT_PUBLIC_API_URL | grep -F "$EXPECTED_IP" >/dev/null; then
+    printf '    # kept while NEXT_PUBLIC_API_URL (server-side fetches) still uses the IP\n    location %s {\n%s\n    }\n' "$API_LOC" "$(proxy_block "$API_UP")"
+  fi
+  cat <<EOF
+    location / {
+EOF
+  if [ "$mode" = final ]; then echo "        return 301 https://$DOMAIN\$request_uri;"; else proxy_block "$WEB_UP"; fi
+  cat <<EOF
+    }
+}
+
+server {
+    listen 80;
+    ${V6_80:+$V6_80;}
+    server_name $SERVER_NAMES_80;
+    client_max_body_size $CMB;
+$(sec_fallback)
+$acme
+EOF
+  if [ "$mode" = final ]; then
+    echo "    location / { return 301 https://$DOMAIN\$request_uri; }"
+  else
+    printf '    location %s {\n%s\n    }\n    location / {\n%s\n    }\n' "$API_LOC" "$(proxy_block "$API_UP")" "$(proxy_block "$WEB_UP")"
+  fi
+  echo "}"
+  [ "$mode" != precert ] || return 0
+  local hsts=""; [ "$mode" != final ] || hsts="    add_header Strict-Transport-Security \"max-age=$HSTS_MAX_AGE\" always;"
+  local tls="    ssl_certificate $CERT_FILE;
+    ssl_certificate_key $KEY_FILE;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_session_cache shared:kt_ssl:10m;
+    ssl_session_timeout 1d;
+    ssl_session_tickets off;"
+  if [ "$WITH_WWW" = 1 ]; then
+    cat <<EOF
+
+server {
+    $L443
+    ${L443v6}
+    ${H2}
+    server_name $WWW;
+$tls
+$hsts
+$(sec_fallback)
+    return 301 https://$DOMAIN\$request_uri;
+}
+EOF
+  fi
+  cat <<EOF
+
+server {
+    $L443
+    ${L443v6}
+    ${H2}
+    server_name $DOMAIN;
+$tls
+    proxy_hide_header Strict-Transport-Security;
+$hsts
+$(sec_fallback)
+    client_max_body_size $CMB;
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_min_length 1024;
+    gzip_types application/json application/javascript application/xml text/css text/plain text/xml image/svg+xml;
+$acme
+    location $API_LOC {
+        limit_req zone=kt_https_api burst=40 nodelay;
+$(proxy_block "$API_UP")
+    }
+    location / {
+$(proxy_block "$WEB_UP")
+    }
+}
+EOF
+}
+apply_nginx() { # $1 mode — write, test, reload (on failure: die → on_exit restores /etc/nginx)
+  local mode=$1
+  render "$mode" >"$WORK/site.conf"
+  NGINX_TOUCHED=1
+  S install -m 0644 "$WORK/site.conf" "$TARGET"
+  [ -z "$LINK" ] || S ln -sfn "$TARGET" "$LINK"
+  if ! S nginx -t >"$WORK/nt" 2>&1; then
+    cat "$WORK/nt" >&2
+    die "nginx -t failed for mode=$mode (not reloaded; /etc/nginx goes back to this run's backup)"
+  fi
+  S systemctl reload nginx; sleep 2; ok "nginx mode=$mode active ($TARGET)"
+}
+
+preflight() {
 # ================================================================ 0 PREFLIGHT (read-only)
 say "== 0/9 preflight (read-only) $(date -u +%FT%TZ)"
 cd "$APP_DIR" 2>/dev/null || { echo "ABORT: $APP_DIR not found"; exit 1; }
@@ -263,7 +465,7 @@ if len(api) == 1:
     out["API_HEALTH"] = (base + p.path.rstrip("/") + "/" + rest.lstrip("/")) if p.path else base + "/api/health"
 for k, v in out.items(): print(f"{k}={v}")
 PY
-declare -A NG
+declare -gA NG
 if [ -s "$WORK/nginx-T.txt" ]; then
   while IFS='=' read -r k v; do NG[$k]=$v; done < <(python3 "$WORK/parse.py" "$WORK/nginx-T.txt" "$MARKER" "$EXPECTED_IP")
   say "       nginx app files: ${NG[APP_FILES]:-none}; server_name: ${NG[SERVER_NAMES]:-?}; managed mode: ${NG[MANAGED_MODE]:-no}"
@@ -286,15 +488,23 @@ elif sudo_ok; then fail "could not read 'nginx -T'"; fi
 if [ "$CERT_MODE" = letsencrypt ]; then
   if command -v certbot >/dev/null; then ok "certbot $(certbot --version 2>&1 | awk '{print $2}')"; else say "  note certbot not installed → step 2 installs it (apt)"; fi
 fi
-CERT_VALID=0
+# CERT_VALID = nothing to issue. CERT_USABLE = an unexpired certificate for the apex that matches its key: nginx keeps
+# serving 443 with it (never drop a working 443 while browsers may hold HSTS) while certbot renews/expands it.
+CERT_VALID=0; CERT_USABLE=0
 if sudo_ok && S test -f "$CERT_FILE"; then
   san=$(S openssl x509 -in "$CERT_FILE" -noout -ext subjectAltName 2>/dev/null || true); cover=1
   for n in "${NAMES[@]}"; do grep -q "DNS:$n\b" <<<"$san" || cover=0; done
-  if [ "$cover" = 1 ] && S openssl x509 -in "$CERT_FILE" -noout -checkend 2592000 >/dev/null; then CERT_VALID=1; ok "existing certificate valid >30d for ${NAMES[*]}"; else say "  note existing certificate missing names or expiring → will (re)issue"; fi
+  e_pub=$(S openssl x509 -in "$CERT_FILE" -noout -pubkey 2>/dev/null | openssl sha256 || true)
+  e_key=$(S openssl pkey -in "$KEY_FILE" -pubout 2>/dev/null | openssl sha256 || true)
+  if grep -q "DNS:$DOMAIN\b" <<<"$san" && [ -n "$e_pub" ] && [ "$e_pub" = "$e_key" ] && S openssl x509 -in "$CERT_FILE" -noout -checkend 3600 >/dev/null 2>&1; then CERT_USABLE=1; fi
+  if [ "$CERT_USABLE" = 1 ] && [ "$cover" = 1 ] && S openssl x509 -in "$CERT_FILE" -noout -checkend 2592000 >/dev/null 2>&1; then CERT_VALID=1; ok "existing certificate valid >30d for ${NAMES[*]}"
+  elif [ "$CERT_USABLE" = 1 ]; then say "  note existing certificate expiring or missing names → 443 keeps using it while certbot renews/expands"
+  else say "  note existing certificate unusable (expired, wrong name or key) → will (re)issue"; fi
 fi
+case "${CERT_USABLE}:${NG[MANAGED_MODE]:-}" in 0:tls|0:final) warn "managed nginx is in ${NG[MANAGED_MODE]} mode but $CERT_FILE is not usable: 443 is already broken; HTTP serves the site again until the new certificate is issued";; esac
 
 # -- compose wiring + current flags (non-secret values only)
-declare -A CC
+declare -gA CC
 if docker compose config --format json </dev/null >"$WORK/cc.json" 2>"$WORK/cc.err"; then
   python3 - "$WORK/cc.json" >"$WORK/cc.txt" <<'PY'
 import json, sys
@@ -325,7 +535,6 @@ PY
     grep -q Strict-Transport-Security "$ctx/next.config.mjs" && say "  note deployed next.config.mjs still sets HSTS; nginx hides upstream HSTS (proxy_hide_header), so only nginx's short HSTS reaches browsers"
   else warn "web build context $ctx/next.config.mjs not found"; fi
 else fail "docker compose config failed: $(tail -1 "$WORK/cc.err")"; fi
-envget() { awk -F= -v k="$1" '$1==k{v=substr($0,index($0,"=")+1); gsub(/^["'\'']|["'\'']$/,"",v); print v; exit}' .env; }
 for k in ENVIRONMENT CORS_ORIGINS NEXT_PUBLIC_SITE_URL NEXT_PUBLIC_API_URL PUBLIC_WEB_URL ALLOW_HTTP_PREVIEW ALLOW_HTTP_ORIGIN_PREVIEW; do say "       .env $k=$(envget $k)"; done
 case "$(envget NEXT_PUBLIC_API_URL)" in /*|http://*/*[!/]*|https://*/*[!/]*) ok "NEXT_PUBLIC_API_URL is path-mounted";; *) fail "NEXT_PUBLIC_API_URL='$(envget NEXT_PUBLIC_API_URL)' is not a path-mounted URL (…/api); browsers on https would call it cross-origin";; esac
 ip_keys=$(awk -F= -v ip="$EXPECTED_IP" '/^[A-Z0-9_]+=/ && index($0, ip){print $1}' .env | tr '\n' ' ')
@@ -335,9 +544,10 @@ avail=$(df -Pm /var/lib/docker 2>/dev/null | awk 'NR==2{print $4}' || true); [ "
 if [ ${#FAILS[@]} -gt 0 ]; then
   say ""; say "PREFLIGHT-ABORT (${#FAILS[@]} problem(s)); nothing was changed:"; for f in "${FAILS[@]}"; do say "  - $f"; done; exit 2
 fi
-say "PREFLIGHT-OK"; [ "$CHECK_ONLY" = 1 ] && exit 0
+say "PREFLIGHT-OK"
+}
 
-# ---------------------------------------------------------------- helpers for the change phase
+prepare_change() {
 NGINX_V=$(nginx -v 2>&1 | sed 's/.*nginx\///;s/ .*//')
 ver_ge() { [ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -1)" = "$2" ]; }
 if ver_ge "$NGINX_V" 1.25.1; then L443="listen 443 ssl;"; L443v6="listen [::]:443 ssl;"; H2="http2 on;"; else L443="listen 443 ssl http2;"; L443v6="listen [::]:443 ssl http2;"; H2=""; fi
@@ -348,130 +558,10 @@ CMB=${NG[CLIENT_MAX_BODY]}
 if [ "${NG[INCLUDES_SITES_ENABLED]}" = 1 ]; then TARGET=/etc/nginx/sites-available/$MANAGED_NAME; LINK=/etc/nginx/sites-enabled/$MANAGED_NAME
 else TARGET=/etc/nginx/conf.d/$MANAGED_NAME; LINK=""; fi
 SERVER_NAMES_80="$DOMAIN"; [ "$WITH_WWW" = 1 ] && SERVER_NAMES_80="$DOMAIN $WWW"
-
-proxy_block() { # $1 upstream
-  cat <<EOF
-        proxy_pass $1;
-        proxy_http_version 1.1;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_set_header X-Request-ID \$request_id;
-        proxy_connect_timeout 5s;
-        proxy_read_timeout 60s;
-EOF
-}
-render() { # $1 = precert | tls | final
-  local mode=$1 acme="    location ^~ /.well-known/acme-challenge/ { root $WEBROOT; default_type text/plain; }"
-  cat <<EOF
-# $MARKER (mode=$mode, $(date -u +%FT%TZ), hsts=$HSTS_MAX_AGE) — do not edit by hand; rerun the script.
-# Repo reference: deploy/nginx.karentravel-https.conf. Security headers other than HSTS come from the app
-# (next.config.mjs, FastAPI _security_headers); nginx adds only HSTS so every header is sent exactly once.
-limit_req_zone \$binary_remote_addr zone=kt_https_api:10m rate=20r/s;
-
-# Bare IP / unknown hosts: pages go to the brand domain (in final mode).
-server {
-    listen 80 default_server;
-    ${V6_80:+$V6_80 default_server;}
-    server_name _;
-    client_max_body_size $CMB;
-$acme
-EOF
-  if [ "$mode" != final ] || envget NEXT_PUBLIC_API_URL | grep -F "$EXPECTED_IP" >/dev/null; then
-    printf '    # kept while NEXT_PUBLIC_API_URL (server-side fetches) still uses the IP\n    location %s {\n%s\n    }\n' "$API_LOC" "$(proxy_block "$API_UP")"
-  fi
-  cat <<EOF
-    location / {
-EOF
-  if [ "$mode" = final ]; then echo "        return 301 https://$DOMAIN\$request_uri;"; else proxy_block "$WEB_UP"; fi
-  cat <<EOF
-    }
-}
-
-server {
-    listen 80;
-    ${V6_80:+$V6_80;}
-    server_name $SERVER_NAMES_80;
-    client_max_body_size $CMB;
-$acme
-EOF
-  if [ "$mode" = final ]; then
-    echo "    location / { return 301 https://$DOMAIN\$request_uri; }"
-  else
-    printf '    location %s {\n%s\n    }\n    location / {\n%s\n    }\n' "$API_LOC" "$(proxy_block "$API_UP")" "$(proxy_block "$WEB_UP")"
-  fi
-  echo "}"
-  [ "$mode" = precert ] && return 0
-  local tls="    ssl_certificate $CERT_FILE;
-    ssl_certificate_key $KEY_FILE;
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_session_cache shared:kt_ssl:10m;
-    ssl_session_timeout 1d;
-    ssl_session_tickets off;"
-  if [ "$WITH_WWW" = 1 ]; then
-    cat <<EOF
-
-server {
-    $L443
-    ${L443v6}
-    ${H2}
-    server_name $WWW;
-$tls
-    return 301 https://$DOMAIN\$request_uri;
-}
-EOF
-  fi
-  cat <<EOF
-
-server {
-    $L443
-    ${L443v6}
-    ${H2}
-    server_name $DOMAIN;
-$tls
-    proxy_hide_header Strict-Transport-Security;
-EOF
-  [ "$mode" = final ] && echo "    add_header Strict-Transport-Security \"max-age=$HSTS_MAX_AGE\" always;"
-  cat <<EOF
-    client_max_body_size $CMB;
-    gzip on;
-    gzip_vary on;
-    gzip_proxied any;
-    gzip_min_length 1024;
-    gzip_types application/json application/javascript application/xml text/css text/plain text/xml image/svg+xml;
-$acme
-    location $API_LOC {
-        limit_req zone=kt_https_api burst=40 nodelay;
-$(proxy_block "$API_UP")
-    }
-    location / {
-$(proxy_block "$WEB_UP")
-    }
-}
-EOF
-}
-apply_nginx() { # $1 mode — write, test, reload; restore previous file on failure
-  local mode=$1
-  render "$mode" >"$WORK/site.conf"
-  S test -f "$TARGET" && S cp -p "$TARGET" "$WORK/prev.conf" || : >"$WORK/prev.conf"
-  S install -m 0644 "$WORK/site.conf" "$TARGET"
-  [ -n "$LINK" ] && S ln -sfn "$TARGET" "$LINK"
-  if ! S nginx -t >"$WORK/nt" 2>&1; then
-    cat "$WORK/nt" >&2
-    if [ -s "$WORK/prev.conf" ]; then S install -m 0644 "$WORK/prev.conf" "$TARGET"; else S rm -f "$TARGET" ${LINK:+"$LINK"}; restore_disabled; fi
-    S nginx -t >/dev/null 2>&1 && S systemctl reload nginx
-    die "nginx -t failed for mode=$mode (previous config restored)"
-  fi
-  S systemctl reload nginx; sleep 2; ok "nginx mode=$mode active ($TARGET)"
-}
-restore_disabled() { [ -f "$BK/STATE" ] || return 0; while read -r src; do [ -n "$src" ] && S mv "$BK/disabled/$(basename "$src")" "$src"; done < <(sed -n 's/^DISABLED=//p' "$BK/STATE"); }
 CURL=(curl -sS -m 20 --resolve "$DOMAIN:80:127.0.0.1" --resolve "$DOMAIN:443:127.0.0.1" --resolve "$WWW:80:127.0.0.1" --resolve "$WWW:443:127.0.0.1")
-envset() { # KEY VALUE — replace first, drop duplicates, append if absent
-  awk -F= -v k="$1" -v v="$2" 'BEGIN{d=0} $1==k{ if(!d){print k"="v; d=1}; next } {print} END{ if(!d) print k"="v }' .env >"$WORK/env.new"
-  cat "$WORK/env.new" >.env
 }
 
+apply_changes() {
 # ================================================================ 1 backup
 say "== 1/9 backup → $BK"
 mkdir -p "$BK/disabled"; chmod 700 "$BK"
@@ -479,6 +569,21 @@ S tar -czf "$BK/etc-nginx.tgz" -C / etc/nginx; S chown "$(id -u):$(id -g)" "$BK/
 cp -p .env "$BK/env.bak"; chmod 600 "$BK/env.bak"
 { echo "TS=$TS"; echo "TARGET=$TARGET"; echo "LINK=$LINK"; echo "PRIOR_MANAGED=${NG[MANAGED_MODE]}"; } >"$BK/STATE"
 CHANGED=1; ok "nginx tar + .env copy saved"
+# Keep the running web image under its own tag: rollback/auto-restore re-tag it instead of rebuilding.
+# (api is never rebuilt here, only restarted with the new env, so restoring .env is enough for it.)
+cid=$(docker compose ps -q web 2>/dev/null | head -1 || true)
+if [ -n "$cid" ]; then
+  WEB_IMAGE_PRE=$(docker inspect -f '{{.Image}}' "$cid" || true); WEB_IMAGE_REF=$(docker inspect -f '{{.Config.Image}}' "$cid" || true)
+  [ -n "$WEB_IMAGE_PRE" ] || WEB_IMAGE_REF=""
+  case "$WEB_IMAGE_REF" in
+    ""|sha256:*|*@*) warn "web container image reference '$WEB_IMAGE_REF' cannot be re-tagged — rollback would rebuild web";;
+    *) repo=$WEB_IMAGE_REF; case "${repo##*/}" in *:*) repo=${repo%:*};; esac
+       WEB_PRE_TAG="$repo:pre-https-$TS"
+       docker tag "$WEB_IMAGE_PRE" "$WEB_PRE_TAG" || { WEB_PRE_TAG=""; warn "docker tag of the running web image failed — rollback would rebuild web"; }
+       [ -z "$WEB_PRE_TAG" ] || { echo "WEB_IMAGE_REF=$WEB_IMAGE_REF"; echo "WEB_IMAGE_PRE=$WEB_IMAGE_PRE"; echo "WEB_IMAGE_TAG=$WEB_PRE_TAG"; } >>"$BK/STATE"
+       [ -z "$WEB_PRE_TAG" ] || ok "running web image kept as $WEB_PRE_TAG";;
+  esac
+else warn "no running web container — rollback would rebuild web"; fi
 
 # ================================================================ 2 certbot / ufw
 say "== 2/9 tools + firewall"
@@ -492,13 +597,14 @@ S mkdir -p "$WEBROOT/.well-known/acme-challenge"
 
 # ================================================================ 3 nginx: managed HTTP config + ACME webroot
 say "== 3/9 nginx managed config"
+NGINX_TOUCHED=1
 for f in ${NG[APP_FILES]} ${NG[STOCK_FILES]}; do
   [ "$f" = "$TARGET" ] || [ "$f" = "$LINK" ] && continue
   [ "$(S readlink -f "$f")" = "$TARGET" ] && continue
   S mv "$f" "$BK/disabled/$(basename "$f")"; echo "DISABLED=$f" >>"$BK/STATE"; ok "disabled $f (kept in $BK/disabled)"
 done
 FIRST_MODE=precert
-if [ "$CERT_VALID" = 1 ] || [ "$CERT_MODE" = manual ]; then FIRST_MODE=tls; [ "${NG[MANAGED_MODE]}" = final ] && FIRST_MODE=final; fi
+if [ "$CERT_USABLE" = 1 ] || [ "$CERT_MODE" = manual ]; then FIRST_MODE=tls; [ "${NG[MANAGED_MODE]}" != final ] || FIRST_MODE=final; fi
 if [ "$CERT_MODE" = manual ]; then
   S mkdir -p "$CERT_DIR"; S chmod 700 "$CERT_DIR"
   S install -m 0644 "$CERT_FULLCHAIN" "$CERT_FILE"; S install -m 0600 "$CERT_KEY" "$KEY_FILE"; ok "manual certificate installed in $CERT_DIR"
@@ -525,9 +631,8 @@ else
   say "  certbot dry-run (staging, no rate limit)…"
   if ! S "${CB[@]}" --dry-run >"$WORK/cb-dry.log" 2>&1; then
     tail -15 "$WORK/cb-dry.log"
-    S rm -f "$TARGET" ${LINK:+"$LINK"}; restore_disabled; S nginx -t >/dev/null 2>&1 && S systemctl reload nginx
     print_fallbacks
-    die "Let's Encrypt validation failed (dry-run). Original nginx config restored; .env untouched"
+    die "Let's Encrypt validation failed (dry-run); .env untouched, /etc/nginx goes back to this run's backup"
   fi
   S "${CB[@]}" --deploy-hook "systemctl reload nginx" >"$WORK/cb.log" 2>&1 || { tail -15 "$WORK/cb.log"; die "certbot issuance failed after a successful dry-run"; }
   ok "certificate issued: $(S openssl x509 -in "$CERT_FILE" -noout -enddate)"
@@ -546,6 +651,7 @@ else
   say "HTTPS is live alongside HTTP; nothing user-facing changed. Check from the Mac:  curl -sI https://$DOMAIN/"
   say "If that shows HTTP/2 200 (only hairpin is blocked), rerun with:  ssh karen@$EXPECTED_IP 'ASSUME_443_OPEN=1 bash -s' < ~/Downloads/karenseir-https.sh"
   say "If it times out, open TCP 443 in the ArvanCloud panel (security group / firewall) and rerun."
+  AUTO_RESTORE=0; KEEP_REASON="Left on purpose: HTTPS on 443 alongside the unchanged HTTP site (no redirect, no HSTS)."
   exit 4
 fi
 
@@ -596,19 +702,24 @@ fi
 if [ "$live_ok" = 1 ]; then ok "running web already built with HTTPS settings — rebuild skipped"
 else
   say "  building web (a few minutes, log /tmp/karenseir-https-build.log)…"
+  IMG_TOUCHED=1
   docker compose build web </dev/null >/tmp/karenseir-https-build.log 2>&1 || { tail -30 /tmp/karenseir-https-build.log; die "web build failed (running containers untouched)"; }
 fi
-docker compose up -d api web </dev/null >"$WORK/up.log" 2>&1 || { cat "$WORK/up.log"; die "docker compose up -d api web failed"; }
+UP_TOUCHED=1
+docker compose up -d --no-build api web </dev/null >"$WORK/up.log" 2>&1 || { cat "$WORK/up.log"; die "docker compose up -d api web failed"; }
 for i in $(seq 1 40); do
   docker compose exec -T api python -c "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=3)" </dev/null >/dev/null 2>&1 && break
   [ "$i" = 40 ] && { docker compose logs --tail 40 api </dev/null; die "api not healthy after restart (CORS/production config check?)"; }
   sleep 5
 done; ok "api healthy"
 for i in $(seq 1 30); do c=$(curl -s -o /dev/null -m 5 -w '%{http_code}' "${NG[WEB_HEALTH]}" || true); [ "$c" = 200 ] && break; [ "$i" = 30 ] && die "web not answering after restart ($c)"; sleep 4; done; ok "web answering"
+cid=$(docker compose ps -q web 2>/dev/null | head -1 || true)
+[ -z "$cid" ] || echo "WEB_IMAGE_POST=$(docker inspect -f '{{.Image}}' "$cid")" >>"$BK/STATE"
 
 # ================================================================ 7 nginx final: redirect + HTTP/2 + HSTS
 say "== 7/9 nginx final (HTTP→HTTPS, HSTS max-age=$HSTS_MAX_AGE)"
 apply_nginx final
+AUTO_RESTORE=0; KEEP_REASON="HTTPS with redirect + HSTS is live and was NOT auto-restored (browsers may already cache HSTS)."
 
 # ================================================================ 8 renewal
 say "== 8/9 renewal"
@@ -624,7 +735,10 @@ FAILS=()
 c=$("${CURL[@]}" -o /dev/null -w '%{http_code} %{http_version}' "https://$DOMAIN/" || true); [ "$c" = "200 2" ] && ok "https://$DOMAIN/ 200 over HTTP/2" || fail "home: '$c' (want '200 2')"
 c=$("${CURL[@]}" -o /dev/null -w '%{http_code} %{redirect_url}' "http://$DOMAIN/tours?x=1" || true); [ "$c" = "301 https://$DOMAIN/tours?x=1" ] && ok "http → https redirect keeps path/query" || fail "http redirect: '$c'"
 c=$(curl -sS -m 10 -o /dev/null -H "Host: $EXPECTED_IP" -w '%{http_code} %{redirect_url}' "http://127.0.0.1/" || true); [ "$c" = "301 https://$DOMAIN/" ] && ok "http://$EXPECTED_IP → https://$DOMAIN" || fail "IP redirect: '$c'"
-if [ "$WITH_WWW" = 1 ]; then c=$("${CURL[@]}" -o /dev/null -w '%{http_code} %{redirect_url}' "https://$WWW/" || true); [ "$c" = "301 https://$DOMAIN/" ] && ok "https://$WWW → apex" || fail "www redirect: '$c'"; fi
+if [ "$WITH_WWW" = 1 ]; then
+  c=$("${CURL[@]}" -o /dev/null -D "$WORK/hw" -w '%{http_code} %{redirect_url}' "https://$WWW/" || true); [ "$c" = "301 https://$DOMAIN/" ] && ok "https://$WWW → apex" || fail "www redirect: '$c'"
+  n=$(grep -ci '^strict-transport-security:' "$WORK/hw" || true); [ "$n" = 1 ] || fail "https://$WWW redirect: HSTS sent $n times (want 1)"
+fi
 c=$("${CURL[@]}" -o "$WORK/health" -w '%{http_code}' "https://$DOMAIN/api/health" || true); [ "$c" = 200 ] && ok "/api/health 200 $(head -c 80 "$WORK/health")" || fail "/api/health → $c"
 c=$("${CURL[@]}" -o /dev/null -D - -H "Origin: https://$DOMAIN" "https://$DOMAIN/api/health" | tr -d '\r' | awk -F': ' 'tolower($1)=="access-control-allow-origin"{print $2}' || true); [ "$c" = "https://$DOMAIN" ] && ok "CORS allows https://$DOMAIN" || fail "CORS allow-origin for https://$DOMAIN: '$c'"
 "${CURL[@]}" "https://$DOMAIN/sitemap.xml" >"$WORK/sitemap" || true
@@ -651,7 +765,7 @@ echo "RESULT_FAILS=${#FAILS[@]}" >>"$BK/STATE"
 say ""
 if [ ${#FAILS[@]} -gt 0 ]; then
   say "HTTPS-FAILED: ${#FAILS[@]} check(s) failed:"; for f in "${FAILS[@]}"; do say "  - $f"; done
-  say "HTTPS itself is live. Backups: $BK"; say "Rollback: $ROLLBACK_CMD"; exit 1
+  exit 1
 fi
 for w in "${WARNS[@]}"; do say "WARN: $w"; done
 cat <<EOF
@@ -662,3 +776,21 @@ Next:
   - future releases keep the HTTPS values: they live in $APP_DIR/.env
 HTTPS-OK https://$DOMAIN hsts=$HSTS_MAX_AGE backup=$BK $(date -u +%FT%TZ)
 EOF
+}
+
+main() {
+  config "$@"
+  trap 'on_err $? $LINENO' ERR
+  trap on_exit EXIT
+  setup_sudo
+  exec </dev/null   # bash has parsed the whole script already; nothing below may read stdin ('bash -s')
+  WORK=$(mktemp -d)
+  lock_acquire
+  preflight
+  [ "$CHECK_ONLY" = 0 ] || exit 0
+  prepare_change
+  apply_changes
+}
+
+# KARENSEIR_HTTPS_LIB=1 only defines the functions (for tests); the real entry point is this last line.
+[ "${KARENSEIR_HTTPS_LIB:-0}" = 1 ] || main "$@"
