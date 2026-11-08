@@ -6,6 +6,11 @@
 
 این مخزن شامل رابط RTL و responsive، Homepage یکپارچه و backend عملیاتی FastAPI برای identity، booking orchestration، payment/refund، approval، Trip Events، notification، White Label، comparison و grounded context است. صفحه‌های نمایشی قدیمی همچنان صریحاً **Mock** هستند؛ providerهای خارجی بدون credential قراردادی fail-closed می‌مانند و هیچ پرداخت یا اتصال خارجی Production فعال نیست.
 
+### سرور و شاخه (۲۰۲۶-۱۱-۰۸)
+
+- سرور فعلی: `188.121.123.218` (ArvanCloud) با دامنه‌ی `karentravel.ir`؛ HTTPS هنوز فعال نیست. سرور `95.38.184.209` قدیمی است و در اسناد فقط به‌عنوان سابقه آمده است.
+- شاخه‌ی کد زنده `production` است؛ `main` قدیمی است. خلاصه‌ی وضعیت در ابتدای `PROJECT_STATUS.md` و مسدودکننده‌ها در `docs/product/checkline-analysis/AUDIT-1405-08-14.md`.
+
 ## اجرا
 
 ```bash
