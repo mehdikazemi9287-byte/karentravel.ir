@@ -597,8 +597,7 @@ def _security_headers(request: Request, response) -> None:
         response.headers.setdefault("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
     if request.url.path == "/me" or request.url.path.startswith(("/auth/", "/me/", "/payments", "/admin", "/backoffice", "/finance")):
         response.headers["Cache-Control"] = "no-store"
-    if IS_PRODUCTION and request.headers.get("x-forwarded-proto", request.url.scheme) == "https":
-        response.headers.setdefault("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
+    # HSTS is owned by the TLS terminator (nginx via deploy/karenseir-https.sh), never by the app: one header, one max-age.
 
 
 @app.middleware("http")
@@ -621,10 +620,14 @@ async def request_context(request: Request, call_next):
         except Exception:
             logging.getLogger("karenseir.rate_limit").exception("rate_limiter_unavailable", extra={"request_id": request_id, "correlation_id": correlation_id, "method": request.method, "path": request.url.path, "status": 503})
             record_request(request.method, 503, time.perf_counter() - started_at)
-            return JSONResponse(status_code=503, content={"detail": "کنترل ترافیک موقتاً در دسترس نیست", "request_id": request_id}, headers={"X-Request-ID": request_id, "X-Correlation-ID": correlation_id})
+            early = JSONResponse(status_code=503, content={"detail": "کنترل ترافیک موقتاً در دسترس نیست", "request_id": request_id}, headers={"X-Request-ID": request_id, "X-Correlation-ID": correlation_id})
+            _security_headers(request, early)
+            return early
         if not decision.allowed:
             record_request(request.method, 429, time.perf_counter() - started_at)
-            return JSONResponse(status_code=429, content={"detail": "تعداد درخواست‌ها بیش از حد مجاز است", "request_id": request_id}, headers={"Retry-After": str(decision.retry_after), "X-RateLimit-Remaining": "0", "X-Request-ID": request_id, "X-Correlation-ID": correlation_id})
+            early = JSONResponse(status_code=429, content={"detail": "تعداد درخواست‌ها بیش از حد مجاز است", "request_id": request_id}, headers={"Retry-After": str(decision.retry_after), "X-RateLimit-Remaining": "0", "X-Request-ID": request_id, "X-Correlation-ID": correlation_id})
+            _security_headers(request, early)
+            return early
     response = await call_next(request)
     _security_headers(request, response)
     if response.status_code in (401, 403, 423, 429) or (request.url.path.startswith(("/admin", "/backoffice", "/finance")) and response.status_code < 400 and request.method != "GET"):
@@ -644,7 +647,10 @@ async def unhandled_exception(request: Request, exc: Exception):
     request_id = getattr(request.state, "request_id", "unknown")
     correlation_id = getattr(request.state, "correlation_id", request_id)
     logging.getLogger("karenseir.error").exception("unhandled_exception", extra={"request_id": request_id, "correlation_id": correlation_id, "method": request.method, "path": request.url.path, "status": 500})
-    return JSONResponse(status_code=500, content={"detail": "خطای داخلی سرویس", "request_id": request_id})
+    # Runs in ServerErrorMiddleware, outside request_context, so the security headers are added here too.
+    error = JSONResponse(status_code=500, content={"detail": "خطای داخلی سرویس", "request_id": request_id})
+    _security_headers(request, error)
+    return error
 
 
 @app.get("/health")

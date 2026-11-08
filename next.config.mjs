@@ -5,15 +5,23 @@ const isDev = process.env.NODE_ENV === 'development';
 // rewrite every asset/API request to https://, which has no listener on an HTTP-only
 // host and breaks the page entirely. Must never be set for a real HTTPS deployment.
 const allowHttpPreview = process.env.ALLOW_HTTP_PREVIEW === '1';
-let apiOrigin = "'self'";
-try { apiOrigin = new URL(process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000').origin; } catch {}
+// A path-mounted API ("https://karentravel.ir/api" or "http://<ip>/api") is called same-origin by browsers
+// (lib/api/karenseir-client.ts resolveApiBase), so its configured origin — e.g. the bare server IP — is only
+// added to the CSP for a bare API origin (dev :8000) or an HTTP preview, never for a real HTTPS build.
+let apiOrigin = '';
+try {
+  const u = new URL(process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000');
+  const pathMounted = u.pathname !== '/' && u.pathname !== '';
+  if (!pathMounted || isDev || allowHttpPreview) apiOrigin = u.origin;
+} catch {}
+const apiSrc = apiOrigin ? ` ${apiOrigin}` : '';
 const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: https: ${apiOrigin}`,
+  `img-src 'self' data: blob: https:${apiSrc}`,
   "font-src 'self' data:",
-  `connect-src 'self' ${apiOrigin}`,
+  `connect-src 'self'${apiSrc}`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -51,7 +59,8 @@ const nextConfig = {
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(self), geolocation=(self)' },
           { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
-          ...(isDev || allowHttpPreview ? [] : [{ key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' }]),
+          // No Strict-Transport-Security here: the TLS terminator (nginx, deploy/karenseir-https.sh) owns HSTS so it is
+          // sent exactly once and its max-age can start short and be raised without a rebuild.
         ],
       },
     ];
