@@ -24,6 +24,7 @@ export function OrgScope({children}: {children: (org: Org, ctx: Context) => Reac
   const {session} = useAuth(); const role = (session as {user?: {role?: string}} | null)?.user?.role ?? ''; const admin = TENANT_ADMINS.includes(role);
   const ctx = useLoad<Context>('/enterprise/context'); const all = useLoad<{id: string; name: string; members: number}[]>(admin ? '/enterprise/organizations' : null);
   const [picked, setPicked] = useState(''); const [name, setName] = useState(''); const [note, setNote] = useState('');
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- reads window.location/sessionStorage, which exist only after hydration (reading them during render would mismatch the server HTML)
   useEffect(() => {try {setPicked(sessionStorage.getItem(KEY) ?? '');} catch {/* storage unavailable */}}, []);
   if (ctx.state.kind === 'loading') return <Loading/>; if (ctx.state.kind === 'error') return <Failed status={ctx.state.status} message={ctx.state.message}/>;
   const mine = ctx.state.data.organizations; const extra: Org[] = admin && all.state.kind === 'ready' ? all.state.data.filter(o => !mine.some(x => x.id === o.id)).map(o => ({id: o.id, name: o.name, permissions: ['roles.manage']})) : [];

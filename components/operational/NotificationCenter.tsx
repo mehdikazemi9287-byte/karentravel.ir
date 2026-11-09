@@ -35,6 +35,7 @@ export function NotificationCenter() {
       setItems(n); setPrefs(p); setChannels(c); setErr(null);
     } catch (e) { setErr(e instanceof ApiError ? { status: e.status, message: e.message } : { status: 0, message: msgOf(e) }); }
   }, [api]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- initial/refresh fetch on mount or session change; the loader sets its own loading/notice state before awaiting the API
   useEffect(() => { if (session) load(); }, [session, load]);
 
   const topics = Array.from(new Set(prefs.map(p => p.topic))).sort();

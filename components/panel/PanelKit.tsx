@@ -30,10 +30,14 @@ export function errorOf(e: unknown): {status: number; message: string} {
   return {status: 0, message: 'ارتباط با سرور برقرار نشد.'};
 }
 export function useLoad<T>(path: string | null) {
-  const {api, session} = useAuth(); const [state, setState] = useState<Load<T>>({kind: 'loading'}); const [tick, setTick] = useState(0);
+  const {api, session} = useAuth(); const [tick, setTick] = useState(0);
+  // Each result remembers the request inputs it answers; a result for older inputs reads as 'loading' while a request is due.
+  const [loaded, setLoaded] = useState<{deps: unknown[]; state: Load<T>} | null>(null);
+  const deps = [api, session, path, tick]; const current = !!loaded && loaded.deps.every((d, i) => d === deps[i]);
+  const state: Load<T> = current ? loaded.state : session && path ? {kind: 'loading'} : loaded?.state ?? {kind: 'loading'};
   useEffect(() => {
-    if (!session || !path) return; let active = true; setState({kind: 'loading'});
-    api.get<T>(path).then(data => {if (active) setState({kind: 'ready', data});}).catch(e => {if (active) setState({kind: 'error', ...errorOf(e)});});
+    if (!session || !path) return; let active = true; const key = [api, session, path, tick];
+    api.get<T>(path).then(data => {if (active) setLoaded({deps: key, state: {kind: 'ready', data}});}).catch(e => {if (active) setLoaded({deps: key, state: {kind: 'error', ...errorOf(e)}});});
     return () => {active = false;};
   }, [api, session, path, tick]);
   return {state, reload: useCallback(() => setTick(t => t + 1), []), api, session};

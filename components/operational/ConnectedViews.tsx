@@ -136,12 +136,14 @@ function SupplierAssets({ suppliers }: { suppliers: Array<{ id: string; name: st
   const [kind, setKind] = useState<'image' | 'document'>('image');
   const [entityType, setEntityType] = useState('supplier_profile');
   const [makePublic, setMakePublic] = useState(false);
-  useEffect(() => { setSid(suppliers[0]?.id || ''); }, [suppliers]);
+  const [sidFor, setSidFor] = useState(suppliers);
+  if (sidFor !== suppliers) { setSidFor(suppliers); setSid(suppliers[0]?.id || ''); }
   const load = useCallback(async (id: string) => {
     if (!id) { setRows([]); return; }
     try { const d = await api.get<{ assets: AssetRow[] }>(`/supplier/${id}/assets`); setRows(d.assets); }
     catch (e) { setNote(e instanceof ApiError ? e.message : 'خطا در دریافت فایل‌ها'); }
   }, [api]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- initial/refresh fetch on mount or session change; the loader sets its own loading/notice state before awaiting the API
   useEffect(() => { load(sid); }, [sid, load]);
   useEffect(() => {
     const revoke: string[] = [];

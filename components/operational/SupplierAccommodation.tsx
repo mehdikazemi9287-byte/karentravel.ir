@@ -12,6 +12,7 @@ export function SupplierAccommodation(){
  const{api,session}=useAuth();const[units,setUnits]=useState<Unit[]>([]),[requests,setRequests]=useState<Request[]>([]),[selected,setSelected]=useState(''),[note,setNote]=useState(''),[busy,setBusy]=useState(false),[loaded,setLoaded]=useState(false);
  const command=useRef(newId()),decisions=useRef<Record<string,string>>({});
  const load=useCallback(async()=>{const[u,r]=await Promise.all([api.get<Unit[]>('/supplier/vacation-units'),api.get<Request[]>('/supplier/vacation-requests')]);setUnits(u);setRequests(r);setLoaded(true)},[api]);
+ // eslint-disable-next-line react-hooks/set-state-in-effect -- initial/refresh fetch on mount or session change; the loader sets its own loading/notice state before awaiting the API
  useEffect(()=>{if(session)void load().catch(()=>setNote('دریافت اطلاعات انجام نشد؛ دسترسی تأمین‌کننده را بررسی کنید و دوباره تلاش کنید.'))},[session,load]);
  async function decide(id:string,action:'accept'|'reject'){
   if(busy)return;setBusy(true);const k=id+action;decisions.current[k]??=newId();try{await api.post(`/reservations/${id}/accommodation-decision`,{action,reason:action==='accept'?'پذیرش میزبان پس از بررسی مبلغ و ظرفیت':'رد درخواست توسط میزبان؛ ظرفیت یا شرایط قابل پذیرش نیست',command_id:decisions.current[k]});await load();setNote(action==='accept'?'درخواست پذیرفته شد؛ مشتری اکنون می‌تواند تکمیل رزرو را ادامه دهد.':'درخواست رد شد؛ نتیجه در سفر مشتری ثبت شد.')}catch{setNote('تصمیم ثبت نشد؛ ممکن است وضعیت، قیمت یا ظرفیت تغییر کرده باشد. فهرست را تازه کنید.')}finally{setBusy(false)}

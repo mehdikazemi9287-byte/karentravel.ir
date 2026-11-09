@@ -14,6 +14,7 @@ export function OpsSupportReply({cases}:{cases:Case[]}){
 function ReplyForm({owner,cases}:{owner:string;cases:Case[]}){
  const{api}=useAuth(),[caseId,setCaseId]=useState(''),[body,setBody]=useState(''),[pending,setPending]=useState<Pending|null>(null),[ready,setReady]=useState(false),[busy,setBusy]=useState(false),[notice,setNotice]=useState('');
  const sending=useRef(false),storage='karen-ops-reply:'+owner;
+ // eslint-disable-next-line react-hooks/set-state-in-effect -- reads window.location/sessionStorage, which exist only after hydration (reading them during render would mismatch the server HTML)
  useEffect(()=>{try{const value=JSON.parse(sessionStorage.getItem(storage)||'null');if(value&&typeof value.caseId==='string'&&typeof value.body==='string'&&typeof value.key==='string'){setPending(value);setCaseId(value.caseId);setBody(value.body)}}catch{}setReady(true)},[storage]);
  async function send(command:Pending){
   if(sending.current)return;

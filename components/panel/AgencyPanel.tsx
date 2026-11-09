@@ -12,6 +12,7 @@ type Money = {currency: string; amount: number};
 const KEY = 'karenseir-panel-agency'; const pct = (bps: number) => `${(bps / 100).toLocaleString('fa-IR')}٪`;
 export function AgencyScope({children}: {children: (agency: Agency) => ReactNode}) {
   const ws = useLoad<{agencies: Agency[]; can_administer: boolean}>('/agency/workspace'); const [picked, setPicked] = useState('');
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- reads window.location/sessionStorage, which exist only after hydration (reading them during render would mismatch the server HTML)
   useEffect(() => {try {setPicked(sessionStorage.getItem(KEY) ?? '');} catch {/* storage unavailable */}}, []);
   if (ws.state.kind === 'loading') return <Loading/>; if (ws.state.kind === 'error') return <Failed status={ws.state.status} message={ws.state.message}/>;
   const list = ws.state.data.agencies; const agency = list.find(a => a.id === picked) ?? list[0];

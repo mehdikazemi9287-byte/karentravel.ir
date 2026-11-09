@@ -10,6 +10,7 @@ function detail(item:Item){const q=new URLSearchParams(item.snapshot.selection||
 export function SavedTravelView(){
  const{api,session}=useAuth();const[rows,setRows]=useState<Trip[]|null>(null),[error,setError]=useState(false),[notice,setNotice]=useState(''),[title,setTitle]=useState(''),[notes,setNotes]=useState<Record<string,string>>({}),[busy,setBusy]=useState(false);
  async function load(){try{setRows(await api.get<Trip[]>('/me/saved-trips'));setError(false)}catch{setError(true)}}
+ // eslint-disable-next-line react-hooks/set-state-in-effect -- initial/refresh fetch on mount or session change; the loader sets its own loading/notice state before awaiting the API
  useEffect(()=>{if(session)void load()},[api,session]);
  async function action(work:()=>Promise<unknown>,success:string){if(busy)return;setBusy(true);setNotice('');try{await work();await load();setNotice(success)}catch{setNotice('نتیجهٔ ذخیره دریافت نشد؛ ابتدا فهرست را تازه کنید و وضعیت انتخاب را ببینید.')}finally{setBusy(false)}}
  function create(e:FormEvent){e.preventDefault();void action(()=>api.post('/saved-trips',{title,command_id:newId()}),'فهرست سفر ذخیره شد؛ انتخاب‌های جست‌وجو را می‌توانید به آن اضافه کنید.')}
