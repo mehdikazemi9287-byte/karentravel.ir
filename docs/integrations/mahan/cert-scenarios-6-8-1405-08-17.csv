@@ -1,0 +1,4 @@
+ID,Test Case,Departure date,Return date,Flight no,Total Fare,Total Tax,Base Price,Total Surcharge,Payment Amount and Currency,Booking ReferenceID (PNR)
+6,"Booking for return, single segment, 2 adult/Business  class",2026-11-10,2026-11-13,W551 (R) / W550 (R),5628000000,1210800000,5628000000,648000000,6838800000 IRR,TL2C2
+7,"Booking for round trip single segment, 1 adult, 1 child",2026-11-10,2026-11-13,W551 (BK) / W550 (BK),2154250000,539425000,2154250000,324000000,2693675000 IRR,TL2C3
+8,"Booking for return, single segment, 1 adult, 1 child, 1 infant/Business  class",2026-11-10,2026-11-13,W551 (R) / W550 (R),5205900000,1168590000,5205900000,648000000,6374490000 IRR,TL2C4
