@@ -194,3 +194,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+
+## درس‌ها و قواعد (الزامی)
+پیش از هر تغییر، `LESSONS.md` در ریشهٔ مخزن را بخوانید و چک‌لیست انتهای آن را پیش از اعلام «انجام شد» رعایت کنید. اشتباه تازه را به همان فایل اضافه کنید.
