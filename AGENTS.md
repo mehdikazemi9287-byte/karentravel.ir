@@ -173,6 +173,8 @@ replace the existing project-boundary rule above: no import/copy/shared DB with
 60Online/70Online/In-house/Tazhban unless explicitly requested). Never fabricate
 inventory, price, availability, provider/payment success, notification delivery,
 credentials, or security/RLS evidence.
+Owner-approved exceptions to the protected Homepage/Search are logged, with date and
+exact scope, in `docs/product/approvals.md`; anything not listed there is still protected.
 
 **Roadmap discipline:** prefer closing existing PARTIAL/BROKEN capabilities over
 starting new ones. `CAPABILITY_REGISTRY.json` is the source of truth for current
