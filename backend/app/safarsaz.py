@@ -238,10 +238,15 @@ def safarsaz_router(get_db, current_user, role_has_permission, User, audit=None)
         return user.role not in ("employee", "customer", *PARTNER_ROLES) and any(role_has_permission(user.role, p) for p in ("reservation:manage", "tenant:manage"))
 
     def _scope(db, user) -> Optional[set[str]]:
-        """None = staff (whole tenant); otherwise the supplier ids this contracted agency user is assigned to."""
+        """None = staff (whole tenant); otherwise the organiser (supplier) ids this partner works for:
+        its supplier memberships, plus, for an agency user, the tour organiser linked to each agency it is a member of."""
         if _is_staff(user):
             return None
-        return set(db.scalars(select(m.SupplierMembership.supplier_id).where(m.SupplierMembership.tenant_id == user.tenant_id, m.SupplierMembership.user_id == user.id)).all())
+        ids = set(db.scalars(select(m.SupplierMembership.supplier_id).where(m.SupplierMembership.tenant_id == user.tenant_id, m.SupplierMembership.user_id == user.id)).all())
+        if user.role == "agency_partner":
+            mine = select(m.AgencyMembership.agency_id).where(m.AgencyMembership.tenant_id == user.tenant_id, m.AgencyMembership.user_id == user.id)
+            ids |= {sid for sid in db.scalars(select(m.Agency.supplier_id).where(m.Agency.tenant_id == user.tenant_id, m.Agency.id.in_(mine), m.Agency.supplier_id.is_not(None))).all() if sid}
+        return ids
 
     def staff(user=Depends(current_user), db: Session = Depends(get_db)):
         """Tenant staff, or a contracted agency (supplier member) working only on its own tours."""
@@ -380,6 +385,25 @@ def safarsaz_router(get_db, current_user, role_has_permission, User, audit=None)
         _a(db, user, "safarsaz.tour.updated", t.id)
         db.commit()
         return _out(db, t)
+
+    @api.get("/safarsaz/tours/{tour_id}/bookings")
+    def tour_bookings(tour_id: str, user=Depends(staff), db: Session = Depends(get_db)):
+        """Bookings received on this tour's published departures, per departure. Only the organiser's own tour (404 otherwise).
+        Counts and amounts are the stored reservation rows; no customer identity is returned to the partner."""
+        t = _own(db, user, tour_id)
+        out = []
+        for d in _deps(db, t):
+            pub = db.scalar(select(m.TourDeparture).where(m.TourDeparture.id == d.published_departure_id, m.TourDeparture.tenant_id == t.tenant_id)) if d.published_departure_id else None
+            rows = db.execute(select(m.TourReservation, m.Reservation).join(m.Reservation, m.Reservation.id == m.TourReservation.reservation_id)
+                              .where(m.TourReservation.tenant_id == t.tenant_id, m.Reservation.tenant_id == t.tenant_id, m.TourReservation.departure_id == pub.id)
+                              .order_by(m.TourReservation.created_at.desc())).all() if pub else []
+            items = [{"id": tr.id, "booking_reference": r.booking_reference, "status": r.status, "hold_status": tr.status, "travellers": tr.travellers, "room_type": tr.room_type,
+                      "room_fa": ROOM_FA.get(tr.room_type, tr.room_type), "total_amount": tr.total_amount, "currency": pub.currency, "created_at": _aware(tr.created_at).isoformat()} for tr, r in rows]
+            active = [i for i in items if i["status"] not in ("cancelled", "canceled", "expired", "refunded")]
+            out.append({"departure_id": d.id, "published_departure_id": d.published_departure_id, "starts_at": _aware(d.starts_at).isoformat(), "ends_at": _aware(d.ends_at).isoformat(),
+                        "published": pub is not None, "capacity": pub.capacity if pub else d.capacity, "remaining": pub.remaining if pub else None,
+                        "booked_travellers": sum(i["travellers"] for i in active), "bookings": items})
+        return {"tour_id": t.id, "title": t.title, "departures": out}
 
     @api.post("/safarsaz/tours/{tour_id}/copy", status_code=201)
     def copy(tour_id: str, user=Depends(staff), db: Session = Depends(get_db)):

@@ -1,24 +1,3 @@
 // Navigation hints only. Every destination enforces tenant/RBAC in its API.
-export const roleHome:Record<string,string>={customer:'/account',employee:'/employee',manager:'/organization',welfare_manager:'/organization',organization_admin:'/organization',supplier:'/supplier',agency_partner:'/agency',backoffice_expert:'/backoffice',finance_operator:'/finance',tenant_admin:'/admin',platform_admin:'/admin'};
-export function roleLinks(role:string):Array<[string,string]>{
- const links:Array<[string,string]>=[['حساب من','/account'],['رزروها و سفرها','/account/bookings'],['درخواست‌های قطار','/account/train-requests'],['شهرشاد، پادویرا و سوغات','/account/partner-requests'],['اعلان‌ها','/account/notifications'],['امنیت ورود','/account/security'],['پشتیبانی','/account/support']];
- const home=roleHome[role];if(home&&home!=='/account')links.push(['پنل کاری من',home]);
- if(role==='organization_admin')links.push(['مدیریت کاربران','/organization/members']);
- if(['tenant_admin','platform_admin'].includes(role))links.push(['مدیریت کاربران','/admin']);
- if(['tenant_admin','platform_admin'].includes(role))links.push(['عملیات سفر','/backoffice']);
- if(['tenant_admin','platform_admin','backoffice_expert','finance_operator'].includes(role))links.push(['پیشخوان عملیات','/admin/ops'],['پرونده‌ی قرارداد','/admin/contracts']);
- if(['tenant_admin','platform_admin','backoffice_expert'].includes(role))links.push(['محتوای سایت','/admin/content']);
- if(['tenant_admin','platform_admin','backoffice_expert'].includes(role))links.push(['میز بلیت قطار','/admin/train-desk']);
- if(['tenant_admin','platform_admin','backoffice_expert'].includes(role))links.push(['خدمات همکار','/admin/partner-requests']);
- if(['tenant_admin','platform_admin','backoffice_expert'].includes(role))links.push(['صف مدارک مسافران','/admin/documents']);
- if(['tenant_admin','platform_admin','backoffice_expert'].includes(role))links.push(['میز گفتگو و فروش','/admin/sales-desk'],['سفرساز','/admin/safarsaz']);
- if(['platform_admin','backoffice_expert'].includes(role))links.push(['مدیریت هتل‌ها','/admin/catalog'],['تورهای مرجع','/admin/tours'],['داده‌های مرجع','/admin/catalog/reference'],['مرکز عملیات سفر','/backoffice/trip-events'],['میز پشتیبانی','/backoffice/support'],['وضعیت اعلان‌ها','/backoffice/notifications']);
- if(['platform_admin','finance_operator'].includes(role))links.push(['رکوردهای مالی','/finance/records'],['حسابداری و کمیسیون','/finance/accounting'],['سود و کمیسیون فروش','/finance/markup-revenue'],['خروجی فرانگر','/finance/journal-export'],['مطالبات سازمان‌ها','/finance/receivables'],['دفتر کل و بستن دوره','/finance/ledger'],['عملکرد و تطبیق تأمین‌کنندگان','/finance/suppliers']);
- if(['platform_admin','tenant_admin'].includes(role))links.push(['حلقه‌ی همسفران','/admin/loyalty'],['کمپین پیامکی','/admin/sms-campaigns']);
- if(['platform_admin','tenant_admin'].includes(role))links.push(['تأمین‌کنندگان و آژانس‌ها','/admin/partners'],['سازمان‌ها','/admin/organizations'],['سوابق ممیزی','/admin/audit']);
- if(['customer','employee'].includes(role))links.push(['پیشنهادهای قیمت','/quotes']);
- if(['platform_admin','supplier'].includes(role))links.push(['تسویه و قراردادها','/supplier/settlements'],['هتل‌های من','/supplier/hotels']);
- if(['supplier','agency_partner'].includes(role))links.push(['تورهای من','/supplier/tours']);
- if(role==='platform_admin')links.push(['مستأجرها و وایت‌لیبل','/admin/tenants'],['امور مالی','/finance'],['تأمین‌کنندگان','/supplier']);
- return links.filter((item,index,all)=>all.findIndex(x=>x[1]===item[1])===index);
-}
+// Kept as the import path used by login and the account menu; the source of truth is lib/panel-access.ts.
+export {roleHome, roleLinks} from './panel-access';

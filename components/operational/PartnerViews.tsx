@@ -23,7 +23,7 @@ function useAction(reload: () => void) {
 /* ------------------------------------------------------------------ Partners administration */
 type Member = {user_id: number; name: string | null};
 type Partners = {suppliers: {id: string; name: string; type: string; status: string; lifecycle_status: string; members: Member[]; hotels: {hotel_id: string; name: string | null}[]}[];
-  agencies: {id: string; name: string; status: string; commission_bps: number; markup_bps: number; sales_channel_id: string | null; credit_account_id: string | null; members: Member[]}[];
+  agencies: {id: string; name: string; status: string; commission_bps: number; markup_bps: number; sales_channel_id: string | null; credit_account_id: string | null; supplier_id?: string | null; members: Member[]}[];
   sales_channels: {id: string; name: string; type: string; agency_id: string | null}[]; credit_accounts: {id: string; currency: string; limit_amount: number}[]; agency_users: Member[]; supplier_users: Member[]};
 
 export function PartnersAdmin() {
@@ -47,6 +47,8 @@ export function PartnersAdmin() {
             <label className="grow">افزودن کاربر آژانس<select name="user_id" required className={field} defaultValue=""><option value="" disabled>انتخاب کاربر</option>{d.agency_users.filter(u => !ag.members.some(mb => mb.user_id === u.user_id)).map(u => <option key={u.user_id} value={u.user_id}>{u.name}</option>)}</select></label><button className="button secondary" disabled={a.busy}>افزودن عضو</button></form>
           <form className="flex flex-wrap items-end gap-2" aria-label={`اعتبار ${ag.name}`} onSubmit={e => submit(e, v => api.put(`/admin/partners/agencies/${ag.id}/credit-account`, {credit_account_id: v.credit_account_id || null}), 'حساب اعتباری آژانس به‌روز شد.')}>
             <label className="grow">حساب اعتباری<select name="credit_account_id" className={field} defaultValue={ag.credit_account_id ?? ''}><option value="">بدون حساب اعتباری</option>{d.credit_accounts.map(c => <option key={c.id} value={c.id}>{money(c.limit_amount, c.currency)} — {c.id.slice(0, 8)}</option>)}</select></label><button className="button secondary" disabled={a.busy}>ثبت</button></form>
+          <form className="flex flex-wrap items-end gap-2" aria-label={`برگزارکنندهٔ تور ${ag.name}`} onSubmit={e => submit(e, v => api.put(`/admin/partners/agencies/${ag.id}/tour-organiser`, {supplier_id: v.supplier_id || null}), 'برگزارکنندهٔ تورهای آژانس به‌روز شد.')}>
+            <label className="grow">برگزارکنندهٔ تورهای آژانس (برای «تورهای من»)<select name="supplier_id" className={field} defaultValue={ag.supplier_id ?? ''}><option value="">ثبت نشده</option>{d.suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label><button className="button secondary" disabled={a.busy}>ثبت</button></form>
         </article>)}</div>}</>)(p.state.data) : (d => <>
         <form className="my-3 grid gap-2 rounded-2xl bg-white p-4 sm:grid-cols-[2fr_1fr_auto]" aria-label="تأمین‌کنندهٔ جدید" onSubmit={e => submit(e, v => api.post('/admin/partners/suppliers', {display_name: v.display_name, supplier_type: v.supplier_type}), 'تأمین‌کننده ایجاد شد.')}>
           <label className="text-sm">نام تأمین‌کننده<input name="display_name" required minLength={2} maxLength={180} className={field}/></label>
