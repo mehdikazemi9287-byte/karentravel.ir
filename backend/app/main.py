@@ -560,7 +560,7 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="KarenSeir Pilot API", version="0.2.0", lifespan=lifespan,
               docs_url=None if IS_PRODUCTION else "/docs", redoc_url=None if IS_PRODUCTION else "/redoc",
               openapi_url=None if IS_PRODUCTION else "/openapi.json")
-app.add_middleware(CORSMiddleware, allow_origins=os.getenv("CORS_ORIGINS","http://localhost:3000").split(","), allow_credentials=False, allow_methods=["GET","POST","PUT","DELETE"], allow_headers=["Authorization","Content-Type","Idempotency-Key","X-Request-ID","X-Correlation-ID"])
+app.add_middleware(CORSMiddleware, allow_origins=os.getenv("CORS_ORIGINS","http://localhost:3000").split(","), allow_credentials=False, allow_methods=["GET","POST","PUT","DELETE"], allow_headers=["Authorization","Content-Type","Idempotency-Key","X-Request-ID","X-Correlation-ID","X-CSRF-Token","X-Auth-Transport"])
 
 
 def _client_ip(request: Request) -> str:
@@ -5722,3 +5722,8 @@ from .partner_requests import partner_requests_router  # noqa: E402  requests to
 app.include_router(partner_requests_router(get_db, current_user, _platform_audit, role_has_permission))
 from .after_sales import after_sales_router  # noqa: E402  Panels Phase 1 after-sales loop (customer → ops → finance → customer)
 app.include_router(after_sales_router(get_db, current_user, role_has_permission, User, _platform_audit, _verified_cancellation_quote))
+
+# M-3: optional httpOnly cookie session + double-submit CSRF (AUTH_COOKIE_MODE, default off).
+# Added last so it is the outermost layer: the rate limiter and current_user see the injected header.
+from .auth_cookies import AuthCookieMiddleware  # noqa: E402
+app.add_middleware(AuthCookieMiddleware)
