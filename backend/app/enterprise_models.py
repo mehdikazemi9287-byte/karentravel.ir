@@ -82,3 +82,15 @@ class EnterpriseBookingLink(OperationalMixin, Base):
     reservation_id: Mapped[str]=mapped_column(ForeignKey('reservations.id'),index=True)
     linked_by: Mapped[int]=mapped_column(ForeignKey('users.id'))
     __table_args__=(UniqueConstraint('tenant_id','reservation_id',name='uq_enterprise_link_reservation'),)
+
+class EnterpriseOnBehalfBooking(OperationalMixin, Base):
+    """A booking made by a purchasing officer / org admin (`requests.on_behalf`) for another member of the same
+    organization. The reservation stays in the actor's account and is funded under the organization's policy;
+    this row is the record of who booked for whom."""
+    __tablename__='enterprise_on_behalf_bookings'
+    organization_id: Mapped[str]=mapped_column(ForeignKey('organizations.id'),index=True)
+    reservation_id: Mapped[str]=mapped_column(ForeignKey('reservations.id'),index=True)
+    actor_id: Mapped[int]=mapped_column(ForeignKey('users.id'),index=True)
+    beneficiary_user_id: Mapped[int]=mapped_column(ForeignKey('users.id'),index=True)
+    traveller_id: Mapped[Optional[str]]=mapped_column(ForeignKey('travellers.id'),nullable=True)
+    __table_args__=(UniqueConstraint('tenant_id','reservation_id',name='uq_enterprise_on_behalf_reservation'),)

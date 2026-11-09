@@ -58,7 +58,7 @@ export function PanelShell({area, title, intro, children}: {area: Area; title: s
   const navTitle = {customer: 'حساب من', organization: 'پنل سازمان', agency: 'پنل همکار', supplier: 'پنل تأمین‌کننده', admin: 'مدیریت مجموعه'}[area];
   const nativeTitle = links.find(i => i.href === path)?.label ?? title;
   const opsTabs = OPS_TABS.filter(([, href]) => href.startsWith('#') || canOpen('admin', href, role));
-  return <div className="pn-page" data-figma-page="129:11966">
+  return <div className="pn-page" data-figma-page="129:11966"><a className="skip-link" href="#main-content">پرش به محتوای اصلی</a>
     <header className="pn-page-header"><Link className="pn-page-brand" href="/">کارن تراول</Link>
       {session?.user ? <AccountMenu variant="panel"/> : <Link className="pn-page-login" href="/login">ورود / ثبت‌نام</Link>}
     </header><div className="pn" data-area={area}>
@@ -66,7 +66,7 @@ export function PanelShell({area, title, intro, children}: {area: Area; title: s
       {session && links.map(({label, href}) => <Link key={href} href={href} aria-current={path === href ? 'page' : undefined}>{label}</Link>)}
       <span className="pn-nav-foot">{area !== 'customer' && <Link href="/account">حساب من</Link>}{area === 'customer' && role && role !== 'customer' && <Link href={homeFor(role)}>پنل کاری من</Link>}</span>
     </nav>
-    <main className="pn-main"><header className="pn-head"><h1>{allowed ? nativeTitle : 'دسترسی ندارید'}</h1>{intro && allowed && <p>{intro}</p>}</header>
+    <main className="pn-main" id="main-content" tabIndex={-1}><header className="pn-head"><h1>{allowed ? nativeTitle : 'دسترسی ندارید'}</h1>{intro && allowed && <p>{intro}</p>}</header>
       {!session ? <div className="pn-card"><p>برای دیدن این بخش وارد حساب خود شوید.</p><div><Link className="pn-btn" href="/login">ورود / ثبت‌نام</Link></div></div>
         : allowed ? children : <NoAccess role={role} path={path} area={area}/>}
       <Card title="وضعیت و دسترسی"><p className="pn-access-note">اطلاعات تأییدنشده و خدمات متصل‌نشده با وضعیت مشخص نمایش داده می‌شوند.</p><p className="pn-access-note">عملیات فقط با نقش و مجوز همان حساب انجام می‌شود.</p></Card>

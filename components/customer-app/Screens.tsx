@@ -5,6 +5,7 @@ import Link from 'next/link';
 import {useEffect, useState, type ReactNode} from 'react';
 import {useAuth} from '../../lib/api/auth-context';
 import {errorOf, useLoad, type Load} from '../panel/PanelKit';
+import {anyStatusFa, serviceTypeFa} from '../../lib/status-labels';
 
 const fa = (n: number) => n.toLocaleString('fa-IR');
 const money = (n: number | null | undefined, c?: string | null) => (n === null || n === undefined ? 'نامشخص' : `${fa(n)} ${!c || c === 'IRR' ? 'ریال' : c}`);
@@ -13,7 +14,7 @@ const SERVICE: Record<string, string> = {flight: 'پرواز', hotel: 'هتل', 
 const STATUS: Record<string, [string, string]> = {confirmed: ['قطعی', 'ok'], issued: ['صادرشده', 'ok'], fulfilled: ['انجام‌شده', 'ok'], completed: ['انجام‌شده', 'ok'], active: ['فعال', 'ok'], paid: ['پرداخت‌شده', 'ok'],
   reserved: ['رزرو موقت', 'warn'], awaiting_payment: ['منتظر پرداخت', 'warn'], pending_payment: ['منتظر پرداخت', 'warn'], pending: ['در انتظار', 'warn'], planned: ['برنامه‌ریزی‌شده', 'warn'], draft: ['پیش‌نویس', 'warn'],
   cancelled: ['لغوشده', 'bad'], canceled: ['لغوشده', 'bad'], failed: ['ناموفق', 'bad'], expired: ['منقضی', 'bad'], refunded: ['مستردشده', '']};
-function Badge({s}: {s?: string | null}) {const h = s ? STATUS[s.toLowerCase()] : undefined; return <span className={`ca-badge ${h?.[1] ?? ''}`}>{h?.[0] ?? s ?? 'نامشخص'}</span>;}
+function Badge({s}: {s?: string | null}) {const h = s ? STATUS[s.toLowerCase()] : undefined; return <span className={`ca-badge ${h?.[1] ?? ''}`}>{h?.[0] ?? (s ? anyStatusFa(s) : 'نامشخص')}</span>;}
 
 function SignIn({what}: {what: string}) {
   return <section className="ca-card"><h2>ورود به حساب</h2><p className="ca-muted">برای دیدن {what} وارد حساب خود شوید.</p><Link className="ca-btn" href="/login?redirect=/app">ورود / ثبت‌نام با موبایل</Link></section>;
@@ -123,7 +124,7 @@ export function Trips() {
     </section>
     <section className="ca-card"><h2>رزروها</h2>
       <Async state={res.state}>{list => list.length === 0 ? <p className="ca-muted">رزروی ندارید.</p> : <ul className="ca-list">{list.slice(0, 20).map(r => <li key={r.id}>
-        <div className="ca-row"><strong>{SERVICE[r.service_type] ?? r.service_type}</strong><Badge s={r.status}/></div>
+        <div className="ca-row"><strong>{SERVICE[r.service_type] ?? serviceTypeFa(r.service_type)}</strong><Badge s={r.status}/></div>
         <span className="ca-muted"><span className="ca-ltr">{r.booking_reference ?? r.id.slice(0, 8)}</span> — {money(r.price_snapshot?.total_amount, r.price_snapshot?.currency)}</span>
         <div className="ca-row"><Link className="ca-btn ghost" href={r.manage_link || `/manage-booking/${r.id}`}>مدیریت رزرو</Link>
           {['reserved', 'awaiting_payment', 'pending_payment'].includes(r.status) && <Link className="ca-btn" href={`/checkout/${r.id}`}>پرداخت</Link>}

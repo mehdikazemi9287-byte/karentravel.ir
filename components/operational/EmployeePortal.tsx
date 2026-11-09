@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ErrorState } from './ConnectedViews';
 import { useAuth } from '../../lib/api/auth-context';
 import { ApiError } from '../../lib/api/karenseir-client';
+import { bookingStatusFa, serviceTypeFa } from '../../lib/status-labels';
 
 type OrgCredit = { id: string; organization_id: string; currency: string; available: number; limit_amount?: number; reserved?: number; consumed?: number };
 type Wallet = { id: string; currency: string; available: number; reserved: number; consumed: number };
@@ -70,7 +71,7 @@ export function EmployeePortal() {
             : data.reservations.slice(0, 8).map(r => {
                 const wf = data.approvals.find(a => a.reservation_id === r.id);
                 return <div className="mt-3 flex items-center justify-between rounded-xl bg-slate-50 p-3" key={r.id}>
-                  <span><b className="block">{r.booking_reference || r.id}</b><small className="text-slate-600">{r.service_type} · {r.status}</small></span>
+                  <span><b className="block">{r.booking_reference || r.id}</b><small className="text-slate-600">{serviceTypeFa(r.service_type)} · {bookingStatusFa(r.status)}</small></span>
                   {wf && <span className={`rounded-full px-3 py-1 text-xs ${wf.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : wf.status === 'rejected' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'}`}>{WF_LABEL[wf.status] || wf.status}{wf.status === 'pending' ? ` · مرحله ${wf.current_step_order.toLocaleString('fa-IR')}` : ''}</span>}
                 </div>;
               })}

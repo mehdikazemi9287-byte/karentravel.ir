@@ -85,6 +85,14 @@ def evaluate(rules,requirements):
     return {'result':'OUT_OF_POLICY' if reasons else 'APPROVAL_REQUIRED' if rules.get('approval_required',True) else 'IN_POLICY','reasons':reasons}
 
 
+class OnBehalfIn(BaseModel):
+    model_config=ConfigDict(extra='forbid')
+    reservation_id:str=Field(min_length=36,max_length=36)
+    beneficiary_user_id:int=Field(gt=0)
+    command_id:str=Field(min_length=8,max_length=120)
+
+ON_BEHALF_STATUSES=('reserved','pending','booking_pending','awaiting_payment')
+
 class BookingLinkIn(BaseModel):
     reservation_id:str=Field(min_length=36,max_length=36)
     command_id:str=Field(min_length=8,max_length=120)
@@ -166,6 +174,44 @@ def router(current_user,get_db,User,AuditEvent):
         trip=m.ensure_trip_for_reservation(db,booking,title=row.title,destination=json.loads(row.requirements_json).get('destination'))
         m.record_trip_event(db,tenant_id=user.tenant_id,trip_id=trip.id,reservation_id=booking.id,event_key='enterprise-link:'+link.id,event_type='enterprise.request.linked',source='system',title='رزرو به درخواست سازمانی مرتبط شد',message='این ارتباط برای پیگیری است و به معنای تأیید پرداخت سازمان نیست.',deep_link='/organization/requests')
         return finish(db,user,'enterprise.booking.link',body,{"items":booking_rows(db,user,row),"financial_authorization":False},row.organization_id,'booking.linked',rid,{"reservation_id":booking.id})
+
+    def on_behalf_output(db,row):
+        names=dict(db.execute(select(User.id,User.name).where(User.tenant_id==row.tenant_id,User.id.in_([row.actor_id,row.beneficiary_user_id]))).all())
+        res=db.scalar(select(m.Reservation).where(m.Reservation.tenant_id==row.tenant_id,m.Reservation.id==row.reservation_id))
+        return {'id':row.id,'organization_id':row.organization_id,'reservation_id':row.reservation_id,'booking_reference':res.booking_reference if res else None,'service_type':res.service_type if res else None,'status':res.status if res else None,'actor_id':row.actor_id,'actor_name':names.get(row.actor_id),'beneficiary_user_id':row.beneficiary_user_id,'beneficiary_name':names.get(row.beneficiary_user_id),'traveller_id':row.traveller_id,'created_at':aware(row.created_at).isoformat()}
+
+    @api.post('/organizations/{org}/on-behalf-bookings',status_code=201)
+    def book_on_behalf(org:str,data:OnBehalfIn,user=Depends(current_user),db:Session=Depends(get_db)):
+        """Designate another member of the same organization as the traveller/beneficiary of the actor's booking."""
+        require(db,user,org,'requests.on_behalf');org_lock(db,user,org)
+        body={**data.model_dump(),'org':org,'actor':user.id};prior=replay(db,user,'enterprise.on_behalf',body)
+        if prior:return prior
+        if data.beneficiary_user_id==user.id:raise HTTPException(422,'برای رزرو خودتان نیازی به رزرو به نمایندگی نیست')
+        beneficiary=db.scalar(select(User).join(m.EmployeeAssignment,m.EmployeeAssignment.user_id==User.id).where(User.tenant_id==user.tenant_id,User.id==data.beneficiary_user_id,m.EmployeeAssignment.tenant_id==user.tenant_id,m.EmployeeAssignment.organization_id==org))
+        if beneficiary is None:raise HTTPException(422,'مسافر انتخاب‌شده عضو این سازمان نیست')
+        booking=db.scalar(select(m.Reservation).where(m.Reservation.tenant_id==user.tenant_id,m.Reservation.id==data.reservation_id,m.Reservation.user_id==user.id).with_for_update())
+        if booking is None:raise HTTPException(404,'رزرو متعلق به شما در دسترس نیست')
+        if booking.status not in ON_BEHALF_STATUSES:raise HTTPException(409,'فقط رزرو پیش از پرداخت را می‌توان به نام همکار ثبت کرد')
+        existing=db.scalar(select(e.EnterpriseOnBehalfBooking).where(e.EnterpriseOnBehalfBooking.tenant_id==user.tenant_id,e.EnterpriseOnBehalfBooking.reservation_id==booking.id))
+        if existing:raise HTTPException(409,'این رزرو قبلاً به نام عضو دیگری ثبت شده است')
+        policy=db.scalar(select(e.EnterprisePolicy).where(e.EnterprisePolicy.tenant_id==user.tenant_id,e.EnterprisePolicy.organization_id==org).order_by(e.EnterprisePolicy.version.desc()))
+        rules=json.loads(policy.rules_json) if policy else {}
+        if not rules:raise HTTPException(409,'سیاست سفر سازمان هنوز تنظیم نشده است؛ رزرو به نمایندگی ممکن نیست')
+        if booking.service_type not in rules.get('allowed_services',[]):raise HTTPException(403,'این خدمت طبق سیاست سازمان مجاز نیست')
+        total=int(json.loads(booking.price_snapshot_json or '{}').get('total_amount') or 0)
+        if rules.get('maximum_budget') and total>rules['maximum_budget']:raise HTTPException(409,'مبلغ رزرو بیش از سقف سیاست سفر سازمان است')
+        traveller=m.Traveller(tenant_id=user.tenant_id,user_id=user.id,full_name=(beneficiary.name or '')[:160] or 'عضو سازمان',profile_reference=f'org-member:{beneficiary.id}');db.add(traveller);db.flush()
+        row=e.EnterpriseOnBehalfBooking(tenant_id=user.tenant_id,organization_id=org,reservation_id=booking.id,actor_id=user.id,beneficiary_user_id=beneficiary.id,traveller_id=traveller.id);db.add(row);db.flush()
+        detail={'reservation_id':booking.id,'beneficiary_user_id':beneficiary.id,'actor_id':user.id,'policy_version':policy.version}
+        db.add(AuditEvent(tenant_id=user.tenant_id,actor_id=user.id,action='organization.booking.on_behalf',entity='reservation',entity_id=0,detail=json.dumps({'organization_id':org,**detail},ensure_ascii=False)))
+        return finish(db,user,'enterprise.on_behalf',body,on_behalf_output(db,row),org,'booking.on_behalf',detail=detail)
+
+    @api.get('/organizations/{org}/on-behalf-bookings')
+    def on_behalf_bookings(org:str,user=Depends(current_user),db:Session=Depends(get_db)):
+        perms=permissions(db,user,org)
+        q=select(e.EnterpriseOnBehalfBooking).where(e.EnterpriseOnBehalfBooking.tenant_id==user.tenant_id,e.EnterpriseOnBehalfBooking.organization_id==org)
+        if not ({'requests.read_all','requests.on_behalf'}&perms):q=q.where((e.EnterpriseOnBehalfBooking.beneficiary_user_id==user.id)|(e.EnterpriseOnBehalfBooking.actor_id==user.id))
+        return [on_behalf_output(db,r) for r in db.scalars(q.order_by(e.EnterpriseOnBehalfBooking.created_at.desc()).limit(200)).all()]
 
     @api.get('/context')
     def context(user=Depends(current_user),db:Session=Depends(get_db)):

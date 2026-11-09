@@ -24,6 +24,10 @@ def test_flight_party_quote_checkout_and_replay_ownership(client):
     for ids in [[t1['id']],[t1['id'],t1['id']]]:
         assert client.put(step,headers=auth(user),json={'command_id':str(uuid.uuid4()),'traveller_ids':ids}).status_code==422
     t2=client.post('/me/travellers',headers=auth(user),json={'full_name':'Mock second adult'}).json()
+    missing=client.put(step,headers=auth(user),json={'command_id':str(uuid.uuid4()),'traveller_ids':[t1['id'],t2['id']]})
+    assert missing.status_code==422 and 'کد ملی' in missing.json()['detail']
+    for t,code in [(t1,'5260181591'),(t2,'0830166130')]:
+        assert client.put('/me/travellers/'+t['id'],headers=auth(user),json={'full_name':t['full_name'],'national_code':code}).status_code==200
     payload={'command_id':'flight-travellers-'+suffix,'traveller_ids':[t1['id'],t2['id']]}
     ok=client.put(step,headers=auth(user),json=payload);assert ok.status_code==200,ok.text
     assert client.put(step,headers=auth(user),json=payload).json()==ok.json()
