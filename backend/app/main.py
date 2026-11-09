@@ -1287,7 +1287,8 @@ def reservation_price_breakdown(reservation_id: str, user: User = Depends(curren
     row = db.scalar(select(operational_models.PriceBreakdown).where(operational_models.PriceBreakdown.booking_id == reservation.id, operational_models.PriceBreakdown.tenant_id == user.tenant_id))
     if row is None:
         raise HTTPException(status_code=404, detail="جزئیات قیمت برای این رزرو ثبت نشده است")
-    return {key: getattr(row, key) for key in ("id", "booking_id", "source", "source_contract_id", "supplier_net_rate", "supplier_currency", "exchange_rate", "supplier_net_rate_irr", "platform_markup", "platform_markup_type", "service_fee", "supplier_commission", "agent_commission", "discount_amount", "discount_source", "promo_code", "vat", "airport_tax", "i6_tax", "red_crescent", "other_taxes", "wl_channel_id", "wl_revenue_share", "wl_commission_type", "total_selling_price", "total_cost", "gross_margin", "net_margin", "calculated_at", "calculated_by", "override_reason", "approved_by")}
+    # Customer view (spec §3.3): what the customer paid and its parts; never our cost, markup, commission, margin or WL share.
+    return {key: getattr(row, key) for key in ("id", "booking_id", "service_fee", "discount_amount", "discount_source", "promo_code", "vat", "airport_tax", "i6_tax", "red_crescent", "other_taxes", "total_selling_price", "calculated_at")}
 
 def _ticket_qr_svg(token:str)->bytes:
     import io,qrcode,qrcode.image.svg

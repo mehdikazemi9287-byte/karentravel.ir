@@ -369,3 +369,12 @@ def test_reconciliation_link_unlink_resolve_with_audit(client, people):
     fin_b = login(client, _user("finance_operator", "faraz-industries"))
     assert client.post(f"/finance/reconciliation/{rec_id}/unlink", headers=fin_b, json={"reason": "تلاش از مجموعهٔ دیگر"}).status_code == 404
     assert any(r["id"] == rec_id for r in client.get("/finance/reconciliation/records", headers=p["fin1"]).json()["items"])
+
+
+def test_customer_price_breakdown_hides_cost_markup_commission_and_margin(client, people):
+    p = people
+    rid = booking(p["cust_email"])
+    body = client.get(f"/reservations/{rid}/price-breakdown", headers=p["cust"]).json()
+    assert body["total_selling_price"] == 44_550_000 and body["service_fee"] == 500_000
+    for hidden in ("supplier_commission", "agent_commission", "platform_markup", "supplier_net_rate_irr", "total_cost", "gross_margin", "net_margin", "wl_revenue_share"):
+        assert hidden not in body
