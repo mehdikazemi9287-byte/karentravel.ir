@@ -1,0 +1,71 @@
+{
+ "employee": [
+  "reservation:create",
+  "reservation:manage",
+  "reservation:read",
+  "trip:read"
+ ],
+ "customer": [
+  "reservation:create",
+  "reservation:manage",
+  "reservation:read",
+  "trip:read"
+ ],
+ "manager": [
+  "approval:decide",
+  "reservation:read",
+  "trip:read"
+ ],
+ "welfare_manager": [
+  "approval:decide",
+  "credit:read",
+  "reservation:read",
+  "trip:read"
+ ],
+ "organization_admin": [
+  "approval:decide",
+  "credit:manage",
+  "member:manage",
+  "reservation:read",
+  "trip:read"
+ ],
+ "agency_partner": [
+  "agency:manage",
+  "credit:read",
+  "inventory:read",
+  "reservation:fulfill"
+ ],
+ "supplier": [
+  "inventory:manage",
+  "reservation:fulfill"
+ ],
+ "backoffice_expert": [
+  "approval:decide",
+  "backoffice:read",
+  "invoice:manage",
+  "reservation:manage",
+  "reservation:read",
+  "support:manage",
+  "trip:event:create"
+ ],
+ "finance_operator": [
+  "approval:decide",
+  "credit:read",
+  "installment:manage",
+  "invoice:manage",
+  "ledger:read",
+  "reconciliation:manage",
+  "refund:manage",
+  "settlement:manage"
+ ],
+ "tenant_admin": [
+  "backoffice:read",
+  "credit:manage",
+  "member:manage",
+  "reservation:read",
+  "tenant:manage"
+ ],
+ "platform_admin": [
+  "platform:manage"
+ ]
+}

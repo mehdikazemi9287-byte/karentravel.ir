@@ -8,7 +8,7 @@ import './customer-app.css';
 
 const TABS: {href: string; label: string; icon: ReactNode}[] = [
   {href: '/app', label: 'خانه', icon: <path d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>},
-  {href: '/search', label: 'جستجو', icon: <><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></>},
+  {href: '/search/results', label: 'جستجو', icon: <><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></>},
   {href: '/app/trips', label: 'سفرهای من', icon: <><path d="M3 13h18"/><path d="M5 13 9 5h6l4 8"/><path d="M7 13v6m10-6v6"/></>},
   {href: '/app/wallet', label: 'کیف پول', icon: <><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M16 12.5h2"/><path d="M3 9.5h18"/></>},
   {href: '/app/account', label: 'حساب من', icon: <><circle cx="12" cy="8.5" r="3.6"/><path d="M4.5 20c1.2-3.6 4-5.4 7.5-5.4s6.3 1.8 7.5 5.4"/></>},

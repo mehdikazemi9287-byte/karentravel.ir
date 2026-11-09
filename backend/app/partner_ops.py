@@ -57,6 +57,10 @@ class CreditLinkIn(Strict):
     credit_account_id: Optional[str] = Field(default=None, min_length=36, max_length=36)
 
 
+class SupplierLinkIn(Strict):
+    supplier_id: Optional[str] = Field(default=None, min_length=36, max_length=36)
+
+
 class MappingIn(Strict):
     provider: str = Field(pattern=r"^[a-z0-9_-]{2,40}$")
     provider_hotel_id: str = Field(min_length=1, max_length=120)
@@ -147,7 +151,7 @@ def partner_ops_router(get_db, current_user, require_permission, role_has_permis
         by_channel = {a.sales_channel_id: a.id for a in agencies if a.sales_channel_id}
         return {"suppliers": [{"id": s.id, "name": s.display_name, "type": s.supplier_type, "status": s.status, "lifecycle_status": s.lifecycle_status, "members": s_members.get(s.id, []), "hotels": s_hotels.get(s.id, [])}
                               for s in db.scalars(select(m.Supplier).where(m.Supplier.tenant_id == t).order_by(m.Supplier.created_at.desc()))],
-                "agencies": [{"id": a.id, "name": a.display_name, "status": a.status, "commission_bps": a.commission_bps, "markup_bps": a.markup_bps, "sales_channel_id": a.sales_channel_id, "credit_account_id": a.credit_account_id, "members": a_members.get(a.id, [])} for a in agencies],
+                "agencies": [{"id": a.id, "name": a.display_name, "status": a.status, "commission_bps": a.commission_bps, "markup_bps": a.markup_bps, "sales_channel_id": a.sales_channel_id, "credit_account_id": a.credit_account_id, "supplier_id": a.supplier_id, "members": a_members.get(a.id, [])} for a in agencies],
                 "sales_channels": [{"id": c.id, "name": c.name, "type": c.channel_type, "status": c.status, "agency_id": by_channel.get(c.id)} for c in channels],
                 "credit_accounts": [{"id": c.id, "currency": c.currency, "limit_amount": c.limit_amount} for c in db.scalars(select(m.CreditAccount).where(m.CreditAccount.tenant_id == t))],
                 "agency_users": [brief(u.id) for u in users.values() if u.role == "agency_partner"], "supplier_users": [brief(u.id) for u in users.values() if u.role == "supplier"]}
@@ -187,6 +191,17 @@ def partner_ops_router(get_db, current_user, require_permission, role_has_permis
         previous, agency.credit_account_id = agency.credit_account_id, data.credit_account_id
         audit(db, user, "agency.credit_account_linked", "agency", {"agency_id": agency.id, "from": previous, "to": data.credit_account_id}); db.commit()
         return {"agency_id": agency.id, "credit_account_id": agency.credit_account_id}
+
+    @router.put("/admin/partners/agencies/{agency_id}/tour-organiser")
+    def link_agency_organiser(agency_id: str, data: SupplierLinkIn, user=Depends(admin), db: Session = Depends(get_db)) -> dict:
+        """Which supplier record the agency organises its own tours as. Its members then manage those tours from the agency panel."""
+        agency = agency_for(db, agency_id, user, lock=True)
+        if data.supplier_id:
+            if db.scalar(select(m.Supplier.id).where(m.Supplier.id == data.supplier_id, m.Supplier.tenant_id == user.tenant_id)) is None: raise HTTPException(status_code=422, detail="تأمین‌کننده در این مجموعه وجود ندارد")
+            if db.scalar(select(m.Agency.id).where(m.Agency.tenant_id == user.tenant_id, m.Agency.supplier_id == data.supplier_id, m.Agency.id != agency.id)): raise HTTPException(status_code=409, detail="این برگزارکننده به آژانس دیگری متصل است")
+        previous, agency.supplier_id = agency.supplier_id, data.supplier_id
+        audit(db, user, "agency.tour_organiser_linked", "agency", {"agency_id": agency.id, "from": previous, "to": data.supplier_id}); db.commit()
+        return {"agency_id": agency.id, "supplier_id": agency.supplier_id}
 
     @router.post("/admin/partners/suppliers", status_code=201)
     def create_supplier(data: SupplierIn, user=Depends(admin), db: Session = Depends(get_db)) -> dict:

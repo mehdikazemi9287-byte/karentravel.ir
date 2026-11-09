@@ -2,7 +2,7 @@
 /* Safarsaz (سفرساز): build a tour as a draft, pass the publish checklist, publish into the bookable tour catalogue.
    Everything shown comes from /safarsaz/*; nothing is pre-filled with sample data. */
 import {useState, type FormEvent} from 'react';
-import {Async, Card, Empty, Table, dateFa, errorOf, fa, money, useLoad} from './PanelKit';
+import {Async, Badge, Card, Empty, Loading, Table, Unavailable, dateFa, errorOf, fa, money, useLoad, Failed} from './PanelKit';
 import {FormFields, Note, type Opt, type Row} from './CommercePanel';
 
 const SOURCES: Opt = [['manual', 'ورود دستی'], ['supplier_contract', 'قرارداد تأمین‌کننده'], ['charter_block', 'بلوک چارتر'], ['catalog', 'تور مرجع'], ['copy', 'کپی تور قبلی']];
@@ -114,6 +114,7 @@ function Editor({id, back, partner}: {id: string; back: () => void; partner: boo
         {label: '', cell: (d: Row) => d.published ? null : <button className="pn-btn ghost" onClick={() => act('delete', `/safarsaz/tours/${id}/departures/${d.id}`, 'حذف شد.')}>حذف</button>}]}/>
       <DepartureForm tourId={id} saved={reload}/>
     </Card>
+    <TourBookings id={id}/>
     <Card title="اطلاعات فروش و محتوا"><TourForm key={t.updated_at} tour={t} saved={reload}/></Card>
   </>}</Async>;
 }
@@ -138,4 +139,29 @@ export function Safarsaz({partner = false}: {partner?: boolean}) {
         {label: '', cell: r => <button className="pn-btn ghost" onClick={() => setOpen(r.id)}>ویرایش</button>}]}/>}</Async>
     </Card>
   </>;
+}
+
+
+/** Bookings received on the tour's published departures (GET /safarsaz/tours/{id}/bookings, scoped to the organiser's own tours). */
+function TourBookings({id}: {id: string}) {
+  const {state} = useLoad<{departures: Row[]}>(`/safarsaz/tours/${id}/bookings`);
+  return <Card title="رزروهای دریافتی"><Async state={state}>{d => d.departures.length === 0 ? <Empty>هنوز حرکتی برای این تور ثبت نشده است.</Empty> : <>{d.departures.map((dep: Row) =>
+    <section key={dep.departure_id} style={{marginBottom: 16}} aria-label={`حرکت ${dateFa(dep.starts_at)}`}>
+      <h3>حرکت {dateFa(dep.starts_at)} تا {dateFa(dep.ends_at)}</h3>
+      {!dep.published ? <p className="pn-muted">این حرکت هنوز منتشر نشده و رزروی نمی‌گیرد.</p> : <>
+        <p className="pn-muted">ظرفیت {fa(dep.capacity)} · مانده {dep.remaining === null ? 'نامشخص' : fa(dep.remaining)} · مسافر رزروشده {fa(dep.booked_travellers)}</p>
+        <Table rows={dep.bookings} rowKey={(b: Row) => b.id} empty="هنوز رزروی برای این حرکت ثبت نشده است." cols={[
+          {label: 'کد رزرو', cell: (b: Row) => <span dir="ltr">{b.booking_reference}</span>}, {label: 'مسافر', cell: (b: Row) => fa(b.travellers)}, {label: 'اتاق', cell: (b: Row) => b.room_fa},
+          {label: 'مبلغ', cell: (b: Row) => money(b.total_amount, b.currency)}, {label: 'وضعیت', cell: (b: Row) => <Badge status={b.status}/>}, {label: 'تاریخ ثبت', cell: (b: Row) => dateFa(b.created_at)}]}/></>}
+    </section>)}</>}</Async></Card>;
+}
+
+/** Agency panel entry: the agency's own tours, through its membership and the tour organiser linked to the agency. */
+export function AgencyTours() {
+  const {state} = useLoad<{items: Row[]; partner: boolean}>('/safarsaz/suppliers');
+  if (state.kind === 'loading') return <Loading/>;
+  if (state.kind === 'error') return state.status === 403
+    ? <Card><Unavailable title="برگزارکنندهٔ تور برای آژانس شما ثبت نشده است">برای ساخت و مدیریت تورهای آژانس، مدیر مجموعه باید در «تأمین‌کنندگان و آژانس‌ها» برگزارکنندهٔ تور آژانس شما را مشخص کند.</Unavailable></Card>
+    : <Failed status={state.status} message={state.message}/>;
+  return <Safarsaz partner/>;
 }

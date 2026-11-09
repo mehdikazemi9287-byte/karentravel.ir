@@ -7,17 +7,10 @@ import {useCallback, useEffect, useState, type ReactNode} from 'react';
 import {useAuth} from '../../lib/api/auth-context';
 import {ApiError} from '../../lib/api/karenseir-client';
 import {AccountMenu} from '../marketplace/ApprovedFigmaHome';
+import {canOpen, homeFor, itemFor, navFor, ROLE_FA, type Area} from '../../lib/panel-access';
 import './panel.css';
 
-export type Area = 'customer' | 'organization' | 'agency' | 'supplier' | 'admin';
-const NAV: Record<Area, {title: string; links: [string, string][]}> = {
-  customer: {title: 'حساب من', links: [['نمای کلی', '/account'], ['درخواست‌های قطار', '/account/train-requests'], ['شهرشاد، پادویرا و سوغات', '/account/partner-requests'], ['پروفایل و مسافران', '/account/profile'], ['رزروها و سفرها', '/account/bookings'], ['تغییرات سفر', '/account/changes'], ['ویزا', '/account/visa'], ['مدارک مسافران', '/account/documents'], ['پرداخت و فاکتور', '/account/payments'], ['لغو و استرداد', '/account/refunds'], ['کیف پول و اعتبار', '/account/wallet'], ['مزایای سازمانی', '/account/benefits'], ['ذخیره‌شده‌ها و پیشنهادها', '/account/saved'], ['اعلان‌ها', '/account/notifications'], ['امنیت ورود', '/account/security'], ['پشتیبانی', '/account/support']]},
-  organization: {title: 'پنل سازمان', links: [['نمای کلی', '/organization'], ['میز کار کارمند', '/employee'], ['کارکنان و دسترسی‌ها', '/organization/members'], ['درخواست و تأیید سفر', '/organization/requests'], ['سیاست سفر', '/organization/policy'], ['واحدها و مراکز هزینه', '/organization/structure'], ['اعتبار و اقساط', '/organization/credit'], ['رزروهای سازمان', '/organization/bookings'], ['صورتحساب و تسویه', '/organization/billing'], ['گزارش', '/organization/reports'], ['سوابق و گردش تأیید', '/organization/audit'], ['تعهد مالی سفر', '/organization/financial-context']]},
-  agency: {title: 'پنل همکار', links: [['نمای کلی', '/agency'], ['فروش و پیشنهاد قیمت', '/agency/sales'], ['رزروها', '/agency/bookings'], ['مشتریان', '/agency/customers'], ['کمیسیون', '/agency/commissions'], ['اعتبار و حساب', '/agency/credit'], ['تسویه و اسناد', '/agency/documents'], ['گزارش', '/agency/reports'], ['میز کار کامل', '/agency/workspace'], ['پشتیبانی', '/agency/support']]},
-  supplier: {title: 'پنل تأمین‌کننده', links: [['نمای کلی', '/supplier'], ['خدمات، نرخ و ظرفیت', '/supplier/services'], ['تورهای من', '/supplier/tours'], ['هتل‌های من', '/supplier/hotels'], ['اقامتگاه و تقویم', '/supplier/accommodation'], ['سفارش‌ها و تأیید', '/supplier/fulfillment'], ['کنترل بلیت', '/supplier/admission'], ['درخواست‌های سازمانی', '/supplier/rfqs'], ['تسویه و قرارداد', '/supplier/settlements'], ['گزارش', '/supplier/reports'], ['پشتیبانی', '/supplier/support'], ['روابط مالی قرارداد', '/supplier/financial-context']]},
-  admin: {title: 'مدیریت مجموعه', links: [['پیشخوان عملیات', '/admin/ops'], ['محتوای سایت', '/admin/content'], ['میز بلیت قطار', '/admin/train-desk'], ['خدمات همکار', '/admin/partner-requests'], ['پرونده‌ی قرارداد', '/admin/contracts'], ['صف مدارک مسافران', '/admin/documents'], ['کاربران و نقش‌ها', '/admin'], ['مستأجرها و وایت‌لیبل', '/admin/tenants'], ['سازمان‌ها', '/admin/organizations'], ['تأمین‌کنندگان و آژانس‌ها', '/admin/partners'], ['سوابق ممیزی', '/admin/audit'], ['هتل‌ها', '/admin/catalog'], ['داده‌های مرجع', '/admin/catalog/reference'], ['تورها', '/admin/tours'], ['سفرساز', '/admin/safarsaz'], ['میز گفتگو و فروش', '/admin/sales-desk'], ['حلقه‌ی همسفران', '/admin/loyalty'], ['کمپین پیامکی', '/admin/sms-campaigns'], ['عملیات و پشتیبانی', '/backoffice'], ['مالی', '/finance'], ['صندوق و حساب‌ها', '/finance/treasury'], ['قوانین فروش', '/admin/commerce'], ['پرواز و موجودی', '/admin/inventory'], ['سهمیه‌ی همکاران', '/admin/charter-quotas'], ['گزارش فروش', '/finance/reports'], ['سود و کمیسیون فروش', '/finance/markup-revenue'], ['خروجی فرانگر', '/finance/journal-export'], ['مطالبات سازمان‌ها', '/finance/receivables'], ['دفتر کل و بستن دوره', '/finance/ledger'], ['عملکرد و تطبیق تأمین‌کنندگان', '/finance/suppliers'], ['روابط مالی اکوسیستم', '/admin/ecosystem']]},
-};
-const ORG_ROLES = ['manager', 'welfare_manager', 'organization_admin', 'tenant_admin', 'platform_admin', 'employee'];
+export type {Area} from '../../lib/panel-access';
 export const fa = (n: number) => n.toLocaleString('fa-IR');
 export const money = (amount: number | null | undefined, currency?: string | null) => amount === null || amount === undefined ? 'نامشخص' : `${fa(amount)} ${currency === 'IRR' || !currency ? 'ریال' : currency}`;
 export const dateFa = (iso?: string | null) => {if (!iso) return '—'; const d = new Date(iso); return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('fa-IR', {year: 'numeric', month: 'long', day: 'numeric'});};
@@ -49,23 +42,36 @@ export function useLoad<T>(path: string | null) {
 /* Ops panel mobile bottom navigation (Figma ops mobile app): پیشخوان، فروش، قراردادها، صندوق، بیشتر */
 const OPS_TABS: [string, string, string][] = [['پیشخوان', '/admin/ops', '◉'], ['فروش', '/admin/sales-desk', '☏'], ['قراردادها', '/admin/contracts', '▤'], ['صندوق', '/finance/treasury', '◫'], ['بیشتر', '#pn-nav', '☰']];
 
+/** Shown instead of a page this role cannot use: says so in plain Persian and points to the user's own panel. */
+export function NoAccess({role, path, area}: {role: string; path: string; area: Area}) {
+  const moved = itemFor(area, path)?.moved?.[role]; const home = homeFor(role);
+  return <div className="pn-card" role="alert" data-state="no-access"><h2>دسترسی ندارید</h2>
+    <p>این بخش برای نقش «{ROLE_FA[role] ?? (role || 'نامشخص')}» در دسترس نیست. اگر فکر می‌کنید باید به آن دسترسی داشته باشید، با مدیر مجموعه تماس بگیرید.</p>
+    <div style={{display: 'flex', gap: 8, flexWrap: 'wrap'}}>{moved && <Link className="pn-btn" href={moved}>رفتن به همین بخش در پنل شما</Link>}<Link className={moved ? 'pn-btn ghost' : 'pn-btn'} href={home}>بازگشت به پنل من</Link></div></div>;
+}
+
 export function PanelShell({area, title, intro, children}: {area: Area; title: string; intro?: string; children: ReactNode}) {
-  const {session} = useAuth(); const path = usePathname(); const nav = NAV[area];
+  const {session} = useAuth(); const path = usePathname() ?? '';
   const role = (session as {user?: {role?: string}} | null)?.user?.role ?? '';
-  const nativeTitle = nav.links.find(([, href]) => href === path)?.[0] ?? title;
+  // Navigation and the guard come from one registry (lib/panel-access.ts); the API stays the authority for every call.
+  const links = navFor(area, role); const allowed = canOpen(area, path, role);
+  const navTitle = {customer: 'حساب من', organization: 'پنل سازمان', agency: 'پنل همکار', supplier: 'پنل تأمین‌کننده', admin: 'مدیریت مجموعه'}[area];
+  const nativeTitle = links.find(i => i.href === path)?.label ?? title;
+  const opsTabs = OPS_TABS.filter(([, href]) => href.startsWith('#') || canOpen('admin', href, role));
   return <div className="pn-page" data-figma-page="129:11966">
     <header className="pn-page-header"><Link className="pn-page-brand" href="/">کارن تراول</Link>
       {session?.user ? <AccountMenu variant="panel"/> : <Link className="pn-page-login" href="/login">ورود / ثبت‌نام</Link>}
     </header><div className="pn" data-area={area}>
-    <nav className="pn-nav" id="pn-nav" aria-label={nav.title}><span className="pn-nav-title">{nav.title}</span>
-      {nav.links.map(([label, href]) => <Link key={href} href={href} aria-current={path === href ? 'page' : undefined}>{label}</Link>)}
-      <span className="pn-nav-foot">{area !== 'customer' && <Link href="/account">حساب من</Link>}{area === 'customer' && ORG_ROLES.includes(role) && role !== 'customer' && <Link href="/organization">پنل سازمان</Link>}</span>
+    <nav className="pn-nav" id="pn-nav" aria-label={navTitle}><span className="pn-nav-title">{navTitle}</span>
+      {session && links.map(({label, href}) => <Link key={href} href={href} aria-current={path === href ? 'page' : undefined}>{label}</Link>)}
+      <span className="pn-nav-foot">{area !== 'customer' && <Link href="/account">حساب من</Link>}{area === 'customer' && role && role !== 'customer' && <Link href={homeFor(role)}>پنل کاری من</Link>}</span>
     </nav>
-    <main className="pn-main"><header className="pn-head"><h1>{nativeTitle}</h1>{intro && <p>{intro}</p>}</header>
-      {session ? children : <div className="pn-card"><p>برای دیدن این بخش وارد حساب خود شوید.</p><div><Link className="pn-btn" href="/login">ورود / ثبت‌نام</Link></div></div>}
+    <main className="pn-main"><header className="pn-head"><h1>{allowed ? nativeTitle : 'دسترسی ندارید'}</h1>{intro && allowed && <p>{intro}</p>}</header>
+      {!session ? <div className="pn-card"><p>برای دیدن این بخش وارد حساب خود شوید.</p><div><Link className="pn-btn" href="/login">ورود / ثبت‌نام</Link></div></div>
+        : allowed ? children : <NoAccess role={role} path={path} area={area}/>}
       <Card title="وضعیت و دسترسی"><p className="pn-access-note">اطلاعات تأییدنشده و خدمات متصل‌نشده با وضعیت مشخص نمایش داده می‌شوند.</p><p className="pn-access-note">عملیات فقط با نقش و مجوز همان حساب انجام می‌شود.</p></Card>
     </main></div>
-    {area === 'admin' && <nav className="pn-bottom" aria-label="میان‌بر پنل عملیات">{OPS_TABS.map(([label, href, glyph]) => <Link key={href} href={href} aria-current={path === href ? 'page' : undefined}><span aria-hidden="true">{glyph}</span>{label}</Link>)}</nav>}
+    {area === 'admin' && session && opsTabs.length > 1 && <nav className="pn-bottom" aria-label="میان‌بر پنل عملیات">{opsTabs.map(([label, href, glyph]) => <Link key={href} href={href} aria-current={path === href ? 'page' : undefined}><span aria-hidden="true">{glyph}</span>{label}</Link>)}</nav>}
     <p className="pn-page-foot">اطلاعات واقعی از حساب و سازمان شما دریافت می‌شود.</p></div>;
 }
 export function Card({title, action, children}: {title?: string; action?: ReactNode; children: ReactNode}) {return <section className="pn-card">{(title || action) && <div className="pn-card-head">{title && <h2>{title}</h2>}{action}</div>}{children}</section>;}

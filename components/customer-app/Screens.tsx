@@ -70,7 +70,7 @@ export function Home() {
       <h1>{session?.user ? `سلام ${session.user.name}، کجا برویم؟` : 'سفر بعدی‌ات را همین‌جا بساز'}</h1>
       <p>پرواز، هتل، تور و خدمات سفر با قیمت تأییدشده و پشتیبانی کارن تراول.</p>
       <nav className="ca-services" aria-label="خدمات">{SERVICES.map(([href, label, glyph]) => <Link key={href} href={href}><span aria-hidden="true">{glyph}</span><span>{label}</span></Link>)}</nav>
-      <Link className="ca-btn" href="/search">جستجوی همه‌ی خدمات</Link>
+      <Link className="ca-btn" href="/search/results">جستجوی همه‌ی خدمات</Link>
     </section>
     {session?.user && <NextTrip/>}
     <section className="ca-card"><div className="ca-row"><h2>خرید اقساطی و اعتبار سازمانی</h2></div>
@@ -82,7 +82,7 @@ export function Home() {
   </>;
 }
 
-const REBOOK: Record<string, string> = {flight: '/flights', hotel: '/hotels', tour: '/tours', train: '/trains', visa: '/visa', vacation_rental: '/villas', car_rental: '/car-rental', package: '/search'};
+const REBOOK: Record<string, string> = {flight: '/flights', hotel: '/hotels', tour: '/tours', train: '/trains', visa: '/visa', vacation_rental: '/villas', car_rental: '/car-rental', package: '/search/results'};
 
 /* Voucher QR: shown only when the voucher is really issued; the QR opens a public check that reveals no personal data. */
 function VoucherQr({id}: {id: string}) {
@@ -112,13 +112,13 @@ export function Trips() {
   return <>
     <section className="ca-card"><h2>سفرهای من</h2>
       <Async state={trips.state}>{list => {
-        if (list.length === 0) return <><p className="ca-muted">هنوز سفری ثبت نکرده‌اید.</p><Link className="ca-btn" href="/search">شروع جستجو</Link></>;
+        if (list.length === 0) return <><p className="ca-muted">هنوز سفری ثبت نکرده‌اید.</p><Link className="ca-btn" href="/search/results">شروع جستجو</Link></>;
         const upcoming = list.filter(t => !t.starts_at || new Date(t.starts_at).getTime() >= now), past = list.filter(t => t.starts_at && new Date(t.starts_at).getTime() < now);
         const row = (t: Trip) => <li key={t.id}><div className="ca-row"><strong>{t.title}</strong><Badge s={t.status}/></div>
           <span className="ca-muted">{t.destination ?? ''}{t.starts_at ? ` — ${dateFa(t.starts_at)}` : ''}</span>
           <div className="ca-row"><Link className="ca-btn ghost" href={t.timeline_link || `/trips/${t.id}`}>مسیر سفر و واچر</Link><Link className="ca-muted" href="/account/support">پشتیبانی</Link></div></li>;
         return <>{upcoming.length > 0 && <><h3>پیش رو</h3><ul className="ca-list">{upcoming.map(row)}</ul></>}
-          {past.length > 0 && <><h3>گذشته</h3><ul className="ca-list">{past.map(row)}</ul><Link className="ca-btn ghost" href="/search">سفر دوباره</Link></>}</>;
+          {past.length > 0 && <><h3>گذشته</h3><ul className="ca-list">{past.map(row)}</ul><Link className="ca-btn ghost" href="/search/results">سفر دوباره</Link></>}</>;
       }}</Async>
     </section>
     <section className="ca-card"><h2>رزروها</h2>
@@ -128,7 +128,7 @@ export function Trips() {
         <div className="ca-row"><Link className="ca-btn ghost" href={r.manage_link || `/manage-booking/${r.id}`}>مدیریت رزرو</Link>
           {['reserved', 'awaiting_payment', 'pending_payment'].includes(r.status) && <Link className="ca-btn" href={`/checkout/${r.id}`}>پرداخت</Link>}
           {['issued', 'changed'].includes(r.status) && <VoucherQr id={r.id}/>}
-          {['completed', 'cancelled', 'expired', 'refunded'].includes(r.status) && <Link className="ca-btn ghost" href={REBOOK[r.service_type] ?? '/search'}>رزرو دوباره</Link>}</div></li>)}</ul>}</Async>
+          {['completed', 'cancelled', 'expired', 'refunded'].includes(r.status) && <Link className="ca-btn ghost" href={REBOOK[r.service_type] ?? '/search/results'}>رزرو دوباره</Link>}</div></li>)}</ul>}</Async>
     </section>
   </>;
 }
