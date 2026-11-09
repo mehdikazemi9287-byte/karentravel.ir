@@ -41,6 +41,8 @@ from .providers import configured_adapter, validate_provider_modes
 from .version import read_build_info
 
 JWT_SECRET = read_secret("JWT_SECRET", "development-only-change-before-production")
+from .signing_keys import signing_key as _signing_key, verification_keys as _verification_keys  # noqa: E402  M-5 per-purpose keys
+ACCESS_TOKEN_KEY = _signing_key("access_token", JWT_SECRET)
 JWT_ISSUER = os.getenv("JWT_ISSUER", "karenseir-api")
 JWT_AUDIENCE = os.getenv("JWT_AUDIENCE", "karenseir-web")
 ENVIRONMENT = os.getenv("ENVIRONMENT", "production")  # fail closed: dev features need an explicit opt-in
@@ -392,10 +394,10 @@ class CheckoutCreateIn(BaseModel): command_id: str = Field(min_length=8, max_len
 class CheckoutStepIn(BaseModel): command_id: str = Field(min_length=8, max_length=120); traveller_ids: list[str] = Field(default_factory=list, max_length=20); acknowledged: Optional[bool] = None; wallet_amount: int = Field(default=0, ge=0); credit_amount: int = Field(default=0, ge=0); credit_account_id: Optional[str] = Field(default=None, min_length=36, max_length=36)
 def token_for(user: User, tenant: Tenant) -> str:
     now = datetime.now(timezone.utc)
-    return jwt.encode({"sub":str(user.id),"tenant":tenant.id,"role":user.role,"type":"access","iss":JWT_ISSUER,"aud":JWT_AUDIENCE,"iat":now,"jti":str(uuid.uuid4()),"exp":now+timedelta(minutes=15)}, JWT_SECRET, algorithm="HS256")
+    return jwt.encode({"sub":str(user.id),"tenant":tenant.id,"role":user.role,"type":"access","iss":JWT_ISSUER,"aud":JWT_AUDIENCE,"iat":now,"jti":str(uuid.uuid4()),"exp":now+timedelta(minutes=15)}, ACCESS_TOKEN_KEY, algorithm="HS256")
 def current_user(authorization: Optional[str] = Header(default=None), db: Session = Depends(get_db)) -> User:
     if not authorization or not authorization.startswith("Bearer "): raise HTTPException(status_code=401, detail="توکن دسترسی لازم است")
-    try: payload = jwt.decode(authorization[7:], JWT_SECRET, algorithms=["HS256"], issuer=JWT_ISSUER, audience=JWT_AUDIENCE, options={"require":["exp","iat","iss","aud","jti","sub","tenant","type"]})
+    try: payload = jwt.decode(authorization[7:], ACCESS_TOKEN_KEY, algorithms=["HS256"], issuer=JWT_ISSUER, audience=JWT_AUDIENCE, options={"require":["exp","iat","iss","aud","jti","sub","tenant","type"]})
     except jwt.PyJWTError: raise HTTPException(status_code=401, detail="توکن نامعتبر است")
     if payload.get("type") != "access": raise HTTPException(status_code=401, detail="نوع توکن نامعتبر است")
     try: tenant_id = int(payload["tenant"])
@@ -404,6 +406,17 @@ def current_user(authorization: Optional[str] = Header(default=None), db: Sessio
     user = db.get(User, int(payload["sub"]))
     if not user or user.tenant_id != payload["tenant"]: raise HTTPException(status_code=401, detail="نشست نامعتبر است")
     return user
+
+
+def _decode_payment_state(token: str, **kwargs) -> dict:
+    """Payment callback state: current per-purpose key, then (transition) the legacy shared key."""
+    last: Exception = jwt.InvalidTokenError("no key")
+    for key in _verification_keys("payment_state", JWT_SECRET):
+        try:
+            return jwt.decode(token, key, algorithms=["HS256"], **kwargs)
+        except jwt.InvalidSignatureError as exc:
+            last = exc
+    raise last
 
 
 def _secure_hash(value: str) -> str:
@@ -580,7 +593,7 @@ def _rate_limit_identity(request: Request, route_class: str) -> str:
     auth = request.headers.get("Authorization") or ""
     if route_class != "auth" and auth.startswith("Bearer "):
         try:
-            claims = jwt.decode(auth[7:], JWT_SECRET, algorithms=["HS256"], issuer=JWT_ISSUER, audience=JWT_AUDIENCE, options={"require": ["exp", "sub", "tenant"]})
+            claims = jwt.decode(auth[7:], ACCESS_TOKEN_KEY, algorithms=["HS256"], issuer=JWT_ISSUER, audience=JWT_AUDIENCE, options={"require": ["exp", "sub", "tenant"]})
             return f"user:{claims['tenant']}:{claims['sub']}"
         except jwt.PyJWTError:
             return f"ip:{ip}"
@@ -1642,7 +1655,7 @@ def initiate_payment(payment_id: str, user: User = Depends(current_user), db: Se
     attempt = operational_models.IdempotencyKey(tenant_id=user.tenant_id, scope="payment.initiate", key=intent.id, request_hash=_secure_hash(f"{intent.id}:{intent.amount}:{intent.currency}"), response_json='{"status":"initiation_pending"}')
     db.add(attempt); db.commit()  # Durable before network: timeout/crash must not trigger a second initiation.
     try:
-        callback_state = jwt.encode({"iss": JWT_ISSUER, "aud": "karenseir-zarinpal-callback", "tenant_id": user.tenant_id, "payment_intent_id": intent.id, "user_id": user.id, "amount": intent.amount, "exp": datetime.now(timezone.utc) + timedelta(minutes=30), "iat": datetime.now(timezone.utc), "jti": str(uuid.uuid4())}, JWT_SECRET, algorithm="HS256")
+        callback_state = jwt.encode({"iss": JWT_ISSUER, "aud": "karenseir-zarinpal-callback", "tenant_id": user.tenant_id, "payment_intent_id": intent.id, "user_id": user.id, "amount": intent.amount, "exp": datetime.now(timezone.utc) + timedelta(minutes=30), "iat": datetime.now(timezone.utc), "jti": str(uuid.uuid4())}, _signing_key("payment_state", JWT_SECRET), algorithm="HS256")
         result = ADAPTERS["payment"].execute("initiate", {"payment_intent_id": intent.id, "amount": intent.amount, "currency": intent.currency, "callback_state": callback_state}, ProviderContext(tenant_id=user.tenant_id, correlation_id=str(uuid.uuid4()), idempotency_key=intent.command_id))
     except Exception:
         logging.getLogger("karenseir.payment").warning("payment_provider_unavailable")
@@ -1669,7 +1682,7 @@ def initiate_payment(payment_id: str, user: User = Depends(current_user), db: Se
 
 def _verify_zarinpal_callback(state_token: str = Query(alias="state", min_length=20), authority: str = Query(alias="Authority", min_length=36, max_length=36), callback_status: str = Query(alias="Status", pattern="^(OK|NOK)$"), db: Session = Depends(get_db)) -> dict:
     try:
-        claims = jwt.decode(state_token, JWT_SECRET, algorithms=["HS256"], audience="karenseir-zarinpal-callback", issuer=JWT_ISSUER, options={"require": ["exp", "iat", "jti", "tenant_id", "payment_intent_id", "user_id", "amount"]})
+        claims = _decode_payment_state(state_token, audience="karenseir-zarinpal-callback", issuer=JWT_ISSUER, options={"require": ["exp", "iat", "jti", "tenant_id", "payment_intent_id", "user_id", "amount"]})
         tenant_id = int(claims["tenant_id"]); payment_id = str(claims["payment_intent_id"]); user_id = int(claims["user_id"]); claimed_amount = int(claims["amount"])
     except (jwt.InvalidTokenError, TypeError, ValueError, KeyError): raise HTTPException(status_code=401, detail="state پرداخت نامعتبر یا منقضی است")
     set_tenant_context(db, tenant_id)
@@ -1721,7 +1734,7 @@ def zarinpal_callback(request: Request, state_token: str = Query(alias="state", 
     # Browser reads authoritative status after its own authentication on the Web.
     payment_id = None
     try:
-        claims = jwt.decode(state_token, JWT_SECRET, algorithms=["HS256"], audience="karenseir-zarinpal-callback", issuer=JWT_ISSUER)
+        claims = _decode_payment_state(state_token, audience="karenseir-zarinpal-callback", issuer=JWT_ISSUER)
         payment_id = str(uuid.UUID(str(claims["payment_intent_id"])))
     except (jwt.InvalidTokenError, KeyError, ValueError, TypeError):
         pass
@@ -1754,7 +1767,7 @@ def _sandbox_intent(db: Session, authority: str, state_token: str):
     if len(authority) != 36 or not authority.startswith("A") or not authority[1:].isalnum():
         raise HTTPException(status_code=404, detail="Not Found")
     try:
-        claims = jwt.decode(state_token, JWT_SECRET, algorithms=["HS256"], audience="karenseir-zarinpal-callback", issuer=JWT_ISSUER, options={"require": ["exp", "iat", "jti", "tenant_id", "payment_intent_id", "user_id", "amount"]})
+        claims = _decode_payment_state(state_token, audience="karenseir-zarinpal-callback", issuer=JWT_ISSUER, options={"require": ["exp", "iat", "jti", "tenant_id", "payment_intent_id", "user_id", "amount"]})
         tenant_id = int(claims["tenant_id"]); payment_id = str(claims["payment_intent_id"]); claimed_amount = int(claims["amount"])
     except (jwt.InvalidTokenError, TypeError, ValueError, KeyError):
         raise HTTPException(status_code=401, detail="state پرداخت آزمایشی نامعتبر یا منقضی است")
@@ -1829,7 +1842,7 @@ def recover_payment_verification(payment_id: str, user: User = Depends(current_u
     if intent.status not in {"initiated", "failed"} or not intent.provider_authority: raise HTTPException(status_code=409, detail="این پرداخت در انتظار تأیید درگاه نیست")
     # Reconciliation checks the known authority and amount; it never initiates a charge.
     now = datetime.now(timezone.utc)
-    state = jwt.encode({"iss": JWT_ISSUER, "aud": "karenseir-zarinpal-callback", "tenant_id": user.tenant_id, "payment_intent_id": intent.id, "user_id": user.id, "amount": intent.amount, "exp": now+timedelta(minutes=5), "iat": now, "jti": str(uuid.uuid4())}, JWT_SECRET, algorithm="HS256")
+    state = jwt.encode({"iss": JWT_ISSUER, "aud": "karenseir-zarinpal-callback", "tenant_id": user.tenant_id, "payment_intent_id": intent.id, "user_id": user.id, "amount": intent.amount, "exp": now+timedelta(minutes=5), "iat": now, "jti": str(uuid.uuid4())}, _signing_key("payment_state", JWT_SECRET), algorithm="HS256")
     _verify_zarinpal_callback(state, intent.provider_authority, "OK", db)
     return customer_payment_status(payment_id, user, db)
 

@@ -17,6 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from . import operations as m
+from .signing_keys import signing_key, verification_keys
 
 STATUS_FA = {"issued": "صادرشده و معتبر", "completed": "سفر انجام شده", "cancelled": "لغو شده", "refunded": "مسترد شده",
              "changed": "تغییر کرده", "change_requested": "در حال تغییر", "cancel_requested": "در حال لغو", "refund_requested": "در حال استرداد"}
@@ -33,12 +34,13 @@ def make_code(secret: str, tenant_id: int, reservation_id: str) -> str:
     return f"{tenant_id}.{reservation_id}.{_sig(secret, tenant_id, reservation_id)}"
 
 
-def parse_code(secret: str, code: str) -> Optional[tuple[int, str]]:
+def parse_code(secret, code: str) -> Optional[tuple[int, str]]:
     parts = (code or "").split(".")
     if len(parts) != 3 or not parts[0].isdigit() or len(parts[1]) != 36:
         return None
     tid, rid, sig = int(parts[0]), parts[1], parts[2]
-    return (tid, rid) if hmac.compare_digest(sig, _sig(secret, tid, rid)) else None
+    secrets_to_try = [secret] if isinstance(secret, str) else list(secret)
+    return (tid, rid) if any(hmac.compare_digest(sig, _sig(k, tid, rid)) for k in secrets_to_try) else None
 
 
 def mask_ref(ref: Optional[str]) -> Optional[str]:
@@ -50,7 +52,10 @@ def mask_ref(ref: Optional[str]) -> Optional[str]:
 def voucher_verify_router(get_db, current_user, jwt_secret: str, set_tenant_context: Callable):
     from .account_security import qr_svg
 
-    secret = os.environ.get("VOUCHER_QR_SECRET") or jwt_secret
+    # M-5: own key (VOUCHER_QR_SECRET or HKDF-derived); QR codes printed before the
+    # change still verify with the legacy key while SIGNING_LEGACY_FALLBACK is on.
+    secret = signing_key("voucher_qr", jwt_secret)
+    accepted = verification_keys("voucher_qr", jwt_secret)
     site = (os.environ.get("PUBLIC_SITE_URL") or "https://karentravel.ir").rstrip("/")
     api = APIRouter(tags=["voucher-verify"])
 
@@ -68,7 +73,7 @@ def voucher_verify_router(get_db, current_user, jwt_secret: str, set_tenant_cont
 
     @api.get("/public/vouchers/{code}")
     def verify(code: str, db: Session = Depends(get_db)):
-        parsed = parse_code(secret, code)
+        parsed = parse_code(accepted, code)
         if parsed is None:
             raise HTTPException(status_code=404, detail="این کد واچر معتبر نیست")
         tid, rid = parsed
