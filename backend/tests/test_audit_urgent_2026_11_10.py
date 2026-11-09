@@ -219,3 +219,74 @@ def test_wallet_command_id_replay_with_different_payload_conflicts(client):
     with SessionLocal() as db:
         assert db.scalar(select(func.count()).select_from(FinancialLedgerEntry).where(FinancialLedgerEntry.wallet_id == wb)) == 0
         assert db.scalar(select(func.count()).select_from(FinancialLedgerEntry).where(FinancialLedgerEntry.command_id == cmd)) == 1
+
+
+# ---------------------------------------------------------------- review N1: admin override audited as an attempt
+def _override_count(action, ref):
+    with SessionLocal() as db:
+        return db.scalar(select(func.count()).select_from(AuditEvent).where(AuditEvent.action == action, AuditEvent.detail.contains(ref)))
+
+
+def test_admin_override_is_audited_even_on_replay_and_refusal(client):
+    admin = login(client, "platform-admin@aftab.test")["access_token"]
+    rid, _ = _issued_reservation(client)
+    action = "reservation.voucher_reissue.admin_override"
+    cmd = f"ri-admin-{uuid.uuid4().hex[:8]}"
+    doc = f"document://voucher/{rid}/admin"
+    assert _reissue(client, admin, rid, command_id=cmd, doc=doc).status_code == 200
+    assert _override_count(action, rid) == 1
+    assert _reissue(client, admin, rid, command_id=cmd, doc=doc).status_code == 200  # idempotent replay
+    assert _override_count(action, rid) == 2
+    assert _reissue(client, admin, rid, command_id=cmd, doc=doc + "-other").status_code == 409  # refused
+    assert _override_count(action, rid) == 3
+    # idempotent re-fulfil of an already issued reservation is also recorded
+    assert _fulfill(client, admin, rid).status_code == 200
+    assert _override_count("reservation.fulfill.admin_override", rid) == 1
+
+
+# ---------------------------------------------------------------- review N3: admission ticket validate/redeem scope
+from test_leisure_commerce import full_end_to_end_booking, make_place, make_product, make_session, make_ticket_type, supplier as leisure_supplier
+
+
+def _admission_ticket(client):
+    owner = auth(login(client, "supplier@aftab.test")["access_token"])
+    customer = auth(login(client, "employee@aftab.test")["access_token"])
+    sid = leisure_supplier(client, owner, kind="event_hall")
+    place = make_place(client, owner, sid, place_type="event_hall")
+    product = make_product(client, owner, place["id"], service_type="event_hall", booking_mode="EVENT_TICKET")
+    ttype = make_ticket_type(client, owner, product["id"], code="generic", price=300_000)
+    sess = make_session(client, owner, product["id"], capacity=5)
+    _, _, fulfilled = full_end_to_end_booking(client, owner, customer, sess["id"], ttype["id"])
+    return fulfilled["admission_ticket"], sid
+
+
+def _ticket_status(ticket_id):
+    from app.operations import Ticket
+    with SessionLocal() as db:
+        return db.get(Ticket, ticket_id).status
+
+
+def test_admission_ticket_denied_for_unrelated_agency_and_other_roles(client):
+    ticket, _ = _admission_ticket(client)
+    agency = login(client, _new_user("agency_partner", "agency-ticket"))["access_token"]
+    outsider_supplier = login(client, _new_user("supplier", "ticket-outsider"))["access_token"]
+    for token in (agency, outsider_supplier):
+        assert client.get("/admission-tickets/validate", headers=auth(token), params={"qr_token": ticket["qr_token"]}).status_code == 403
+        assert client.post("/admission-tickets/validate", headers=auth(token), json={"qr_token": ticket["qr_token"]}).status_code == 403
+        assert client.post("/admission-tickets/redeem", headers=auth(token), json={"qr_token": ticket["qr_token"]}).status_code == 403
+    assert _ticket_status(ticket["id"]) == "issued"
+
+
+def test_admission_ticket_linked_agency_and_admin_allowed(client):
+    ticket, sid = _admission_ticket(client)
+    email = _new_user("agency_partner", "agency-venue")
+    with SessionLocal() as db:
+        uid = db.scalar(select(User.id).where(User.email == email))
+        agency = Agency(tenant_id=_tenant_id(), display_name="آژانس محل آزمون", status="active", supplier_id=sid); db.add(agency); db.flush()
+        db.add(AgencyMembership(tenant_id=agency.tenant_id, user_id=uid, agency_id=agency.id)); db.commit()
+    token = login(client, email)["access_token"]
+    assert client.get("/admission-tickets/validate", headers=auth(token), params={"qr_token": ticket["qr_token"]}).status_code == 200
+    admin = login(client, "platform-admin@aftab.test")["access_token"]
+    assert client.post("/admission-tickets/redeem", headers=auth(admin), json={"qr_token": ticket["qr_token"]}).status_code == 200
+    assert _override_count("admission_ticket.redeem.admin_override", ticket["id"]) == 1
+    assert _ticket_status(ticket["id"]) == "used"

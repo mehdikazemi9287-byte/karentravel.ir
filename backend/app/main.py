@@ -451,6 +451,22 @@ def _fulfiller_supplier_scope(db: Session, user: User) -> set[str]:
     return ids
 
 
+def _record_admin_override(user: User, action: str, entity: str, detail: dict) -> None:
+    """Audit a platform-admin scope override as an attempt, before the action runs.
+
+    Written and committed in its own session so the record survives a later refusal,
+    an idempotent replay or a rollback of the request transaction (review note N1).
+    If the audit row cannot be written, the override is refused (fail closed)."""
+    try:
+        with SessionLocal() as audit_db:
+            set_tenant_context(audit_db, user.tenant_id)
+            audit_db.add(AuditEvent(tenant_id=user.tenant_id, actor_id=user.id, action=action, entity=entity, entity_id=0, detail=json.dumps({**detail, "phase": "attempt"}, sort_keys=True)))
+            audit_db.commit()
+    except Exception as exc:  # noqa: BLE001 - any audit failure must block the override
+        _SECURITY_LOG.error("admin_override_audit_failed", extra={"action": action})
+        raise HTTPException(503, "ثبت ممیزی ممکن نشد؛ عملیات انجام نشد") from exc
+
+
 def _require_fulfilment_scope(db: Session, user: User, reservation: "operational_models.Reservation", action: str) -> None:
     """Shared ownership gate for voucher issue (/fulfill) and reissue.
 
@@ -460,7 +476,7 @@ def _require_fulfilment_scope(db: Session, user: User, reservation: "operational
     tenant-wide override, which is written to the audit trail. Any other role holding
     reservation:fulfill without a scope rule is denied (fail closed)."""
     if role_has_permission(user.role, "platform:manage") and user.role not in ("supplier", "agency_partner"):
-        db.add(AuditEvent(tenant_id=user.tenant_id, actor_id=user.id, action=f"reservation.{action}.admin_override", entity="reservation", entity_id=0, detail=json.dumps({"reservation_id": reservation.id}, sort_keys=True)))
+        _record_admin_override(user, f"reservation.{action}.admin_override", "reservation", {"reservation_id": reservation.id})
         return
     if user.role not in ("supplier", "agency_partner"):
         raise HTTPException(403, "این رزرو به تأمین‌کنندهٔ جاری واگذار نشده است")
@@ -3628,10 +3644,15 @@ def list_admission_tickets(reservation_id: str, user: User = Depends(current_use
     return {"context": _admission_context(db, rows[0], reservation) if rows else None, "items": [{"id": r.id, "status": r.status, "qr_token": r.qr_token, "redeemed_at": r.redeemed_at.isoformat() if r.redeemed_at else None} for r in rows]}
 
 
-def _admission_supplier_guard(db,user,ticket):
-    if user.role!="supplier":return
+def _admission_supplier_guard(db,user,ticket,action="validate"):
+    """Same ownership rule as voucher issue/reissue (review note N3): the venue's supplier
+    must be in the caller's fulfiller scope; platform admin override is audited; every
+    other role holding reservation:fulfill is denied."""
+    if role_has_permission(user.role,"platform:manage") and user.role not in ("supplier","agency_partner"):
+        _record_admin_override(user,f"admission_ticket.{action}.admin_override","ticket",{"ticket_id":ticket.id});return
+    if user.role not in ("supplier","agency_partner"):raise HTTPException(403,"این بلیت متعلق به محل تحت اختیار شما نیست")
     supplier_id=db.scalar(select(operational_models.ExperienceProduct.supplier_id).join(operational_models.LeisureSession,operational_models.LeisureSession.experience_product_id==operational_models.ExperienceProduct.id).where(operational_models.LeisureSession.id==ticket.leisure_session_id,operational_models.LeisureSession.tenant_id==user.tenant_id,operational_models.ExperienceProduct.tenant_id==user.tenant_id))
-    if supplier_id not in _supplier_scope(db,user):raise HTTPException(403,"این بلیت متعلق به محل تحت اختیار شما نیست")
+    if not supplier_id or supplier_id not in _fulfiller_supplier_scope(db,user):raise HTTPException(403,"این بلیت متعلق به محل تحت اختیار شما نیست")
 
 @app.get("/reservations/{reservation_id}/admission-tickets/{ticket_id}/qr")
 def admission_qr(reservation_id:str,ticket_id:str,user:User=Depends(current_user),db:Session=Depends(get_db))->Response:
@@ -3663,7 +3684,7 @@ def validate_admission_ticket_body(data: AdmissionTicketRedeemIn, user: User = D
 def redeem_admission_ticket(data: AdmissionTicketRedeemIn, user: User = Depends(require_permission("reservation:fulfill")), db: Session = Depends(get_db)) -> dict:
     ticket = db.scalar(select(operational_models.Ticket).where(operational_models.Ticket.tenant_id == user.tenant_id, operational_models.Ticket.qr_token == data.qr_token).with_for_update())
     if ticket is None: raise HTTPException(404, "بلیت معتبر نیست")
-    _admission_supplier_guard(db,user,ticket)
+    _admission_supplier_guard(db,user,ticket,"redeem")
     if data.expected_ticket_id is not None and ticket.id != data.expected_ticket_id:
         raise HTTPException(409, detail={"code": "TICKET_CHANGED", "message": "کد بلیت با نتیجهٔ بررسی‌شده یکسان نیست؛ دوباره بررسی کنید"})
     if ticket.status == "used":
