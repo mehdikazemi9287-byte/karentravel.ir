@@ -34,6 +34,7 @@ from .database import Base, DATABASE_URL, SessionLocal, engine, set_tenant_conte
 from .hotel_stay import HotelStay, validate_hotel_stay, validate_hotel_rate
 from . import operations as operational_models  # register additive operational tables
 from . import traveller_identity  # traveller identity table (national code / passport), masked in lists
+from . import approvals  # maker-checker requests (H-1); registers maker_checker_requests
 from .observability import configure_logging, prometheus_metrics, record_business_event, record_request
 from .rate_limit import InMemoryRateLimiter, RedisRateLimiter, fingerprint
 from .security import role_has_permission
@@ -1237,27 +1238,52 @@ def my_organization_credit(user: User = Depends(current_user), db: Session = Dep
 # role (credit:fund) may fund a wallet or open a credit line, never an
 # organization/tenant admin, never into an account the actor owns, and never
 # above the configured per-operation ceiling. Each one leaves an AuditEvent.
-# A true maker-checker (second approver) needs a pending-request table and is
-# tracked in SECURITY_REVIEW.md -> SECURITY_FOLLOWUPS.
+# Each one is also maker-checker: a pending request (app/approvals.py) that a
+# different credit:fund user must approve before the ledger moves.
 WALLET_FUNDING_MAX_PER_OPERATION = int(os.getenv("WALLET_FUNDING_MAX_PER_OPERATION", "500000000"))
 CREDIT_ACCOUNT_MAX_LIMIT = int(os.getenv("CREDIT_ACCOUNT_MAX_LIMIT", "5000000000"))
 
 
+def _credit_account_output(db: Session, row) -> dict:
+    return {"id": row.id, "organization_id": row.organization_id, "currency": row.currency, **operational_models.credit_balances(db, tenant_id=row.tenant_id, credit_account_id=row.id)}
+
+
+def _mc_error(exc: "approvals.MakerCheckerError") -> HTTPException:
+    return HTTPException(status_code=exc.status_code, detail=exc.message)
+
+
 @app.post("/organizations/{organization_id}/credit-accounts", status_code=status.HTTP_201_CREATED)
-def create_credit_account(organization_id: str, data: CreditAccountCreateIn, user: User = Depends(require_permission("credit:fund")), db: Session = Depends(get_db)) -> dict:
+def create_credit_account(organization_id: str, data: CreditAccountCreateIn, response: Response, user: User = Depends(require_permission("credit:fund")), db: Session = Depends(get_db)) -> dict:
+    """Maker step (H-1): opening a credit line is a pending request until a
+    different credit:fund user approves it at /maker-checker/requests/{id}/approve.
+    An account that already exists is returned unchanged (no limit change)."""
     if data.organization_id != organization_id: raise HTTPException(status_code=422, detail="سازمان مسیر و بدنه درخواست یکسان نیست")
     if data.limit_amount > CREDIT_ACCOUNT_MAX_LIMIT: raise HTTPException(status_code=409, detail="سقف درخواستی از سقف مجاز یک عملیات بیشتر است؛ تأیید جداگانه‌ی مدیریت مالی لازم است")
     organization = db.scalar(select(operational_models.Organization).where(operational_models.Organization.id == organization_id, operational_models.Organization.tenant_id == user.tenant_id))
     if organization is None: raise HTTPException(status_code=404, detail="سازمان در این tenant وجود ندارد")
-    prior = db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id == user.tenant_id, operational_models.IdempotencyKey.scope == "credit_account.create", operational_models.IdempotencyKey.key == data.command_id))
-    if prior: return json.loads(prior.response_json or "{}")
     row = db.scalar(select(operational_models.CreditAccount).where(operational_models.CreditAccount.tenant_id == user.tenant_id, operational_models.CreditAccount.organization_id == organization_id, operational_models.CreditAccount.currency == data.currency))
+    if row is not None:
+        return _credit_account_output(db, row)
+    try:
+        request_row = approvals.create_request(db, user=user, kind="credit_account.create", payload={"organization_id": organization_id, "limit_amount": data.limit_amount, "currency": data.currency},
+                                               idempotency_key=data.command_id, amount=data.limit_amount, target_ref=f"organization:{organization_id}",
+                                               summary=f"حساب اعتباری سازمان {organization.name}", audit=_platform_audit)
+    except approvals.MakerCheckerError as exc:
+        raise _mc_error(exc) from exc
+    db.commit()
+    response.status_code = status.HTTP_202_ACCEPTED
+    return {"status": "pending_approval", "approval_request": approvals.output(request_row)}
+
+
+def _execute_credit_account_create(db: Session, request, payload: dict, checker: User) -> dict:
+    if payload["limit_amount"] > CREDIT_ACCOUNT_MAX_LIMIT:
+        raise approvals.MakerCheckerError(409, "سقف درخواستی از سقف مجاز یک عملیات بیشتر است")
+    row = db.scalar(select(operational_models.CreditAccount).where(operational_models.CreditAccount.tenant_id == checker.tenant_id, operational_models.CreditAccount.organization_id == payload["organization_id"], operational_models.CreditAccount.currency == payload["currency"]))
     if row is None:
-        row = operational_models.CreditAccount(tenant_id=user.tenant_id, organization_id=organization_id, currency=data.currency, limit_amount=data.limit_amount)
+        row = operational_models.CreditAccount(tenant_id=checker.tenant_id, organization_id=payload["organization_id"], currency=payload["currency"], limit_amount=payload["limit_amount"])
         db.add(row); db.flush()
-        _platform_audit(db, user, "credit_account.created", "credit_account", {"credit_account_id": row.id, "organization_id": organization_id, "limit_amount": data.limit_amount, "currency": data.currency, "command_id": data.command_id})
-    response = {"id": row.id, "organization_id": row.organization_id, "currency": row.currency, **operational_models.credit_balances(db, tenant_id=user.tenant_id, credit_account_id=row.id)}
-    db.add(operational_models.IdempotencyKey(tenant_id=user.tenant_id, scope="credit_account.create", key=data.command_id, request_hash=_secure_hash(f"{organization_id}:{data.currency}"), response_json=json.dumps(response))); db.commit(); return response
+        _platform_audit(db, checker, "credit_account.created", "credit_account", {"credit_account_id": row.id, "organization_id": payload["organization_id"], "limit_amount": payload["limit_amount"], "currency": payload["currency"], "maker_user_id": request.maker_user_id, "checker_user_id": checker.id, "approval_request_id": request.id})
+    return _credit_account_output(db, row)
 
 
 @app.post("/organization-credit/{credit_account_id}/commands")
@@ -1519,10 +1545,13 @@ def wallet_detail(wallet_id: str, user: User = Depends(require_permission("credi
     return {"id": wallet.id, "currency": wallet.currency, **operational_models.wallet_balances(db, tenant_id=user.tenant_id, wallet_id=wallet.id)}
 
 
-@app.post("/wallets/{wallet_id}/commands")
+@app.post("/wallets/{wallet_id}/commands", status_code=status.HTTP_202_ACCEPTED)
 def wallet_command(wallet_id: str, data: WalletFundingIn, user: User = Depends(require_permission("credit:fund")), db: Session = Depends(get_db)) -> dict:
-    """Finance-only wallet top-up. reserve/capture/release/reverse_capture are
-    posted only by checkout funding and reservation transitions, never by hand."""
+    """Maker step (H-1) of a finance-only wallet top-up: records a pending
+    request; the ledger moves only when a DIFFERENT credit:fund user approves
+    it at /maker-checker/requests/{id}/approve. reserve/capture/release/
+    reverse_capture are posted only by checkout funding and reservation
+    transitions, never by hand."""
     wallet = db.scalar(select(operational_models.Wallet).where(operational_models.Wallet.id == wallet_id, operational_models.Wallet.tenant_id == user.tenant_id))
     if wallet is None: raise HTTPException(status_code=404, detail="کیف پول در این سازمان وجود ندارد")
     if wallet.owner_type == "user" and wallet.owner_reference == str(user.id):
@@ -1530,13 +1559,30 @@ def wallet_command(wallet_id: str, data: WalletFundingIn, user: User = Depends(r
     if data.amount > WALLET_FUNDING_MAX_PER_OPERATION:
         raise HTTPException(status_code=409, detail="مبلغ از سقف مجاز یک عملیات شارژ بیشتر است؛ تأیید جداگانه‌ی مدیریت مالی لازم است")
     try:
-        entry = operational_models.apply_credit_command(db, tenant_id=user.tenant_id, wallet_id=wallet_id, command_id=data.command_id, entry_type=data.entry_type, amount=data.amount)
-        if entry in db.new:
-            _platform_audit(db, user, "wallet.allocate", "wallet", {"wallet_id": wallet_id, "owner_type": wallet.owner_type, "owner_reference": wallet.owner_reference, "amount": data.amount, "command_id": data.command_id})
-        db.commit()
-    except ValueError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
-    return {"entry_id": entry.id, "command_id": entry.command_id, **operational_models.wallet_balances(db, tenant_id=user.tenant_id, wallet_id=wallet_id)}
+        row = approvals.create_request(db, user=user, kind="wallet.fund", payload={"wallet_id": wallet_id, "entry_type": "allocate", "amount": data.amount},
+                                       idempotency_key=data.command_id, amount=data.amount, target_ref=f"wallet:{wallet_id}",
+                                       summary=f"شارژ کیف پول ({wallet.owner_type})", audit=_platform_audit)
+    except approvals.MakerCheckerError as exc:
+        raise _mc_error(exc) from exc
+    db.commit()
+    return {"status": "pending_approval", "approval_request": approvals.output(row), **operational_models.wallet_balances(db, tenant_id=user.tenant_id, wallet_id=wallet_id)}
+
+
+def _execute_wallet_fund(db: Session, request, payload: dict, checker: User) -> dict:
+    wallet = db.scalar(select(operational_models.Wallet).where(operational_models.Wallet.id == payload["wallet_id"], operational_models.Wallet.tenant_id == checker.tenant_id))
+    if wallet is None: raise approvals.MakerCheckerError(404, "کیف پول در این سازمان وجود ندارد")
+    if wallet.owner_type == "user" and wallet.owner_reference == str(checker.id):
+        raise approvals.MakerCheckerError(403, "تأیید شارژ کیف پول متعلق به خود کارشناس مجاز نیست")
+    if payload["amount"] > WALLET_FUNDING_MAX_PER_OPERATION:
+        raise approvals.MakerCheckerError(409, "مبلغ از سقف مجاز یک عملیات شارژ بیشتر است")
+    entry = operational_models.apply_credit_command(db, tenant_id=checker.tenant_id, wallet_id=wallet.id, command_id=f"mc:{request.id}", entry_type="allocate", amount=payload["amount"])
+    db.flush()
+    _platform_audit(db, checker, "wallet.allocate", "wallet", {"wallet_id": wallet.id, "owner_type": wallet.owner_type, "owner_reference": wallet.owner_reference, "amount": payload["amount"], "command_id": entry.command_id, "maker_user_id": request.maker_user_id, "checker_user_id": checker.id, "approval_request_id": request.id})
+    return {"entry_id": entry.id, "command_id": entry.command_id, **operational_models.wallet_balances(db, tenant_id=checker.tenant_id, wallet_id=wallet.id)}
+
+
+approvals.register("wallet.fund", can_check=lambda actor, payload: role_has_permission(actor.role, "credit:fund"), execute=_execute_wallet_fund, label="شارژ کیف پول")
+approvals.register("credit_account.create", can_check=lambda actor, payload: role_has_permission(actor.role, "credit:fund"), execute=_execute_credit_account_create, label="ایجاد حساب اعتباری سازمان")
 
 
 @app.post("/approvals/{approval_id}/decision")
@@ -5582,6 +5628,7 @@ app.include_router(financial_integrity_router(get_db, current_user, role_has_per
 
 from .commerce import commerce_router  # noqa: E402  commercial rules + treasury
 app.include_router(commerce_router(get_db, current_user, role_has_permission, User, _platform_audit))
+app.include_router(approvals.maker_checker_router(get_db, current_user, _platform_audit))
 
 from .inventory import inventory_router  # noqa: E402  own flight inventory, contracts, sales report
 app.include_router(inventory_router(get_db, current_user, role_has_permission, User, _platform_audit))

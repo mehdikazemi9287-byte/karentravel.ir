@@ -73,7 +73,9 @@ def test_organization_credit_and_wallet_funding_reserve_capture_release_and_isol
     wallet = client.post("/me/wallets", headers={**auth(employee), "Idempotency-Key": f"fin-wallet-{suffix}"}, json={"currency": "IRR"}).json()
     finance = login(client, "finance@aftab.test")
     allocate = client.post(f"/wallets/{wallet['id']}/commands", headers=auth(finance), json={"command_id": f"fin-allocate-{suffix}", "entry_type": "allocate", "amount": 1_000_000})
-    assert allocate.status_code == 200 and allocate.json()["available"] == 1_000_000
+    assert allocate.status_code == 202 and allocate.json()["available"] == 0  # maker-checker: nothing moves yet
+    from maker_checker_helpers import approve
+    assert approve(client, allocate, auth(login(client, "platform-admin@aftab.test")))["result"]["available"] == 1_000_000
 
     # Organization credit is visible to the employee via /me/organization-credit with real ledger-derived balances.
     my_credit = client.get("/me/organization-credit", headers=auth(employee)).json()

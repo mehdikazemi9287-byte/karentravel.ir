@@ -47,7 +47,8 @@ def funded_reservation(client, *, amount=1_000_000, credit=None, wallet=0, limit
     if wallet:
         created = client.post("/me/wallets", headers={**auth(employee), "Idempotency-Key": f"d1-wallet-{suffix}"}, json={"currency": "IRR"}).json()
         finance = login(client, "finance@aftab.test")
-        assert client.post(f"/wallets/{created['id']}/commands", headers=auth(finance), json={"command_id": f"d1-allocate-{suffix}", "entry_type": "allocate", "amount": wallet}).status_code == 200
+        from maker_checker_helpers import approve
+        approve(client, client.post(f"/wallets/{created['id']}/commands", headers=auth(finance), json={"command_id": f"d1-allocate-{suffix}", "entry_type": "allocate", "amount": wallet}), auth(login(client, "platform-admin@aftab.test")))
     checkout = client.post(f"/reservations/{reservation['id']}/checkout-sessions", headers=auth(employee), json={"command_id": f"d1-checkout-{suffix}"}).json()
     cid = checkout["id"]
     for step, body in (("traveller", {"traveller_ids": [traveller["id"]]}), ("recheck", {}), ("policy", {"acknowledged": True}), ("funding", {"wallet_amount": wallet, "credit_amount": credit}), ("invoice", {}), ("payment", {})):

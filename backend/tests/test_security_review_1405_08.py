@@ -17,6 +17,7 @@ import pytest
 from sqlalchemy import func, select
 
 import app.main as main_module
+from maker_checker_helpers import approve, ensure_user
 from app.main import AuditEvent, Booking, Hotel, SessionLocal, User
 from app.operations import (OTPChallenge, PaymentIntent, RefundRecord, Reservation, Supplier, SupplierMembership,
                             Wallet, Organization, CreditAccount)
@@ -91,7 +92,8 @@ def test_finance_funding_is_capped_audited_and_never_self_funding(client, monkey
     assert client.post(f"/wallets/{fin_wallet['id']}/commands", headers=fin, json={"command_id": f"h1-self-{uuid.uuid4().hex}", "entry_type": "allocate", "amount": 1_000}).status_code == 403
     assert client.post(f"/wallets/{emp_wallet['id']}/commands", headers=fin, json={"command_id": f"h1-cap-{uuid.uuid4().hex}", "entry_type": "allocate", "amount": 50_000_001}).status_code == 409
     ok = client.post(f"/wallets/{emp_wallet['id']}/commands", headers=fin, json={"command_id": f"h1-ok-{uuid.uuid4().hex}", "entry_type": "allocate", "amount": 1_000_000})
-    assert ok.status_code == 200 and ok.json()["available"] >= 1_000_000
+    assert ok.status_code == 202 and ok.json()["status"] == "pending_approval"
+    assert approve(client, ok, login(client, "platform-admin@aftab.test"))["result"]["available"] >= 1_000_000
     # manual reserve/capture/release/reverse of the ledger is never an API operation
     assert client.post(f"/wallets/{emp_wallet['id']}/commands", headers=fin, json={"command_id": f"h1-rev-{uuid.uuid4().hex}", "entry_type": "reverse_capture", "amount": 1}).status_code == 422
     with SessionLocal() as db:
@@ -100,7 +102,8 @@ def test_finance_funding_is_capped_audited_and_never_self_funding(client, monkey
     over = client.post(f"/organizations/{oid}/credit-accounts", headers=fin, json={"organization_id": oid, "limit_amount": 200_000_001, "currency": "IRR", "command_id": f"h1-ca-{uuid.uuid4().hex}"})
     assert over.status_code == 409
     created = client.post(f"/organizations/{oid}/credit-accounts", headers=fin, json={"organization_id": oid, "limit_amount": 100_000_000, "currency": "IRR", "command_id": f"h1-ca-{uuid.uuid4().hex}"})
-    assert created.status_code == 201 and created.json()["limit_amount"] == 100_000_000
+    assert created.status_code == 202
+    assert approve(client, created, login(client, "platform-admin@aftab.test"))["result"]["limit_amount"] == 100_000_000
     with SessionLocal() as db:
         assert db.scalar(select(func.count(AuditEvent.id)).where(AuditEvent.action == "credit_account.created", AuditEvent.detail.contains(oid))) == 1
 
@@ -272,3 +275,77 @@ def test_supplier_cannot_touch_other_suppliers_hotel_contracts_or_agency_quotas(
     assert theirs["id"] not in {c["id"] for c in client.get("/stays/contracts", headers=sup).json()["items"]}
     assert client.post("/stays/contracts", headers=sup, json={**body, "supplier_id": own_supplier}).status_code == 201
     assert client.get("/charter-quotas/agencies", headers=sup).status_code == 403
+
+
+
+# ---------------------------------------------------------------- H-1 maker-checker
+def _pending_wallet_request(client, fin, amount=2_000_000):
+    emp_wallet = _wallet_for(client, login(client, "employee@aftab.test"))
+    r = client.post(f"/wallets/{emp_wallet['id']}/commands", headers=fin, json={"command_id": f"mc-{uuid.uuid4().hex}", "entry_type": "allocate", "amount": amount})
+    assert r.status_code == 202, r.text
+    return emp_wallet, r.json()
+
+
+def test_wallet_funding_needs_a_different_approver_and_executes_once(client):
+    fin = login(client, "finance@aftab.test")
+    wallet, body = _pending_wallet_request(client, fin)
+    rid = body["approval_request"]["id"]
+    before = body["available"]
+    assert client.get(f"/wallets/{wallet['id']}", headers=fin).json()["available"] == before  # nothing moved yet
+    # the maker cannot approve or reject their own request
+    assert client.post(f"/maker-checker/requests/{rid}/approve", json={}, headers=fin).status_code == 403
+    assert client.post(f"/maker-checker/requests/{rid}/reject", json={}, headers=fin).status_code == 403
+    # a non-finance user cannot approve, and does not see it
+    emp = login(client, "employee@aftab.test")
+    assert client.post(f"/maker-checker/requests/{rid}/approve", json={}, headers=emp).status_code == 403
+    assert rid not in {i["id"] for i in client.get("/maker-checker/requests", headers=emp).json()["items"]}
+    # a second finance user sees it as decidable and approves
+    fin2 = login(client, ensure_user("finance@aftab.test", "finance_operator", "finance-checker"))
+    listed = {i["id"]: i for i in client.get("/maker-checker/requests", headers=fin2).json()["items"]}
+    assert listed[rid]["can_decide"] is True and listed[rid]["kind"] == "wallet.fund"
+    first = client.post(f"/maker-checker/requests/{rid}/approve", json={"note": "واریز بانکی بررسی شد"}, headers=fin2)
+    assert first.status_code == 200 and first.json()["result"]["available"] == before + 2_000_000
+    replay = client.post(f"/maker-checker/requests/{rid}/approve", json={}, headers=fin2)
+    assert replay.status_code == 200 and replay.json()["result"]["entry_id"] == first.json()["result"]["entry_id"]
+    assert client.post(f"/maker-checker/requests/{rid}/approve", json={}, headers=login(client, "platform-admin@aftab.test")).status_code == 409
+    assert client.get(f"/wallets/{wallet['id']}", headers=fin).json()["available"] == before + 2_000_000
+    with SessionLocal() as db:
+        assert db.scalar(select(func.count(AuditEvent.id)).where(AuditEvent.action == "maker_checker.wallet.fund.requested", AuditEvent.detail.contains(rid))) == 1
+        assert db.scalar(select(func.count(AuditEvent.id)).where(AuditEvent.action == "maker_checker.wallet.fund.approved", AuditEvent.detail.contains(rid))) == 1
+        assert db.scalar(select(func.count(AuditEvent.id)).where(AuditEvent.action == "wallet.allocate", AuditEvent.detail.contains(rid))) == 1
+
+
+def test_rejected_and_expired_funding_requests_never_move_the_ledger(client):
+    from datetime import timedelta
+    from app.approvals import MakerCheckerRequest
+    fin = login(client, "finance@aftab.test"); checker = login(client, "platform-admin@aftab.test")
+    wallet, body = _pending_wallet_request(client, fin)
+    before = body["available"]
+    rid = body["approval_request"]["id"]
+    rejected = client.post(f"/maker-checker/requests/{rid}/reject", json={"note": "سند بانکی ناقص"}, headers=checker)
+    assert rejected.status_code == 200 and rejected.json()["status"] == "rejected"
+    assert client.post(f"/maker-checker/requests/{rid}/approve", json={}, headers=checker).status_code == 409
+    wallet2, body2 = _pending_wallet_request(client, fin)
+    with SessionLocal() as db:
+        row = db.get(MakerCheckerRequest, body2["approval_request"]["id"]); row.expires_at = row.created_at - timedelta(seconds=1); db.commit()
+    assert client.post(f"/maker-checker/requests/{body2['approval_request']['id']}/approve", json={}, headers=checker).status_code == 409
+    assert wallet2["id"] == wallet["id"]  # one IRR wallet per user
+    assert client.get(f"/wallets/{wallet['id']}", headers=fin).json()["available"] == before
+    # same command id + different amount is a conflict, same body is the same request
+    cmd = f"mc-idem-{uuid.uuid4().hex}"
+    a = client.post(f"/wallets/{wallet['id']}/commands", headers=fin, json={"command_id": cmd, "entry_type": "allocate", "amount": 5})
+    b = client.post(f"/wallets/{wallet['id']}/commands", headers=fin, json={"command_id": cmd, "entry_type": "allocate", "amount": 5})
+    assert a.json()["approval_request"]["id"] == b.json()["approval_request"]["id"]
+    assert client.post(f"/wallets/{wallet['id']}/commands", headers=fin, json={"command_id": cmd, "entry_type": "allocate", "amount": 6}).status_code == 409
+
+
+def test_checker_may_not_approve_funding_of_their_own_wallet(client):
+    fin = login(client, "finance@aftab.test")
+    fin2_email = ensure_user("finance@aftab.test", "finance_operator", "finance-checker")
+    fin2 = login(client, fin2_email)
+    own = _wallet_for(client, fin2)
+    before = client.get(f"/wallets/{own['id']}", headers=fin).json()["available"]
+    r = client.post(f"/wallets/{own['id']}/commands", headers=fin, json={"command_id": f"mc-own-{uuid.uuid4().hex}", "entry_type": "allocate", "amount": 1_000})
+    assert r.status_code == 202
+    assert client.post(f"/maker-checker/requests/{r.json()['approval_request']['id']}/approve", json={}, headers=fin2).status_code == 403
+    assert client.get(f"/wallets/{own['id']}", headers=fin).json()["available"] == before
