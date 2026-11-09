@@ -293,6 +293,10 @@ def validate_provider_modes(environment: str, demo_mode: bool, keys: tuple[str, 
 
 
 def configured_adapter(key: str) -> IntegrationAdapter:
+    if key == "payment" and os.getenv("PAYMENT_PROVIDER", "").strip().lower() == "sandbox":
+        # QA/staging-only local test gateway; refuses (raises) outside development/test/staging.
+        from .payment_sandbox import build_sandbox_adapter
+        return build_sandbox_adapter()
     if key == "payment" and os.getenv("ZARINPAL_MODE", "disabled") != "disabled":
         return ZarinPalAdapter(mode=os.getenv("ZARINPAL_MODE", "disabled"), merchant_id=read_secret("ZARINPAL_MERCHANT_ID"), callback_url=os.getenv("ZARINPAL_CALLBACK_URL", ""))
     if key == "hotel" and os.getenv("GRS_MODE", "disabled") != "disabled":

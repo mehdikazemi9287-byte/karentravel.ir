@@ -1,11 +1,13 @@
 // QA harness helpers (local stack only). Records PASS/FAIL/BLOCKED per persona step.
 const { chromium } = require('playwright');
 const fs = require('fs');
-const WEB = 'http://127.0.0.1:3000', API = 'http://127.0.0.1:8000';
-const SHOTS = '/home/claude/qa-journeys/shots';
-const RESULTS = '/home/claude/qa-journeys/results.jsonl';
-const fixtures = JSON.parse(fs.readFileSync('/home/claude/qa-journeys/fixtures.json', 'utf8'));
-async function launch() { return chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1243/chrome-linux64/chrome', args: ['--no-sandbox'] }); }
+// Ports/paths are overridable for re-runs next to other local stacks (defaults = original 1405-08-18 run).
+const WEB = process.env.QA_WEB || 'http://127.0.0.1:3000', API = process.env.QA_API || 'http://127.0.0.1:8000';
+const QA_DIR = process.env.QA_DIR || '/home/claude/qa-journeys';
+const SHOTS = QA_DIR + '/shots';
+const RESULTS = QA_DIR + '/results.jsonl';
+const fixtures = JSON.parse(fs.readFileSync(QA_DIR + '/fixtures.json', 'utf8'));
+async function launch() { return chromium.launch({ executablePath: process.env.QA_CHROME || '/opt/pw-browsers/chromium-1243/chrome-linux64/chrome', args: ['--no-sandbox'] }); }
 async function devToken(email) { const r = await fetch(API + '/auth/dev-login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email }) }); if (!r.ok) throw new Error('dev-login ' + r.status); return r.json(); }
 async function api(token, method, path, body, extra = {}) { const r = await fetch(API + path, { method, headers: { 'content-type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token.access_token } : {}), ...extra }, body: body ? JSON.stringify(body) : undefined }); let j = null; try { j = await r.json(); } catch {} return { status: r.status, body: j }; }
 async function newCtx(browser, { mobile = false, email = null, zoom = null } = {}) {
@@ -30,4 +32,4 @@ async function step(persona, name, page, fn, { blocked = null } = {}) {
   fs.appendFileSync(RESULTS, JSON.stringify(rec) + '\n'); console.log(`[${status}] ${persona} ${id} ${name} ${note}`);
   return rec;
 }
-module.exports = { launch, devToken, api, newCtx, step, fixtures, WEB, API, SHOTS };
+module.exports = { launch, devToken, api, newCtx, step, fixtures, WEB, API, SHOTS, QA_DIR };

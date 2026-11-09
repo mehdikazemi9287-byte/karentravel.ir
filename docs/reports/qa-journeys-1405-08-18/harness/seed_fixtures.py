@@ -7,13 +7,13 @@ journeys. Run with the backend's own env (env.sh) and venv python.
 import json, os, sys, uuid
 from datetime import datetime, timedelta, timezone, date
 
-sys.path.insert(0, "/home/claude/qawt/backend")
+sys.path.insert(0, os.getenv("QA_BACKEND", "/home/claude/qawt/backend"))
 import httpx
 from sqlalchemy import select
 from app.main import SessionLocal, Tenant, User
 from app.database import set_tenant_context
 
-API = "http://127.0.0.1:8000"
+API = os.getenv("QA_API", "http://127.0.0.1:8000")
 c = httpx.Client(base_url=API, timeout=30)
 out = {}
 
@@ -97,7 +97,8 @@ org = next((o for o in orgs if o["name"].startswith("[QA-DEMO]")), None) or ok(c
 for email in ["employee@aftab.test", "org-admin@aftab.test", "welfare@aftab.test"]:
     ok(c.post(f"/enterprise/organizations/{org['id']}/members", headers=H(ta), json={"email": email}), 201)
 oa = tok("org-admin@aftab.test")
-credit = ok(c.post(f"/organizations/{org['id']}/credit-accounts", headers=H(oa), json={"organization_id": org["id"], "limit_amount": 50_000_000, "command_id": "qa-credit-" + uuid.uuid4().hex}), 201)
+fin = tok("finance@aftab.test")  # credit:fund is finance-only since PR #52 (H-1)
+credit = ok(c.post(f"/organizations/{org['id']}/credit-accounts", headers=H(fin), json={"organization_id": org["id"], "limit_amount": 50_000_000, "command_id": "qa-credit-" + uuid.uuid4().hex}), 201)
 out.update({"org_id": org["id"], "credit_account": credit, "public_tenant_id": pub_id, "consumer_tenant_id": con_id})
-json.dump(out, open("/home/claude/qa-journeys/fixtures.json", "w"), ensure_ascii=False, indent=1)
+json.dump(out, open(os.getenv("QA_DIR", "/home/claude/qa-journeys") + "/fixtures.json", "w"), ensure_ascii=False, indent=1)
 print(json.dumps(out, ensure_ascii=False)[:1500])
