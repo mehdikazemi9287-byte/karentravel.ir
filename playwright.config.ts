@@ -14,7 +14,7 @@ export default defineConfig({
   use: { baseURL: 'http://127.0.0.1:3101', trace: 'retain-on-failure', ...devices['Desktop Chrome'], channel: process.env.PLAYWRIGHT_CHANNEL || 'chrome' },
   webServer: [
     {
-      command: `DATABASE_URL=sqlite:///${e2eDatabase} ENVIRONMENT=development CORS_ORIGINS=http://127.0.0.1:3101 ${e2ePython} -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8100`,
+      command: `DATABASE_URL=sqlite:///${e2eDatabase} ENVIRONMENT=development PAYMENT_PROVIDER=sandbox SANDBOX_PAYMENT_BASE_URL=http://127.0.0.1:8100 CORS_ORIGINS=http://127.0.0.1:3101 ${e2ePython} -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8100`,
       url: 'http://127.0.0.1:8100/ready',
       timeout: 120_000,
       reuseExistingServer: false,
