@@ -4,6 +4,7 @@
 #   /opt/karenseir/app        git checkout (no remote; server-only commit 8ca27bd = pip mirror + catalog_data placeholder)
 # Run from the Mac:   ssh karen@188.121.123.218 'bash -s' < ~/Downloads/karenseir-deploy.sh
 # Check only:         ssh karen@188.121.123.218 'bash -s -- --check' < ~/Downloads/karenseir-deploy.sh
+# Server-side edits:  add --discard-server-edits to save uncommitted edits in app/ to backups/*.patch and continue
 # Builds web/api/worker; runs alembic upgrade head and aborts (rolling back code + images) if it fails.
 # On a failed health check it rolls back by itself (previous branch + previous images; the DB is untouched by this release).
 set -euo pipefail
@@ -36,11 +37,23 @@ rollback() {
 }
 
 main() {
-  local check=0; [ "${1:-}" = "--check" ] && check=1
+  local check=0 discard=0
+  for a in "$@"; do case "$a" in --check) check=1;; --discard-server-edits) discard=1;; esac; done
 
   say "== 1/6 preflight"
   cd "$APP"
-  [ -z "$(git status --porcelain --untracked-files=no)" ] || { git status --short; die "tracked files changed in $APP"; }
+  if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+    git status --short --untracked-files=no
+    if [ "$discard" = 1 ] && [ "$check" = 0 ]; then
+      mkdir -p "$ROOT/backups"; PATCH="$ROOT/backups/server-edits-$TS.patch"
+      git diff > "$PATCH" && test -s "$PATCH" || die "could not save the server edits"
+      git checkout -- . && say "server edits saved to $PATCH and removed from the work tree"
+    elif [ "$discard" = 1 ]; then
+      say "check: these server edits would be saved to backups/server-edits-<time>.patch and removed"
+    else
+      die "tracked files changed in $APP (re-run with --discard-server-edits to save them to backups/ as a patch and continue)"
+    fi
+  fi
   PREV=$(git rev-parse --short HEAD); PREV_BRANCH=$(git rev-parse --abbrev-ref HEAD)
   git cat-file -e "$SERVER_ONLY^{commit}" || die "server-only commit $SERVER_ONLY not found"
   git fetch --quiet "$REPO" production:refs/remotes/github/production
