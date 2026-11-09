@@ -159,6 +159,9 @@ def vat_reversal(*, refund_amount: int, customer_total: Optional[int], service_f
     Returns basis="unavailable" when the reservation has no recorded breakdown: nothing is guessed."""
     if customer_total is None or customer_total <= 0:
         return {"basis": "unavailable", "reason": "price_breakdown_missing", "vat_rate_bps": vat_bps, "vat_rate_source": VAT_RATE_SOURCE}
+    if service_fee is None or platform_markup is None or agency_commission is None:
+        # an unknown income component is not zero: without all three the VAT base cannot be stated
+        return {"basis": "unavailable", "reason": "income_components_missing", "vat_rate_bps": vat_bps, "vat_rate_source": VAT_RATE_SOURCE}
     sf = int(service_fee or 0); markup = int(platform_markup or 0); commission = int(agency_commission or 0)
     sf_vat = vat_of(sf, vat_bps)
     fare_part = customer_total - sf - sf_vat

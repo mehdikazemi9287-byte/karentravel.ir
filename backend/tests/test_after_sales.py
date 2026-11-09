@@ -128,6 +128,7 @@ def test_money_math_rounding_and_guards():
             A.refund_amount_for(paid, pen)
     assert A.vat_reversal(refund_amount=1, customer_total=None, service_fee=None, platform_markup=None, agency_commission=None)["basis"] == "unavailable"
     assert A.vat_reversal(refund_amount=10, customer_total=100, service_fee=200, platform_markup=0, agency_commission=0)["basis"] == "unavailable"
+    assert A.vat_reversal(refund_amount=10, customer_total=100, service_fee=0, platform_markup=0, agency_commission=None)["reason"] == "income_components_missing"
 
 
 # ---------------------------------------------------------------------------------------------- full loop
