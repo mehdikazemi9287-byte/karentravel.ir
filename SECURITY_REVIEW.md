@@ -1,5 +1,30 @@
 # بازبینی امنیت و صحت مالی — پایلوت
 
+## بازبینی امنیتی ۱۴۰۵/۰۸/۱۷ و رفع‌ها — ۱۴۰۵/۰۸/۱۸
+
+گزارش کامل: `docs/reports/1405-08-17-security-review.md`. تست‌های رگرسیون: `backend/tests/test_security_review_1405_08.py` (۱۹ تست؛ روی کد قبلی ۱۸ مورد رد می‌شد).
+
+### رفع‌شده
+- **C-1** `POST /reservations/{id}/commands`: مشتری فقط می‌تواند `cancel_requested` یا `change_requested` بخواهد؛ هر هدف دیگر (confirmed/issued/completed/refunded/cancelled/changed/expired/failed) با 403 رد می‌شود. این انتقال‌ها فقط از مسیرهای کارشناسی (`/fulfill` با پرداخت capture‌شده، میز قطار، تصمیم اقامتگاه با scope تأمین‌کننده)، رویداد پرداخت/تأمین‌کننده یا reaper انجام می‌شوند. سایر فراخوان‌های `transition_reservation` بررسی شدند و نقص مشابهی نداشتند.
+- **H-1** شارژ کیف پول، ساخت حساب اعتباری و دستور دستی اعتبار سازمانی فقط با مجوز جدید `credit:fund` (نقش مالی و مدیر پلتفرم)؛ مدیر سازمان و مدیر مستأجر دیگر نمی‌توانند. شارژ کیف پول متعلق به خود کارشناس ممنوع، فقط `allocate` از API پذیرفته می‌شود، سقف هر عملیات `WALLET_FUNDING_MAX_PER_OPERATION` (پیش‌فرض ۵۰۰٬۰۰۰٬۰۰۰ ریال) و سقف حساب اعتباری `CREDIT_ACCOUNT_MAX_LIMIT` (پیش‌فرض ۵٬۰۰۰٬۰۰۰٬۰۰۰ ریال) است و هر عملیات AuditEvent دارد.
+- **H-2** در `inventory.py` نقش تأمین‌کننده دیگر از بررسی admin/staff رد نمی‌شود: مسیرها، تأمین‌کننده‌ها، متن قرارداد، لیست مسافران و گزارش فروش فقط برای مدیر/کارمند مجموعه است؛ تأمین‌کننده فقط سری‌ها و پروازهای تأمین‌کننده‌ی خودش را می‌بیند و ویرایش می‌کند. همین الگو در `stays.py` (قراردادهای هتل، اتاق، تقویم) و `charter_quotas.py` (سهمیه‌ی آژانس‌ها) هم بسته شد.
+- **/pilot** در build تولیدی 404 است مگر `NEXT_PUBLIC_ENABLE_PILOT=1` یا حالت development؛ در sitemap نبود و در robots همچنان disallow است.
+- **M-1** درخواست استرداد: با سیاست کنسلی تأییدشده و رزرو در وضعیت کنسلی/استرداد، سقف = مبلغ کل منهای جریمه (سمت سرور). بدون سیاست تأییدشده، درخواست با وضعیت `pending_review` ثبت می‌شود، callback درگاه نمی‌تواند آن را تسویه کند و مالی با `POST /refunds/{id}/review` مبلغ نهایی (کمتر یا مساوی درخواست) را تأیید یا رد می‌کند. عدد جریمه ساخته نمی‌شود.
+- **M-2** `/me/dashboard` فقط رزروهای قدیمی همان کاربر را نشان می‌دهد.
+- **M-4** assistant-service و search-service به FastAPI 0.162.0 / Starlette 1.10.0، uvicorn 0.54.0 و pytest 9.0.3 ارتقا یافتند؛ pip-audit بدون آسیب‌پذیری، تست‌ها ۵۲/۵۲ و ۱۲۷/۱۲۷.
+- **M-6** سقف روزانه‌ی پیامک برای هر tenant (`SMS_DAILY_CAP_PER_TENANT`، پیش‌فرض ۳۰۰۰) روی ورود OTP و ثبت‌نام؛ پس از رسیدن به سقف پاسخ همان «accepted» عمومی است و پیامکی ارسال نمی‌شود.
+
+### SECURITY_FOLLOWUPS (باقی‌مانده)
+- **H-3** HTTPS و `ALLOW_HTTP_*=0` پیش از کاربر واقعی و پرداخت (زیرساخت).
+- **H-4** اتصال API با نقش پستگرس `karenseir_api` بدون superuser و بدون BYPASSRLS؛ روی سرور بررسی شود.
+- **H-1 (ادامه)** تأیید دونفره (maker-checker) برای شارژ کیف پول و سقف اعتبار: نیازمند جدول درخواست در انتظار و migration؛ فعلاً سقف، تفکیک نقش و audit جایگزین موقت است.
+- **M-3** توکن در `sessionStorage` و CSP با `unsafe-inline`: انتقال به کوکی httpOnly یا CSP با nonce (نیازمند dynamic rendering).
+- **M-5** کلید JWT جدا برای MFA، وضعیت پرداخت و QR واچر.
+- **M-7** بررسی `ENVIRONMENT=production` روی سرور و نبود کاربرهای `*.test`.
+- `/reservations/{id}/fulfill` برای نقش `agency_partner` هنوز scope آژانس ندارد (پرداخت capture‌شده لازم است، پس جعل مالی نیست ولی باید محدود شود).
+- توابع `grs_lifecycle` (`book_with_grs`, `accept_cancellation_with_grs`) با مجوز `reservation:manage` کار می‌کنند که مشتری هم دارد؛ فعلاً از HTTP در دسترس نیستند، پیش از اتصال باید مجوز کارشناسی بگیرند.
+- سقف سراسری پیامک بین tenantها (شمارش فعلی زیر RLS برای هر tenant است).
+
 ## Orchestration security — ۱۴۰۵/۰۵/۲۹
 
 - Offer/Price Check/Booking و approval/panelها tenant filter، RLS و IDOR tests دارند؛ Price Check با HMAC integrity و مصرف یک‌باره محافظت می‌شود.

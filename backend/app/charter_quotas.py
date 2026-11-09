@@ -65,8 +65,10 @@ def charter_quotas_router(get_db, current_user, role_has_permission, User, audit
     api = APIRouter(tags=["charter-quotas"])
 
     def admin(user=Depends(current_user)):
-        if not any(role_has_permission(user.role, p) for p in ("platform:manage", "tenant:manage", "inventory:manage")):
-            raise HTTPException(status_code=403, detail="دسترسی مدیریت موجودی لازم است")
+        # Agency seat quotas are a tenant decision across every supplier's flights:
+        # a supplier account (inventory:manage) is not tenant staff (security review H-2).
+        if not any(role_has_permission(user.role, p) for p in ("platform:manage", "tenant:manage")):
+            raise HTTPException(status_code=403, detail="دسترسی مدیریت موجودی مجموعه لازم است")
         return user
 
     def _a(db, user, action, detail):

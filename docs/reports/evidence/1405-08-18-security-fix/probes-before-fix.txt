@@ -1,0 +1,39 @@
+=== status_probe
+offer 201 {"id":"4748fbdc-75d1-46c7-8410-7e28b9d742f5","service_type":"tour","status":"active","available_units":3}
+booked reserved
+same-tenant other user [404, 404, 404, 404]
+other tenant [404, 404, 404, 404]
+self-transition -> confirmed 200 {'id': 'f64fc3a2-6620-4867-8535-d68641338a83', 'status': 'confirmed', 'provider_connected': False}
+self-transition -> issued 200 {'id': 'f64fc3a2-6620-4867-8535-d68641338a83', 'status': 'issued', 'provider_connected': False}
+self-transition -> completed 200 {'id': 'f64fc3a2-6620-4867-8535-d68641338a83', 'status': 'completed', 'provider_connected': False}
+payments: []
+history ['reserved', 'confirmed', 'issued', 'completed']
+payment-intent after forged confirm: 409
+r2 -> confirmed 200
+r2 -> refund_requested 200
+r2 -> refunded 200
+sales report (finance) sees: [(False, 'refunded'), (True, 'completed')]
+== cross-role
+supplier sales report 200 [('آرمان رضایی', 5000000), ('آرمان رضایی', 5000000)]
+employee /me/dashboard as other employee sees legacy bookings of tenant:
+ welfare-mgr view: [('هتل پارسیان آزادی', 15700000)]
+ supplier view: [('هتل پارسیان آزادی', 15700000)]
+=== credit_probe
+pc 201 {"id":"c02087fe-e8ed-450e-adc5-bfbf113979b8","offer_id":"a3f441bd-445a-4b8c-a709-d5ec034f8897","amount":5000000,"currency":"IRR","expires_at":"2026-11-09T05:21:32.037969"}
+traveller 200
+recheck 200
+policy 200
+funding 200
+credit after funding {'id': '5fd3adf6-3dd0-403d-a2b2-b2113dcd06a9', 'organization_id': 'a6699cff-f3e5-43e8-8747-c6e28384f4f6', 'currency': 'IRR', 'limit_amount': 10000000, 'available': 5000000, 'reserved': 5000000, 'consumed': 0}
+self confirmed 200
+self issued 200
+credit after self-confirm {'id': '5fd3adf6-3dd0-403d-a2b2-b2113dcd06a9', 'organization_id': 'a6699cff-f3e5-43e8-8747-c6e28384f4f6', 'currency': 'IRR', 'limit_amount': 10000000, 'available': 5000000, 'reserved': 0, 'consumed': 5000000}
+voucher 409
+=== orgadmin_probe
+org-admin allocate to OWN wallet: 200 {'entry_id': '2339cc24-a461-437f-b4d2-8c001ea7bc3a', 'command_id': 'mint-own-0001', 'available': 9000000000, 'reserved': 0, 'consumed': 0}
+org-admin allocate to employee wallet: 200
+org-admin create credit account w/ arbitrary limit: 201 {'id': 'cf7f1256-c08d-48b6-9461-5e4d017497ba', 'organization_id': '2d2165b6-91be-486a-84af-0b25aef4f24a', 'currency': 'IRR', 'limit_amount': 999999999999, 'available': 999999999999, 'reserved': 0, 'consumed': 0}
+=== sup_probe
+supplier creates tenant-wide contract template: 201 {"id":"ea5c450f-5716-48e7-9ecb-88c8fd196385","service_type":"any","title":"قرارداد","body":"متن جعلی تأمین‌کننده {{customer_name}}","version":1,"status":"active
+supplier lists flight routes: 200
+agency wallet read needs id; sales report as agency: 403

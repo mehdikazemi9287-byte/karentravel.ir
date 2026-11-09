@@ -1,0 +1,99 @@
+E       AssertionError: {"id":"0d16d455-839b-47e1-b6f3-90837ce92ef8","status":"confirmed","provider_connected":false}
+E       assert 200 == 403
+E        +  where 200 = <Response [200 OK]>.status_code
+tests/test_security_review_1405_08.py:53: AssertionError
+E       AssertionError: {"id":"a723b3bb-5249-4894-9f98-0f0190c394d2","status":"confirmed","provider_connected":false}
+E       assert 200 == 403
+E        +  where 200 = <Response [200 OK]>.status_code
+tests/test_security_review_1405_08.py:53: AssertionError
+E       AssertionError: {"id":"3512e00b-fe72-4a7a-96ac-1e327210ed58","status":"issued","provider_connected":false}
+E       assert 200 == 403
+E        +  where 200 = <Response [200 OK]>.status_code
+tests/test_security_review_1405_08.py:53: AssertionError
+E       AssertionError: {"id":"a5549cec-c986-45c4-a603-45f814b9be36","status":"completed","provider_connected":false}
+E       assert 200 == 403
+E        +  where 200 = <Response [200 OK]>.status_code
+tests/test_security_review_1405_08.py:53: AssertionError
+E       AssertionError: {"id":"6472d07f-462a-45c3-8b40-abbc27ae32b1","status":"refunded","provider_connected":false}
+E       assert 200 == 403
+E        +  where 200 = <Response [200 OK]>.status_code
+tests/test_security_review_1405_08.py:53: AssertionError
+E       AssertionError: {"id":"9615b180-348b-47d4-8485-58517e8c2e0f","status":"cancelled","provider_connected":false}
+E       assert 200 == 403
+E        +  where 200 = <Response [200 OK]>.status_code
+tests/test_security_review_1405_08.py:53: AssertionError
+E       AssertionError: {"id":"d9e56f19-7a4e-4a24-b1d7-3236f4739fef","status":"confirmed","provider_connected":false}
+E       assert 200 == 403
+E        +  where 200 = <Response [200 OK]>.status_code
+tests/test_security_review_1405_08.py:53: AssertionError
+E       AssertionError: {"id":"a9e2982d-9a80-4f43-b95b-400536c421d2","status":"changed","provider_connected":false}
+E       assert 200 == 403
+E        +  where 200 = <Response [200 OK]>.status_code
+tests/test_security_review_1405_08.py:53: AssertionError
+E       AssertionError: {"id":"1d3daeae-6dad-422c-9dec-55b43ab817cf","status":"expired","provider_connected":false}
+E       assert 200 == 403
+E        +  where 200 = <Response [200 OK]>.status_code
+tests/test_security_review_1405_08.py:53: AssertionError
+E           AssertionError: {"entry_id":"bf1718f3-8f6a-4165-90ce-fbf385863fd2","command_id":"h1-599ae277ff3044f4a4f3b809799581fc","available":9000000000,"reserved":0,"consumed":0}
+E           assert 200 == 403
+E            +  where 200 = <Response [200 OK]>.status_code
+tests/test_security_review_1405_08.py:78: AssertionError
+E       AssertionError: assert 403 == 409
+E        +  where 403 = <Response [403 Forbidden]>.status_code
+E        +    where <Response [403 Forbidden]> = post('/wallets/29915735-24cb-43cc-a904-9f7871cf5e1c/commands', headers={'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3IiwidGVuYW50IjoxLCJyb2xlI
+E        +      where post = <starlette.testclient.TestClient object at 0x7fc8b345f9b0>.post
+tests/test_security_review_1405_08.py:92: AssertionError
+E       assert 200 == 403
+E        +  where 200 = <Response [200 OK]>.status_code
+tests/test_security_review_1405_08.py:113: AssertionError
+E       AssertionError: assert 201 == 403
+E        +  where 201 = <Response [201 Created]>.status_code
+E        +    where <Response [201 Created]> = post('/inventory/contract-templates', headers={'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1IiwidGVuYW50IjoxLCJyb2xlIjoic3VwcGxpZXIiLCJ...lkYzI5
+E        +      where post = <starlette.testclient.TestClient object at 0x7fc8b345fce0>.post
+tests/test_security_review_1405_08.py:128: AssertionError
+E       AssertionError: assert 201 == 403
+E        +  where 201 = <Response [201 Created]>.status_code
+E        +    where <Response [201 Created]> = post('/inventory/flight-series', headers={'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1IiwidGVuYW50IjoxLCJyb2xlIjoic3VwcGxpZXIiLCJ...QwOGU4MjEzL
+E        +      where post = <starlette.testclient.TestClient object at 0x7fc8b2a9f570>.post
+tests/test_security_review_1405_08.py:153: AssertionError
+E       AssertionError: {"id":"b6602706-721f-48e7-bfd7-d7d6f3110938","status":"requested","amount":1000000}
+E       assert 202 == 409
+E        +  where 202 = <Response [202 Accepted]>.status_code
+tests/test_security_review_1405_08.py:188: AssertionError
+E       AssertionError: assert (202 == 202 and 'requested' == 'pending_review'
+E        +  where 202 = <Response [202 Accepted]>.status_code
+E         
+E         - pending_review
+E         + requested)
+tests/test_security_review_1405_08.py:199: AssertionError
+E       assert 1 not in {1}
+tests/test_security_review_1405_08.py:222: AssertionError
+E       assert (202 == 202 and 1 == 0)
+E        +  where 202 = <Response [202 Accepted]>.status_code
+E        +  and   1 = <test_security_review_1405_08._CountingOTP object at 0x7fc8b33c1a90>.calls
+tests/test_security_review_1405_08.py:245: AssertionError
+E       AssertionError: assert 201 == 403
+E        +  where 201 = <Response [201 Created]>.status_code
+E        +    where <Response [201 Created]> = post('/stays/contracts', headers={'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1IiwidGVuYW50IjoxLCJyb2xlIjoic3VwcGxpZXIiLCJ...k3MjMxYTc0LWQ0MzUtN
+E        +      where post = <starlette.testclient.TestClient object at 0x7fc8b2a9dae0>.post
+tests/test_security_review_1405_08.py:268: AssertionError
+FAILED tests/test_security_review_1405_08.py::test_customer_cannot_self_transition_reservation_to_operational_states[reserved-confirmed]
+FAILED tests/test_security_review_1405_08.py::test_customer_cannot_self_transition_reservation_to_operational_states[awaiting_payment-confirmed]
+FAILED tests/test_security_review_1405_08.py::test_customer_cannot_self_transition_reservation_to_operational_states[confirmed-issued]
+FAILED tests/test_security_review_1405_08.py::test_customer_cannot_self_transition_reservation_to_operational_states[issued-completed]
+FAILED tests/test_security_review_1405_08.py::test_customer_cannot_self_transition_reservation_to_operational_states[refund_requested-refunded]
+FAILED tests/test_security_review_1405_08.py::test_customer_cannot_self_transition_reservation_to_operational_states[cancel_requested-cancelled]
+FAILED tests/test_security_review_1405_08.py::test_customer_cannot_self_transition_reservation_to_operational_states[cancel_requested-confirmed]
+FAILED tests/test_security_review_1405_08.py::test_customer_cannot_self_transition_reservation_to_operational_states[change_requested-changed]
+FAILED tests/test_security_review_1405_08.py::test_customer_cannot_self_transition_reservation_to_operational_states[reserved-expired]
+FAILED tests/test_security_review_1405_08.py::test_org_admin_cannot_fund_wallets_or_create_credit_accounts
+FAILED tests/test_security_review_1405_08.py::test_finance_funding_is_capped_audited_and_never_self_funding
+FAILED tests/test_security_review_1405_08.py::test_org_admin_cannot_move_organization_credit_ledger
+FAILED tests/test_security_review_1405_08.py::test_supplier_cannot_use_tenant_staff_inventory_endpoints
+FAILED tests/test_security_review_1405_08.py::test_supplier_only_sees_and_edits_its_own_flight_series
+FAILED tests/test_security_review_1405_08.py::test_refund_request_respects_verified_cancellation_penalty
+FAILED tests/test_security_review_1405_08.py::test_refund_without_verified_policy_waits_for_finance_review
+FAILED tests/test_security_review_1405_08.py::test_dashboard_lists_only_the_callers_own_legacy_bookings
+FAILED tests/test_security_review_1405_08.py::test_tenant_daily_sms_cap_stops_otp_and_registration_sends
+FAILED tests/test_security_review_1405_08.py::test_supplier_cannot_touch_other_suppliers_hotel_contracts_or_agency_quotas
+19 failed, 1 passed, 1 warning in 1.69s
