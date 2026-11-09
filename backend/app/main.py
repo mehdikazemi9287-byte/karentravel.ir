@@ -147,6 +147,7 @@ class OTPVerifyIn(BaseModel): tenant_slug: str = Field(min_length=2, max_length=
 class RegisterRequestIn(BaseModel): mobile: str = Field(min_length=8, max_length=20); name: Optional[str] = Field(default=None, min_length=2, max_length=160)
 class LogoutIn(BaseModel): refresh_token: str = Field(min_length=32, max_length=512)
 class CreditCommandIn(BaseModel): command_id: str = Field(min_length=8, max_length=120); entry_type: str = Field(pattern="^(allocate|reserve|capture|release|reverse_capture)$"); amount: int = Field(gt=0)
+class WalletFundingIn(BaseModel): command_id: str = Field(min_length=8, max_length=120); entry_type: str = Field(pattern="^allocate$"); amount: int = Field(gt=0)
 class ApprovalDecisionIn(BaseModel): decision: str = Field(pattern="^(approve|reject)$"); rejection_reason: Optional[str] = Field(default=None, max_length=500)
 class RefundIn(BaseModel): amount: int = Field(gt=0); command_id: str = Field(min_length=8, max_length=120)
 ECOSYSTEM_SERVICE_PATTERN = "^(flight|hotel|train|bus|tour|package|accommodation|vacation_rental|cruise|visa|car_rental|restaurant|event_hall|pool_sport|attraction|travel_guide|handicraft|tourist_transportation)$"
@@ -701,6 +702,24 @@ def dev_login(data: LoginIn, db: Session = Depends(get_db)) -> dict:
 
 OTP_RESEND_COOLDOWN_SECONDS = int(os.getenv("OTP_RESEND_COOLDOWN_SECONDS", "60"))
 OTP_MAX_PER_HOUR = int(os.getenv("OTP_MAX_PER_HOUR", "5"))
+# Tenant-wide SMS budget for the last 24h (security review 1405-08-17, M-6). The
+# per-account throttle above does not stop registration with many fresh mobile
+# numbers; this cap bounds the total SMS cost a tenant (incl. the public consumer
+# registration tenant) can incur per day. 0 disables sending entirely.
+SMS_DAILY_CAP_PER_TENANT = int(os.getenv("SMS_DAILY_CAP_PER_TENANT", "3000"))
+
+
+def _sms_daily_cap_reached(db: Session, tenant_id: int, now: datetime) -> bool:
+    # OTP challenges live 5 minutes, so issuance time = expires_at - 5min; only
+    # delivered challenges are committed (failed sends roll back).
+    sent = db.scalar(select(func.count(operational_models.OTPChallenge.id)).where(
+        operational_models.OTPChallenge.tenant_id == tenant_id,
+        operational_models.OTPChallenge.expires_at > now - timedelta(hours=24) + timedelta(minutes=5))) or 0
+    if sent >= SMS_DAILY_CAP_PER_TENANT:
+        logging.getLogger("karenseir.security").warning("sms_daily_cap_reached", extra={"tenant_id": tenant_id, "status": 202})
+        record_business_event("otp", "daily_cap_reached")
+        return True
+    return False
 
 
 def _otp_throttled(db: Session, tenant_id: int, user_id: int, now: datetime) -> bool:
@@ -750,7 +769,7 @@ def request_otp(data: OTPRequestIn, request: Request, db: Session = Depends(get_
     now = datetime.now(timezone.utc)
     if auth_state and auth_state.locked_until and _aware(auth_state.locked_until) > now:
         return {"status": "accepted", "challenge_id": generic_id, "expires_in": 300}
-    if _otp_throttled(db, tenant.id, user.id, now):
+    if _otp_throttled(db, tenant.id, user.id, now) or _sms_daily_cap_reached(db, tenant.id, now):
         logging.getLogger("karenseir.security").warning("otp_throttled", extra={"status": 202, "path": "/auth/otp/request"})
         db.rollback()
         return {"status": "accepted", "challenge_id": generic_id, "expires_in": 300}
@@ -827,7 +846,7 @@ def register_request(data: RegisterRequestIn, request: Request, db: Session = De
             db.rollback()
             _secure_hash(f"{generic_id}:000000")
             return {"status": "accepted", "challenge_id": generic_id, "expires_in": 300}
-    if user.id and _otp_throttled(db, tenant.id, user.id, datetime.now(timezone.utc)):
+    if user.id and (_otp_throttled(db, tenant.id, user.id, datetime.now(timezone.utc)) or _sms_daily_cap_reached(db, tenant.id, datetime.now(timezone.utc))):
         logging.getLogger("karenseir.security").warning("otp_throttled", extra={"status": 202, "path": "/auth/register/request"})
         db.commit()  # keep a freshly registered account; just don't send another SMS
         return {"status": "accepted", "challenge_id": generic_id, "expires_in": 300}
@@ -941,7 +960,7 @@ def hotels(city: Optional[str] = None, db: Session = Depends(get_db)) -> list[di
     return [{"id":h.id,"name":h.name,"city":h.city,"rating":float(h.rating),"nightly_price":h.nightly_price,"cancellation":h.cancellation,"inventory":h.inventory,"image_url":h.image_url} for h in db.scalars(q.order_by(Hotel.nightly_price)).all()]
 @app.get("/me/dashboard")
 def dashboard(user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
-    bookings = db.scalars(select(Booking).where(Booking.tenant_id == user.tenant_id).order_by(Booking.id.desc())).all()
+    bookings = db.scalars(select(Booking).where(Booking.tenant_id == user.tenant_id, Booking.user_id == user.id).order_by(Booking.id.desc())).all()
     return {"tenant":db.get(Tenant,user.tenant_id).name,"user":{"name":user.name,"role":user.role},"credit_available":None,"bookings":[booking_out(b,db.get(Hotel,b.hotel_id)) for b in bookings]}
 @app.post("/bookings", status_code=status.HTTP_201_CREATED)
 def create_booking(data: BookingIn, idempotency_key: str = Header(alias="Idempotency-Key", min_length=8, max_length=120), user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
@@ -1196,9 +1215,20 @@ def my_organization_credit(user: User = Depends(current_user), db: Session = Dep
     return [{"id": row.id, "organization_id": row.organization_id, "currency": row.currency, **operational_models.credit_balances(db, tenant_id=user.tenant_id, credit_account_id=row.id)} for row in rows]
 
 
+# Money-creating operations (security review 1405-08-17, H-1): only the finance
+# role (credit:fund) may fund a wallet or open a credit line, never an
+# organization/tenant admin, never into an account the actor owns, and never
+# above the configured per-operation ceiling. Each one leaves an AuditEvent.
+# A true maker-checker (second approver) needs a pending-request table and is
+# tracked in SECURITY_REVIEW.md -> SECURITY_FOLLOWUPS.
+WALLET_FUNDING_MAX_PER_OPERATION = int(os.getenv("WALLET_FUNDING_MAX_PER_OPERATION", "500000000"))
+CREDIT_ACCOUNT_MAX_LIMIT = int(os.getenv("CREDIT_ACCOUNT_MAX_LIMIT", "5000000000"))
+
+
 @app.post("/organizations/{organization_id}/credit-accounts", status_code=status.HTTP_201_CREATED)
-def create_credit_account(organization_id: str, data: CreditAccountCreateIn, user: User = Depends(require_permission("credit:manage")), db: Session = Depends(get_db)) -> dict:
+def create_credit_account(organization_id: str, data: CreditAccountCreateIn, user: User = Depends(require_permission("credit:fund")), db: Session = Depends(get_db)) -> dict:
     if data.organization_id != organization_id: raise HTTPException(status_code=422, detail="سازمان مسیر و بدنه درخواست یکسان نیست")
+    if data.limit_amount > CREDIT_ACCOUNT_MAX_LIMIT: raise HTTPException(status_code=409, detail="سقف درخواستی از سقف مجاز یک عملیات بیشتر است؛ تأیید جداگانه‌ی مدیریت مالی لازم است")
     organization = db.scalar(select(operational_models.Organization).where(operational_models.Organization.id == organization_id, operational_models.Organization.tenant_id == user.tenant_id))
     if organization is None: raise HTTPException(status_code=404, detail="سازمان در این tenant وجود ندارد")
     prior = db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id == user.tenant_id, operational_models.IdempotencyKey.scope == "credit_account.create", operational_models.IdempotencyKey.key == data.command_id))
@@ -1207,14 +1237,16 @@ def create_credit_account(organization_id: str, data: CreditAccountCreateIn, use
     if row is None:
         row = operational_models.CreditAccount(tenant_id=user.tenant_id, organization_id=organization_id, currency=data.currency, limit_amount=data.limit_amount)
         db.add(row); db.flush()
+        _platform_audit(db, user, "credit_account.created", "credit_account", {"credit_account_id": row.id, "organization_id": organization_id, "limit_amount": data.limit_amount, "currency": data.currency, "command_id": data.command_id})
     response = {"id": row.id, "organization_id": row.organization_id, "currency": row.currency, **operational_models.credit_balances(db, tenant_id=user.tenant_id, credit_account_id=row.id)}
     db.add(operational_models.IdempotencyKey(tenant_id=user.tenant_id, scope="credit_account.create", key=data.command_id, request_hash=_secure_hash(f"{organization_id}:{data.currency}"), response_json=json.dumps(response))); db.commit(); return response
 
 
 @app.post("/organization-credit/{credit_account_id}/commands")
-def organization_credit_command(credit_account_id: str, data: CreditCommandIn, user: User = Depends(require_permission("credit:manage")), db: Session = Depends(get_db)) -> dict:
+def organization_credit_command(credit_account_id: str, data: CreditCommandIn, user: User = Depends(require_permission("credit:fund")), db: Session = Depends(get_db)) -> dict:
     try:
         entry = operational_models.apply_organization_credit_command(db, tenant_id=user.tenant_id, credit_account_id=credit_account_id, command_id=data.command_id, entry_type=data.entry_type, amount=data.amount)
+        _platform_audit(db, user, f"organization_credit.{data.entry_type}", "credit_account", {"credit_account_id": credit_account_id, "amount": data.amount, "command_id": data.command_id})
         db.commit()
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
@@ -1376,8 +1408,18 @@ def reservation_voucher(reservation_id: str, user: User = Depends(current_user),
     return Response(content=html, media_type="text/html", headers={"Cache-Control":"no-store","Content-Security-Policy":"default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; frame-ancestors 'none'"})
 
 
+# The only reservation transitions a customer may trigger on their own booking
+# (security review 1405-08-17, C-1). Every confirmed/issued/completed/refunded/
+# cancelled/changed/expired/failed transition is owned by staff fulfillment
+# (/reservations/{id}/fulfill, train desk, vacation decision), a verified
+# payment/provider event, or the reaper - never by the booking's owner.
+CUSTOMER_RESERVATION_TARGETS = frozenset({"cancel_requested", "change_requested"})
+
+
 @app.post("/reservations/{reservation_id}/commands")
 def reservation_command(reservation_id: str, data: ReservationCommandIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    if data.target not in CUSTOMER_RESERVATION_TARGETS:
+        raise HTTPException(status_code=403, detail="این تغییر وضعیت فقط توسط کارشناس یا رویداد تأییدشده‌ی پرداخت/تأمین‌کننده انجام می‌شود")
     reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == reservation_id, operational_models.Reservation.tenant_id == user.tenant_id, operational_models.Reservation.user_id == user.id))
     if not reservation:
         raise HTTPException(status_code=404, detail="رزرو در این حساب وجود ندارد")
@@ -1423,7 +1465,7 @@ def create_service_request(reservation_id: str, data: ServiceRequestIn, user: Us
         payment = db.scalar(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.tenant_id == user.tenant_id, operational_models.PaymentIntent.reservation_id == reservation.id, operational_models.PaymentIntent.status == "captured").with_for_update())
         if payment is None: raise HTTPException(status_code=409, detail="پرداخت captureشده برای استرداد موجود نیست")
         amount = int(quote["refundable_amount"])
-        pending = db.scalar(select(func.coalesce(func.sum(operational_models.RefundRecord.amount), 0)).where(operational_models.RefundRecord.tenant_id == user.tenant_id, operational_models.RefundRecord.payment_intent_id == payment.id, operational_models.RefundRecord.status == "requested")) or 0
+        pending = db.scalar(select(func.coalesce(func.sum(operational_models.RefundRecord.amount), 0)).where(operational_models.RefundRecord.tenant_id == user.tenant_id, operational_models.RefundRecord.payment_intent_id == payment.id, operational_models.RefundRecord.status.in_(("requested", "pending_review")))) or 0
         if amount <= 0 or amount > payment.captured_amount - payment.refunded_amount - int(pending): raise HTTPException(status_code=409, detail="مبلغ معتبر قابل استرداد موجود نیست")
         refund = operational_models.RefundRecord(tenant_id=user.tenant_id, payment_intent_id=payment.id, command_id=idempotency_key, amount=amount)
         db.add(refund); db.flush(); refund_id = refund.id
@@ -1460,9 +1502,19 @@ def wallet_detail(wallet_id: str, user: User = Depends(require_permission("credi
 
 
 @app.post("/wallets/{wallet_id}/commands")
-def wallet_command(wallet_id: str, data: CreditCommandIn, user: User = Depends(require_permission("credit:manage")), db: Session = Depends(get_db)) -> dict:
+def wallet_command(wallet_id: str, data: WalletFundingIn, user: User = Depends(require_permission("credit:fund")), db: Session = Depends(get_db)) -> dict:
+    """Finance-only wallet top-up. reserve/capture/release/reverse_capture are
+    posted only by checkout funding and reservation transitions, never by hand."""
+    wallet = db.scalar(select(operational_models.Wallet).where(operational_models.Wallet.id == wallet_id, operational_models.Wallet.tenant_id == user.tenant_id))
+    if wallet is None: raise HTTPException(status_code=404, detail="کیف پول در این سازمان وجود ندارد")
+    if wallet.owner_type == "user" and wallet.owner_reference == str(user.id):
+        raise HTTPException(status_code=403, detail="شارژ کیف پول متعلق به خود کارشناس مجاز نیست")
+    if data.amount > WALLET_FUNDING_MAX_PER_OPERATION:
+        raise HTTPException(status_code=409, detail="مبلغ از سقف مجاز یک عملیات شارژ بیشتر است؛ تأیید جداگانه‌ی مدیریت مالی لازم است")
     try:
         entry = operational_models.apply_credit_command(db, tenant_id=user.tenant_id, wallet_id=wallet_id, command_id=data.command_id, entry_type=data.entry_type, amount=data.amount)
+        if entry in db.new:
+            _platform_audit(db, user, "wallet.allocate", "wallet", {"wallet_id": wallet_id, "owner_type": wallet.owner_type, "owner_reference": wallet.owner_reference, "amount": data.amount, "command_id": data.command_id})
         db.commit()
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
@@ -1756,8 +1808,19 @@ async def payment_callback(provider_key: str, request: Request, x_payment_signat
     return {"status": "accepted", "payment_status": intent.status}
 
 
+REFUND_SETTLED_STATUSES = ("requested", "pending_review")  # amounts already claimed against a captured payment
+
+
 @app.post("/payments/{payment_id}/refunds", status_code=status.HTTP_202_ACCEPTED)
 def request_refund(payment_id: str, data: RefundIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    """Customer refund request (security review 1405-08-17, M-1). The refundable
+    amount is computed server-side: with a verified cancellation policy on a
+    reservation that is already in a cancellation/refund state, the request is
+    capped at total - penalty and goes straight to the provider queue
+    ("requested"). Otherwise no penalty can be computed here, so the request is
+    capped at what is still refundable on the payment and parked as
+    "pending_review" until finance sets the final amount (POST /refunds/{id}/review);
+    a provider callback can never settle a pending_review refund."""
     intent = db.scalar(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.id == payment_id, operational_models.PaymentIntent.tenant_id == user.tenant_id, operational_models.PaymentIntent.user_id == user.id).with_for_update())
     if intent is None:
         raise HTTPException(status_code=404, detail="پرداخت در این حساب وجود ندارد")
@@ -1765,15 +1828,49 @@ def request_refund(payment_id: str, data: RefundIn, user: User = Depends(current
     if existing:
         if existing.payment_intent_id != intent.id or existing.amount != data.amount:
             raise HTTPException(status_code=409, detail="کلید تکرار برای درخواست دیگری استفاده شده است")
-        return {"id": existing.id, "status": existing.status, "amount": existing.amount}
-    pending_refunds = db.scalar(select(func.coalesce(func.sum(operational_models.RefundRecord.amount), 0)).where(operational_models.RefundRecord.tenant_id == user.tenant_id, operational_models.RefundRecord.payment_intent_id == intent.id, operational_models.RefundRecord.status == "requested")) or 0
-    if intent.status != "captured" or data.amount > intent.captured_amount - intent.refunded_amount - int(pending_refunds):
+        return {"id": existing.id, "status": existing.status, "amount": existing.amount, "penalty_status": "verified_policy" if existing.status == "requested" else "pending_review"}
+    pending_refunds = db.scalar(select(func.coalesce(func.sum(operational_models.RefundRecord.amount), 0)).where(operational_models.RefundRecord.tenant_id == user.tenant_id, operational_models.RefundRecord.payment_intent_id == intent.id, operational_models.RefundRecord.status.in_(REFUND_SETTLED_STATUSES))) or 0
+    remaining = intent.captured_amount - intent.refunded_amount - int(pending_refunds)
+    if intent.status != "captured" or data.amount > remaining:
         raise HTTPException(status_code=409, detail="مبلغ قابل استرداد کافی نیست")
-    refund = operational_models.RefundRecord(tenant_id=user.tenant_id, payment_intent_id=intent.id, command_id=data.command_id, amount=data.amount)
+    reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == intent.reservation_id, operational_models.Reservation.tenant_id == user.tenant_id))
+    quote = _verified_cancellation_quote(reservation) if reservation is not None and reservation.status in {"cancel_requested", "refund_requested", "cancelled"} else None
+    penalty_amount = None
+    if quote is not None:
+        refundable = int(quote["refundable_amount"]) - intent.refunded_amount - int(pending_refunds)
+        if data.amount > refundable:
+            raise HTTPException(status_code=409, detail=f"طبق قوانین کنسلی تأییدشده حداکثر {max(refundable, 0):,} ریال قابل استرداد است")
+        refund_status, penalty_status, penalty_amount = "requested", "verified_policy", int(quote["penalty_amount"])
+    else:
+        refund_status, penalty_status = "pending_review", "pending_review"
+    refund = operational_models.RefundRecord(tenant_id=user.tenant_id, payment_intent_id=intent.id, command_id=data.command_id, amount=data.amount, status=refund_status)
     db.add(refund); db.flush()
-    db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="refund", aggregate_id=refund.id, event_type="refund.requested", payload_json=json.dumps({"refund_id": refund.id, "payment_intent_id": intent.id, "amount": refund.amount}), correlation_id=str(uuid.uuid4()), idempotency_key=data.command_id))
+    db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="refund", aggregate_id=refund.id, event_type=f"refund.{refund_status}", payload_json=json.dumps({"refund_id": refund.id, "payment_intent_id": intent.id, "amount": refund.amount, "penalty_status": penalty_status, "penalty_amount": penalty_amount}), correlation_id=str(uuid.uuid4()), idempotency_key=data.command_id))
     db.commit()
     record_business_event("refund", "requested")
+    return {"id": refund.id, "status": refund.status, "amount": refund.amount, "penalty_status": penalty_status, "penalty_amount": penalty_amount}
+
+
+class RefundReviewIn(BaseModel): approve: bool; amount: Optional[int] = Field(default=None, gt=0); note: Optional[str] = Field(default=None, max_length=1000)
+
+
+@app.post("/refunds/{refund_id}/review")
+def review_refund(refund_id: str, data: RefundReviewIn, user: User = Depends(require_permission("refund:manage")), db: Session = Depends(get_db)) -> dict:
+    """Finance decision on a pending_review refund: approve with the final
+    (penalty-adjusted) amount, which can only be lower or equal to the request."""
+    refund = db.scalar(select(operational_models.RefundRecord).where(operational_models.RefundRecord.id == refund_id, operational_models.RefundRecord.tenant_id == user.tenant_id).with_for_update())
+    if refund is None: raise HTTPException(status_code=404, detail="درخواست استرداد وجود ندارد")
+    if refund.status != "pending_review": raise HTTPException(status_code=409, detail="این درخواست قبلاً تعیین تکلیف شده است")
+    requested = refund.amount
+    if data.approve:
+        amount = data.amount or refund.amount
+        if amount > refund.amount: raise HTTPException(status_code=409, detail="مبلغ تأییدی نمی‌تواند از مبلغ درخواستی بیشتر باشد")
+        refund.amount, refund.status = amount, "requested"
+    else:
+        refund.status = "rejected"
+    _platform_audit(db, user, f"refund.review.{'approved' if data.approve else 'rejected'}", "refund", {"refund_id": refund.id, "requested_amount": requested, "approved_amount": refund.amount if data.approve else 0, "note": data.note})
+    db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="refund", aggregate_id=refund.id, event_type=f"refund.{refund.status}", payload_json=json.dumps({"refund_id": refund.id, "payment_intent_id": refund.payment_intent_id, "amount": refund.amount}), correlation_id=str(uuid.uuid4()), idempotency_key=f"refund-review:{refund.id}"))
+    db.commit()
     return {"id": refund.id, "status": refund.status, "amount": refund.amount}
 
 

@@ -1,0 +1,3 @@
+FAILED tests/test_booking_financial_journey.py::test_organization_credit_and_wallet_funding_reserve_capture_release_and_isolation
+FAILED tests/test_final_internal_domains.py::test_installment_execution_and_settlement_posting_are_tenant_safe
+2 failed, 607 passed, 7 skipped, 1 warning in 50.78s

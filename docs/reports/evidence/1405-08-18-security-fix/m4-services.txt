@@ -1,0 +1,16 @@
+=== assistant-service
+fastapi                 0.162.0
+pytest                  9.0.3
+starlette               1.10.0
+52 passed, 1 warning in 1.23s
+import ok FastAPI
+No known vulnerabilities found
+=== search-service
+fastapi                 0.162.0
+pytest                  9.0.3
+starlette               1.10.0
+127 passed, 1 warning in 2.20s
+import ok FastAPI
+No known vulnerabilities found
+assistant-service /health: 200
+search-service /health: 200

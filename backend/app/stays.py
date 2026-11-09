@@ -218,6 +218,24 @@ def stays_router(get_db, current_user, role_has_permission, User, audit=None, op
             raise HTTPException(status_code=403, detail="دسترسی مدیریت موجودی لازم است")
         return user
 
+    def _own(db, user, supplier_id) -> None:
+        """Security review H-2: a supplier account only reaches contracts of its own suppliers."""
+        if any(role_has_permission(user.role, p) for p in ("platform:manage", "tenant:manage")):
+            return
+        scope = set(db.scalars(select(m.SupplierMembership.supplier_id).where(m.SupplierMembership.tenant_id == user.tenant_id, m.SupplierMembership.user_id == user.id)).all())
+        if supplier_id not in scope:
+            raise HTTPException(status_code=403, detail="این تأمین‌کننده به حساب جاری واگذار نشده است")
+
+    def _owned_contract(db, user, contract_id):
+        row = _get(db, HotelContract, user.tenant_id, contract_id)
+        _own(db, user, row.supplier_id)
+        return row
+
+    def _owned_room(db, user, room_id):
+        room = _get(db, ContractRoom, user.tenant_id, room_id)
+        _owned_contract(db, user, room.contract_id)
+        return room
+
     def _a(db, user, action, ref, detail=None):
         if audit:
             try:
@@ -247,9 +265,15 @@ def stays_router(get_db, current_user, role_has_permission, User, audit=None, op
     def contracts(user=Depends(admin), db: Session = Depends(get_db)):
         rows = db.execute(select(HotelContract, CatalogHotel.name_fa).join(CatalogHotel, CatalogHotel.id == HotelContract.hotel_id)
                           .where(HotelContract.tenant_id == user.tenant_id).order_by(HotelContract.valid_from.desc())).all()
+        if not any(role_has_permission(user.role, p) for p in ("platform:manage", "tenant:manage")):
+            scope = set(db.scalars(select(m.SupplierMembership.supplier_id).where(m.SupplierMembership.tenant_id == user.tenant_id, m.SupplierMembership.user_id == user.id)).all())
+            rows = [(c, n) for c, n in rows if c.supplier_id in scope]
         return {"items": [_cdict(c, n) for c, n in rows]}
 
     def _save_contract(db, user, row, data):
+        if row.supplier_id:
+            _own(db, user, row.supplier_id)
+        _own(db, user, data.supplier_id)
         if db.get(CatalogHotel, data.hotel_id) is None:
             raise HTTPException(status_code=422, detail="هتل در فهرست هتل‌ها پیدا نشد")
         if db.scalar(select(m.Supplier.id).where(m.Supplier.id == data.supplier_id, m.Supplier.tenant_id == user.tenant_id)) is None:
@@ -278,12 +302,12 @@ def stays_router(get_db, current_user, role_has_permission, User, audit=None, op
 
     @api.get("/stays/contracts/{contract_id}/rooms")
     def rooms(contract_id: str, user=Depends(admin), db: Session = Depends(get_db)):
-        _get(db, HotelContract, user.tenant_id, contract_id)
+        _owned_contract(db, user, contract_id)
         return {"items": [_rdict(r) for r in db.scalars(select(ContractRoom).where(ContractRoom.tenant_id == user.tenant_id, ContractRoom.contract_id == contract_id).order_by(ContractRoom.name))]}
 
     @api.post("/stays/contracts/{contract_id}/rooms", status_code=201)
     def add_room(contract_id: str, data: RoomIn, user=Depends(admin), db: Session = Depends(get_db)):
-        _get(db, HotelContract, user.tenant_id, contract_id)
+        _owned_contract(db, user, contract_id)
         row = ContractRoom(tenant_id=user.tenant_id, contract_id=contract_id, **data.model_dump())
         db.add(row)
         db.commit()
@@ -291,7 +315,7 @@ def stays_router(get_db, current_user, role_has_permission, User, audit=None, op
 
     @api.put("/stays/contracts/{contract_id}/rooms/{room_id}")
     def update_room(contract_id: str, room_id: str, data: RoomIn, user=Depends(admin), db: Session = Depends(get_db)):
-        row = _get(db, ContractRoom, user.tenant_id, room_id)
+        row = _owned_room(db, user, room_id)
         if row.contract_id != contract_id:
             raise HTTPException(status_code=404, detail="یافت نشد")
         for k, v in data.model_dump().items():
@@ -301,7 +325,7 @@ def stays_router(get_db, current_user, role_has_permission, User, audit=None, op
 
     @api.get("/stays/rooms/{room_id}/calendar")
     def calendar(room_id: str, date_from: str, date_to: str, user=Depends(admin), db: Session = Depends(get_db)):
-        room = _get(db, ContractRoom, user.tenant_id, room_id)
+        room = _owned_room(db, user, room_id)
         rows = {r.night: r for r in db.scalars(select(RoomNight).where(RoomNight.tenant_id == user.tenant_id, RoomNight.room_id == room.id,
                                                                        RoomNight.night >= date_from, RoomNight.night <= date_to))}
         d0, d1 = date.fromisoformat(date_from), date.fromisoformat(date_to)
@@ -320,7 +344,7 @@ def stays_router(get_db, current_user, role_has_permission, User, audit=None, op
 
     @api.put("/stays/rooms/{room_id}/calendar")
     def set_calendar(room_id: str, data: CalendarIn, user=Depends(admin), db: Session = Depends(get_db)):
-        room = _get(db, ContractRoom, user.tenant_id, room_id)
+        room = _owned_room(db, user, room_id)
         d0, d1 = date.fromisoformat(data.date_from), date.fromisoformat(data.date_to)
         if d1 < d0 or (d1 - d0).days > 400:
             raise HTTPException(status_code=422, detail="بازه‌ی تاریخ نامعتبر است (حداکثر ۴۰۰ روز)")

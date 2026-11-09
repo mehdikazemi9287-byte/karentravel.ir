@@ -50,6 +50,7 @@
  ],
  "finance_operator": [
   "approval:decide",
+  "credit:fund",
   "credit:read",
   "installment:manage",
   "invoice:manage",

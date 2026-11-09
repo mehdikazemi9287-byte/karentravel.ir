@@ -243,15 +243,47 @@ def render_contract(body: str, values: dict) -> str:
 def inventory_router(get_db, current_user, role_has_permission, User, audit=None):
     api = APIRouter(tags=["inventory"])
 
+    # Security review 1405-08-17 (H-2): a supplier account (inventory:manage) is
+    # NOT tenant staff. Tenant-wide objects (routes, suppliers, contract texts,
+    # passenger manifests, sales report) need a tenant/platform admin or staff
+    # role; a supplier only reaches flight series/flights of its own suppliers.
+    def _is_tenant_admin(user) -> bool:
+        return role_has_permission(user.role, "platform:manage") or role_has_permission(user.role, "tenant:manage")
+
+    def _is_staff(user) -> bool:
+        return any(role_has_permission(user.role, p) for p in ("platform:manage", "tenant:manage", "backoffice:read", "ledger:read"))
+
     def admin(user=Depends(current_user)):
-        if not (role_has_permission(user.role, "platform:manage") or role_has_permission(user.role, "tenant:manage") or role_has_permission(user.role, "inventory:manage")):
-            raise HTTPException(status_code=403, detail="دسترسی مدیریت موجودی لازم است")
+        if not _is_tenant_admin(user):
+            raise HTTPException(status_code=403, detail="دسترسی مدیریت موجودی مجموعه لازم است")
         return user
 
     def staff(user=Depends(current_user)):
-        if not any(role_has_permission(user.role, p) for p in ("platform:manage", "tenant:manage", "backoffice:read", "ledger:read", "inventory:manage")):
+        if not _is_staff(user):
             raise HTTPException(status_code=403, detail="دسترسی کارمند لازم است")
         return user
+
+    def editor(user=Depends(current_user)):
+        """Tenant admin, or a supplier account limited to its own suppliers (see _own)."""
+        if not (_is_tenant_admin(user) or role_has_permission(user.role, "inventory:manage")):
+            raise HTTPException(status_code=403, detail="دسترسی مدیریت موجودی لازم است")
+        return user
+
+    def viewer(user=Depends(current_user)):
+        if not (_is_staff(user) or role_has_permission(user.role, "inventory:manage")):
+            raise HTTPException(status_code=403, detail="دسترسی کارمند لازم است")
+        return user
+
+    def _supplier_ids(db, user) -> Optional[set]:
+        """None = unrestricted (tenant staff); otherwise the supplier ids assigned to this account."""
+        if _is_staff(user):
+            return None
+        return set(db.scalars(select(m.SupplierMembership.supplier_id).where(m.SupplierMembership.tenant_id == user.tenant_id, m.SupplierMembership.user_id == user.id)).all())
+
+    def _own(db, user, supplier_id) -> None:
+        scope = _supplier_ids(db, user)
+        if scope is not None and supplier_id not in scope:
+            raise HTTPException(status_code=403, detail="این تأمین‌کننده به حساب جاری واگذار نشده است")
 
     def _a(db, user, action, ref, detail=None):
         if audit:
@@ -269,7 +301,7 @@ def inventory_router(get_db, current_user, role_has_permission, User, audit=None
 
     # ---- routes
     @api.get("/inventory/routes")
-    def routes(user=Depends(staff), db: Session = Depends(get_db)):
+    def routes(user=Depends(viewer), db: Session = Depends(get_db)):
         rows = db.scalars(select(FlightRoute).where(FlightRoute.tenant_id == user.tenant_id).order_by(FlightRoute.origin, FlightRoute.destination)).all()
         return {"items": [{k: getattr(r, k) for k in ("id", "origin", "destination", "origin_city", "destination_city", "scope", "status")} for r in rows]}
 
@@ -296,8 +328,12 @@ def inventory_router(get_db, current_user, role_has_permission, User, audit=None
         return _save_route(db, user, _get(db, FlightRoute, user.tenant_id, route_id), data)
 
     @api.get("/inventory/suppliers")
-    def suppliers(user=Depends(staff), db: Session = Depends(get_db)):
-        rows = db.scalars(select(m.Supplier).where(m.Supplier.tenant_id == user.tenant_id).order_by(m.Supplier.display_name)).all()
+    def suppliers(user=Depends(viewer), db: Session = Depends(get_db)):
+        q = select(m.Supplier).where(m.Supplier.tenant_id == user.tenant_id)
+        scope = _supplier_ids(db, user)
+        if scope is not None:
+            q = q.where(m.Supplier.id.in_(scope))
+        rows = db.scalars(q.order_by(m.Supplier.display_name)).all()
         return {"items": [{"id": s.id, "name": s.display_name, "type": s.supplier_type, "status": s.status} for s in rows]}
 
     @api.post("/inventory/suppliers", status_code=201)
@@ -311,10 +347,17 @@ def inventory_router(get_db, current_user, role_has_permission, User, audit=None
 
     # ---- series
     @api.get("/inventory/flight-series")
-    def list_series(user=Depends(staff), db: Session = Depends(get_db)):
-        return {"items": [_series_dict(s) for s in db.scalars(select(FlightSeries).where(FlightSeries.tenant_id == user.tenant_id).order_by(FlightSeries.date_from.desc()))]}
+    def list_series(user=Depends(viewer), db: Session = Depends(get_db)):
+        q = select(FlightSeries).where(FlightSeries.tenant_id == user.tenant_id)
+        scope = _supplier_ids(db, user)
+        if scope is not None:
+            q = q.where(FlightSeries.supplier_id.in_(scope))
+        return {"items": [_series_dict(s) for s in db.scalars(q.order_by(FlightSeries.date_from.desc()))]}
 
     def _save_series(db, user, row, data):
+        if row.supplier_id:
+            _own(db, user, row.supplier_id)
+        _own(db, user, data.supplier_id)
         _get(db, FlightRoute, user.tenant_id, data.route_id)
         sup = db.scalar(select(m.Supplier).where(m.Supplier.id == data.supplier_id, m.Supplier.tenant_id == user.tenant_id))
         if sup is None:
@@ -335,20 +378,21 @@ def inventory_router(get_db, current_user, role_has_permission, User, audit=None
         return _series_dict(row)
 
     @api.post("/inventory/flight-series", status_code=201)
-    def create_series(data: SeriesIn, user=Depends(admin), db: Session = Depends(get_db)):
+    def create_series(data: SeriesIn, user=Depends(editor), db: Session = Depends(get_db)):
         row = FlightSeries(tenant_id=user.tenant_id)
         db.add(row)
         return _save_series(db, user, row, data)
 
     @api.put("/inventory/flight-series/{series_id}")
-    def update_series(series_id: str, data: SeriesIn, user=Depends(admin), db: Session = Depends(get_db)):
+    def update_series(series_id: str, data: SeriesIn, user=Depends(editor), db: Session = Depends(get_db)):
         return _save_series(db, user, _get(db, FlightSeries, user.tenant_id, series_id), data)
 
     @api.post("/inventory/flight-series/{series_id}/generate")
-    def generate(series_id: str, user=Depends(admin), db: Session = Depends(get_db)):
+    def generate(series_id: str, user=Depends(editor), db: Session = Depends(get_db)):
         """Create the dated flights of a series (idempotent) and publish each as a bookable offer.
         Existing flights keep their sold seats; their schedule/price follow the series."""
         s = _get(db, FlightSeries, user.tenant_id, series_id, lock=True)
+        _own(db, user, s.supplier_id)
         r = _get(db, FlightRoute, user.tenant_id, s.route_id)
         sched = json.loads(s.schedule_json or "{}")
         now = datetime.now(timezone.utc)
@@ -395,9 +439,12 @@ def inventory_router(get_db, current_user, role_has_permission, User, audit=None
 
     @api.get("/inventory/flights")
     def flights(date_from: Optional[str] = None, date_to: Optional[str] = None, route_id: Optional[str] = None, series_id: Optional[str] = None,
-                limit: int = Query(default=200, ge=1, le=1000), user=Depends(staff), db: Session = Depends(get_db)):
+                limit: int = Query(default=200, ge=1, le=1000), user=Depends(viewer), db: Session = Depends(get_db)):
         q = (select(FlightInstance, FlightSeries, FlightRoute).join(FlightSeries, FlightSeries.id == FlightInstance.series_id)
              .join(FlightRoute, FlightRoute.id == FlightSeries.route_id).where(FlightInstance.tenant_id == user.tenant_id))
+        scope = _supplier_ids(db, user)
+        if scope is not None:
+            q = q.where(FlightSeries.supplier_id.in_(scope))
         if date_from: q = q.where(FlightInstance.flight_date >= date_from)
         if date_to: q = q.where(FlightInstance.flight_date <= date_to)
         if route_id: q = q.where(FlightSeries.route_id == route_id)
@@ -407,9 +454,10 @@ def inventory_router(get_db, current_user, role_has_permission, User, audit=None
         return {"items": items, "totals": {"capacity": sum(x["capacity"] for x in items), "sold": sum(x["sold"] for x in items)}}
 
     @api.put("/inventory/flights/{instance_id}")
-    def update_flight(instance_id: str, data: InstanceUpdateIn, user=Depends(admin), db: Session = Depends(get_db)):
+    def update_flight(instance_id: str, data: InstanceUpdateIn, user=Depends(editor), db: Session = Depends(get_db)):
         i = _get(db, FlightInstance, user.tenant_id, instance_id, lock=True)
         s = _get(db, FlightSeries, user.tenant_id, i.series_id)
+        _own(db, user, s.supplier_id)
         r = _get(db, FlightRoute, user.tenant_id, s.route_id)
         sold = _sold(db, i)
         if data.capacity is not None:

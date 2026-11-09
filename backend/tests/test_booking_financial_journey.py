@@ -68,10 +68,11 @@ def test_organization_credit_and_wallet_funding_reserve_capture_release_and_isol
         credit_account = CreditAccount(tenant_id=owner.tenant_id, organization_id=organization.id, currency="IRR", limit_amount=1_500_000); db.add(credit_account); db.flush()
         db.commit(); credit_account_id = credit_account.id
 
-    # Wallet is created self-service with zero balance; must be topped up by an admin allocate first.
+    # Wallet is created self-service with zero balance; must be topped up by a finance allocate first
+    # (organization admins can no longer fund wallets - security review 1405-08-17, H-1).
     wallet = client.post("/me/wallets", headers={**auth(employee), "Idempotency-Key": f"fin-wallet-{suffix}"}, json={"currency": "IRR"}).json()
-    org_admin = login(client, "org-admin@aftab.test")
-    allocate = client.post(f"/wallets/{wallet['id']}/commands", headers=auth(org_admin), json={"command_id": f"fin-allocate-{suffix}", "entry_type": "allocate", "amount": 1_000_000})
+    finance = login(client, "finance@aftab.test")
+    allocate = client.post(f"/wallets/{wallet['id']}/commands", headers=auth(finance), json={"command_id": f"fin-allocate-{suffix}", "entry_type": "allocate", "amount": 1_000_000})
     assert allocate.status_code == 200 and allocate.json()["available"] == 1_000_000
 
     # Organization credit is visible to the employee via /me/organization-credit with real ledger-derived balances.
