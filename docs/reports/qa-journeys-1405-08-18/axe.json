@@ -1,0 +1,90 @@
+{
+ "p1-elder-d/": [
+  {
+   "id": "color-contrast",
+   "impact": "serious",
+   "n": 2,
+   "sample": "#node-45_6 ; .nl-toggle"
+  }
+ ],
+ "p1-elder-d/trains": [
+  {
+   "id": "aria-required-children",
+   "impact": "critical",
+   "n": 1,
+   "sample": ".fs-tabs"
+  },
+  {
+   "id": "color-contrast",
+   "impact": "serious",
+   "n": 4,
+   "sample": "#node-45_6 ; .fs-go"
+  }
+ ],
+ "p1-elder-d/flights": [
+  {
+   "id": "aria-required-children",
+   "impact": "critical",
+   "n": 1,
+   "sample": ".fs-tabs"
+  },
+  {
+   "id": "color-contrast",
+   "impact": "serious",
+   "n": 4,
+   "sample": "#node-45_6 ; .fs-seg > button[type=\"button\"]:nth-child(2)"
+  }
+ ],
+ "p1-elder-d/login": [
+  {
+   "id": "color-contrast",
+   "impact": "serious",
+   "n": 4,
+   "sample": "#node-45_6 ; .eyebrow"
+  }
+ ],
+ "p1-elder-m/": [
+  {
+   "id": "color-contrast",
+   "impact": "serious",
+   "n": 2,
+   "sample": "#node-45_6 ; .nl-toggle"
+  }
+ ],
+ "p1-elder-m/trains": [
+  {
+   "id": "aria-required-children",
+   "impact": "critical",
+   "n": 1,
+   "sample": ".fs-tabs"
+  },
+  {
+   "id": "color-contrast",
+   "impact": "serious",
+   "n": 4,
+   "sample": "#node-45_6 ; .fs-go"
+  }
+ ],
+ "p1-elder-m/flights": [
+  {
+   "id": "aria-required-children",
+   "impact": "critical",
+   "n": 1,
+   "sample": ".fs-tabs"
+  },
+  {
+   "id": "color-contrast",
+   "impact": "serious",
+   "n": 4,
+   "sample": "#node-45_6 ; .fs-seg > button[type=\"button\"]:nth-child(2)"
+  }
+ ],
+ "p1-elder-m/login": [
+  {
+   "id": "color-contrast",
+   "impact": "serious",
+   "n": 4,
+   "sample": "#node-45_6 ; .eyebrow"
+  }
+ ]
+}

@@ -1,0 +1,1888 @@
+[
+{
+"persona": "p5-orgadmin-d",
+"id": "001",
+"name": "ورود سازمانی با OTP (UI /login، حالت dev)",
+"status": "BLOCKED",
+"note": "OTP code is never delivered: no SMS/OTP provider in dev and no dev-echo of the code (seed users have no mobile). challenge form shown=true; status=\"درخواست کد ثبت شد. کد دریافتی را وارد کنید؛ اگر پیامک نرسید، از پشتیبانی راهنمایی بگیرید.\". Session injected via /auth/dev-login for the rest.",
+"url": "/login",
+"shot": "/home/claude/qa-journeys/shots/p5-orgadmin-d-001.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p5-orgadmin-d",
+"id": "002",
+"name": "داشبورد سازمان /organization",
+"status": "PASS",
+"note": "نمای کلی | کارکنان، درخواست‌های سفر و وضعیت سازمان. | [QA-DEMO] سازمان آفتاب | کارکنان | ۳ | واحدها | ۰ | مراکز هزینه | ۰ | درخواست‌های سفر | ۰ | در انتظار تأیی",
+"url": "/organization",
+"shot": "/home/claude/qa-journeys/shots/p5-orgadmin-d-002.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p5-orgadmin-d",
+"id": "003",
+"name": "مدیریت کارکنان: افزودن/مشاهده",
+"status": "PASS",
+"note": "members table lists 3 members (emails as identifiers)",
+"url": "/organization/members",
+"shot": "/home/claude/qa-journeys/shots/p5-orgadmin-d-003.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p5-orgadmin-d",
+"id": "004",
+"name": "سیاست سفر: ثبت سقف ۳۰م و الزام تأیید",
+"status": "PASS",
+"note": "policy saved via API (UI edit form exists); page: سیاست سفر | قاعده‌هایی که هر درخواست سفر با آن سنجیده می‌شود. | سیاست سفر جاری | ویرایش سیاست | نسخهٔ ۱ — هر تغییر یک نسخهٔ جدید می‌سازد و درخواست‌های قبلی با ن",
+"url": "/organization/policy",
+"shot": "/home/claude/qa-journeys/shots/p5-orgadmin-d-004.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p5-orgadmin-d",
+"id": "005",
+"name": "اعتبار سازمانی /organization/credit",
+"status": "PASS",
+"note": "limit 50M visible",
+"url": "/organization/credit",
+"shot": "/home/claude/qa-journeys/shots/p5-orgadmin-d-005.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p3-employee-d",
+"id": "006",
+"name": "ثبت درخواست سفر مأموریت (approval workflow)",
+"status": "PASS",
+"note": "request 298dde96-4391-4d0a-a263-4c401b3f014e policy=\"APPROVAL_REQUIRED\"",
+"url": "/organization/requests",
+"shot": "/home/claude/qa-journeys/shots/p3-employee-d-006.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p3-employee-d",
+"id": "007",
+"name": "تأیید درخواست توسط مدیر",
+"status": "PASS",
+"note": "approved: approved",
+"url": "/organization/requests",
+"shot": "/home/claude/qa-journeys/shots/p3-employee-d-007.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p3-employee-d",
+"id": "008",
+"name": "جست‌وجوی قطار از درخواست و رزرو",
+"status": "PASS",
+"note": "reservation 7c3e2a4e-3c6f-4541-ab17-0eb6605c6168",
+"url": "/checkout/7c3e2a4e-3c6f-4541-ab17-0eb6605c6168",
+"shot": "/home/claude/qa-journeys/shots/p3-employee-d-008.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p3-employee-d",
+"id": "009",
+"name": "چک‌اوت با اعتبار سازمانی (کل مبلغ)",
+"status": "PASS",
+"note": "credit funded 3900000; stage awaiting_fulfillment",
+"url": "/checkout/7c3e2a4e-3c6f-4541-ab17-0eb6605c6168",
+"shot": "/home/claude/qa-journeys/shots/p3-employee-d-009.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p3-employee-d",
+"id": "010",
+"name": "اتصال رزرو به درخواست تأییدشده",
+"status": "PASS",
+"note": "linked",
+"url": "/checkout/7c3e2a4e-3c6f-4541-ab17-0eb6605c6168",
+"shot": "/home/claude/qa-journeys/shots/p3-employee-d-010.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p3-employee-d",
+"id": "011",
+"name": "مانده اعتبار پس از رزرو",
+"status": "PASS",
+"note": "available=28300000 reserved=21700000",
+"url": "/checkout/7c3e2a4e-3c6f-4541-ab17-0eb6605c6168",
+"shot": "/home/claude/qa-journeys/shots/p3-employee-d-011.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p3-employee-d",
+"id": "012",
+"name": "فاکتور / صورت‌حساب کارمند",
+"status": "BLOCKED",
+"note": "invoice issuance requires finance_operator (invoice:manage) after confirmation; employee sees: پرداخت و فاکتور | پرداخت‌ها، فاکتورها و اقساط. | پرداخت‌ها | وضعیت\tمبلغ\tپرداخت‌شده\tمستردشده | created\t۶۸٬۰۰۰٬۰۰۰ ریال\t۰ ریال\t۰ ریال\tجزئیات پ",
+"url": "/account/payments",
+"shot": "/home/claude/qa-journeys/shots/p3-employee-d-012.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p3-employee-d",
+"id": "013",
+"name": "وضعیت رزرو در سفرهای من (برچسب فارسی)",
+"status": "FAIL",
+"note": "raw status codes: planned,reserved",
+"url": "/trips",
+"shot": "/home/claude/qa-journeys/shots/p3-employee-d-013.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p3-employee-m",
+"id": "014",
+"name": "ثبت درخواست سفر مأموریت (approval workflow)",
+"status": "PASS",
+"note": "request 31948eac-6431-42ae-8a36-0b0c67de28c7 policy=\"APPROVAL_REQUIRED\"",
+"url": "/organization/requests",
+"shot": "/home/claude/qa-journeys/shots/p3-employee-m-014.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p3-employee-m",
+"id": "015",
+"name": "تأیید درخواست توسط مدیر",
+"status": "PASS",
+"note": "approved: approved",
+"url": "/organization/requests",
+"shot": "/home/claude/qa-journeys/shots/p3-employee-m-015.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p3-employee-m",
+"id": "016",
+"name": "جست‌وجوی قطار از درخواست و رزرو",
+"status": "PASS",
+"note": "reservation 7f5e8e6b-9bd4-46dc-998c-c22d8b89ee5a",
+"url": "/checkout/7f5e8e6b-9bd4-46dc-998c-c22d8b89ee5a",
+"shot": "/home/claude/qa-journeys/shots/p3-employee-m-016.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p3-employee-m",
+"id": "017",
+"name": "چک‌اوت با اعتبار سازمانی (کل مبلغ)",
+"status": "PASS",
+"note": "credit funded 3900000; stage awaiting_fulfillment",
+"url": "/checkout/7f5e8e6b-9bd4-46dc-998c-c22d8b89ee5a",
+"shot": "/home/claude/qa-journeys/shots/p3-employee-m-017.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p3-employee-m",
+"id": "018",
+"name": "اتصال رزرو به درخواست تأییدشده",
+"status": "PASS",
+"note": "linked",
+"url": "/checkout/7f5e8e6b-9bd4-46dc-998c-c22d8b89ee5a",
+"shot": "/home/claude/qa-journeys/shots/p3-employee-m-018.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p3-employee-m",
+"id": "019",
+"name": "مانده اعتبار پس از رزرو",
+"status": "PASS",
+"note": "available=24400000 reserved=25600000",
+"url": "/checkout/7f5e8e6b-9bd4-46dc-998c-c22d8b89ee5a",
+"shot": "/home/claude/qa-journeys/shots/p3-employee-m-019.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p3-employee-m",
+"id": "020",
+"name": "فاکتور / صورت‌حساب کارمند",
+"status": "BLOCKED",
+"note": "invoice issuance requires finance_operator (invoice:manage) after confirmation; employee sees: پرداخت و فاکتور | پرداخت‌ها، فاکتورها و اقساط. | پرداخت‌ها | created | ۶۸٬۰۰۰٬۰۰۰ ریال | ۰ ریال | ۰ ریال | جزئیات پرداخت | فاکتورها | فاکتور",
+"url": "/account/payments",
+"shot": "/home/claude/qa-journeys/shots/p3-employee-m-020.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p3-employee-m",
+"id": "021",
+"name": "وضعیت رزرو در سفرهای من (برچسب فارسی)",
+"status": "FAIL",
+"note": "raw status codes: planned,reserved",
+"url": "/trips",
+"shot": "/home/claude/qa-journeys/shots/p3-employee-m-021.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p4-buyer-d",
+"id": "022",
+"name": "جست‌وجوی پرواز برای ۳ مسافر",
+"status": "PASS",
+"note": "results for 3 passengers",
+"url": "/search/results?vertical=flight&origin=%D8%AA%D9%87%D8%B1%D8%A7%D9%86&destination=%D8%B4%DB%8C%D8%B1%D8%A7%D8%B2&depart=2026-11-23&adults=3&trip_type=one_way&sort=recommended",
+"shot": "/home/claude/qa-journeys/shots/p4-buyer-d-022.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p4-buyer-d",
+"id": "023",
+"name": "بررسی قیمت ۳ صندلی",
+"status": "PASS",
+"note": "units=3 total=78000000",
+"url": "/checkout/a84384d5-915a-4c2e-9f2a-b2a1239a9016",
+"shot": "/home/claude/qa-journeys/shots/p4-buyer-d-023.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p4-buyer-d",
+"id": "024",
+"name": "افزودن ۳ مسافر دیگر (مسافران ذخیره‌شده)",
+"status": "PASS",
+"note": "selected ۳ of ۳",
+"url": "/checkout/a84384d5-915a-4c2e-9f2a-b2a1239a9016",
+"shot": "/home/claude/qa-journeys/shots/p4-buyer-d-024.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p4-buyer-d",
+"id": "025",
+"name": "فیلد کد ملی / تاریخ تولد / جنسیت برای صدور بلیت",
+"status": "PASS",
+"note": "national-code field present",
+"url": "/checkout/a84384d5-915a-4c2e-9f2a-b2a1239a9016",
+"shot": "/home/claude/qa-journeys/shots/p4-buyer-d-025.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p4-buyer-d",
+"id": "026",
+"name": "اعتبارسنجی کد ملی نامعتبر (API)",
+"status": "FAIL",
+"note": "POST /me/travellers with invalid national_code → 201; field silently ignored (TravellerIn has only full_name/profile_reference)",
+"url": "/checkout/a84384d5-915a-4c2e-9f2a-b2a1239a9016",
+"shot": "/home/claude/qa-journeys/shots/p4-buyer-d-026.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p4-buyer-d",
+"id": "027",
+"name": "اعتبار بیش از سقف (رزرو ۷۸م با سقف ۵۰م)",
+"status": "FAIL",
+"note": "button silently disabled; no Persian message that credit (مبلغ از اعتبار سازمانی — موجودی ۲۴٬۴۰۰٬۰۰۰ ریال) is below total 78000000. Customer not told why.",
+"url": "/checkout/a84384d5-915a-4c2e-9f2a-b2a1239a9016",
+"shot": "/home/claude/qa-journeys/shots/p4-buyer-d-027.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p4-buyer-d",
+"id": "028",
+"name": "تقسیم پرداخت: بخشی اعتبار + بقیه درگاه",
+"status": "PASS",
+"note": "split funding OK → remainder awaits (blocked) gateway; invoice preview: پیش‌فاکتور: ۷۸٬۰۰۰٬۰۰۰ ریال ",
+"url": "/checkout/a84384d5-915a-4c2e-9f2a-b2a1239a9016",
+"shot": "/home/claude/qa-journeys/shots/p4-buyer-d-028.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p4-buyer-d",
+"id": "029",
+"name": "رزرو به نمایندگی از کارمند دیگر (on behalf)",
+"status": "FAIL",
+"note": "no \"book on behalf\" flow: travellers are free-text names on buyer's own account; EnterpriseBookingHandoff states \"این مسیر خرید گروهی یا رزرو به نمایندگی از کارکنان نیست\"; members API for buyer → 403",
+"url": "/checkout/a84384d5-915a-4c2e-9f2a-b2a1239a9016",
+"shot": "/home/claude/qa-journeys/shots/p4-buyer-d-029.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p4-buyer-d",
+"id": "030",
+"name": "صورت‌حساب تجمیعی سازمان",
+"status": "BLOCKED",
+"note": "statement API 200; lists only invoices issued by finance for linked reservations — none can exist without fulfilment; items={\"linked_bookings\":2,\"items\":[],\"totals\":[]}",
+"url": "/checkout/a84384d5-915a-4c2e-9f2a-b2a1239a9016",
+"shot": "/home/claude/qa-journeys/shots/p4-buyer-d-030.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p5-orgadmin-d",
+"id": "031",
+"name": "رزروهای سازمان پس از اتصال",
+"status": "PASS",
+"note": "linked bookings visible",
+"url": "/organization/bookings",
+"shot": "/home/claude/qa-journeys/shots/p5-orgadmin-d-031.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p5-orgadmin-d",
+"id": "032",
+"name": "مصرف اعتبار در پنل سازمان",
+"status": "PASS",
+"note": "رزروشده | ۳۵٬۶۰۰٬۰۰۰ ریال ",
+"url": "/organization/credit",
+"shot": "/home/claude/qa-journeys/shots/p5-orgadmin-d-032.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p5-orgadmin-d",
+"id": "033",
+"name": "گزارش CSV",
+"status": "PASS",
+"note": "csv organization-report-60cfa8bf.csv",
+"url": "/organization/reports",
+"shot": "/home/claude/qa-journeys/shots/p5-orgadmin-d-033.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p5-orgadmin-d",
+"id": "034",
+"name": "صفحه سازمان در موبایل",
+"status": "PASS",
+"note": "no overflow",
+"url": "/organization/members",
+"shot": "/home/claude/qa-journeys/shots/p5-orgadmin-d-034.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p1-elder-d",
+"id": "001",
+"name": "axe WCAG A/AA /",
+"status": "FAIL",
+"note": "color-contrast×2 [#node-45_6 ; .nl-toggle]",
+"url": "/",
+"shot": "/home/claude/qa-journeys/shots/p1-elder-d-001.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p1-elder-d",
+"id": "002",
+"name": "axe WCAG A/AA /trains",
+"status": "FAIL",
+"note": "aria-required-children×1 [.fs-tabs] | color-contrast×4 [#node-45_6 ; .fs-go]",
+"url": "/trains",
+"shot": "/home/claude/qa-journeys/shots/p1-elder-d-002.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p1-elder-d",
+"id": "003",
+"name": "axe WCAG A/AA /flights",
+"status": "FAIL",
+"note": "aria-required-children×1 [.fs-tabs] | color-contrast×4 [#node-45_6 ; .fs-seg > button[type=\"button\"]:nth-child(2)]",
+"url": "/flights",
+"shot": "/home/claude/qa-journeys/shots/p1-elder-d-003.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p1-elder-d",
+"id": "004",
+"name": "axe WCAG A/AA /login",
+"status": "FAIL",
+"note": "color-contrast×4 [#node-45_6 ; .eyebrow]",
+"url": "/login",
+"shot": "/home/claude/qa-journeys/shots/p1-elder-d-004.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p1-elder-d",
+"id": "005",
+"name": "اندازه فونت (حداقل ۱۶px برای سالمند)",
+"status": "FAIL",
+"note": "text nodes <14px: 25 ; histogram {\"11\":5,\"12\":8,\"13\":12,\"14\":16,\"15\":20,\"16\":1}",
+"url": "/trains",
+"shot": "/home/claude/qa-journeys/shots/p1-elder-d-005.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p1-elder-d",
+"id": "006",
+"name": "اندازه هدف لمسی (≥۴۴px) در /trains",
+"status": "FAIL",
+"note": "25 targets <44px: A:درباره ما(49x23), A:مجله سفر(61x23), A:خدمات سفر(73x23), A:تور(17x23), A:هتل(27x23), A:قطار(27x23), A:پرواز(27x23), INPUT:مبدأ(147x24), BUTTON:جابجایی مبدا و مقص(32x32), INPUT:مقصد(147x24), BUTTON:تاریخ سفر(242x36), BUTTON:مسافران۱ مسافر(215x36)",
+"url": "/trains",
+"shot": "/home/claude/qa-journeys/shots/p1-elder-d-006.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p1-elder-d",
+"id": "007",
+"name": "شماره پشتیبانی تلفنی قابل مشاهده",
+"status": "FAIL",
+"note": "tel link exists (1) but not above the fold on home; elder must scroll to footer",
+"url": "/",
+"shot": "/home/claude/qa-journeys/shots/p1-elder-d-007.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p1-elder-d",
+"id": "008",
+"name": "مسیر ساده خرید قطار (بدون ورود) → پیام فارسی ورود",
+"status": "PASS",
+"note": "anon sees NO final price; login CTA count=2; jargon check: UTC",
+"url": "/search/results?vertical=train&origin=%D8%AA%D9%87%D8%B1%D8%A7%D9%86&destination=%D9%85%D8%B4%D9%87%D8%AF&depart=2026-11-20&adults=1&sort=recommended",
+"shot": "/home/claude/qa-journeys/shots/p1-elder-d-008.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p1-elder-d",
+"id": "009",
+"name": "اصطلاحات فنی/انگلیسی در مسیر خرید (UTC, Offer, Checkout)",
+"status": "FAIL",
+"note": "jargon shown to customer on train results: UTC+",
+"url": "/search/results?vertical=train&origin=%D8%AA%D9%87%D8%B1%D8%A7%D9%86&destination=%D9%85%D8%B4%D9%87%D8%AF&depart=2026-11-20&adults=1&sort=recommended",
+"shot": "/home/claude/qa-journeys/shots/p1-elder-d-009.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p1-elder-d",
+"id": "010",
+"name": "پیام خطای فارسی برای شماره موبایل نامعتبر در ورود",
+"status": "PASS",
+"note": "msg=\"Please match the requested format.\"",
+"url": "/login",
+"shot": "/home/claude/qa-journeys/shots/p1-elder-d-010.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p1-elder-d",
+"id": "011",
+"name": "ناوبری فقط با کیبورد: Tab تا فرم جست‌وجو و فوکوس قابل دیدن",
+"status": "FAIL",
+"note": "skip-link=false; search origin reached at Tab #18; elements without visible focus ring=2: INPUT:مبدأ[NO-FOCUS-RING], INPUT:مقصد[NO-FOCUS-RING]",
+"url": "/trains",
+"shot": "/home/claude/qa-journeys/shots/p1-elder-d-011.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p1-elder-d",
+"id": "012",
+"name": "تکمیل جست‌وجوی قطار فقط با کیبورد",
+"status": "PASS",
+"note": "origin/dest via keyboard ok; date picker opened, focus now on \"تاریخ رفت۱۷ آبان ۱۴۰\" (focus after origin+2Tab: مقصد)",
+"url": "/trains",
+"shot": "/home/claude/qa-journeys/shots/p1-elder-d-012.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p1-elder-d",
+"id": "013",
+"name": "بزرگ‌نمایی ۲۰۰٪ (عرض مؤثر ۷۲۰px) بدون اسکرول افقی",
+"status": "PASS",
+"note": "no h-scroll at 720px: [[\"/\",0],[\"/trains\",0],[\"/search/results?vertical=train\",0],[\"/login\",0]]; root-font 200% clipped controls=0",
+"url": "/trains",
+"shot": "/home/claude/qa-journeys/shots/p1-elder-d-013.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p1-elder-m",
+"id": "014",
+"name": "axe WCAG A/AA /",
+"status": "FAIL",
+"note": "color-contrast×2 [#node-45_6 ; .nl-toggle]",
+"url": "/",
+"shot": "/home/claude/qa-journeys/shots/p1-elder-m-014.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p1-elder-m",
+"id": "015",
+"name": "axe WCAG A/AA /trains",
+"status": "FAIL",
+"note": "aria-required-children×1 [.fs-tabs] | color-contrast×4 [#node-45_6 ; .fs-go]",
+"url": "/trains",
+"shot": "/home/claude/qa-journeys/shots/p1-elder-m-015.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p1-elder-m",
+"id": "016",
+"name": "axe WCAG A/AA /flights",
+"status": "FAIL",
+"note": "aria-required-children×1 [.fs-tabs] | color-contrast×4 [#node-45_6 ; .fs-seg > button[type=\"button\"]:nth-child(2)]",
+"url": "/flights",
+"shot": "/home/claude/qa-journeys/shots/p1-elder-m-016.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p1-elder-m",
+"id": "017",
+"name": "axe WCAG A/AA /login",
+"status": "FAIL",
+"note": "color-contrast×4 [#node-45_6 ; .eyebrow]",
+"url": "/login",
+"shot": "/home/claude/qa-journeys/shots/p1-elder-m-017.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p1-elder-m",
+"id": "018",
+"name": "اندازه فونت (حداقل ۱۶px برای سالمند)",
+"status": "FAIL",
+"note": "text nodes <14px: 25 ; histogram {\"11\":5,\"12\":8,\"13\":12,\"14\":19,\"15\":17,\"16\":1}",
+"url": "/trains",
+"shot": "/home/claude/qa-journeys/shots/p1-elder-m-018.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p1-elder-m",
+"id": "019",
+"name": "اندازه هدف لمسی (≥۴۴px) در /trains",
+"status": "FAIL",
+"note": "25 targets <44px: A:درباره ما(41x19), A:مجله سفر(51x19), A:خدمات سفر(61x19), A:تور(14x19), A:هتل(23x19), A:قطار(23x19), A:پرواز(23x19), INPUT:مبدأ(285x24), BUTTON:جابجایی مبدا و مقص(40x40), INPUT:مقصد(285x24), BUTTON:تاریخ سفر(285x34), BUTTON:مسافران۱ مسافر(285x34)",
+"url": "/trains",
+"shot": "/home/claude/qa-journeys/shots/p1-elder-m-019.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p1-elder-m",
+"id": "020",
+"name": "شماره پشتیبانی تلفنی قابل مشاهده",
+"status": "FAIL",
+"note": "tel link exists (1) but not above the fold on home; elder must scroll to footer",
+"url": "/",
+"shot": "/home/claude/qa-journeys/shots/p1-elder-m-020.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p1-elder-m",
+"id": "021",
+"name": "مسیر ساده خرید قطار (بدون ورود) → پیام فارسی ورود",
+"status": "PASS",
+"note": "anon sees NO final price; login CTA count=2; jargon check: UTC",
+"url": "/search/results?vertical=train&origin=%D8%AA%D9%87%D8%B1%D8%A7%D9%86&destination=%D9%85%D8%B4%D9%87%D8%AF&depart=2026-11-20&adults=1&sort=recommended",
+"shot": "/home/claude/qa-journeys/shots/p1-elder-m-021.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p1-elder-m",
+"id": "022",
+"name": "اصطلاحات فنی/انگلیسی در مسیر خرید (UTC, Offer, Checkout)",
+"status": "FAIL",
+"note": "jargon shown to customer on train results: UTC+",
+"url": "/search/results?vertical=train&origin=%D8%AA%D9%87%D8%B1%D8%A7%D9%86&destination=%D9%85%D8%B4%D9%87%D8%AF&depart=2026-11-20&adults=1&sort=recommended",
+"shot": "/home/claude/qa-journeys/shots/p1-elder-m-022.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p1-elder-m",
+"id": "023",
+"name": "پیام خطای فارسی برای شماره موبایل نامعتبر در ورود",
+"status": "PASS",
+"note": "msg=\"Please match the requested format.\"",
+"url": "/login",
+"shot": "/home/claude/qa-journeys/shots/p1-elder-m-023.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p2-student-m",
+"id": "024",
+"name": "جست‌وجوی قطار ارزان (موبایل)",
+"status": "PASS",
+"note": "prices: ۳٬۹۰۰٬۰۰۰ ریال, ۴٬۸۰۰٬۰۰۰ ریال",
+"url": "/search/results?vertical=train&origin=%D8%AA%D9%87%D8%B1%D8%A7%D9%86&destination=%D9%85%D8%B4%D9%87%D8%AF&depart=2026-11-20&adults=1&sort=lowest_price",
+"shot": "/home/claude/qa-journeys/shots/p2-student-m-024.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p2-student-m",
+"id": "025",
+"name": "مرتب‌سازی «کمترین قیمت نهایی» در قطار",
+"status": "PASS",
+"note": "asc 3900000,4800000",
+"url": "/search/results?vertical=train&origin=%D8%AA%D9%87%D8%B1%D8%A7%D9%86&destination=%D9%85%D8%B4%D9%87%D8%AF&depart=2026-11-20&adults=1&sort=lowest_price",
+"shot": "/home/claude/qa-journeys/shots/p2-student-m-025.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p2-student-m",
+"id": "026",
+"name": "فیلتر حداکثر قیمت ۴٬۰۰۰٬۰۰۰",
+"status": "PASS",
+"note": "filtered to 1",
+"url": "/search/results?vertical=train&origin=%D8%AA%D9%87%D8%B1%D8%A7%D9%86&destination=%D9%85%D8%B4%D9%87%D8%AF&depart=2026-11-20&adults=1&sort=lowest_price",
+"shot": "/home/claude/qa-journeys/shots/p2-student-m-026.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p2-student-m",
+"id": "027",
+"name": "اطلاعات تخفیف دانشجویی / باشگاه مشتریان",
+"status": "FAIL",
+"note": "no student discount / club info for consumers; /account/benefits: مزایای سازمانی | عضویت سازمانی و اعتبار تخصیص‌یافته به شما. | سازمان‌های من | حساب شما به سازمانی متصل نیست؛ مزایا و اعتبار سازمانی فقط برای اعضای سازمان‌ها فعا",
+"url": "/account/benefits",
+"shot": "/home/claude/qa-journeys/shots/p2-student-m-027.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p2-student-m",
+"id": "028",
+"name": "رزرو قطار تا مرحله پرداخت (موبایل)",
+"status": "PASS",
+"note": "awaiting_payment",
+"url": "/checkout/cec2e9d1-93f6-4d19-8430-8767f7eed362",
+"shot": "/home/claude/qa-journeys/shots/p2-student-m-028.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p2-student-m",
+"id": "029",
+"name": "ورودی مبلغ کیف پول/اعتبار در موبایل (input type=number با ارقام فارسی)",
+"status": "PASS",
+"note": "placeholder step — covered by designer checks",
+"url": "/checkout/cec2e9d1-93f6-4d19-8430-8767f7eed362",
+"shot": "/home/claude/qa-journeys/shots/p2-student-m-029.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p2-student-m",
+"id": "030",
+"name": "پرداخت آنلاین",
+"status": "BLOCKED",
+"note": "no sandbox/test payment gateway configured (ZARINPAL_MODE=disabled) → 503",
+"url": "/checkout/cec2e9d1-93f6-4d19-8430-8767f7eed362",
+"shot": "/home/claude/qa-journeys/shots/p2-student-m-030.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-d",
+"id": "001",
+"name": "طراحی/RTL /",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-d-001.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-d",
+"id": "002",
+"name": "طراحی/RTL /flights",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/flights",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-d-002.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-d",
+"id": "003",
+"name": "طراحی/RTL /trains",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/trains",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-d-003.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-d",
+"id": "004",
+"name": "طراحی/RTL /hotels",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/hotels",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-d-004.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-d",
+"id": "005",
+"name": "طراحی/RTL /tours",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/tours",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-d-005.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-d",
+"id": "006",
+"name": "طراحی/RTL /login",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/login",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-d-006.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-d",
+"id": "007",
+"name": "طراحی/RTL /register",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/register",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-d-007.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-d",
+"id": "008",
+"name": "طراحی/RTL /support",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/support",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-d-008.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-d",
+"id": "009",
+"name": "طراحی/RTL /contact",
+"status": "FAIL",
+"note": "h-overflow 10000px by  ; fonts=Vazirmatn",
+"url": "/contact",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-d-009.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-d",
+"id": "010",
+"name": "طراحی/RTL /services",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/services",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-d-010.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-d",
+"id": "011",
+"name": "طراحی/RTL /villas",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/villas",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-d-011.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-d",
+"id": "012",
+"name": "طراحی/RTL /visa",
+"status": "FAIL",
+"note": "h-overflow 10000px by  ; fonts=Vazirmatn",
+"url": "/visa",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-d-012.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-d",
+"id": "013",
+"name": "طراحی/RTL /terms",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/terms",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-d-013.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-d",
+"id": "014",
+"name": "طراحی/RTL /privacy",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/privacy",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-d-014.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-d",
+"id": "015",
+"name": "طراحی/RTL /trips",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/trips",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-d-015.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-d",
+"id": "016",
+"name": "طراحی/RTL /account",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/account",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-d-016.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-d",
+"id": "017",
+"name": "طراحی/RTL /account/wallet",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/account/wallet",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-d-017.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-d",
+"id": "018",
+"name": "طراحی/RTL /account/payments",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/account/payments",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-d-018.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-d",
+"id": "019",
+"name": "طراحی/RTL /notifications",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/notifications",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-d-019.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-d",
+"id": "020",
+"name": "طراحی/RTL /organization",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/organization",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-d-020.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-d",
+"id": "021",
+"name": "طراحی/RTL /organization/members",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/organization/members",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-d-021.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-d",
+"id": "022",
+"name": "طراحی/RTL /search/results?vertical=train&origin=ته",
+"status": "FAIL",
+"note": "latin digits: 00 00 00 00 ; fonts=Vazirmatn",
+"url": "/search/results?vertical=train&origin=%D8%AA%D9%87%D8%B1%D8%A7%D9%86&destination=%D9%85%D8%B4%D9%87%D8%AF&depart=2026-11-20&adults=1&sort=recommended",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-d-022.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-d",
+"id": "023",
+"name": "طراحی/RTL /manage-booking/xx",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/manage-booking/xx",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-d-023.png",
+"console": [
+"Failed to load resource: the server responded with a status of 404 (Not Found)",
+"Failed to load resource: the server responded with a status of 404 (Not Found)"
+],
+"failed": [
+"404 GET WEB/manage-booking/xx",
+"404 GET API/catalog/legacy-route?path=manage-booking%2Fxx"
+]
+},
+{
+"persona": "p7-designer-m",
+"id": "024",
+"name": "طراحی/RTL /",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-m-024.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-m",
+"id": "025",
+"name": "طراحی/RTL /flights",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/flights",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-m-025.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-m",
+"id": "026",
+"name": "طراحی/RTL /trains",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/trains",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-m-026.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-m",
+"id": "027",
+"name": "طراحی/RTL /hotels",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/hotels",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-m-027.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-m",
+"id": "028",
+"name": "طراحی/RTL /tours",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/tours",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-m-028.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-m",
+"id": "029",
+"name": "طراحی/RTL /login",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/login",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-m-029.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-m",
+"id": "030",
+"name": "طراحی/RTL /register",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/register",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-m-030.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-m",
+"id": "031",
+"name": "طراحی/RTL /support",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/support",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-m-031.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-m",
+"id": "032",
+"name": "طراحی/RTL /contact",
+"status": "FAIL",
+"note": "h-overflow 8830px by  ; fonts=Vazirmatn",
+"url": "/contact",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-m-032.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-m",
+"id": "033",
+"name": "طراحی/RTL /services",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/services",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-m-033.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-m",
+"id": "034",
+"name": "طراحی/RTL /villas",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/villas",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-m-034.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-m",
+"id": "035",
+"name": "طراحی/RTL /visa",
+"status": "FAIL",
+"note": "h-overflow 8830px by  ; fonts=Vazirmatn",
+"url": "/visa",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-m-035.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-m",
+"id": "036",
+"name": "طراحی/RTL /terms",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/terms",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-m-036.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-m",
+"id": "037",
+"name": "طراحی/RTL /privacy",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/privacy",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-m-037.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-m",
+"id": "038",
+"name": "طراحی/RTL /trips",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/trips",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-m-038.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-m",
+"id": "039",
+"name": "طراحی/RTL /account",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/account",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-m-039.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-m",
+"id": "040",
+"name": "طراحی/RTL /account/wallet",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/account/wallet",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-m-040.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-m",
+"id": "041",
+"name": "طراحی/RTL /account/payments",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/account/payments",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-m-041.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-m",
+"id": "042",
+"name": "طراحی/RTL /notifications",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/notifications",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-m-042.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-m",
+"id": "043",
+"name": "طراحی/RTL /organization",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/organization",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-m-043.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-m",
+"id": "044",
+"name": "طراحی/RTL /organization/members",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/organization/members",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-m-044.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-m",
+"id": "045",
+"name": "طراحی/RTL /search/results?vertical=train&origin=ته",
+"status": "FAIL",
+"note": "latin digits: 00 00 00 00 ; fonts=Vazirmatn",
+"url": "/search/results?vertical=train&origin=%D8%AA%D9%87%D8%B1%D8%A7%D9%86&destination=%D9%85%D8%B4%D9%87%D8%AF&depart=2026-11-20&adults=1&sort=recommended",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-m-045.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p7-designer-m",
+"id": "046",
+"name": "طراحی/RTL /manage-booking/xx",
+"status": "PASS",
+"note": "ok fonts=Vazirmatn",
+"url": "/manage-booking/xx",
+"shot": "/home/claude/qa-journeys/shots/p7-designer-m-046.png",
+"console": [
+"Failed to load resource: the server responded with a status of 404 (Not Found)",
+"Failed to load resource: the server responded with a status of 404 (Not Found)"
+],
+"failed": [
+"404 GET WEB/manage-booking/xx",
+"404 GET API/catalog/legacy-route?path=manage-booking%2Fxx"
+]
+},
+{
+"persona": "p8-tech-d",
+"id": "047",
+"name": "صفحه 404 فارسی",
+"status": "PASS",
+"note": "404: ۴۰۴ | این صفحه پیدا نشد. | ممکن است آدرس اشتباه باشد یا صفحه جابه‌جا شده باشد. | بازگشت به صفحه اصلی",
+"url": "/no-such-page-qa",
+"shot": "/home/claude/qa-journeys/shots/p8-tech-d-047.png",
+"console": [
+"Failed to load resource: the server responded with a status of 404 (Not Found)",
+"Failed to load resource: the server responded with a status of 404 (Not Found)"
+],
+"failed": [
+"404 GET WEB/no-such-page-qa",
+"404 GET API/catalog/legacy-route?path=no-such-page-qa"
+]
+},
+{
+"persona": "p8-tech-d",
+"id": "048",
+"name": "رزرو ناموجود /manage-booking/<uuid>",
+"status": "FAIL",
+"note": "دریافت اطلاعات انجام نشد. | می‌توانید دوباره تلاش کنید یا از پشتیبانی راهنمایی بگیرید. | تماس با پشتیبانی | ۰۹۱۹۱۲۵۸۰۰۹ | اطلاعات تماس و راهنمای درخواست",
+"url": "/manage-booking/00000000-0000-4000-8000-000000000000",
+"shot": "/home/claude/qa-journeys/shots/p8-tech-d-048.png",
+"console": [
+"Failed to load resource: the server responded with a status of 404 (Not Found)",
+"Failed to load resource: the server responded with a status of 404 (Not Found)",
+"Failed to load resource: the server responded with a status of 404 (Not Found)"
+],
+"failed": [
+"404 GET API/reservations/00000000-0000-4000-8000-000000000000/cancellation-quote",
+"404 GET API/reservations/00000000-0000-4000-8000-000000000000/history",
+"404 GET API/reservations/00000000-0000-4000-8000-000000000000"
+]
+},
+{
+"persona": "p8-tech-d",
+"id": "049",
+"name": "خطای سرور 500 در API (شبیه‌سازی) → پیام فارسی",
+"status": "PASS",
+"note": "graceful: مرکز سفرهای من | سفرها، مدارک و کارهای باقی‌مانده | این اطلاعات مستقیماً از حساب و سازمان احرازشده دریافت می‌شود. | دریافت اطلاعات انجام نشد",
+"url": "/trips",
+"shot": "/home/claude/qa-journeys/shots/p8-tech-d-049.png",
+"console": [
+"Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+"Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+],
+"failed": [
+"500 GET API/me/trips",
+"500 GET API/me/reservations"
+]
+},
+{
+"persona": "p8-tech-d",
+"id": "050",
+"name": "انقضای نشست (توکن نامعتبر) در حین کار",
+"status": "PASS",
+"note": "re-verified manually: forged token + bad refresh → 401s → \"برای مشاهده این بخش وارد شوید\" (harness reload timeout earlier). shots/p8-session-expired.png",
+"url": "/trips",
+"shot": "/home/claude/qa-journeys/shots/p8-tech-d-050.png",
+"console": [
+"Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+"Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+"Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+"Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+],
+"failed": [
+"401 GET API/me/reservations",
+"401 GET API/me/trips",
+"401 GET API/me/notifications",
+"401 POST API/auth/refresh"
+]
+},
+{
+"persona": "p8-tech-d",
+"id": "051",
+"name": "پاسخ گم‌شده هنگام ثبت رزرو → بازیابی بدون رزرو تکراری",
+"status": "PASS",
+"note": "server created 1 reservation while response was lost; UI offered \"پیگیری همان رزرو\" and resumed same id → /checkout/88de45f3-14a6-498c-8332-62b3b16f1443",
+"url": "/checkout/88de45f3-14a6-498c-8332-62b3b16f1443",
+"shot": "/home/claude/qa-journeys/shots/p8-tech-d-051.png",
+"console": [
+"Failed to load resource: net::ERR_CONNECTION_RESET"
+],
+"failed": []
+},
+{
+"persona": "p8-tech-d",
+"id": "052",
+"name": "خروج و بازگشت با دکمه Back (عدم نمایش داده خصوصی)",
+"status": "PASS",
+"note": "no private data after Back",
+"url": "/checkout/88de45f3-14a6-498c-8332-62b3b16f1443",
+"shot": "/home/claude/qa-journeys/shots/p8-tech-d-052.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p8-tech-d",
+"id": "053",
+"name": "صفحات خصوصی بدون نشست",
+"status": "PASS",
+"note": "/trips:gated /account:gated /organization:gated /checkout/abc:gated /supplier:gated /agency:gated /finance:gated",
+"url": "/finance",
+"shot": "/home/claude/qa-journeys/shots/p8-tech-d-053.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p8-tech-d",
+"id": "054",
+"name": "دسترسی متقابل: مشتری رزرو دیگری را باز کند (IDOR)",
+"status": "PASS",
+"note": "denied 404",
+"url": "/finance",
+"shot": "/home/claude/qa-journeys/shots/p8-tech-d-054.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p8-tech-d",
+"id": "055",
+"name": "شناسه رزرو در URL صفحه pilot عمومی /pilot (حساب‌های آزمایشی)",
+"status": "FAIL",
+"note": "/pilot exposes demo dev-account picker and is reachable without auth (dev-login 404s in prod but page itself ships)",
+"url": "/pilot",
+"shot": "/home/claude/qa-journeys/shots/p8-tech-d-055.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p9-partner-d",
+"id": "056",
+"name": "پنل تأمین‌کننده /supplier",
+"status": "PASS",
+"note": "نمای کلی | عرضه‌ها، سفارش‌ها و تسویه. | تأمین‌کننده‌های من | ۱ | عرضه‌های ثبت‌شده | ۶ | ظرفیت اعلام‌شده | ۶۱ | سفارش آمادهٔ تأیید | ۰ | تسویه‌ها | ۰ | تسویه‌ای ",
+"url": "/supplier",
+"shot": "/home/claude/qa-journeys/shots/p9-partner-d-056.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p9-partner-d",
+"id": "057",
+"name": "ثبت تور از پنل /supplier/tours",
+"status": "FAIL",
+"note": "/supplier/tours (سفرساز) shows «هنوز توری در سفرساز ساخته نشده است» although this supplier has published tour-products (created via POST /supplier/tours) that ARE sold on /tours — two separate tour systems",
+"url": "/supplier/tours",
+"shot": "/home/claude/qa-journeys/shots/p9-partner-d-057.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p9-partner-d",
+"id": "058",
+"name": "ثبت پیشنهاد قطار از فرم پنل /supplier/train/new",
+"status": "PASS",
+"note": "form renders (fields not wrapped in <label>, so names not detected by harness)",
+"url": "/supplier/train/new",
+"shot": "/home/claude/qa-journeys/shots/p9-partner-d-058.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p9-partner-d",
+"id": "059",
+"name": "تور منتشرشده در /tours برای مشتری سازمانی",
+"status": "PASS",
+"note": "re-verified manually: tour listed (href has ?destination=), departure selected → quote → «پذیرش مبلغ و تکمیل اطلاعات مسافران» → /checkout/<id>. shots/p9-tour-purchase.png",
+"url": "/supplier/train/new",
+"shot": "/home/claude/qa-journeys/shots/p9-partner-d-059.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p9-partner-d",
+"id": "060",
+"name": "تور در کاتالوگ عمومی /tours (بدون ورود)",
+"status": "PASS",
+"note": "public tours listed",
+"url": "/supplier/train/new",
+"shot": "/home/claude/qa-journeys/shots/p9-partner-d-060.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p9-partner-d",
+"id": "061",
+"name": "رزروهای آماده انجام برای تأمین‌کننده /supplier/fulfillment",
+"status": "BLOCKED",
+"note": "list only shows reservations with captured bank payment; gateway blocked → empty. Credit-funded bookings never appear (see defect). Page: سفارش‌ها و تأیید | بازگشت به تأمین‌کننده | تأیید خدمت و صدور مدارک | فقط رزروهای پرداخت‌شده و واگذارشده به تأمین‌کنندهٔ ",
+"url": "/supplier/fulfillment",
+"shot": "/home/claude/qa-journeys/shots/p9-partner-d-061.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p9-partner-d",
+"id": "062",
+"name": "پنل آژانس /agency",
+"status": "PASS",
+"note": "نمای کلی | فروش، رزروها و حساب آژانس. | حساب شما عضو هیچ آژانسی نیست. عضویت را مدیر مجموعه از بخش «تأمین‌کنندگان و آژانس‌ها» ثبت می‌کند. | وضعیت و دسترسی | اطلا",
+"url": "/agency",
+"shot": "/home/claude/qa-journeys/shots/p9-partner-d-062.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p9-partner-d",
+"id": "063",
+"name": "رزروهای آژانس /agency/bookings",
+"status": "FAIL",
+"note": "agency sees no bookings: رزروها | رزروهای ثبت‌شده از کانال فروش آژانس. | حساب شما عضو هیچ آژانسی نیست. عضویت را مدیر مجموعه از بخش «تأمین‌کنندگان و آژانس‌ها» ثبت می‌کند. | وضعیت و دسترس",
+"url": "/agency/bookings",
+"shot": "/home/claude/qa-journeys/shots/p9-partner-d-063.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p9-partner-d",
+"id": "064",
+"name": "ثبت تور توسط آژانس قراردادی",
+"status": "FAIL",
+"note": "agency_partner cannot list its own tours: POST /supplier/tours → 403 ({\"detail\":\"مجوز لازم برای این اقدام وجود ندارد\"}); agency role has no inventory:manage — tours must be listed via a supplier account",
+"url": "/agency/workspace",
+"shot": "/home/claude/qa-journeys/shots/p9-partner-d-064.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p6-customer-d",
+"id": "001",
+"name": "جست‌وجوی پرواز از صفحه اصلی (فرم)",
+"status": "PASS",
+"note": "results visible (QA-DEMO offers)",
+"url": "/search/results?vertical=flight&origin=%D8%AA%D9%87%D8%B1%D8%A7%D9%86&destination=%D8%B4%DB%8C%D8%B1%D8%A7%D8%B2&depart=2026-11-14&flexibility=exact&adults=1&children=0&infants=0&rooms=1&cabin=economy&sort=recommended&trip_type=one_way",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-d-001.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p6-customer-d",
+"id": "002",
+"name": "جست‌وجوی هتل شیراز",
+"status": "PASS",
+"note": "hotel result shown",
+"url": "/search/results?vertical=hotel&destination=%D8%B4%DB%8C%D8%B1%D8%A7%D8%B2&depart=2026-11-29&return=2026-12-01&adults=2&rooms=1",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-d-002.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p6-customer-d",
+"id": "003",
+"name": "رزرو هتل: بررسی قیمت → چک‌اوت",
+"status": "PASS",
+"note": "hotel price-check → checkout /checkout/c66d7326-ee7b-493c-8916-9caec4e8c6ec (offer page <main> landmarks seen earlier: see a11y)",
+"url": "/checkout/c66d7326-ee7b-493c-8916-9caec4e8c6ec",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-d-003.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p6-customer-d",
+"id": "004",
+"name": "جست‌وجوی پرواز و مرتب‌سازی ارزان‌ترین",
+"status": "PASS",
+"note": "sorted asc: 18500000,21000000,26000000",
+"url": "/search/results?vertical=flight&origin=%D8%AA%D9%87%D8%B1%D8%A7%D9%86&destination=%D8%B4%DB%8C%D8%B1%D8%A7%D8%B2&depart=2026-11-24&adults=1&trip_type=one_way&sort=lowest_price",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-d-004.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p6-customer-d",
+"id": "005",
+"name": "بررسی قیمت پرواز و ادامه رزرو",
+"status": "PASS",
+"note": "reservation 9e6abb65-9ac1-4200-a35f-be2995ac3544",
+"url": "/checkout/9e6abb65-9ac1-4200-a35f-be2995ac3544",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-d-005.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p6-customer-d",
+"id": "006",
+"name": "چک‌اوت: مسافر → قیمت → شرایط → تأمین → پیش‌فاکتور → پرداخت",
+"status": "PASS",
+"note": "reached awaiting_payment; payment:اطلاعات این مرحله ثبت شد.",
+"url": "/checkout/9e6abb65-9ac1-4200-a35f-be2995ac3544",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-d-006.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p6-customer-d",
+"id": "007",
+"name": "درگاه پرداخت آزمایشی (TEST gateway)",
+"status": "BLOCKED",
+"note": "No test/sandbox gateway in ENVIRONMENT=development: payment adapter disabled (ZarinPal needs merchant id + HTTPS callback) → 503. UI says: اتصال به درگاه انجام نشد. اگر وجه کسر شده است، پیش از تلاش مجدد وضعیت پرداخت را بررسی کنید.",
+"url": "/checkout/9e6abb65-9ac1-4200-a35f-be2995ac3544",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-d-007.png",
+"console": [
+"Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+],
+"failed": [
+"503 POST API/payments/91ebcc38-98ed-46d0-83c6-f04aecf840b2/initiate"
+]
+},
+{
+"persona": "p6-customer-d",
+"id": "008",
+"name": "دوبار کلیک روی پرداخت (بدون پرداخت تکراری)",
+"status": "PASS",
+"note": "initiate requests on dblclick=1",
+"url": "/checkout/9e6abb65-9ac1-4200-a35f-be2995ac3544",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-d-008.png",
+"console": [
+"Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+],
+"failed": [
+"503 POST API/payments/91ebcc38-98ed-46d0-83c6-f04aecf840b2/initiate"
+]
+},
+{
+"persona": "p6-customer-d",
+"id": "009",
+"name": "رفرش صفحه چک‌اوت و ادامه (بدون رزرو تکراری)",
+"status": "PASS",
+"note": "resumed same checkout at awaiting_payment, no new reservation",
+"url": "/checkout/9e6abb65-9ac1-4200-a35f-be2995ac3544",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-d-009.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p6-customer-d",
+"id": "010",
+"name": "بازگشت (Back) از چک‌اوت به نتایج و دوباره ادامه",
+"status": "PASS",
+"note": "no duplicate (/search/results?vertical=flight&origin=%D8%AA%D9%87%D8%B1%D8%A7%D9%86&destination=%D8%B4%DB%8C%D8%B1%D8%A7%D8%B2&depart=2026-11-24&adults=1&trip_type=one_way&sort=lowest_price)",
+"url": "/search/results?vertical=flight&origin=%D8%AA%D9%87%D8%B1%D8%A7%D9%86&destination=%D8%B4%DB%8C%D8%B1%D8%A7%D8%B2&depart=2026-11-24&adults=1&trip_type=one_way&sort=lowest_price",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-d-010.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p6-customer-d",
+"id": "011",
+"name": "وضعیت پرداخت /payments/:id",
+"status": "PASS",
+"note": "حساب کاربری | درباره ما | مجله سفر | خدمات سفر | تور | هتل | قطار | پرواز | کارن تراول | نتیجه و رسید پرداخت | هنوز پرداخت نشده | مبلغ: ۱۸٬۵۰۰٬۰۰۰ ریال | پیگیری رزرو | به‌روزرسانی وضعیت | تماس با پشتیبانی | ۰۹۱۹۱۲۵۸۰۰۹ |",
+"url": "/payments/91ebcc38-98ed-46d0-83c6-f04aecf840b2",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-d-011.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p6-customer-d",
+"id": "012",
+"name": "سفرهای من",
+"status": "FAIL",
+"note": "raw English status codes shown to customer: planned,planned,planned,planned,planned,planned,planned,planned,reserved,reserved,reserved,reserved",
+"url": "/trips",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-d-012.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p6-customer-d",
+"id": "013",
+"name": "دانلود واچر/بلیت",
+"status": "BLOCKED",
+"note": "voucher only after captured payment + supplier fulfil; payment gateway blocked → voucher API 409",
+"url": "/trips",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-d-013.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p6-customer-d",
+"id": "014",
+"name": "درخواست کنسلی/استرداد از مدیریت رزرو",
+"status": "PASS",
+"note": "cancel request: درخواست شما برای بررسی ثبت شد؛ نتیجهٔ نهایی هنوز تأیید نشده است.",
+"url": "/manage-booking/9e6abb65-9ac1-4200-a35f-be2995ac3544",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-d-014.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p6-customer-d",
+"id": "015",
+"name": "تیکت پشتیبانی انسانی",
+"status": "PASS",
+"note": "پرونده پشتیبانی انسانی ثبت شد.",
+"url": "/support?booking=9e6abb65-9ac1-4200-a35f-be2995ac3544",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-d-015.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p6-customer-d",
+"id": "016",
+"name": "اعلان‌ها",
+"status": "PASS",
+"note": "in-app notifications present; SMS/push declared not connected",
+"url": "/notifications",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-d-016.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p6-customer-d",
+"id": "017",
+"name": "کیف پول: ایجاد و پرداخت با کیف پول",
+"status": "BLOCKED",
+"note": "wallet can be created but has no top-up path for a customer (top-up needs gateway; wallet commands need credit:manage role) → balance 0, wallet payment cannot be exercised. Page: کیف پول و اعتبار | موجودی واقعی کیف پول و اعتبار سازمانی. | کیف پول | قابل استفاده | ۰ ریال | رزروشده | ۰ ریال | مصرف‌شده | ۰ ریال | شارژ آنلاین | شارژ کیف پول ",
+"url": "/account/wallet",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-d-017.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p6-customer-d",
+"id": "018",
+"name": "اقساط",
+"status": "BLOCKED",
+"note": "installments need finance approval + gateway for down payment; page: پرداخت و فاکتور | پرداخت‌ها، فاکتورها و اقساط. | پرداخت‌ها | وضعیت\tمبلغ\tپرداخت‌شده\tمستردشده | created\t۱۸٬۵۰۰٬۰۰۰ ریال\t۰ ریال\t۰ ریال\tجزئیات پرداخت | created\t۱۸٬۵",
+"url": "/account/payments",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-d-018.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p6-customer-d",
+"id": "019",
+"name": "خروج از حساب",
+"status": "PASS",
+"note": "logged out; /trips gated",
+"url": "/trips",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-d-019.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p6-customer-m",
+"id": "020",
+"name": "جست‌وجوی پرواز از صفحه اصلی (فرم)",
+"status": "PASS",
+"note": "results visible (QA-DEMO offers)",
+"url": "/search/results?vertical=flight&origin=%D8%AA%D9%87%D8%B1%D8%A7%D9%86&destination=%D8%B4%DB%8C%D8%B1%D8%A7%D8%B2&depart=2026-11-14&flexibility=exact&adults=1&children=0&infants=0&rooms=1&cabin=economy&sort=recommended&trip_type=one_way",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-m-020.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p6-customer-m",
+"id": "021",
+"name": "جست‌وجوی هتل شیراز",
+"status": "PASS",
+"note": "hotel result shown",
+"url": "/search/results?vertical=hotel&destination=%D8%B4%DB%8C%D8%B1%D8%A7%D8%B2&depart=2026-11-29&return=2026-12-01&adults=2&rooms=1",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-m-021.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p6-customer-m",
+"id": "022",
+"name": "رزرو هتل: بررسی قیمت → چک‌اوت",
+"status": "PASS",
+"note": "hotel price-check → checkout /checkout/6d589b1b-3de2-4178-bc0c-6b7d923d41f0 (offer page <main> landmarks seen earlier: see a11y)",
+"url": "/checkout/6d589b1b-3de2-4178-bc0c-6b7d923d41f0",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-m-022.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p6-customer-m",
+"id": "023",
+"name": "جست‌وجوی پرواز و مرتب‌سازی ارزان‌ترین",
+"status": "PASS",
+"note": "sorted asc: 18500000,21000000,26000000",
+"url": "/search/results?vertical=flight&origin=%D8%AA%D9%87%D8%B1%D8%A7%D9%86&destination=%D8%B4%DB%8C%D8%B1%D8%A7%D8%B2&depart=2026-11-24&adults=1&trip_type=one_way&sort=lowest_price",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-m-023.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p6-customer-m",
+"id": "024",
+"name": "بررسی قیمت پرواز و ادامه رزرو",
+"status": "PASS",
+"note": "reservation 4f1d827f-43de-48aa-a86d-92c5a571b539",
+"url": "/checkout/4f1d827f-43de-48aa-a86d-92c5a571b539",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-m-024.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p6-customer-m",
+"id": "025",
+"name": "چک‌اوت: مسافر → قیمت → شرایط → تأمین → پیش‌فاکتور → پرداخت",
+"status": "PASS",
+"note": "reached awaiting_payment; payment:اطلاعات این مرحله ثبت شد.",
+"url": "/checkout/4f1d827f-43de-48aa-a86d-92c5a571b539",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-m-025.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p6-customer-m",
+"id": "026",
+"name": "درگاه پرداخت آزمایشی (TEST gateway)",
+"status": "BLOCKED",
+"note": "No test/sandbox gateway in ENVIRONMENT=development: payment adapter disabled (ZarinPal needs merchant id + HTTPS callback) → 503. UI says: اتصال به درگاه انجام نشد. اگر وجه کسر شده است، پیش از تلاش مجدد وضعیت پرداخت را بررسی کنید.",
+"url": "/checkout/4f1d827f-43de-48aa-a86d-92c5a571b539",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-m-026.png",
+"console": [
+"Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+],
+"failed": [
+"503 POST API/payments/f1d63c93-b89f-432b-ab25-9ea34c294fc3/initiate"
+]
+},
+{
+"persona": "p6-customer-m",
+"id": "027",
+"name": "دوبار کلیک روی پرداخت (بدون پرداخت تکراری)",
+"status": "PASS",
+"note": "initiate requests on dblclick=1",
+"url": "/checkout/4f1d827f-43de-48aa-a86d-92c5a571b539",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-m-027.png",
+"console": [
+"Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+],
+"failed": [
+"503 POST API/payments/f1d63c93-b89f-432b-ab25-9ea34c294fc3/initiate"
+]
+},
+{
+"persona": "p6-customer-m",
+"id": "028",
+"name": "رفرش صفحه چک‌اوت و ادامه (بدون رزرو تکراری)",
+"status": "PASS",
+"note": "resumed same checkout at awaiting_payment, no new reservation",
+"url": "/checkout/4f1d827f-43de-48aa-a86d-92c5a571b539",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-m-028.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p6-customer-m",
+"id": "029",
+"name": "بازگشت (Back) از چک‌اوت به نتایج و دوباره ادامه",
+"status": "PASS",
+"note": "no duplicate (/search/results?vertical=flight&origin=%D8%AA%D9%87%D8%B1%D8%A7%D9%86&destination=%D8%B4%DB%8C%D8%B1%D8%A7%D8%B2&depart=2026-11-24&adults=1&trip_type=one_way&sort=lowest_price)",
+"url": "/search/results?vertical=flight&origin=%D8%AA%D9%87%D8%B1%D8%A7%D9%86&destination=%D8%B4%DB%8C%D8%B1%D8%A7%D8%B2&depart=2026-11-24&adults=1&trip_type=one_way&sort=lowest_price",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-m-029.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p6-customer-m",
+"id": "030",
+"name": "وضعیت پرداخت /payments/:id",
+"status": "PASS",
+"note": "حساب کاربری | درباره ما | مجله سفر | خدمات سفر | تور | هتل | قطار | پرواز | کارن تراول | نتیجه و رسید پرداخت | هنوز پرداخت نشده | مبلغ: ۱۸٬۵۰۰٬۰۰۰ ریال | پیگیری رزرو | به‌روزرسانی وضعیت | تماس با پشتیبانی | ۰۹۱۹۱۲۵۸۰۰۹ |",
+"url": "/payments/f1d63c93-b89f-432b-ab25-9ea34c294fc3",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-m-030.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p6-customer-m",
+"id": "031",
+"name": "سفرهای من",
+"status": "FAIL",
+"note": "raw English status codes shown to customer: planned,planned,planned,planned,planned,planned,planned,planned,planned,planned,reserved,reserved,reserved,reserved,reserved",
+"url": "/trips",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-m-031.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p6-customer-m",
+"id": "032",
+"name": "دانلود واچر/بلیت",
+"status": "BLOCKED",
+"note": "voucher only after captured payment + supplier fulfil; payment gateway blocked → voucher API 409",
+"url": "/trips",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-m-032.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p6-customer-m",
+"id": "033",
+"name": "درخواست کنسلی/استرداد از مدیریت رزرو",
+"status": "PASS",
+"note": "cancel request: درخواست شما برای بررسی ثبت شد؛ نتیجهٔ نهایی هنوز تأیید نشده است.",
+"url": "/manage-booking/4f1d827f-43de-48aa-a86d-92c5a571b539",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-m-033.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p6-customer-m",
+"id": "034",
+"name": "تیکت پشتیبانی انسانی",
+"status": "PASS",
+"note": "پرونده پشتیبانی انسانی ثبت شد.",
+"url": "/support?booking=4f1d827f-43de-48aa-a86d-92c5a571b539",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-m-034.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p6-customer-m",
+"id": "035",
+"name": "اعلان‌ها",
+"status": "PASS",
+"note": "in-app notifications present; SMS/push declared not connected",
+"url": "/notifications",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-m-035.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p6-customer-m",
+"id": "036",
+"name": "کیف پول: ایجاد و پرداخت با کیف پول",
+"status": "BLOCKED",
+"note": "wallet can be created but has no top-up path for a customer (top-up needs gateway; wallet commands need credit:manage role) → balance 0, wallet payment cannot be exercised. Page: کیف پول و اعتبار | موجودی واقعی کیف پول و اعتبار سازمانی. | کیف پول | قابل استفاده | ۰ ریال | رزروشده | ۰ ریال | مصرف‌شده | ۰ ریال | شارژ آنلاین | شارژ کیف پول ",
+"url": "/account/wallet",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-m-036.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p6-customer-m",
+"id": "037",
+"name": "اقساط",
+"status": "BLOCKED",
+"note": "installments need finance approval + gateway for down payment; page: پرداخت و فاکتور | پرداخت‌ها، فاکتورها و اقساط. | پرداخت‌ها | created | ۱۸٬۵۰۰٬۰۰۰ ریال | ۰ ریال | ۰ ریال | جزئیات پرداخت | created | ۱۸٬۵۰۰٬۰۰۰ ریال | ۰ ریال | ",
+"url": "/account/payments",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-m-037.png",
+"console": [],
+"failed": []
+},
+{
+"persona": "p6-customer-m",
+"id": "038",
+"name": "خروج از حساب",
+"status": "PASS",
+"note": "logged out; /trips gated",
+"url": "/trips",
+"shot": "/home/claude/qa-journeys/shots/p6-customer-m-038.png",
+"console": [],
+"failed": []
+}
+]
