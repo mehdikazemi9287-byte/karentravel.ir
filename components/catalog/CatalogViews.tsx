@@ -86,8 +86,8 @@ function Status({loading, error, empty, children}: {loading: boolean; error: boo
   return null;
 }
 function SearchBox({value, onSubmit, placeholder}: {value: string; onSubmit: (v: string) => void; placeholder: string}) {
-  const [text, setText] = useState(value);
-  useEffect(() => {setText(value);}, [value]);
+  const [text, setText] = useState(value); const [synced, setSynced] = useState(value);
+  if (synced !== value) {setSynced(value); setText(value);}
   return <form className="cat-search" role="search" onSubmit={e => {e.preventDefault(); onSubmit(text.trim());}}><input value={text} onChange={e => setText(e.target.value)} placeholder={placeholder} aria-label={placeholder}/><button type="submit">جست‌وجو</button></form>;
 }
 

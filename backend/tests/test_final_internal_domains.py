@@ -7,7 +7,7 @@ from sqlalchemy import select
 
 from app.main import SessionLocal, User
 import app.main as main_module
-from app.operations import EmployeeAssignment, InstallmentPlan, Offer, Organization, PaymentIntent, PriceCheck, Reservation, Supplier
+from app.operations import EmployeeAssignment, InstallmentPlan, LicensedEntity, Offer, Organization, PaymentIntent, PriceBreakdown, PriceCheck, Reservation, Supplier
 
 
 def auth(token): return {"Authorization": f"Bearer {token}"}
@@ -75,7 +75,11 @@ def test_installment_execution_and_settlement_posting_are_tenant_safe(client):
         plan = InstallmentPlan(tenant_id=owner.tenant_id, organization_id=organization.id, title="سه ماهه", terms_json='{"months":3,"fee_bps":300}', status="active"); supplier = Supplier(tenant_id=owner.tenant_id, supplier_type="hotel", display_name="تأمین تسویه", status="active"); db.add_all([plan, supplier]); db.flush()
         offer = Offer(tenant_id=owner.tenant_id, supplier_id=supplier.id, service_type="hotel", title="هتل تسویه", amount=3_000_000, available_units=2, valid_until=datetime.now(timezone.utc)+timedelta(hours=1), policy_json="{}", attributes_json="{}"); db.add(offer); db.flush()
         check = PriceCheck(tenant_id=owner.tenant_id, offer_id=offer.id, user_id=owner.id, command_id=f"final-check-{suffix}", units=1, amount=3_000_000, currency="IRR", snapshot_json='{"total_amount":3000000,"currency":"IRR"}', snapshot_hash=f"final-snapshot-{suffix}", expires_at=datetime.now(timezone.utc)+timedelta(minutes=10)); db.add(check); db.flush()
-        reservation = Reservation(tenant_id=owner.tenant_id, user_id=owner.id, service_type="hotel", status="confirmed", price_check_id=check.id, price_snapshot_json='{"total_amount":3000000,"currency":"IRR"}', policy_at_booking_json="{}", current_policy_json="{}"); db.add(reservation); db.flush()
+        # Real bookings always carry the selling legal entity (_resolve_transaction_provenance); settlement refuses without one.
+        entity = LicensedEntity(tenant_id=owner.tenant_id, legal_name=f"نهاد تسویه {suffix[:6]}", status="active"); db.add(entity); db.flush()
+        reservation = Reservation(tenant_id=owner.tenant_id, user_id=owner.id, licensed_entity_id=entity.id, service_type="hotel", status="confirmed", price_check_id=check.id, price_snapshot_json='{"total_amount":3000000,"currency":"IRR"}', policy_at_booking_json="{}", current_policy_json="{}"); db.add(reservation); db.flush()
+        # ...and an auditable price breakdown whose supplier net rate is the settlement liability.
+        db.add(PriceBreakdown(tenant_id=owner.tenant_id, booking_id=reservation.id, supplier_net_rate=2_700_000, supplier_currency="IRR", supplier_net_rate_irr=2_700_000, total_selling_price=3_000_000))
         payment = PaymentIntent(tenant_id=owner.tenant_id, reservation_id=reservation.id, user_id=owner.id, command_id=f"captured-final-{suffix}", amount=3_000_000, status="captured", captured_amount=3_000_000, provider_reference="sandbox-evidence"); db.add(payment); db.commit(); plan_id = plan.id; reservation_id = reservation.id
     requested = client.post(f"/reservations/{reservation_id}/installments?plan_id={plan_id}", headers={**auth(employee["access_token"]), "Idempotency-Key": f"installment-final-{suffix}"})
     assert requested.status_code == 201 and len(requested.json()["schedule"]) == 3 and sum(x["amount"] for x in requested.json()["schedule"]) == requested.json()["total_payable"]
@@ -87,6 +91,7 @@ def test_installment_execution_and_settlement_posting_are_tenant_safe(client):
     replay = client.post(f"/finance/reservations/{reservation_id}/settlements", headers=settlement_headers)
     assert settlement.status_code == 201 and settlement.json()["status"] == "pending" and settlement.json()["external_transfer_claimed"] is False
     assert replay.json()["id"] == settlement.json()["id"]
+    assert settlement.json()["amount"] == 2_700_000
 
 
 def test_admin_role_workflow_prevents_self_and_privilege_escalation(client):

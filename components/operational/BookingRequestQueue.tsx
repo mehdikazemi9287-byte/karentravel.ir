@@ -7,6 +7,7 @@ import {ErrorState} from './ConnectedViews';
 type Row={id:string;booking_reference:string;request_type:string;status:string;created_at:string;reason:string|null;quote:{refundable_amount?:number;currency?:string}};
 export function BookingRequestQueue(){
  const{api,session}=useAuth(),[rows,setRows]=useState<Row[]|null>(null),[offset,setOffset]=useState(0),[more,setMore]=useState(false),[error,setError]=useState(''),[busy,setBusy]=useState<string|null>(null),[version,setVersion]=useState(0);
+ // eslint-disable-next-line react-hooks/set-state-in-effect -- intentionally clears the previous result when the request inputs change, so stale data is never shown while the new fetch is in flight
  useEffect(()=>{if(!session)return;let active=true;setRows(null);setError('');api.get<{items:Row[];has_more:boolean}>('/backoffice/booking-requests?offset='+offset).then(v=>{if(active){setRows(v.items);setMore(v.has_more)}}).catch(e=>{if(active)setError(e instanceof ApiError&&e.status===403?'این حساب دسترسی رسیدگی به درخواست‌ها را ندارد.':'درخواست‌ها دریافت نشدند؛ دوباره تلاش کنید.')});return()=>{active=false}},[api,session,offset,version]);
  async function review(id:string){if(busy)return;setBusy(id);try{await api.post('/backoffice/booking-requests/'+id+'/review',{});setRows(xs=>xs?.map(x=>x.id===id?{...x,status:'under_review'}:x)||[]);setError('')}catch{setError('پاسخ قطعی دریافت نشد؛ وضعیت را تازه کنید یا همان بررسی را تکرار کنید.')}finally{setBusy(null)}}
  if(!session)return <ErrorState status={401} message="برای رسیدگی وارد شوید."/>;

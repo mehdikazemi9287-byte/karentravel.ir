@@ -41,7 +41,6 @@ export function CombinedFlightHotel() {
   const [rooms,setRooms]=useState(()=>initialHotelRooms(1,1));
   const stay={check_in:arrival,check_out:departure,rooms};
   const stayIssue=hotelSelectionIssue(stay,passengers,0);
-  useEffect(()=>{setRooms(initialHotelRooms(roomCount,passengers));setQuote(null)},[roomCount,passengers]);
   const [quote, setQuote] = useState<Quote | null>(null);
   const [notice, setNotice] = useState<{ tone: 'info' | 'warn' | 'error' | 'ok'; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -57,6 +56,7 @@ export function CombinedFlightHotel() {
       setFlightId(f[0]?.id || ''); setHotelId(h[0]?.id || '');
     } catch (e) { setNotice({ tone: 'error', text: msgOf(e) }); }
   }, [api]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- initial/refresh fetch on mount or session change; the loader sets its own loading/notice state before awaiting the API
   useEffect(() => { if (session) loadOffers(); }, [session, loadOffers]);
 
   const flight = useMemo(() => flights.find(o => o.id === flightId), [flights, flightId]);
@@ -136,8 +136,8 @@ export function CombinedFlightHotel() {
       </div>
       <label className="mt-4 block font-bold">تعداد مسافر بزرگسال
         <input type="number" min={1} max={9} value={passengers} className="mt-2 block w-32 rounded-xl border p-2"
-          onChange={e => { setPassengers(Math.max(1, Math.min(9, Number(e.target.value) || 1))); setQuote(null); }} /></label>
-      <label>تعداد اتاق<input type="number" min={1} max={9} value={roomCount} onChange={e=>setRoomCount(Math.max(1,Math.min(9,Number(e.target.value)||1)))}/></label>
+          onChange={e => { const n = Math.max(1, Math.min(9, Number(e.target.value) || 1)); if (n !== passengers) setRooms(initialHotelRooms(roomCount, n)); setPassengers(n); setQuote(null); }} /></label>
+      <label>تعداد اتاق<input type="number" min={1} max={9} value={roomCount} onChange={e=>{const n=Math.max(1,Math.min(9,Number(e.target.value)||1));if(n!==roomCount){setRooms(initialHotelRooms(n,passengers));setQuote(null)}setRoomCount(n)}}/></label>
       <label>ورود هتل<input type="date" value={arrival} onChange={e=>{setArrival(e.target.value);setQuote(null)}}/></label>
       <label>خروج هتل<input type="date" value={departure} onChange={e=>{setDeparture(e.target.value);setQuote(null)}}/></label>
       <HotelStayEditor stay={stay} rate={hotel?.attributes?.hotel_rate} disabled={busy} onChange={value=>{setRooms(value);setQuote(null)}}/>

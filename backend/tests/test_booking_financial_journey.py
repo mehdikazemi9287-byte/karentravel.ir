@@ -93,7 +93,11 @@ def test_organization_credit_and_wallet_funding_reserve_capture_release_and_isol
 
     funding = client.put(f"/checkout-sessions/{checkout_id}/steps/funding", headers=auth(employee), json={"command_id": f"fin-funding-{suffix}", "wallet_amount": 500_000, "credit_amount": 1_000_000})
     assert funding.status_code == 200
-    assert funding.json()["state"]["funding"] == {"wallet_amount": 500_000, "credit_amount": 1_000_000, "payable_amount": 1_500_000}
+    declared = funding.json()["state"]["funding"]
+    # Versioned (schema v2) funding declaration: amounts plus the quote/reserve references it is bound to.
+    assert {k: declared[k] for k in ("wallet_amount", "credit_amount", "payable_amount", "total_amount")} == {"wallet_amount": 500_000, "credit_amount": 1_000_000, "payable_amount": 1_500_000, "total_amount": 3_000_000}
+    assert declared["schema_version"] == 2 and declared["currency"] == "IRR"
+    assert declared["price_snapshot_hash"] and declared["wallet_reserve_id"] and declared["credit_reserve_id"]
 
     # Reserved amounts are real and visible immediately (not fabricated success).
     assert next(w for w in client.get("/me/wallets", headers=auth(employee)).json() if w["id"] == wallet["id"])["reserved"] == 500_000
