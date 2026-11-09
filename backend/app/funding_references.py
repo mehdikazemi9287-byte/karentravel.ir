@@ -47,9 +47,15 @@ def latest_plan(db, reservation, hash_price):
     return checkout, checked_declaration(funding, reservation.price_snapshot_json,
                                          checkout.price_snapshot_hash, hash_price(reservation.price_snapshot_json))
 
-def bank_payable(db, reservation, hash_price):
+def bank_payable(db, reservation, hash_price, *, check_expiry=True):
+    """Bank-gateway remainder of the reservation's verified funding plan.
+
+    check_expiry=False is used by fulfilment/settlement: the checkout window
+    limits starting a *new* bank payment, not honouring funds already
+    reserved inside that window (credit/wallet reserves keep their own,
+    reaper-enforced deadline)."""
     checkout, plan = latest_plan(db, reservation, hash_price)
-    if checkout is not None:
+    if checkout is not None and check_expiry:
         expiry = checkout.expires_at.replace(tzinfo=timezone.utc) if checkout.expires_at.tzinfo is None else checkout.expires_at
         if expiry <= datetime.now(timezone.utc): raise FinancialInvariantError("checkout برای پرداخت جدید منقضی شده است")
     if checkout is not None and plan.get("schema_version") == 2:
@@ -75,3 +81,17 @@ def bank_payable(db, reservation, hash_price):
     if entry is not None:
         raise FinancialInvariantError("گردش اعتبار بدون مرجع تخصیص نیازمند تطبیق است")
     return minor(json.loads(reservation.price_snapshot_json)["total_amount"])
+
+
+def fully_funded_without_bank(db, reservation, hash_price):
+    """True only when a schema-v2 funding plan covers the whole price from
+    still-reserved wallet/organization-credit entries (bank_payable == 0).
+    Every reserve is re-verified by bank_payable (amount, owner, currency, not
+    released/reversed); any inconsistency fails closed (False)."""
+    try:
+        _, plan = latest_plan(db, reservation, hash_price)
+        if not plan or plan.get("schema_version") != 2:
+            return False
+        return bank_payable(db, reservation, hash_price, check_expiry=False) == 0
+    except (FinancialInvariantError, KeyError, ValueError, TypeError):
+        return False

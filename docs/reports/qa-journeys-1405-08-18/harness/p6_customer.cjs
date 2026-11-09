@@ -1,5 +1,5 @@
 // Persona 6: regular B2C customer paying online (consumer tenant, dev-login session injected).
-const { launch, newCtx, step, api, WEB } = require('./lib.cjs');
+const { launch, newCtx, step, api, devToken, WEB } = require('./lib.cjs');
 const { trainUrl, flightUrl, mainText, status, priceCheckAndBook, runCheckout } = require('./flows.cjs');
 (async () => {
   const b = await launch();
@@ -48,17 +48,6 @@ const { trainUrl, flightUrl, mainText, status, priceCheckAndBook, runCheckout } 
       if (!/در انتظار پرداخت/.test(t)) return { status: 'FAIL', note: log.join(' ; ').slice(0, 400) };
       return 'reached awaiting_payment; ' + log.slice(-1);
     });
-    await step(P, 'درگاه پرداخت آزمایشی (TEST gateway)', page, async () => {
-      await page.getByRole('button', { name: 'ادامه در درگاه پرداخت' }).click(); await page.waitForTimeout(1500);
-      const st = await status(page);
-      return { status: 'BLOCKED', note: 'No test/sandbox gateway in ENVIRONMENT=development: payment adapter disabled (ZarinPal needs merchant id + HTTPS callback) → 503. UI says: ' + st };
-    });
-    await step(P, 'دوبار کلیک روی پرداخت (بدون پرداخت تکراری)', page, async () => {
-      const btn = page.getByRole('button', { name: 'ادامه در درگاه پرداخت' });
-      const reqs = []; page.on('request', r => { if (r.url().includes('/initiate')) reqs.push(r.url()); });
-      await btn.dblclick().catch(() => {}); await page.waitForTimeout(1500);
-      return reqs.length <= 1 ? `initiate requests on dblclick=${reqs.length}` : { status: 'FAIL', note: 'initiate sent ' + reqs.length + ' times' };
-    });
     await step(P, 'رفرش صفحه چک‌اوت و ادامه (بدون رزرو تکراری)', page, async () => {
       const before = (await api(ctx._session, 'GET', '/me/reservations')).body.length;
       await page.reload({ waitUntil: 'networkidle' });
@@ -74,20 +63,45 @@ const { trainUrl, flightUrl, mainText, status, priceCheckAndBook, runCheckout } 
       const after = (await api(ctx._session, 'GET', '/me/reservations')).body.length;
       return after > before ? { status: 'FAIL', note: `Back then "ادامه رزرو" again created a 2nd reservation (${before}->${after}); url ${page.url().replace(WEB, '')}` } : 'no duplicate (' + u.replace(WEB, '') + ')';
     });
+    // D6 re-run: explicit local sandbox gateway (PAYMENT_PROVIDER=sandbox, dev/test/staging only).
+    await step(P, 'دوبار کلیک روی پرداخت (بدون پرداخت تکراری)', page, async () => {
+      await page.goto(`${WEB}/checkout/${rid}`, { waitUntil: 'networkidle' }); await page.getByRole('button', { name: 'شروع یا ادامهٔ رزرو' }).click(); await page.waitForTimeout(1000);
+      const btn = page.getByRole('button', { name: 'ادامه در درگاه پرداخت' });
+      const reqs = []; page.on('request', r => { if (r.url().includes('/initiate')) reqs.push(r.url()); });
+      await btn.dblclick().catch(() => {}); await page.waitForURL(/\/payments\/sandbox\//, { timeout: 10000 }).catch(() => {});
+      return reqs.length <= 1 ? `initiate requests on dblclick=${reqs.length}; landed on ${new URL(page.url()).pathname.slice(0, 30)}…` : { status: 'FAIL', note: 'initiate sent ' + reqs.length + ' times' };
+    });
+    await step(P, 'درگاه پرداخت آزمایشی (TEST gateway)', page, async () => {
+      if (!/\/payments\/sandbox\//.test(page.url())) return { status: 'FAIL', note: 'not redirected to sandbox gateway: ' + page.url() + ' ' + await status(page) };
+      const body = await page.locator('body').innerText();
+      if (!body.includes('درگاه آزمایشی — پرداخت واقعی نیست')) return { status: 'FAIL', note: 'sandbox page lacks the test label' };
+      await page.getByRole('button', { name: 'پرداخت آزمایشی موفق' }).click(); await page.waitForURL(u => u.toString().startsWith(WEB + '/payments/'), { timeout: 15000 });
+      const pi = (await api(ctx._session, 'GET', '/me/payments')).body.find(p => p.reservation_id === rid);
+      const st = (await api(ctx._session, 'GET', `/payments/${pi.id}`)).body;
+      return st.status === 'captured' && /^SANDBOX-TEST-/.test(st.receipt_reference || '') ? `labelled sandbox page → success → real callback/verify → captured ${st.captured_amount} ref ${st.receipt_reference}` : { status: 'FAIL', note: JSON.stringify(st).slice(0, 300) };
+    });
     await step(P, 'وضعیت پرداخت /payments/:id', page, async () => {
-      const r = await api(ctx._session, 'GET', `/reservations/${rid}`); const pi = (await api(ctx._session, 'GET', '/me/payments')).body.find(p => p.reservation_id === rid);
+      const pi = (await api(ctx._session, 'GET', '/me/payments')).body.find(p => p.reservation_id === rid);
       if (!pi) return { status: 'FAIL', note: 'no payment intent listed in /me/payments' };
       await page.goto(`${WEB}/payments/${pi.id}`, { waitUntil: 'networkidle' }); return (await mainText(page)).slice(0, 220);
     });
     await step(P, 'سفرهای من', page, async () => { await page.goto(WEB + '/trips', { waitUntil: 'networkidle' }); const t = await mainText(page); return /KS-/.test(t) ? (/\b(reserved|planned|awaiting_payment)\b/.test(t) ? { status: 'FAIL', note: 'raw English status codes shown to customer: ' + (t.match(/\b(reserved|planned|awaiting_payment)\b/g) || []).join(',') } : 'trips list ok') : { status: 'FAIL', note: 'no booking in trips' }; });
     await step(P, 'دانلود واچر/بلیت', page, async () => {
-      const r = await api(ctx._session, 'GET', `/reservations/${rid}/voucher`);
-      return { status: 'BLOCKED', note: `voucher only after captured payment + supplier fulfil; payment gateway blocked → voucher API ${r.status}` };
+      // Issuance is a supplier/staff action (customers may only request cancel/change): the consumer-tenant QA supplier fulfils via its panel API.
+      const sup = await devToken('qa-supplier@consumer.qa');
+      const ready = (await api(sup, 'GET', '/supplier/reservations/ready')).body;
+      if (!Array.isArray(ready) || !ready.some(r => r.id === rid)) return { status: 'FAIL', note: 'paid reservation not in supplier ready list: ' + JSON.stringify(ready).slice(0, 200) };
+      const f = await api(sup, 'POST', `/reservations/${rid}/fulfill`, { command_id: 'qa-ful-' + Date.now() + mobile, provider_reference: '[QA-DEMO] REF', document_reference: 'document://qa-demo-voucher' });
+      if (f.status !== 200) return { status: 'FAIL', note: 'fulfil ' + f.status + ' ' + JSON.stringify(f.body).slice(0, 200) };
+      await page.goto(`${WEB}/manage-booking/${rid}`, { waitUntil: 'networkidle' });
+      const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 8000 }).catch(() => null), page.getByRole('button', { name: 'دریافت واچر صادرشده' }).click()]);
+      return dl ? `issued by supplier → voucher downloaded (${dl.suggestedFilename()})` : { status: 'FAIL', note: 'no voucher download: ' + await status(page) };
     });
     await step(P, 'درخواست کنسلی/استرداد از مدیریت رزرو', page, async () => {
       await page.goto(`${WEB}/manage-booking/${rid}`, { waitUntil: 'networkidle' });
-      await page.getByRole('button', { name: 'درخواست کنسلی' }).click(); await page.waitForTimeout(1500); const st = await status(page);
-      return /ثبت/.test(st) ? 'cancel request: ' + st : { status: 'FAIL', note: st || 'no status' };
+      await page.getByRole('button', { name: 'درخواست استرداد' }).click(); await page.waitForTimeout(1500); const st = await status(page);
+      const r = (await api(ctx._session, 'GET', `/reservations/${rid}`)).body;
+      return /ثبت/.test(st) && r.status === 'refund_requested' ? 'refund request on issued booking: ' + st + ' (status refund_requested)' : { status: 'FAIL', note: (st || 'no status') + ' reservation=' + r.status };
     });
     await step(P, 'تیکت پشتیبانی انسانی', page, async () => {
       await page.getByRole('link', { name: /گفت‌وگو با پشتیبانی انسانی/ }).click(); await page.waitForLoadState('networkidle');

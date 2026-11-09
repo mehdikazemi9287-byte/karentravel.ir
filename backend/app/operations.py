@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import logging
+import os
 import hashlib
 import secrets
 import uuid
@@ -1160,26 +1162,51 @@ def transition_reservation(db: Session, reservation: Reservation, target: str, a
 
 
 RESERVATION_HOLD_MINUTES = 30
+# QA D1: a reservation whose wallet/organization-credit funding is reserved but
+# that is never fulfilled must not lock that credit forever. After this many
+# minutes from the (last) reserve the reaper expires it and releases the
+# reserve through the ledger. Configurable per deployment.
+RESERVATION_FUNDED_HOLD_MINUTES = int(os.getenv("RESERVATION_FUNDED_HOLD_MINUTES", "1440"))
 
 
-def sweep_expired_reservations(db: Session, *, now: Optional[datetime] = None, hold_minutes: int = RESERVATION_HOLD_MINUTES, not_before: Optional[datetime] = None) -> list[str]:
+def _aware_utc(value: datetime) -> datetime:
+    return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
+
+
+def sweep_expired_reservations(db: Session, *, now: Optional[datetime] = None, hold_minutes: int = RESERVATION_HOLD_MINUTES, not_before: Optional[datetime] = None, funded_hold_minutes: Optional[int] = None) -> list[str]:
     """Expire reservations abandoned before payment/confirmation and release the
     Offer inventory they held. Intended to run from the worker process (BYPASSRLS
     role) on a periodic cadence, scanning across tenants like the outbox worker
     does. Idempotent per reservation via transition_reservation()'s own guard;
-    a reservation that already expired is simply not selected again."""
+    a reservation that already expired is simply not selected again.
+
+    Funded-but-unfulfilled reservations (wallet/credit reserved, no bank payment
+    in flight, nothing captured) get their own deadline: funded_hold_minutes
+    after the latest reserve. Expiry releases each reserve exactly once through
+    settle_reservation_funding() (ledger 'release' + outbox audit). Anything
+    already captured/fulfilled, or with a bank payment in flight, is left for
+    fulfilment or reconciliation."""
     now = now or utcnow()
-    cutoff = now - timedelta(minutes=hold_minutes)
+    funded_hold = RESERVATION_FUNDED_HOLD_MINUTES if funded_hold_minutes is None else funded_hold_minutes
+    cutoff = now - timedelta(minutes=min(hold_minutes, funded_hold))
     stale = db.scalars(select(Reservation).where(Reservation.status.in_(["reserved", "awaiting_payment"]), Reservation.updated_at < cutoff).with_for_update(skip_locked=True)).all()
     expired_ids: list[str] = []
     for reservation in stale:
         # A worker rollout must not silently expire legacy holds. Payment whose
         # result is ambiguous also needs reconciliation, never local expiry.
-        if not_before is not None and (reservation.created_at.replace(tzinfo=timezone.utc) if reservation.created_at.tzinfo is None else reservation.created_at) < (not_before.replace(tzinfo=timezone.utc) if not_before.tzinfo is None else not_before):
+        if not_before is not None and _aware_utc(reservation.created_at) < _aware_utc(not_before):
             continue
         payment = db.scalar(select(PaymentIntent.id).where(PaymentIntent.reservation_id == reservation.id, PaymentIntent.tenant_id == reservation.tenant_id, PaymentIntent.status.in_(["initiated", "authorized", "captured", "refunded"])).limit(1))
-        funding = db.scalar(select(FinancialLedgerEntry.id).where(FinancialLedgerEntry.reservation_id == reservation.id, FinancialLedgerEntry.tenant_id == reservation.tenant_id, FinancialLedgerEntry.entry_type.in_(["reserve", "capture"])).limit(1))
-        if payment or funding or reservation.provider_reference:
+        if payment or reservation.provider_reference:
+            continue
+        ledger = db.scalars(select(FinancialLedgerEntry).where(FinancialLedgerEntry.reservation_id == reservation.id, FinancialLedgerEntry.tenant_id == reservation.tenant_id, FinancialLedgerEntry.entry_type.in_(["reserve", "capture", "reverse_capture"]))).all()
+        if any(entry.entry_type != "reserve" for entry in ledger):
+            continue  # consumed funds belong to fulfilment/refund, never to the reaper
+        if ledger:
+            deadline = max(_aware_utc(entry.created_at) for entry in ledger) + timedelta(minutes=funded_hold)
+            if deadline > now:
+                continue
+        elif _aware_utc(reservation.updated_at) >= now - timedelta(minutes=hold_minutes):
             continue
         transition_reservation(db, reservation, "expired", actor_id=None, command_id=f"reaper:{reservation.id}")
         if reservation.status != "expired":
@@ -1310,26 +1337,64 @@ def apply_organization_credit_command(db: Session, *, tenant_id: int, credit_acc
     return post_ledger(db, tenant_id=tenant_id, credit_account_id=credit_account_id, command_id=command_id, entry_type=entry_type, amount=amount, reservation_id=reservation_id, reversal_of_id=reversal_of_id)
 
 
+def _reserve_settlement(db: Session, reservation: "Reservation", reserve: FinancialLedgerEntry) -> Optional[FinancialLedgerEntry]:
+    """The capture/release that already closed this reserve, if any (pending or
+    persisted, legacy or current command id). One reservation holds at most one
+    reserve per wallet/credit source (checkout funding refuses a second one)."""
+    def same_source(entry: FinancialLedgerEntry) -> bool:
+        return entry.wallet_id == reserve.wallet_id if reserve.wallet_id else entry.credit_account_id == reserve.credit_account_id
+    pending = next((item for item in db.new if isinstance(item, FinancialLedgerEntry) and item.tenant_id == reservation.tenant_id and item.reservation_id == reservation.id and item.entry_type in {"capture", "release"} and same_source(item)), None)
+    if pending is not None:
+        return pending
+    source = FinancialLedgerEntry.wallet_id == reserve.wallet_id if reserve.wallet_id else FinancialLedgerEntry.credit_account_id == reserve.credit_account_id
+    return db.scalar(select(FinancialLedgerEntry).where(FinancialLedgerEntry.tenant_id == reservation.tenant_id, FinancialLedgerEntry.reservation_id == reservation.id, FinancialLedgerEntry.entry_type.in_(["capture", "release"]), source).limit(1))
+
+
 def settle_reservation_funding(db: Session, reservation: "Reservation", action: str) -> None:
     """Close the loop on any wallet/organization-credit amount reserved for this
     reservation at checkout funding time. action='capture' turns a real fulfillment
-    into a real consumed deduction; action='release' returns a cancelled/failed
-    reservation's held amount back to available. Idempotent per (reservation, ledger
-    source) via a deterministic command_id, so re-running a transition is a no-op."""
+    into a real consumed deduction; action='release' returns a cancelled/failed/
+    expired reservation's held amount back to available.
+
+    Exactly-once per reserve: capture and release share ONE deterministic
+    command id per reserve ("reservation-settle:<reserve id>"), so the
+    (tenant_id, command_id) unique constraint makes a second capture, a second
+    release, or a release racing a capture impossible at the database level;
+    an already-settled reserve (including legacy command ids) is never settled
+    again. Each new settlement is written to the outbox as an audit record."""
     reserves = db.scalars(select(FinancialLedgerEntry).where(FinancialLedgerEntry.tenant_id == reservation.tenant_id, FinancialLedgerEntry.reservation_id == reservation.id, FinancialLedgerEntry.entry_type == "reserve")).all()
     for reserve in reserves:
         if reserve.wallet_id:
-            command_id = f"reservation-{action}:{reservation.id}:wallet:{reserve.wallet_id}"[:80]
-            try:
-                apply_credit_command(db, tenant_id=reservation.tenant_id, wallet_id=reserve.wallet_id, command_id=command_id, entry_type=action, amount=reserve.amount, reservation_id=reservation.id)
-            except ValueError:
-                continue
-        elif reserve.credit_account_id:
-            command_id = f"reservation-{action}:{reservation.id}:credit:{reserve.credit_account_id}"[:80]
-            try:
-                apply_organization_credit_command(db, tenant_id=reservation.tenant_id, credit_account_id=reserve.credit_account_id, command_id=command_id, entry_type=action, amount=reserve.amount, reservation_id=reservation.id)
-            except ValueError:
-                continue
+            locked = db.scalar(select(Wallet.id).where(Wallet.id == reserve.wallet_id, Wallet.tenant_id == reservation.tenant_id).with_for_update())
+        else:
+            locked = db.scalar(select(CreditAccount.id).where(CreditAccount.id == reserve.credit_account_id, CreditAccount.tenant_id == reservation.tenant_id).with_for_update())
+        if locked is None or _reserve_settlement(db, reservation, reserve) is not None:
+            continue
+        command_id = f"reservation-settle:{reserve.id}"[:80]
+        try:
+            if reserve.wallet_id:
+                entry = apply_credit_command(db, tenant_id=reservation.tenant_id, wallet_id=reserve.wallet_id, command_id=command_id, entry_type=action, amount=reserve.amount, reservation_id=reservation.id)
+            else:
+                entry = apply_organization_credit_command(db, tenant_id=reservation.tenant_id, credit_account_id=reserve.credit_account_id, command_id=command_id, entry_type=action, amount=reserve.amount, reservation_id=reservation.id)
+        except ValueError:
+            logging.getLogger("karenseir.funding").error("reservation_funding_settlement_failed", extra={"reservation_id": reservation.id, "reserve_id": reserve.id, "action": action})
+            continue
+        if entry.entry_type != action:
+            continue  # the reserve was already settled the other way; never both
+        db.add(OutboxEvent(tenant_id=reservation.tenant_id, aggregate_type="reservation", aggregate_id=reservation.id, event_type=f"reservation.funding.{action}", payload_json=json.dumps({"reservation_id": reservation.id, "reserve_id": reserve.id, "ledger_entry_id": entry.id, "source": "wallet" if reserve.wallet_id else "organization_credit", "source_id": reserve.wallet_id or reserve.credit_account_id, "amount": reserve.amount, "reservation_status": reservation.status}, sort_keys=True), correlation_id=str(uuid.uuid4()), idempotency_key=f"{command_id}:audit"[:120]))
+
+
+def reservation_funding_captured(db: Session, reservation: "Reservation") -> bool:
+    """True when every wallet/credit reserve of the reservation was captured
+    (vacuously True for bank-only reservations). Used to refuse issuance when a
+    reserve could not be consumed."""
+    db.flush()
+    reserves = db.scalars(select(FinancialLedgerEntry).where(FinancialLedgerEntry.tenant_id == reservation.tenant_id, FinancialLedgerEntry.reservation_id == reservation.id, FinancialLedgerEntry.entry_type == "reserve")).all()
+    for reserve in reserves:
+        settled = _reserve_settlement(db, reservation, reserve)
+        if settled is None or settled.entry_type != "capture":
+            return False
+    return True
 
 
 def create_refresh_session(db: Session, *, tenant_id: int, user_id: int, expires_at: datetime, family_id: Optional[str] = None, device_hash: Optional[str] = None, ip_hash: Optional[str] = None) -> tuple[str, RefreshTokenSession]:

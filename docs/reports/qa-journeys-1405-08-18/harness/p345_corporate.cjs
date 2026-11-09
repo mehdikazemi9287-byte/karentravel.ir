@@ -58,9 +58,22 @@ const ORG = fixtures.org_id;
       return r.status < 300 ? 'linked' : { status: 'FAIL', note: r.status + ' ' + JSON.stringify(r.body).slice(0, 200) };
     });
     await step(P, 'مانده اعتبار پس از رزرو', page, async () => { const c = (await api(ctx._session, 'GET', '/me/organization-credit')).body[0]; return `available=${c.available} reserved=${c.reserved}`; });
+    // D1 re-run: a 100% organization-credit booking is now "paid" for the supplier and is issued; the reserve is captured.
+    await step(P, 'صدور رزرو ۱۰۰٪ اعتباری توسط تأمین‌کننده', page, async () => {
+      const sup = await devToken('supplier@aftab.test');
+      const ready = (await api(sup, 'GET', '/supplier/reservations/ready')).body;
+      if (!Array.isArray(ready) || !ready.some(r => r.id === rid)) return { status: 'FAIL', note: 'credit-funded reservation missing from supplier ready list' };
+      const before = (await api(ctx._session, 'GET', '/me/organization-credit')).body[0];
+      const f = await api(sup, 'POST', `/reservations/${rid}/fulfill`, { command_id: 'qa-ful-' + Date.now() + mobile, provider_reference: '[QA-DEMO] RAJA-REF', document_reference: 'document://qa-demo-train-ticket' });
+      const after = (await api(ctx._session, 'GET', '/me/organization-credit')).body[0];
+      if (f.status !== 200) return { status: 'FAIL', note: 'fulfil ' + f.status + ' ' + JSON.stringify(f.body).slice(0, 200) };
+      return `issued=${f.body.reservation.status}; credit reserved ${before.reserved}→${after.reserved}, consumed ${before.consumed}→${after.consumed}`;
+    });
     await step(P, 'فاکتور / صورت‌حساب کارمند', page, async () => {
+      const inv = (await api(ctx._session, 'GET', '/me/invoices')).body;
       await page.goto(WEB + '/account/payments', { waitUntil: 'networkidle' }); const t = await mainText(page);
-      return { status: 'BLOCKED', note: 'invoice issuance requires finance_operator (invoice:manage) after confirmation; employee sees: ' + t.slice(0, 140) };
+      const mine = Array.isArray(inv) ? inv.find(i => i.reservation_id === rid) : null;
+      return mine ? `invoice auto-issued on fulfilment: ${mine.total_amount} ${mine.currency || ''}; page: ` + t.slice(0, 100) : { status: 'FAIL', note: 'no invoice for issued reservation; /me/invoices=' + JSON.stringify(inv).slice(0, 160) };
     });
     await step(P, 'وضعیت رزرو در سفرهای من (برچسب فارسی)', page, async () => { await page.goto(WEB + '/trips', { waitUntil: 'networkidle' }); const t = await mainText(page); const raw = t.match(/\b(reserved|planned|awaiting_fulfillment|pending_approval)\b/g); return raw ? { status: 'FAIL', note: 'raw status codes: ' + [...new Set(raw)].join(',') } : 'ok'; });
     await ctx.close();
@@ -97,7 +110,22 @@ const ORG = fixtures.org_id;
       const avail = (await api(ctx._session, 'GET', '/me/organization-credit')).body[0].available;
       await page.getByLabel(/مبلغ از اعتبار سازمانی/).fill(String(Math.min(avail, 10_000_000))); await clickWait(page, 'تأیید روش پرداخت');
       await clickWait(page, 'دریافت پیش‌فاکتور'); const inv = await mainText(page); await clickWait(page, 'ادامه به پرداخت');
-      const t = await mainText(page); return /در انتظار پرداخت/.test(t) ? 'split funding OK → remainder awaits (blocked) gateway; invoice preview: ' + (inv.match(/پیش‌فاکتور: [^|]+/) || [''])[0] : { status: 'FAIL', note: t.slice(0, 200) };
+      const t = await mainText(page); return /در انتظار پرداخت/.test(t) ? 'split funding OK → remainder awaits gateway; invoice preview: ' + (inv.match(/پیش‌فاکتور: [^|]+/) || [''])[0] : { status: 'FAIL', note: t.slice(0, 200) };
+    });
+    // D1 + D6 re-run: mixed funding still needs the captured bank part; pay it on the labelled sandbox gateway, then issue.
+    await step(P, 'ترکیبی: صدور پیش از پرداخت بانکی رد شود', page, async () => {
+      const sup = await devToken('supplier@aftab.test');
+      const f = await api(sup, 'POST', `/reservations/${rid}/fulfill`, { command_id: 'qa-ful-early-' + Date.now(), provider_reference: '[QA-DEMO] REF', document_reference: 'document://qa-demo-ticket' });
+      return f.status === 409 ? 'fulfil refused (409) while bank remainder unpaid' : { status: 'FAIL', note: 'fulfil before bank capture → ' + f.status };
+    });
+    await step(P, 'ترکیبی: پرداخت مانده در درگاه آزمایشی و صدور', page, async () => {
+      await page.getByRole('button', { name: 'ادامه در درگاه پرداخت' }).click(); await page.waitForURL(/\/payments\/sandbox\//, { timeout: 10000 });
+      if (!(await page.locator('body').innerText()).includes('درگاه آزمایشی — پرداخت واقعی نیست')) return { status: 'FAIL', note: 'no test label on gateway page' };
+      await page.getByRole('button', { name: 'پرداخت آزمایشی موفق' }).click(); await page.waitForURL(u => u.toString().startsWith(WEB + '/payments/'), { timeout: 15000 });
+      const sup = await devToken('supplier@aftab.test');
+      const f = await api(sup, 'POST', `/reservations/${rid}/fulfill`, { command_id: 'qa-ful-mixed-' + Date.now(), provider_reference: '[QA-DEMO] REF', document_reference: 'document://qa-demo-ticket' });
+      const pi = (await api(ctx._session, 'GET', '/me/payments')).body.find(p => p.reservation_id === rid);
+      return f.status === 200 ? `bank part ${pi.captured_amount} captured on sandbox (${pi.receipt_reference || pi.provider_capture_reference || 'SANDBOX'}) → issued=${f.body.reservation.status}` : { status: 'FAIL', note: 'fulfil ' + f.status + ' ' + JSON.stringify(f.body).slice(0, 200) };
     });
     await step(P, 'رزرو به نمایندگی از کارمند دیگر (on behalf)', page, async () => {
       const r = await api(ctx._session, 'GET', `/enterprise/organizations/${ORG}/members`);
@@ -105,7 +133,8 @@ const ORG = fixtures.org_id;
     });
     await step(P, 'صورت‌حساب تجمیعی سازمان', page, async () => {
       const oa = await devToken('org-admin@aftab.test'); const r = await api(oa, 'GET', `/enterprise/organizations/${ORG}/statement`);
-      return { status: 'BLOCKED', note: `statement API ${r.status}; lists only invoices issued by finance for linked reservations — none can exist without fulfilment; items=${JSON.stringify(r.body).slice(0, 120)}` };
+      const body = JSON.stringify(r.body); const items = (r.body && (r.body.items || r.body.invoices || r.body.lines)) || [];
+      return r.status === 200 && items.length ? `statement lists ${items.length} invoice(s) for linked, issued reservations` : { status: 'FAIL', note: `statement API ${r.status}; items=${body.slice(0, 160)}` };
     });
     await ctx.close();
   }

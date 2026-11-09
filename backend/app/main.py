@@ -1648,7 +1648,9 @@ def initiate_payment(payment_id: str, user: User = Depends(current_user), db: Se
         raise HTTPException(status_code=503, detail="درگاه پرداخت معتبر در دسترس نیست")
     redirect_url = str(result.get("redirect_url", ""))
     parsed = urlparse(redirect_url)
-    if parsed.scheme != "https" or not parsed.hostname:
+    from .payment_sandbox import is_loopback_http, is_sandbox_adapter
+    sandbox_loopback = is_sandbox_adapter(ADAPTERS["payment"]) and is_loopback_http(redirect_url)  # local QA sandbox only (D6)
+    if (parsed.scheme != "https" and not sandbox_loopback) or not parsed.hostname:
         raise HTTPException(status_code=502, detail="پاسخ درگاه پرداخت معتبر نیست")
     intent.status = "initiated"
     intent.provider_reference = str(result.get("reference", ""))[:160] or None
@@ -1700,7 +1702,10 @@ def _verify_zarinpal_callback(state_token: str = Query(alias="state", min_length
 def _payment_return_origin() -> str:
     origin = os.getenv("PUBLIC_WEB_URL", "").rstrip("/")
     parsed = urlparse(origin)
-    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password or parsed.path or parsed.query or parsed.fragment:
+    from .payment_sandbox import is_loopback_http, is_sandbox_adapter
+    from .providers import ADAPTERS
+    local_sandbox = is_sandbox_adapter(ADAPTERS["payment"]) and is_loopback_http(origin)  # local QA stack only (D6)
+    if (parsed.scheme != "https" and not local_sandbox) or not parsed.hostname or parsed.username or parsed.password or parsed.path or parsed.query or parsed.fragment:
         return ""
     return origin
 
@@ -1727,6 +1732,76 @@ def zarinpal_callback(request: Request, state_token: str = Query(alias="state", 
     if wants_page and origin and payment_id:
         return RedirectResponse(f"{origin}/payments/{payment_id}", status_code=303, headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"})
     return result
+
+
+# ---------------------------------------------------------------------------
+# QA/staging sandbox payment gateway (D6). Exists only while the payment
+# adapter is the SandboxPaymentAdapter AND ENVIRONMENT is development/test/
+# staging; otherwise every route answers 404. It never marks a payment as paid
+# itself: it records a signed decision and hands control to the real
+# /payments/zarinpal/callback verify path.
+# ---------------------------------------------------------------------------
+def _sandbox_intent(db: Session, authority: str, state_token: str):
+    from .providers import ADAPTERS
+    from .payment_sandbox import is_sandbox_adapter
+    if not is_sandbox_adapter(ADAPTERS["payment"]):
+        raise HTTPException(status_code=404, detail="Not Found")
+    if len(authority) != 36 or not authority.startswith("A") or not authority[1:].isalnum():
+        raise HTTPException(status_code=404, detail="Not Found")
+    try:
+        claims = jwt.decode(state_token, JWT_SECRET, algorithms=["HS256"], audience="karenseir-zarinpal-callback", issuer=JWT_ISSUER, options={"require": ["exp", "iat", "jti", "tenant_id", "payment_intent_id", "user_id", "amount"]})
+        tenant_id = int(claims["tenant_id"]); payment_id = str(claims["payment_intent_id"]); claimed_amount = int(claims["amount"])
+    except (jwt.InvalidTokenError, TypeError, ValueError, KeyError):
+        raise HTTPException(status_code=401, detail="state پرداخت آزمایشی نامعتبر یا منقضی است")
+    set_tenant_context(db, tenant_id)
+    intent = db.scalar(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.id == payment_id, operational_models.PaymentIntent.tenant_id == tenant_id))
+    if intent is None or intent.provider_authority != authority or intent.amount != claimed_amount:
+        raise HTTPException(status_code=404, detail="پرداخت آزمایشی پیدا نشد")
+    return intent
+
+
+@app.get("/payments/sandbox/{authority}", response_model=None)
+def sandbox_payment_page(authority: str, state_token: str = Query(alias="state", min_length=20), db: Session = Depends(get_db)):
+    from html import escape
+    from .payment_sandbox import SANDBOX_LABEL
+    intent = _sandbox_intent(db, authority, state_token)
+    reservation = db.get(operational_models.Reservation, intent.reservation_id)
+    action = f"/payments/sandbox/{escape(authority)}/decision"
+    hidden = f'<input type="hidden" name="state" value="{escape(state_token)}">'
+    html = f"""<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>{SANDBOX_LABEL}</title>
+<style>body{{font-family:Tahoma,sans-serif;background:#fff7ed;color:#1f2937;margin:0;padding:16px}}main{{max-width:520px;margin:24px auto;background:#fff;border:3px dashed #c2410c;border-radius:12px;padding:20px}}.banner{{background:#c2410c;color:#fff;font-weight:700;font-size:20px;padding:12px;border-radius:8px;text-align:center}}dl{{display:grid;grid-template-columns:auto 1fr;gap:8px 12px;font-size:16px}}dt{{font-weight:700}}form{{margin:10px 0}}button{{width:100%;min-height:48px;font-size:17px;border-radius:8px;border:0;cursor:pointer}}.ok{{background:#15803d;color:#fff}}.fail{{background:#b91c1c;color:#fff}}.cancel{{background:#e5e7eb;color:#111827}}</style></head>
+<body><main><p class="banner" role="alert">{SANDBOX_LABEL}</p><h1>شبیه‌ساز پرداخت (فقط محیط آزمایشی)</h1>
+<p>این صفحه برای آزمون QA/staging است. هیچ وجهی از هیچ حسابی کسر نمی‌شود و هیچ بانکی درگیر نیست.</p>
+<dl><dt>مبلغ آزمایشی</dt><dd>{intent.amount:,} {escape(intent.currency)}</dd><dt>رزرو</dt><dd>{escape(reservation.booking_reference or reservation.id) if reservation else '-'}</dd><dt>شناسه پرداخت</dt><dd dir="ltr">{escape(intent.id)}</dd></dl>
+<form method="post" action="{action}">{hidden}<input type="hidden" name="decision" value="success"><button class="ok" type="submit">پرداخت آزمایشی موفق</button></form>
+<form method="post" action="{action}">{hidden}<input type="hidden" name="decision" value="failure"><button class="fail" type="submit">پرداخت آزمایشی ناموفق</button></form>
+<form method="post" action="{action}">{hidden}<input type="hidden" name="decision" value="cancel"><button class="cancel" type="submit">انصراف از پرداخت</button></form>
+</main></body></html>"""
+    return Response(content=html, media_type="text/html", headers={"Cache-Control": "no-store", "X-Robots-Tag": "noindex", "X-Payment-Sandbox": "true", "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'"})
+
+
+@app.post("/payments/sandbox/{authority}/decision", response_model=None)
+def sandbox_payment_decision(request: Request, authority: str, state_token: str = Form(alias="state", min_length=20), decision: str = Form(pattern="^(success|failure|cancel)$"), db: Session = Depends(get_db)):
+    from urllib.parse import urlencode
+    from .payment_sandbox import DECISION_SCOPE, DECISIONS, SANDBOX_LABEL, decision_signature
+    intent = _sandbox_intent(db, authority, state_token)
+    if intent.status not in {"initiated", "failed", "captured"}:
+        raise HTTPException(status_code=409, detail="پرداخت آزمایشی در وضعیت قابل تصمیم نیست")
+    row = db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id == intent.tenant_id, operational_models.IdempotencyKey.scope == DECISION_SCOPE, operational_models.IdempotencyKey.key == authority))
+    if row is None:  # first decision wins; the gateway outcome is immutable like a real bank's
+        row = operational_models.IdempotencyKey(tenant_id=intent.tenant_id, scope=DECISION_SCOPE, key=authority, request_hash=decision_signature(authority, intent.id, intent.amount, decision), response_json=json.dumps({"decision": decision, "payment_intent_id": intent.id, "amount": intent.amount, "test_mode": True, "label": SANDBOX_LABEL}, sort_keys=True))
+        db.add(row)
+        db.add(operational_models.OutboxEvent(tenant_id=intent.tenant_id, aggregate_type="payment", aggregate_id=intent.id, event_type="payment.sandbox.decision", payload_json=json.dumps({"decision": decision, "test_mode": True}), correlation_id=str(uuid.uuid4()), idempotency_key=f"sandbox-decision:{authority}"))
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            row = db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id == intent.tenant_id, operational_models.IdempotencyKey.scope == DECISION_SCOPE, operational_models.IdempotencyKey.key == authority))
+    recorded = json.loads(row.response_json or "{}").get("decision", decision)
+    callback = "/payments/zarinpal/callback?" + urlencode({"state": state_token, "Authority": authority, "Status": DECISIONS[recorded]})
+    if "text/html" in request.headers.get("accept", ""):
+        return RedirectResponse(callback, status_code=303, headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"})
+    return {"test_mode": True, "label": SANDBOX_LABEL, "decision": recorded, "callback_url": callback}
 
 
 @app.get("/payments/{payment_id}")
@@ -3186,6 +3261,30 @@ def orchestrate_booking(data: OrchestrationBookingIn, user: User = Depends(curre
     return response
 
 
+def _reservation_settlement_ready(db: Session, reservation: "operational_models.Reservation") -> bool:
+    """Whether a reservation is paid for fulfilment (QA D1).
+
+    Paid means either (a) a verified schema-v2 funding plan covers the whole
+    price from still-reserved wallet/organization credit (bank_payable == 0),
+    or (b) a captured bank payment exists and, when a funding plan declares a
+    bank remainder (mixed credit + bank), covers that whole remainder.
+    Reserved credit/wallet is captured by the confirmed/issued transition."""
+    from .funding_references import bank_payable, fully_funded_without_bank, latest_plan
+    from .financial_amounts import FinancialInvariantError
+    if fully_funded_without_bank(db, reservation, _secure_hash):
+        return True
+    payment = db.scalar(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.tenant_id == reservation.tenant_id, operational_models.PaymentIntent.reservation_id == reservation.id, operational_models.PaymentIntent.status == "captured", operational_models.PaymentIntent.captured_amount > 0).order_by(operational_models.PaymentIntent.captured_amount.desc()).limit(1))
+    if payment is None:
+        return False
+    try:
+        _, plan = latest_plan(db, reservation, _secure_hash)
+        if not plan or plan.get("schema_version") != 2:
+            return True  # legacy single-source bank payment (pre-funding-plan behaviour)
+        return payment.captured_amount >= bank_payable(db, reservation, _secure_hash, check_expiry=False)
+    except (FinancialInvariantError, KeyError, ValueError, TypeError):
+        return False  # released/inconsistent reserves: never treat as paid
+
+
 @app.post("/reservations/{reservation_id}/fulfill")
 def fulfill_reservation(reservation_id: str, data: FulfillmentIn, user: User = Depends(require_permission("reservation:fulfill")), db: Session = Depends(get_db)) -> dict:
     reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == reservation_id, operational_models.Reservation.tenant_id == user.tenant_id).with_for_update())
@@ -3198,9 +3297,8 @@ def fulfill_reservation(reservation_id: str, data: FulfillmentIn, user: User = D
     if reservation.status == "issued" and existing_voucher:
         existing_ticket = db.scalar(select(operational_models.Ticket).where(operational_models.Ticket.tenant_id == user.tenant_id, operational_models.Ticket.reservation_id == reservation.id, operational_models.Ticket.qr_token.isnot(None)))
         return {"reservation": _reservation_output(reservation), "voucher": {"id": existing_voucher.id, "status": existing_voucher.status, "revision": existing_voucher.revision}, "admission_ticket": ({"id": existing_ticket.id, "status": existing_ticket.status, "qr_token": existing_ticket.qr_token} if existing_ticket else None)}
-    payment = db.scalar(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.tenant_id == user.tenant_id, operational_models.PaymentIntent.reservation_id == reservation.id, operational_models.PaymentIntent.status == "captured"))
-    if payment is None or payment.captured_amount <= 0:
-        raise HTTPException(status_code=409, detail="پرداخت captureشده برای رزرو موجود نیست")
+    if not _reservation_settlement_ready(db, reservation):
+        raise HTTPException(status_code=409, detail="پرداخت captureشده یا منابع مسدودشدهٔ کافی برای رزرو موجود نیست")
     item = db.scalar(select(operational_models.BookingItem).where(operational_models.BookingItem.tenant_id == user.tenant_id, operational_models.BookingItem.reservation_id == reservation.id))
     item_snapshot = json.loads(item.snapshot_json) if item else {}
     if item_snapshot.get("fulfillment_mode") == "provider":
@@ -3225,6 +3323,11 @@ def fulfill_reservation(reservation_id: str, data: FulfillmentIn, user: User = D
         if stay is not None:
             if stay.status != "held": raise HTTPException(409,"نگه‌داشت اقامت برای صدور معتبر نیست")
             stay.status = "confirmed"
+    if not operational_models.reservation_funding_captured(db, reservation):
+        # Wallet/credit reserves must turn into consumed captures together with
+        # issuance; never issue on funds that could not be captured (D1).
+        db.rollback()
+        raise HTTPException(status_code=409, detail="برداشت منابع مسدودشدهٔ رزرو انجام نشد؛ نیازمند تطبیق مالی است")
     voucher = operational_models.Voucher(tenant_id=user.tenant_id, reservation_id=reservation.id, status="issued", revision=1, document_reference=data.document_reference)
     db.add(voucher); db.flush()
     leisure_session_id = (item_snapshot.get("attributes") or {}).get("leisure_session_id")
@@ -5386,8 +5489,9 @@ def supplier_ready_reservations(user:User=Depends(require_permission("inventory:
     for reservation,item in pairs:
         snapshot=json.loads(item.snapshot_json)
         if snapshot.get("supplier_id") not in supplier_ids or snapshot.get("fulfillment_mode")!="manual_supplier":continue
-        payment=db.scalar(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.tenant_id==user.tenant_id,operational_models.PaymentIntent.reservation_id==reservation.id,operational_models.PaymentIntent.status=="captured",operational_models.PaymentIntent.captured_amount>0))
-        if payment:out.append({"id":reservation.id,"booking_reference":reservation.booking_reference,"title":snapshot.get("title",reservation.service_type),"service_type":reservation.service_type,"status":reservation.status,"hotel_stay":snapshot.get("hotel_stay")})
+        # Paid = captured bank payment for the bank part, or 100% reserved wallet/credit (QA D1).
+        if not _reservation_settlement_ready(db,reservation):continue
+        out.append({"id":reservation.id,"booking_reference":reservation.booking_reference,"title":snapshot.get("title",reservation.service_type),"service_type":reservation.service_type,"status":reservation.status,"hotel_stay":snapshot.get("hotel_stay")})
     return out
 
 
