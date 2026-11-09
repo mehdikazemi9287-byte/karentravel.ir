@@ -176,9 +176,15 @@ def test_d1_settlement_is_exactly_once_capture_and_release_are_exclusive(client)
         m.settle_reservation_funding(db, reservation, "capture")
         db.commit()
         reserve = db.scalar(select(m.FinancialLedgerEntry).where(m.FinancialLedgerEntry.reservation_id == rid, m.FinancialLedgerEntry.entry_type == "reserve"))
-        # A racing writer reusing the deterministic settlement command id gets the existing entry back.
-        replay = m.apply_organization_credit_command(db, tenant_id=reservation.tenant_id, credit_account_id=reserve.credit_account_id, command_id=f"reservation-settle:{reserve.id}", entry_type="release", amount=reserve.amount, reservation_id=rid)
-        assert replay.entry_type == "capture"
+        # A racing writer reusing the deterministic settlement command id for the other action is
+        # refused (KT-03: same command_id + different entry_type -> conflict); nothing is posted.
+        with pytest.raises(m.LedgerCommandConflict):
+            m.apply_organization_credit_command(db, tenant_id=reservation.tenant_id, credit_account_id=reserve.credit_account_id, command_id=f"reservation-settle:{reserve.id}", entry_type="release", amount=reserve.amount, reservation_id=rid)
+        # An identical replay still returns the stored capture.
+        same = m.apply_organization_credit_command(db, tenant_id=reservation.tenant_id, credit_account_id=reserve.credit_account_id, command_id=f"reservation-settle:{reserve.id}", entry_type="capture", amount=reserve.amount, reservation_id=rid)
+        assert same.entry_type == "capture"
+        # The settlement path itself still treats the other action as already settled.
+        m.settle_reservation_funding(db, reservation, "release")
         db.commit()
     assert len(ledger(rid, "capture")) == 1 and ledger(rid, "release") == []
     state = credit_state(client, ctx)

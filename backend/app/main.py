@@ -434,6 +434,42 @@ def _supplier_scope(db: Session, user: User) -> set[str]:
         operational_models.SupplierMembership.tenant_id == user.tenant_id,
         operational_models.SupplierMembership.user_id == user.id,
     )).all())
+
+
+def _fulfiller_supplier_scope(db: Session, user: User) -> set[str]:
+    """Suppliers a fulfilling partner may act for (audit 2026-11-10, KT-01).
+
+    supplier: its own SupplierMembership rows. agency_partner: its SupplierMembership
+    rows plus the organiser supplier (Agency.supplier_id) of each agency it is an
+    explicit member of -- the same relation the Safarsaz partner scope uses. An agency
+    with no linked supplier gets an empty scope (deny); selling on an agency channel
+    does not grant fulfilment."""
+    ids = _supplier_scope(db, user)
+    if user.role == "agency_partner":
+        mine = select(operational_models.AgencyMembership.agency_id).where(operational_models.AgencyMembership.tenant_id == user.tenant_id, operational_models.AgencyMembership.user_id == user.id)
+        ids |= {sid for sid in db.scalars(select(operational_models.Agency.supplier_id).where(operational_models.Agency.tenant_id == user.tenant_id, operational_models.Agency.id.in_(mine), operational_models.Agency.supplier_id.is_not(None))).all() if sid}
+    return ids
+
+
+def _require_fulfilment_scope(db: Session, user: User, reservation: "operational_models.Reservation", action: str) -> None:
+    """Shared ownership gate for voucher issue (/fulfill) and reissue.
+
+    Must run right after the tenant-scoped reservation lookup and before any voucher or
+    idempotency record is read. Every booking item of the reservation must belong to a
+    supplier in the caller's scope. Platform admins (platform:manage) keep their
+    tenant-wide override, which is written to the audit trail. Any other role holding
+    reservation:fulfill without a scope rule is denied (fail closed)."""
+    if role_has_permission(user.role, "platform:manage") and user.role not in ("supplier", "agency_partner"):
+        db.add(AuditEvent(tenant_id=user.tenant_id, actor_id=user.id, action=f"reservation.{action}.admin_override", entity="reservation", entity_id=0, detail=json.dumps({"reservation_id": reservation.id}, sort_keys=True)))
+        return
+    if user.role not in ("supplier", "agency_partner"):
+        raise HTTPException(403, "این رزرو به تأمین‌کنندهٔ جاری واگذار نشده است")
+    items = db.scalars(select(operational_models.BookingItem).where(operational_models.BookingItem.reservation_id == reservation.id, operational_models.BookingItem.tenant_id == user.tenant_id)).all()
+    scope = _fulfiller_supplier_scope(db, user)
+    if not items or not scope or any(json.loads(i.snapshot_json or "{}").get("supplier_id") not in scope for i in items):
+        raise HTTPException(403, "این رزرو به تأمین‌کنندهٔ جاری واگذار نشده است")
+
+
 def booking_out(b: Booking, hotel: Hotel) -> dict:
     return {"id":b.id,"hotel_id":hotel.id,"hotel_name":hotel.name,"nights":b.nights,"total_amount":b.total_amount,"status":b.status,"created_at":b.created_at.isoformat()}
 
@@ -1281,13 +1317,26 @@ def reservation_detail(reservation_id: str, user: User = Depends(current_user), 
 
 @app.get("/reservations/{reservation_id}/price-breakdown")
 def reservation_price_breakdown(reservation_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
-    reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == reservation_id, operational_models.Reservation.tenant_id == user.tenant_id, operational_models.Reservation.user_id == user.id))
+    # Customers (reservation owner) get an allowlisted DTO; the internal cost/margin view
+    # requires the existing finance permission ledger:read (KT-02).
+    internal = role_has_permission(user.role, "ledger:read")
+    conditions = [operational_models.Reservation.id == reservation_id, operational_models.Reservation.tenant_id == user.tenant_id]
+    if not internal: conditions.append(operational_models.Reservation.user_id == user.id)
+    reservation = db.scalar(select(operational_models.Reservation).where(*conditions))
     if reservation is None:
         raise HTTPException(status_code=404, detail="رزرو در این حساب وجود ندارد")
     row = db.scalar(select(operational_models.PriceBreakdown).where(operational_models.PriceBreakdown.booking_id == reservation.id, operational_models.PriceBreakdown.tenant_id == user.tenant_id))
     if row is None:
         raise HTTPException(status_code=404, detail="جزئیات قیمت برای این رزرو ثبت نشده است")
-    return {key: getattr(row, key) for key in ("id", "booking_id", "source", "source_contract_id", "supplier_net_rate", "supplier_currency", "exchange_rate", "supplier_net_rate_irr", "platform_markup", "platform_markup_type", "service_fee", "supplier_commission", "agent_commission", "discount_amount", "discount_source", "promo_code", "vat", "airport_tax", "i6_tax", "red_crescent", "other_taxes", "wl_channel_id", "wl_revenue_share", "wl_commission_type", "total_selling_price", "total_cost", "gross_margin", "net_margin", "calculated_at", "calculated_by", "override_reason", "approved_by")}
+    if internal:
+        return {"view": "internal", **{key: getattr(row, key) for key in PRICE_BREAKDOWN_INTERNAL_FIELDS}}
+    currency = (json.loads(reservation.price_snapshot_json or "{}") or {}).get("currency")
+    return {"view": "customer", "currency": currency, **{key: getattr(row, key) for key in PRICE_BREAKDOWN_CUSTOMER_FIELDS}}
+
+
+# Customer-disclosable price fields only: final price, taxes, discounts, service fee.
+PRICE_BREAKDOWN_CUSTOMER_FIELDS = ("id", "booking_id", "total_selling_price", "service_fee", "discount_amount", "discount_source", "promo_code", "vat", "airport_tax", "i6_tax", "red_crescent", "other_taxes", "calculated_at")
+PRICE_BREAKDOWN_INTERNAL_FIELDS = ("id", "booking_id", "source", "source_contract_id", "supplier_net_rate", "supplier_currency", "exchange_rate", "supplier_net_rate_irr", "platform_markup", "platform_markup_type", "service_fee", "supplier_commission", "agent_commission", "discount_amount", "discount_source", "promo_code", "vat", "airport_tax", "i6_tax", "red_crescent", "other_taxes", "wl_channel_id", "wl_revenue_share", "wl_commission_type", "total_selling_price", "total_cost", "gross_margin", "net_margin", "calculated_at", "calculated_by", "override_reason", "approved_by")
 
 def _ticket_qr_svg(token:str)->bytes:
     import io,qrcode,qrcode.image.svg
@@ -3295,9 +3344,7 @@ def fulfill_reservation(reservation_id: str, data: FulfillmentIn, user: User = D
     reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == reservation_id, operational_models.Reservation.tenant_id == user.tenant_id).with_for_update())
     if reservation is None:
         raise HTTPException(status_code=404, detail="رزرو در این tenant وجود ندارد")
-    owned_item=db.scalar(select(operational_models.BookingItem).where(operational_models.BookingItem.reservation_id==reservation.id,operational_models.BookingItem.tenant_id==user.tenant_id))
-    if user.role=="supplier" and (owned_item is None or json.loads(owned_item.snapshot_json).get("supplier_id") not in _supplier_scope(db,user)):
-        raise HTTPException(403,"این رزرو به تأمین‌کنندهٔ جاری واگذار نشده است")
+    _require_fulfilment_scope(db, user, reservation, "fulfill")
     existing_voucher = db.scalar(select(operational_models.Voucher).where(operational_models.Voucher.tenant_id == user.tenant_id, operational_models.Voucher.reservation_id == reservation.id))
     if reservation.status == "issued" and existing_voucher:
         existing_ticket = db.scalar(select(operational_models.Ticket).where(operational_models.Ticket.tenant_id == user.tenant_id, operational_models.Ticket.reservation_id == reservation.id, operational_models.Ticket.qr_token.isnot(None)))
@@ -3660,13 +3707,23 @@ def cancellation_quote(reservation_id: str, user: User = Depends(current_user), 
 def reissue_voucher(reservation_id: str, data: VoucherReissueIn, user: User = Depends(require_permission("reservation:fulfill")), db: Session = Depends(get_db)) -> dict:
     if not data.document_reference.startswith(("document://", "s3://", "vault://")): raise HTTPException(status_code=422, detail="document reference معتبر نیست")
     reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == reservation_id, operational_models.Reservation.tenant_id == user.tenant_id).with_for_update())
-    if reservation is None or reservation.status not in {"issued", "changed"}: raise HTTPException(status_code=409, detail="رزرو قابل صدور مجدد واچر نیست")
+    if reservation is None: raise HTTPException(status_code=409, detail="رزرو قابل صدور مجدد واچر نیست")
+    # Ownership first: nothing about the voucher or the idempotency record is read for an out-of-scope caller (KT-01).
+    _require_fulfilment_scope(db, user, reservation, "voucher_reissue")
+    request_hash = _secure_hash(f"{reservation.id}:{data.document_reference}")
     prior = db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id == user.tenant_id, operational_models.IdempotencyKey.scope == "voucher.reissue", operational_models.IdempotencyKey.key == data.command_id))
+    if prior is not None:
+        # Same key + same request -> same result; same key + different reservation/document -> conflict.
+        if not hmac.compare_digest(prior.request_hash, request_hash): raise HTTPException(status_code=409, detail="این command_id قبلاً برای درخواست دیگری استفاده شده است")
+        stored = json.loads(prior.response_json or "{}")
+        voucher = db.scalar(select(operational_models.Voucher).where(operational_models.Voucher.tenant_id == user.tenant_id, operational_models.Voucher.reservation_id == reservation.id, operational_models.Voucher.id == stored.get("voucher_id")))
+        if voucher is None: raise HTTPException(status_code=409, detail="این command_id قبلاً برای درخواست دیگری استفاده شده است")
+        return {"id": voucher.id, "status": voucher.status, "revision": stored.get("revision", voucher.revision)}
+    if reservation.status not in {"issued", "changed"}: raise HTTPException(status_code=409, detail="رزرو قابل صدور مجدد واچر نیست")
     voucher = db.scalar(select(operational_models.Voucher).where(operational_models.Voucher.tenant_id == user.tenant_id, operational_models.Voucher.reservation_id == reservation.id).with_for_update())
-    if prior and voucher: return {"id": voucher.id, "status": voucher.status, "revision": voucher.revision}
     if voucher is None: raise HTTPException(status_code=404, detail="واچر قبلی وجود ندارد")
     voucher.revision += 1; voucher.document_reference = data.document_reference; voucher.status = "issued"
-    db.add(operational_models.IdempotencyKey(tenant_id=user.tenant_id, scope="voucher.reissue", key=data.command_id, request_hash=_secure_hash(f"{reservation.id}:{data.document_reference}"), response_json=json.dumps({"voucher_id": voucher.id, "revision": voucher.revision})))
+    db.add(operational_models.IdempotencyKey(tenant_id=user.tenant_id, scope="voucher.reissue", key=data.command_id, request_hash=request_hash, response_json=json.dumps({"voucher_id": voucher.id, "revision": voucher.revision})))
     db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="voucher", aggregate_id=voucher.id, event_type="voucher.reissued", payload_json=json.dumps({"reservation_id": reservation.id, "revision": voucher.revision, "reason": data.reason}), correlation_id=str(uuid.uuid4()), idempotency_key=data.command_id))
     db.commit(); return {"id": voucher.id, "status": voucher.status, "revision": voucher.revision}
 
