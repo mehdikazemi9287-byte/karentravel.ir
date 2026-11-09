@@ -3290,13 +3290,37 @@ def _reservation_settlement_ready(db: Session, reservation: "operational_models.
         return False  # released/inconsistent reserves: never treat as paid
 
 
+def _may_fulfil(db: Session, user: User, reservation: "operational_models.Reservation", item) -> bool:
+    """Object-level scope for /reservations/{id}/fulfill (SECURITY_FOLLOWUPS).
+
+    platform staff: any reservation in the tenant. supplier: only items whose
+    supplier the user is a member of. agency_partner: items of its own
+    supplier memberships, of a supplier linked to one of its agencies, or a
+    reservation sold on one of its agencies' sales channels. Anything else
+    (including an agency with no membership row) is refused."""
+    if role_has_permission(user.role, "platform:manage"):
+        return True
+    supplier_id = json.loads(item.snapshot_json).get("supplier_id") if item is not None else None
+    if user.role == "supplier":
+        return supplier_id is not None and supplier_id in _supplier_scope(db, user)
+    if user.role == "agency_partner":
+        if supplier_id is not None and supplier_id in _supplier_scope(db, user):
+            return True
+        agencies = db.execute(select(operational_models.Agency.supplier_id, operational_models.Agency.sales_channel_id).where(
+            operational_models.Agency.tenant_id == user.tenant_id,
+            operational_models.Agency.id.in_(select(operational_models.AgencyMembership.agency_id).where(
+                operational_models.AgencyMembership.tenant_id == user.tenant_id, operational_models.AgencyMembership.user_id == user.id)))).all()
+        return any((supplier_id is not None and a_supplier == supplier_id) or (a_channel is not None and a_channel == reservation.sales_channel_id) for a_supplier, a_channel in agencies)
+    return False
+
+
 @app.post("/reservations/{reservation_id}/fulfill")
 def fulfill_reservation(reservation_id: str, data: FulfillmentIn, user: User = Depends(require_permission("reservation:fulfill")), db: Session = Depends(get_db)) -> dict:
     reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == reservation_id, operational_models.Reservation.tenant_id == user.tenant_id).with_for_update())
     if reservation is None:
         raise HTTPException(status_code=404, detail="رزرو در این tenant وجود ندارد")
     owned_item=db.scalar(select(operational_models.BookingItem).where(operational_models.BookingItem.reservation_id==reservation.id,operational_models.BookingItem.tenant_id==user.tenant_id))
-    if user.role=="supplier" and (owned_item is None or json.loads(owned_item.snapshot_json).get("supplier_id") not in _supplier_scope(db,user)):
+    if not _may_fulfil(db, user, reservation, owned_item):
         raise HTTPException(403,"این رزرو به تأمین‌کنندهٔ جاری واگذار نشده است")
     existing_voucher = db.scalar(select(operational_models.Voucher).where(operational_models.Voucher.tenant_id == user.tenant_id, operational_models.Voucher.reservation_id == reservation.id))
     if reservation.status == "issued" and existing_voucher:
