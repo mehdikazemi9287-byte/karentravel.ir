@@ -245,7 +245,7 @@ export function HomeSearchExperience({defaultVertical="flight",presentation}:{de
           <span className="fs-field-ic"><Icon name="calendar"/></span>
           <button type="button" className="fs-field-body fs-field-body--split" aria-label={dateLabel} aria-expanded={popover==='dates'} onClick={()=>setPopover(popover==='dates'?null:'dates')}>
             <span className="fs-datecol"><span className="fs-field-label">{departLabel}</span><span className={depart?'fs-field-value':'fs-field-value is-empty'}>{depart?formatJalali(depart):'انتخاب تاریخ'}</span></span>
-            <span className={showReturn?'fs-datecol':'fs-datecol is-disabled'}><span className="fs-field-label">{returnLabel}</span><span className={showReturn&&returnDate?'fs-field-value':'fs-field-value is-empty'}>{showReturn?(returnDate?formatJalali(returnDate):'انتخاب تاریخ'):'—'}</span></span>
+            {(showReturn||service.vertical!=='flight')&&<span className={showReturn?'fs-datecol':'fs-datecol is-disabled'}><span className="fs-field-label">{returnLabel}</span><span className={showReturn&&returnDate?'fs-field-value':'fs-field-value is-empty'}>{showReturn?(returnDate?formatJalali(returnDate):'انتخاب تاریخ'):'—'}</span></span>}
           </button>
           {popover==='dates'&&<div className="fs-pop fs-pop--date" aria-label="انتخاب تاریخ">
             <header><b>{dateLabel}</b></header>
