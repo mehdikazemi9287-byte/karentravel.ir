@@ -141,7 +141,7 @@ class LoginIn(BaseModel): email: str
 class BookingIn(BaseModel): hotel_id: int; nights: int = Field(ge=1, le=30)
 class ApproveIn(BaseModel): decision: str = Field(pattern="^(approve|reject)$")
 class ReservationCommandIn(BaseModel): target: str; command_id: str = Field(min_length=8, max_length=120)
-class ServiceRequestIn(BaseModel): request_type: str = Field(pattern="^(cancel|change|refund)$"); reason: Optional[str] = Field(default=None, max_length=1000)
+class ServiceRequestIn(BaseModel): request_type: str = Field(pattern="^(cancel|change|refund)$"); reason: Optional[str] = Field(default=None, max_length=1000); refund_destination: Optional[str] = Field(default=None, pattern="^(wallet|bank_transfer|gateway)$")
 class RefreshIn(BaseModel): refresh_token: str = Field(min_length=32, max_length=512); device_id: Optional[str] = Field(default=None, min_length=8, max_length=200)
 class OTPRequestIn(BaseModel): tenant_slug: str = Field(min_length=2, max_length=64); identifier: str = Field(min_length=3, max_length=160)
 class OTPVerifyIn(BaseModel): tenant_slug: str = Field(min_length=2, max_length=64); challenge_id: str = Field(min_length=36, max_length=36); code: str = Field(pattern=r"^\d{6}$"); device_id: str = Field(min_length=8, max_length=200)
@@ -1287,7 +1287,8 @@ def reservation_price_breakdown(reservation_id: str, user: User = Depends(curren
     row = db.scalar(select(operational_models.PriceBreakdown).where(operational_models.PriceBreakdown.booking_id == reservation.id, operational_models.PriceBreakdown.tenant_id == user.tenant_id))
     if row is None:
         raise HTTPException(status_code=404, detail="جزئیات قیمت برای این رزرو ثبت نشده است")
-    return {key: getattr(row, key) for key in ("id", "booking_id", "source", "source_contract_id", "supplier_net_rate", "supplier_currency", "exchange_rate", "supplier_net_rate_irr", "platform_markup", "platform_markup_type", "service_fee", "supplier_commission", "agent_commission", "discount_amount", "discount_source", "promo_code", "vat", "airport_tax", "i6_tax", "red_crescent", "other_taxes", "wl_channel_id", "wl_revenue_share", "wl_commission_type", "total_selling_price", "total_cost", "gross_margin", "net_margin", "calculated_at", "calculated_by", "override_reason", "approved_by")}
+    # Customer view (spec §3.3): what the customer paid and its parts; never our cost, markup, commission, margin or WL share.
+    return {key: getattr(row, key) for key in ("id", "booking_id", "service_fee", "discount_amount", "discount_source", "promo_code", "vat", "airport_tax", "i6_tax", "red_crescent", "other_taxes", "total_selling_price", "calculated_at")}
 
 def _ticket_qr_svg(token:str)->bytes:
     import io,qrcode,qrcode.image.svg
@@ -1455,25 +1456,24 @@ def create_service_request(reservation_id: str, data: ServiceRequestIn, user: Us
         if stored.get("reservation_id") != reservation_id or stored.get("request_type") != data.request_type: raise HTTPException(status_code=409, detail="کلید تکرار برای درخواست دیگری استفاده شده است")
         if prior.request_hash != _secure_hash(f"{reservation.id}:{data.request_type}:{data.reason or ''}"): raise HTTPException(409, "کلید تکرار متعلق به درخواست دیگری است")
         return stored
-    pending = db.scalar(select(operational_models.BookingServiceRequest.id).where(operational_models.BookingServiceRequest.tenant_id == user.tenant_id, operational_models.BookingServiceRequest.reservation_id == reservation.id, operational_models.BookingServiceRequest.status.in_(["submitted", "under_review"])))
+    from .after_sales import OPEN_STATUSES, destination_snapshot, start_handling
+    pending = db.scalar(select(operational_models.BookingServiceRequest.id).where(operational_models.BookingServiceRequest.tenant_id == user.tenant_id, operational_models.BookingServiceRequest.reservation_id == reservation.id, operational_models.BookingServiceRequest.status.in_(OPEN_STATUSES)))
     if pending: raise HTTPException(409, "درخواست قبلی در حال بررسی است؛ همان درخواست را پیگیری کنید")
     quote = _verified_cancellation_quote(reservation) if data.request_type in {"cancel", "refund"} else None
     quote_payload = quote or {"status": "requires_provider_review"}
+    # The refund destination is the customer's choice; the money only moves after ops approval and two finance users (after_sales).
+    destination = (data.refund_destination or "wallet") if data.request_type in {"cancel", "refund"} else None
+    destination_detail = destination_snapshot(db, tenant_id=user.tenant_id, user_id=user.id, destination=destination) if destination else {}
     request = operational_models.BookingServiceRequest(tenant_id=user.tenant_id, reservation_id=reservation.id, request_type=data.request_type, status="submitted", quote_snapshot_json=json.dumps(quote_payload, sort_keys=True), reason=data.reason)
     db.add(request)
     db.flush()
+    prior_status = reservation.status
     target = {"cancel": "cancel_requested", "change": "change_requested", "refund": "refund_requested"}[data.request_type]
     try: operational_models.transition_reservation(db, reservation, target, user.id, f"{idempotency_key}:transition")
     except ValueError as exc: raise HTTPException(status_code=409, detail=str(exc)) from exc
+    start_handling(db, req=request, reservation=reservation, prior_status=prior_status, destination=destination, destination_detail=destination_detail, actor_id=user.id, command_id=idempotency_key)
+    # C-1: a customer request never creates a refund record by itself; ops approval does (after_sales._approve).
     refund_id = None
-    if data.request_type == "refund" and quote:
-        payment = db.scalar(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.tenant_id == user.tenant_id, operational_models.PaymentIntent.reservation_id == reservation.id, operational_models.PaymentIntent.status == "captured").with_for_update())
-        if payment is None: raise HTTPException(status_code=409, detail="پرداخت captureشده برای استرداد موجود نیست")
-        amount = int(quote["refundable_amount"])
-        pending = db.scalar(select(func.coalesce(func.sum(operational_models.RefundRecord.amount), 0)).where(operational_models.RefundRecord.tenant_id == user.tenant_id, operational_models.RefundRecord.payment_intent_id == payment.id, operational_models.RefundRecord.status.in_(("requested", "pending_review")))) or 0
-        if amount <= 0 or amount > payment.captured_amount - payment.refunded_amount - int(pending): raise HTTPException(status_code=409, detail="مبلغ معتبر قابل استرداد موجود نیست")
-        refund = operational_models.RefundRecord(tenant_id=user.tenant_id, payment_intent_id=payment.id, command_id=idempotency_key, amount=amount)
-        db.add(refund); db.flush(); refund_id = refund.id
     response = {"id": request.id, "reservation_id": reservation.id, "request_type": data.request_type, "status": request.status, "consequence_preview": "verified_policy" if quote else "requires_provider_review", "quote": quote, "refund_id": refund_id, "reservation_changed": False, "booking_status": reservation.status}
     db.add(operational_models.IdempotencyKey(tenant_id=user.tenant_id, scope="manage-booking.request", key=idempotency_key, request_hash=_secure_hash(f"{reservation.id}:{data.request_type}:{data.reason or ''}"), response_json=json.dumps(response)))
     db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="reservation", aggregate_id=reservation.id, event_type=f"service_request.{data.request_type}.submitted", payload_json=json.dumps({"request_id": request.id, "refund_id": refund_id}), correlation_id=str(uuid.uuid4()), idempotency_key=idempotency_key))
@@ -1888,7 +1888,7 @@ async def payment_callback(provider_key: str, request: Request, x_payment_signat
     return {"status": "accepted", "payment_status": intent.status}
 
 
-REFUND_SETTLED_STATUSES = ("requested", "pending_review")  # amounts already claimed against a captured payment
+REFUND_SETTLED_STATUSES = ("requested", "pending_review", "pending_finance", "awaiting_approval")  # amounts already claimed against a captured payment
 
 
 @app.post("/payments/{payment_id}/refunds", status_code=status.HTTP_202_ACCEPTED)
@@ -3957,6 +3957,9 @@ def begin_booking_request_review(request_id: str, user: User = Depends(require_p
     reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == row.reservation_id, operational_models.Reservation.tenant_id == user.tenant_id))
     if reservation is None: raise HTTPException(404, "رزرو موجود نیست")
     row.status = "under_review"
+    from .after_sales import handling_for, record_event
+    handling_for(db, row).status_since = datetime.now(timezone.utc)
+    record_event(db, req=row, event_type="start_review", actor_kind="ops", actor_id=user.id, from_status="submitted", to_status="under_review", command_id="sr-review:" + row.id)
     key = "booking-request-review:" + row.id
     title = "بررسی درخواست رزرو آغاز شد"
     message = "کارشناس بررسی درخواست شما را آغاز کرده است؛ لغو یا بازپرداخت هنوز تأیید نشده است."
@@ -5633,3 +5636,5 @@ app.include_router(shahrshad_router(get_db, require_role("platform_admin", "tena
 
 from .partner_requests import partner_requests_router  # noqa: E402  requests to Padvira and Gift Asan on the customer's behalf
 app.include_router(partner_requests_router(get_db, current_user, _platform_audit, role_has_permission))
+from .after_sales import after_sales_router  # noqa: E402  Panels Phase 1 after-sales loop (customer → ops → finance → customer)
+app.include_router(after_sales_router(get_db, current_user, role_has_permission, User, _platform_audit, _verified_cancellation_quote))

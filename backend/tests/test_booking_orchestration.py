@@ -132,11 +132,11 @@ def test_manage_booking_refund_uses_verified_snapshot_and_captured_payment(clien
     headers = {**auth(employee["access_token"]), "Idempotency-Key": "manage-refund-command"}
     requested = client.post(f"/reservations/{reservation_id}/service-requests", headers=headers, json={"request_type": "refund", "reason": "لغو سفر"})
     assert requested.status_code == 202 and requested.json()["quote"]["refundable_amount"] == 900_000
-    assert requested.json()["refund_id"] is not None and requested.json()["booking_status"] == "refund_requested"
-    assert client.post(f"/reservations/{reservation_id}/service-requests", headers=headers, json={"request_type": "refund", "reason": "لغو سفر"}).json()["refund_id"] == requested.json()["refund_id"]
+    # C-1 / Panels Phase 1: the customer's request creates no refund record; ops approval does (tests/test_after_sales.py).
+    assert requested.json()["refund_id"] is None and requested.json()["booking_status"] == "refund_requested"
+    assert client.post(f"/reservations/{reservation_id}/service-requests", headers=headers, json={"request_type": "refund", "reason": "لغو سفر"}).json() == requested.json()
     with SessionLocal() as db:
-        refund = db.get(RefundRecord, requested.json()["refund_id"])
-        assert refund.amount == 900_000 and refund.status == "requested"
+        assert db.scalar(select(func.count()).select_from(RefundRecord).join(PaymentIntent, PaymentIntent.id == RefundRecord.payment_intent_id).where(PaymentIntent.reservation_id == reservation_id)) == 0
 
 
 def test_manage_booking_change_does_not_invent_quote(client):

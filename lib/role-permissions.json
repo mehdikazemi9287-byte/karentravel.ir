@@ -45,6 +45,7 @@
   "invoice:manage",
   "reservation:manage",
   "reservation:read",
+  "service_request:decide",
   "support:manage",
   "trip:event:create"
  ],
@@ -57,6 +58,7 @@
   "ledger:read",
   "reconciliation:manage",
   "refund:manage",
+  "refund:override",
   "settlement:manage"
  ],
  "tenant_admin": [

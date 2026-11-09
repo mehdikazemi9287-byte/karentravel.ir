@@ -62,6 +62,9 @@ const R = {
   fulfil: {anyPermission: ['reservation:fulfill']},                                                   // /admission-tickets/*
   supplierLinks: {anyPermission: ['inventory:manage', 'ledger:read']},
   quotes: {roles: ['customer', 'employee']},
+  serviceDecide: {anyPermission: ['service_request:decide']},                                        // after_sales ops_user
+  refunds: {anyPermission: ['refund:manage']},                                                        // after_sales fin_user
+  reconcile: {anyPermission: ['reconciliation:manage']},                                              // after_sales recon_user
 } satisfies Record<string, Rule | undefined>;
 
 const I = (area: Area, label: string, href: string, rule?: Rule, extra: Partial<NavItem> = {}): NavItem => ({area, label, href, rule, inNav: true, ...extra});
@@ -103,12 +106,14 @@ export const PANEL_ITEMS: NavItem[] = [
     ['گزارش فروش', '/finance/reports', R.inventoryStaff], ['سود و کمیسیون فروش', '/finance/markup-revenue', R.financeRead], ['خروجی فرانگر', '/finance/journal-export', R.financeRead],
     ['مطالبات سازمان‌ها', '/finance/receivables', R.financeRead], ['دفتر کل و بستن دوره', '/finance/ledger', R.financeRead],
     ['عملکرد و تطبیق تأمین‌کنندگان', '/finance/suppliers', R.supplierFinance], ['روابط مالی اکوسیستم', '/admin/ecosystem', R.financeRead],
+    ['صف لغو، تغییر و استرداد', '/backoffice/queues/service_requests', R.serviceDecide], ['صف استرداد مالی', '/finance/refunds', R.refunds], ['تطبیق درگاه', '/finance/reconciliation', R.reconcile],
   ] as [string, string, Rule][]).map(([label, href, rule]) => I('admin', label, href, rule, {menu: true})),
   // Staff pages outside the panel shell (JourneyShell): not in the sidebar, but in the account menu for the roles that can use them.
   ...([
     ['مرکز عملیات سفر', '/backoffice/trip-events', R.tripOps], ['تغییرات سفر', '/backoffice/trips', R.tripChanges], ['درخواست‌های تغییر و استرداد', '/backoffice/booking-requests', R.support],
     ['پرونده‌های عملیات', '/backoffice/records', R.backoffice], ['میز پشتیبانی', '/backoffice/support', R.support], ['وضعیت اعلان‌ها', '/backoffice/notifications', R.tripOps],
     ['رکوردهای مالی', '/finance/records', R.ledger], ['حسابداری و کمیسیون', '/finance/accounting', R.ledger],
+    ['رسیدگی به درخواست مشتری', '/backoffice/requests', R.serviceDecide], ['صف‌های عملیات', '/backoffice/queues', R.serviceDecide],
   ] as [string, string, Rule][]).map(([label, href, rule]) => I('admin', label, href, rule, {menu: true, inNav: false})),
 ];
 

@@ -1087,10 +1087,13 @@ BOOKING_TRANSITIONS = {
     "awaiting_payment": {"confirmed", "failed", "expired", "cancel_requested"},
     "confirmed": {"issued", "change_requested", "cancel_requested", "refund_requested"},
     "issued": {"completed", "change_requested", "cancel_requested", "refund_requested"},
-    "cancel_requested": {"cancelled", "confirmed"},
-    "change_requested": {"changed", "confirmed"},
-    "refund_requested": {"refunded", "confirmed"},
+    # The extra targets of the three *_requested states restore the status a reservation had before a customer's
+    # service request when that request is withdrawn or rejected (after_sales.revert_targets).
+    "cancel_requested": {"cancelled", "confirmed", "issued", "reserved", "awaiting_payment"},
+    "change_requested": {"changed", "confirmed", "issued"},
+    "refund_requested": {"refunded", "confirmed", "issued"},
     "changed": {"issued", "completed"},
+    "cancelled": {"refunded"},  # a cancelled booking whose refund was paid (after_sales finance approval)
 }
 
 

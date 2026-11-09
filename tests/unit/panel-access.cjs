@@ -5,7 +5,7 @@ const scope={exports:{},require:p=>p.endsWith('.json')?JSON.parse(fs.readFileSyn
 vm.runInNewContext(src,scope);const A=scope.exports;
 const hrefs=(area,role)=>JSON.parse(JSON.stringify(A.navFor(area,role).map(i=>i.href)));
 // admin area: 31 links for platform admin, far fewer for back office and finance, none of the other's tools
-assert.equal(hrefs('admin','platform_admin').length,31);
+assert.equal(hrefs('admin','platform_admin').length,34);
 const bo=hrefs('admin','backoffice_expert'),fin=hrefs('admin','finance_operator'),ta=hrefs('admin','tenant_admin');
 assert.ok(bo.includes('/admin/ops')&&bo.includes('/backoffice')&&bo.includes('/admin/catalog'));
 assert.ok(!bo.includes('/finance/ledger')&&!bo.includes('/finance')&&!bo.includes('/admin')&&!bo.includes('/admin/tenants'));
@@ -13,6 +13,15 @@ assert.ok(fin.includes('/finance')&&fin.includes('/finance/ledger')&&fin.include
 assert.ok(!fin.includes('/admin/content')&&!fin.includes('/admin/sales-desk')&&!fin.includes('/backoffice'));
 assert.ok(ta.includes('/admin')&&!ta.includes('/admin/tenants')&&!ta.includes('/admin/catalog'));
 assert.ok(bo.length<20&&fin.length<20,`bo=${bo.length} fin=${fin.length}`);
+// after-sales (Panels Phase 1): ops queue for back office only, refund queue and reconciliation for finance only
+assert.ok(bo.includes('/backoffice/queues/service_requests')&&!bo.includes('/finance/refunds')&&!bo.includes('/finance/reconciliation'));
+assert.ok(fin.includes('/finance/refunds')&&fin.includes('/finance/reconciliation')&&!fin.includes('/backoffice/queues/service_requests'));
+assert.equal(A.canOpen('admin','/backoffice/requests/0b5c1f4e-6a1d-4c3e-9f2a-1d2e3f4a5b6c','finance_operator'),false);
+assert.equal(A.canOpen('admin','/backoffice/requests/0b5c1f4e-6a1d-4c3e-9f2a-1d2e3f4a5b6c','backoffice_expert'),true);
+assert.equal(A.canOpen('admin','/finance/refunds/0b5c1f4e-6a1d-4c3e-9f2a-1d2e3f4a5b6c','backoffice_expert'),false);
+assert.equal(A.canOpen('admin','/finance/refunds/0b5c1f4e-6a1d-4c3e-9f2a-1d2e3f4a5b6c','finance_operator'),true);
+assert.equal(A.canOpen('admin','/backoffice/queues/failed_issuance','finance_operator'),false);
+assert.equal(A.canOpen('customer','/account/refunds/0b5c1f4e-6a1d-4c3e-9f2a-1d2e3f4a5b6c','customer'),true);
 // guard
 assert.equal(A.canOpen('admin','/finance/ledger','backoffice_expert'),false);
 assert.equal(A.canOpen('admin','/finance/ledger','finance_operator'),true);
