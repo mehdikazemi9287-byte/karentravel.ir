@@ -15,7 +15,8 @@ def test_train_schedule_and_one_traveller_per_seat(client):
     booking=client.post('/orchestration/bookings',headers=auth(session),json={'price_check_id':check['id'],'command_id':uuid.uuid4().hex}).json()
     checkout=client.post('/reservations/'+booking['id']+'/checkout-sessions',headers=auth(session),json={'command_id':uuid.uuid4().hex}).json();url='/checkout-sessions/'+checkout['id']+'/steps/traveller'
     assert client.put(url,headers=auth(session),json={'command_id':uuid.uuid4().hex,'traveller_ids':[traveller['id']]}).status_code==422
-    second=client.post('/me/travellers',headers=auth(session),json={'full_name':'Mock QA second passenger'}).json()
+    second=client.post('/me/travellers',headers=auth(session),json={'full_name':'Mock QA second passenger','nationality':'AF','passport_number':'P1234567','passport_expiry':(datetime.now(timezone.utc)+timedelta(days=400)).date().isoformat()}).json()
+    assert client.put('/me/travellers/'+traveller['id'],headers=auth(session),json={'full_name':traveller['full_name'],'national_code':'6281948211'}).status_code==200
     assert client.put(url,headers=auth(session),json={'command_id':uuid.uuid4().hex,'traveller_ids':[traveller['id'],second['id']]}).status_code==200
     with SessionLocal() as db:
         row=db.get(m.Offer,offer['id']);attrs['departure_time']=(datetime.now(timezone.utc)-timedelta(hours=1)).isoformat();row.attributes_json=json.dumps(attrs);db.commit()

@@ -6,6 +6,6 @@ export function TransportTime({value,fallback='زمان اعلام نشده'}:{v
   return <time className="transport-time" dateTime={parts.iso}>
     <strong dir="ltr">{parts.clock}</strong>
     {parts.date&&<span>{parts.date}</span>}
-    <small dir={parts.offset?'ltr':'rtl'}>{parts.offset?'UTC'+parts.offset:'منطقهٔ زمانی اعلام نشده'}</small>
+    <small>{parts.zoneLabel||'منطقهٔ زمانی اعلام نشده'}</small>
   </time>;
 }

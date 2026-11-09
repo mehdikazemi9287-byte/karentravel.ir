@@ -5,6 +5,7 @@ import { ApiError } from '../../lib/api/karenseir-client';
 import { useAuth } from '../../lib/api/auth-context';
 import { ContactOptions } from '../../components/customer/CustomerHelp';
 import { Shell } from '../page';
+import { MOBILE_VALIDITY, OTP_VALIDITY, persianValidity } from '../../lib/form-validity';
 
 function safeRedirectTarget(raw: string | null): string | null {
   if (!raw) return null;
@@ -63,12 +64,12 @@ function RegisterPageInner() {
     </div>
     <div className="container" style={{ paddingBottom: 70, display: 'grid', gap: 12, maxWidth: 480 }}>
       <form onSubmit={requestCode} className="filters" style={{ display: 'grid', gap: 10 }}>
-        <label>شماره همراه<input value={mobile} onChange={e => setMobile(e.target.value.replace(/[۰-۹]/g, c => String("۰۱۲۳۴۵۶۷۸۹".indexOf(c))).replace(/[٠-٩]/g, c => String("٠١٢٣٤٥٦٧٨٩".indexOf(c))))} required pattern="09[0-9]{9}" maxLength={11} autoComplete="tel" inputMode="tel" aria-label="شماره همراه" placeholder="09xxxxxxxxx" style={{ display: 'block', width: '100%', marginTop: 4, padding: 10, borderRadius: 8, border: '1px solid var(--line)' }} /></label>
+        <label>شماره همراه<input value={mobile} onChange={e => setMobile(e.target.value.replace(/[۰-۹]/g, c => String("۰۱۲۳۴۵۶۷۸۹".indexOf(c))).replace(/[٠-٩]/g, c => String("٠١٢٣٤٥٦٧٨٩".indexOf(c))))} required pattern="09[0-9]{9}" {...persianValidity(MOBILE_VALIDITY)} maxLength={11} autoComplete="tel" inputMode="tel" aria-label="شماره همراه" placeholder="09xxxxxxxxx" style={{ display: 'block', width: '100%', marginTop: 4, padding: 10, borderRadius: 8, border: '1px solid var(--line)' }} /></label>
         <label>نام (اختیاری)<input value={name} onChange={e => setName(e.target.value)} autoComplete="name" aria-label="نام" style={{ display: 'block', width: '100%', marginTop: 4, padding: 10, borderRadius: 8, border: '1px solid var(--line)' }} /></label>
         <button className="button primary" type="submit" disabled={busy}>دریافت کد تأیید</button>
       </form>
       {challengeId && <form onSubmit={verifyCode} className="filters" style={{ display: 'grid', gap: 10 }}>
-        <label>کد شش‌رقمی<input value={otp} onChange={e => setOtp(e.target.value.replace(/[۰-۹]/g, c => String("۰۱۲۳۴۵۶۷۸۹".indexOf(c))).replace(/[٠-٩]/g, c => String("٠١٢٣٤٥٦٧٨٩".indexOf(c))))} inputMode="numeric" pattern="[0-9]{6}" maxLength={6} autoComplete="one-time-code" required aria-label="کد شش‌رقمی" style={{ display: 'block', width: '100%', marginTop: 4, padding: 10, borderRadius: 8, border: '1px solid var(--line)' }} /></label>
+        <label>کد شش‌رقمی<input value={otp} onChange={e => setOtp(e.target.value.replace(/[۰-۹]/g, c => String("۰۱۲۳۴۵۶۷۸۹".indexOf(c))).replace(/[٠-٩]/g, c => String("٠١٢٣٤٥٦٧٨٩".indexOf(c))))} inputMode="numeric" pattern="[0-9]{6}" {...persianValidity(OTP_VALIDITY)} maxLength={6} autoComplete="one-time-code" required aria-label="کد شش‌رقمی" style={{ display: 'block', width: '100%', marginTop: 4, padding: 10, borderRadius: 8, border: '1px solid var(--line)' }} /></label>
         <button className="button primary" type="submit" disabled={busy}>تأیید و ساخت حساب</button>
       </form>}
       <p role="status">{message}</p><p>اگر کد ورود به دستتان نرسید، برای راهنمایی تماس بگیرید.</p><ContactOptions/>

@@ -34,7 +34,7 @@ export function TripRequestForm({compact = false, initial, title = 'درخواس
       <label>تاریخ تقریبی<input type="date" dir="ltr" value={v.travel_date} onChange={set('travel_date')}/></label>
       <label>تعداد مسافر<input type="number" min={1} max={100} value={v.travellers} onChange={set('travellers')}/></label>
       <label style={{flexBasis: '100%'}}>توضیحات<input maxLength={1000} value={v.description} onChange={set('description')}/></label>
-      <label aria-hidden="true" style={{position: 'absolute', left: '-10000px', width: 1, height: 1, overflow: 'hidden'}}>وب‌سایت<input tabIndex={-1} autoComplete="off" value={v.website} onChange={set('website')}/></label>
+      <label aria-hidden="true" style={{position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0 0 0 0)', clipPath: 'inset(50%)', whiteSpace: 'nowrap', border: 0}}>وب‌سایت<input tabIndex={-1} autoComplete="off" value={v.website} onChange={set('website')}/></label>
       <label style={{flexBasis: '100%', display: 'flex', gap: 8, alignItems: 'center'}}><input type="checkbox" required checked={v.consent} onChange={set('consent')} style={{width: 'auto'}}/>موافقم کارشناس کارن تراول برای همین درخواست با من تماس بگیرد.</label>
       <button className="button primary" disabled={state.kind === 'sending'}>{state.kind === 'sending' ? 'در حال ارسال…' : 'ارسال درخواست'}</button>
     </form>

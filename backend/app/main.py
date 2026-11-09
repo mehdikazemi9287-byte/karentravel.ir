@@ -33,6 +33,7 @@ from .config import read_secret
 from .database import Base, DATABASE_URL, SessionLocal, engine, set_tenant_context
 from .hotel_stay import HotelStay, validate_hotel_stay, validate_hotel_rate
 from . import operations as operational_models  # register additive operational tables
+from . import traveller_identity  # traveller identity table (national code / passport), masked in lists
 from .observability import configure_logging, prometheus_metrics, record_business_event, record_request
 from .rate_limit import InMemoryRateLimiter, RedisRateLimiter, fingerprint
 from .security import role_has_permission
@@ -350,7 +351,8 @@ class NotificationTemplateIn(BaseModel):
 class AgencyIn(BaseModel): display_name: str = Field(min_length=2, max_length=180); parent_agency_id: Optional[str] = Field(default=None, min_length=36, max_length=36); markup_bps: int = Field(ge=0, le=10000); commission_bps: int = Field(ge=0, le=10000)
 class VoucherReissueIn(BaseModel): command_id: str = Field(min_length=8, max_length=120); document_reference: str = Field(min_length=3, max_length=240); reason: str = Field(min_length=3, max_length=500)
 class ProfileIn(BaseModel): name: str = Field(min_length=2, max_length=160); locale: str = Field(default="fa-IR", pattern="^(fa-IR|en-US)$")
-class TravellerIn(BaseModel): full_name: str = Field(min_length=3, max_length=160); profile_reference: Optional[str] = Field(default=None, max_length=160)
+from .traveller_identity import IdentityFields as _TravellerIdentityFields  # noqa: E402  identity fields validated with Persian messages
+class TravellerIn(_TravellerIdentityFields): full_name: str = Field(min_length=3, max_length=160); profile_reference: Optional[str] = Field(default=None, max_length=160)
 class WalletCreateIn(BaseModel): currency: str = Field(default="IRR", pattern="^IRR$")
 class CreditAccountCreateIn(BaseModel): organization_id: str = Field(min_length=36, max_length=36); limit_amount: int = Field(gt=0); currency: str = Field(default="IRR", pattern="^IRR$"); command_id: str = Field(min_length=8, max_length=120)
 class SupplierOfferUpdateIn(BaseModel): amount: Optional[int] = Field(default=None, gt=0); available_units: Optional[int] = Field(default=None, ge=0, le=100000); status: Optional[str] = Field(default=None, pattern="^(active|paused)$")
@@ -1127,22 +1129,23 @@ def update_my_profile(data: ProfileIn, user: User = Depends(current_user), db: S
 @app.get("/me/travellers")
 def my_travellers(user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
     rows = db.scalars(select(operational_models.Traveller).where(operational_models.Traveller.tenant_id == user.tenant_id, operational_models.Traveller.user_id == user.id).order_by(operational_models.Traveller.created_at)).all()
-    return [{"id": row.id, "full_name": row.full_name, "profile_reference": row.profile_reference} for row in rows]
+    identities = traveller_identity.identities_for(db, user.tenant_id, [row.id for row in rows])
+    return [traveller_identity.traveller_output(row, identities.get(row.id)) for row in rows]
 
 
 @app.post("/me/travellers", status_code=status.HTTP_201_CREATED)
 def create_my_traveller(data: TravellerIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
     row = operational_models.Traveller(tenant_id=user.tenant_id, user_id=user.id, full_name=data.full_name.strip(), profile_reference=data.profile_reference)
-    db.add(row); db.commit()
-    return {"id": row.id, "full_name": row.full_name, "profile_reference": row.profile_reference}
+    db.add(row); db.flush(); identity = traveller_identity.apply_identity(db, row, data); db.commit()
+    return traveller_identity.traveller_output(row, identity)
 
 
 @app.put("/me/travellers/{traveller_id}")
 def update_my_traveller(traveller_id: str, data: TravellerIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
     row = db.scalar(select(operational_models.Traveller).where(operational_models.Traveller.id == traveller_id, operational_models.Traveller.tenant_id == user.tenant_id, operational_models.Traveller.user_id == user.id).with_for_update())
     if row is None: raise HTTPException(status_code=404, detail="مسافر در این حساب وجود ندارد")
-    row.full_name = data.full_name.strip(); row.profile_reference = data.profile_reference; db.commit()
-    return {"id": row.id, "full_name": row.full_name, "profile_reference": row.profile_reference}
+    row.full_name = data.full_name.strip(); row.profile_reference = data.profile_reference; identity = traveller_identity.apply_identity(db, row, data); db.commit()
+    return traveller_identity.traveller_output(row, identity)
 
 
 @app.post("/me/travellers/{traveller_id}/remove")
@@ -1151,6 +1154,8 @@ def remove_my_traveller(traveller_id: str, user: User = Depends(current_user), d
     if row is None: raise HTTPException(status_code=404, detail="مسافر در این حساب وجود ندارد")
     linked = db.scalar(select(func.count()).select_from(operational_models.ReservationTraveller).where(operational_models.ReservationTraveller.traveller_id == row.id)) or 0
     if linked: raise HTTPException(status_code=409, detail="مسافر متصل به رزرو قابل حذف نیست")
+    identity = traveller_identity.identities_for(db, user.tenant_id, [row.id]).get(row.id)
+    if identity is not None: db.delete(identity); db.flush()
     db.delete(row); db.commit(); return {"status": "removed", "id": traveller_id}
 
 
@@ -4744,6 +4749,12 @@ def advance_checkout(checkout_id: str, step: str, data: CheckoutStepIn, user: Us
         if not data.traveller_ids: raise HTTPException(status_code=422, detail="حداقل یک مسافر معتبر لازم است")
         travellers = db.scalars(select(operational_models.Traveller).where(operational_models.Traveller.tenant_id == user.tenant_id, operational_models.Traveller.user_id == user.id, operational_models.Traveller.id.in_(data.traveller_ids))).all()
         if len(travellers) != len(set(data.traveller_ids)): raise HTTPException(status_code=404, detail="یک یا چند مسافر در این حساب وجود ندارد")
+        if reservation.service_type in {"flight", "train"}:
+            item = db.scalar(select(operational_models.BookingItem).where(operational_models.BookingItem.reservation_id == reservation.id, operational_models.BookingItem.tenant_id == user.tenant_id)); attrs = (json.loads(item.snapshot_json).get("attributes") or {}) if item else {}
+            try: travel_date = datetime.fromisoformat(str(attrs.get("departure_time"))).date() if attrs.get("departure_time") else None
+            except ValueError: travel_date = None
+            missing = traveller_identity.requirement_errors(reservation.service_type, list(travellers), traveller_identity.identities_for(db, user.tenant_id, [t.id for t in travellers]), international=traveller_identity.is_international(attrs), travel_date=travel_date)
+            if missing: raise HTTPException(status_code=422, detail="؛ ".join(missing))
         existing = set(db.scalars(select(operational_models.ReservationTraveller.traveller_id).where(operational_models.ReservationTraveller.reservation_id == reservation.id)).all())
         for traveller_id in set(data.traveller_ids) - existing: db.add(operational_models.ReservationTraveller(reservation_id=reservation.id, traveller_id=traveller_id))
         state["traveller_ids"] = sorted(set(data.traveller_ids)); row.stage = "traveller"
@@ -5592,6 +5603,8 @@ _account_security_api = account_security_router(get_db, current_user, User, Tena
 app.include_router(_account_security_api)
 
 from .traveller_documents import traveller_documents_router  # noqa: E402  traveller documents: upload, masked review queue, retention
+from .traveller_identity import traveller_identity_router  # noqa: E402  traveller identity: masked lists, owner/audited reads
+app.include_router(traveller_identity_router(get_db, current_user, role_has_permission, _platform_audit))
 app.include_router(traveller_documents_router(get_db, current_user, role_has_permission, User, _platform_audit))
 
 from .ledger import ledger_router  # noqa: E402  general ledger: balanced vouchers, trial balance, period close

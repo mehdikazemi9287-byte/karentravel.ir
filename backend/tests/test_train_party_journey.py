@@ -24,7 +24,8 @@ def test_train_party_quote_checkout_and_replay_ownership(client):
     step='/checkout-sessions/'+checkout['id']+'/steps/traveller'
     for ids in [[t1['id']],[t1['id'],t1['id']]]:
         assert client.put(step,headers=auth(user),json={'command_id':str(uuid.uuid4()),'traveller_ids':ids}).status_code==422
-    t2=client.post('/me/travellers',headers=auth(user),json={'full_name':'Mock second adult'}).json()
+    t2=client.post('/me/travellers',headers=auth(user),json={'full_name':'Mock second adult','national_code':'1860913903'}).json()
+    assert client.put('/me/travellers/'+t1['id'],headers=auth(user),json={'full_name':t1['full_name'],'national_code':'9960308243'}).status_code==200
     payload={'command_id':'train-travellers-'+suffix,'traveller_ids':[t1['id'],t2['id']]}
     ok=client.put(step,headers=auth(user),json=payload);assert ok.status_code==200,ok.text
     assert client.put(step,headers=auth(user),json=payload).json()==ok.json()

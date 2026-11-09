@@ -344,9 +344,12 @@ def ops_console_router(get_db, current_user, role_has_permission, User, audit=No
                                                             "tax": invoice.tax_amount, "total": invoice.total_amount, "status": invoice.status,
                                                             "issued_at": _iso(invoice.issued_at)}}
 
-        travellers = [{"id": tr.id, "full_name": tr.full_name, "document": mask_ref(tr.profile_reference)} for tr in db.scalars(
+        from .traveller_identity import identities_for, masked as masked_identity
+        traveller_rows = db.scalars(
             select(m.Traveller).join(m.ReservationTraveller, m.ReservationTraveller.traveller_id == m.Traveller.id)
-            .where(m.ReservationTraveller.reservation_id == r.id, m.Traveller.tenant_id == t)).all()]
+            .where(m.ReservationTraveller.reservation_id == r.id, m.Traveller.tenant_id == t)).all()
+        identities = identities_for(db, t, [tr.id for tr in traveller_rows])
+        travellers = [{"id": tr.id, "full_name": tr.full_name, "document": mask_ref(tr.profile_reference), **masked_identity(identities.get(tr.id))} for tr in traveller_rows]
         if not travellers and snap.get("travellers") is not None:
             travellers_note = f"{snap.get('travellers')} مسافر در قیمت ثبت شده، ولی مشخصات مسافران هنوز وارد نشده است"
         else:
