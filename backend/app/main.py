@@ -60,6 +60,8 @@ class Tenant(Base):
     slug: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(160))
     primary_color: Mapped[str] = mapped_column(String(16), default="#0E7490")
+    # Reversible deactivation (e.g. demo seed data on production): no login, no API access. NULL = active.
+    disabled_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 class User(Base):
     __tablename__ = "users"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -73,6 +75,8 @@ class User(Base):
     # unchanged. Unique only among non-null values (standard SQL null
     # semantics), matching the existing `email` uniqueness convention.
     mobile_e164: Mapped[Optional[str]] = mapped_column(String(16), unique=True, index=True, nullable=True)
+    # Reversible deactivation: a disabled account cannot log in, refresh or use an existing token. NULL = active.
+    disabled_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 class Hotel(Base):
     __tablename__ = "hotels"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -406,7 +410,16 @@ def current_user(authorization: Optional[str] = Header(default=None), db: Sessio
     set_tenant_context(db, tenant_id)
     user = db.get(User, int(payload["sub"]))
     if not user or user.tenant_id != payload["tenant"]: raise HTTPException(status_code=401, detail="نشست نامعتبر است")
+    if _account_disabled(db, user): raise HTTPException(status_code=401, detail="این حساب غیرفعال است")
     return user
+
+
+def _account_disabled(db: Session, user) -> bool:
+    """User or its tenant deactivated (reversible; see deploy/karenseir-demo-data-disable.sh)."""
+    if getattr(user, "disabled_at", None) is not None:
+        return True
+    tenant = db.get(Tenant, user.tenant_id)
+    return tenant is None or tenant.disabled_at is not None
 
 
 def _decode_payment_state(token: str, **kwargs) -> dict:
@@ -711,6 +724,7 @@ def dev_login(data: LoginIn, db: Session = Depends(get_db)) -> dict:
     if not user: raise HTTPException(status_code=401, detail="کاربر نمونه پیدا نشد")
     set_tenant_context(db, user.tenant_id)
     tenant = db.get(Tenant, user.tenant_id)
+    if _account_disabled(db, db.get(User, user.id)): raise HTTPException(status_code=401, detail="این حساب غیرفعال است")
     refresh_token, _ = operational_models.create_refresh_session(db, tenant_id=user.tenant_id, user_id=user.id, expires_at=datetime.now(timezone.utc) + timedelta(days=30))
     db.commit()
     return {"access_token":token_for(user, tenant),"refresh_token":refresh_token,"token_type":"bearer","user":{"name":user.name,"role":user.role,"tenant":tenant.name}}
@@ -772,7 +786,7 @@ def request_otp(data: OTPRequestIn, request: Request, db: Session = Depends(get_
         user = db.scalar(select(User).where(User.tenant_id == tenant.id, User.mobile_e164 == f"+{mobile_receptor}"))
     else:
         user = db.scalar(select(User).where(User.tenant_id == tenant.id, User.email == identifier.lower()))
-    if user is None:
+    if user is None or _account_disabled(db, user):
         _secure_hash(f"{generic_id}:000000")
         return {"status": "accepted", "challenge_id": generic_id, "expires_in": 300}
     # A real account with no mobile on file yet is NOT gated here -- it
@@ -919,7 +933,7 @@ def verify_otp(data: OTPVerifyIn, request: Request, db: Session = Depends(get_db
     auth_state.failed_attempts = 0
     auth_state.locked_until = None
     user = db.scalar(select(User).where(User.id == challenge.user_id, User.tenant_id == tenant.id))
-    if user is None:
+    if user is None or _account_disabled(db, user):
         raise HTTPException(status_code=401, detail="کد ورود معتبر نیست")
     if _mfa_enabled(db, tenant.id, user.id):  # two-step login: the authenticator code completes it at /auth/2fa/verify
         db.add(operational_models.AuthenticationAudit(tenant_id=tenant.id, user_id=user.id, action="otp.verified_mfa_pending", challenge_id=challenge.id, device_hash=device_hash, ip_hash=ip_hash))
@@ -947,7 +961,7 @@ def refresh_access(data: RefreshIn, request: Request, db: Session = Depends(get_
         db.commit()
         raise HTTPException(status_code=401, detail="نشست تمدید معتبر نیست")
     user = db.scalar(select(User).where(User.id == session.user_id, User.tenant_id == session.tenant_id))
-    if user is None: raise HTTPException(status_code=401, detail="نشست تمدید معتبر نیست")
+    if user is None or _account_disabled(db, user): raise HTTPException(status_code=401, detail="نشست تمدید معتبر نیست")
     _, current_ip_hash = _request_fingerprints(request)
     replacement, replacement_session = operational_models.create_refresh_session(db, tenant_id=user.tenant_id, user_id=user.id, expires_at=now + timedelta(days=30), family_id=session.family_id, device_hash=session.device_hash, ip_hash=current_ip_hash)
     session.revoked_at = now
@@ -5680,6 +5694,7 @@ from .account_security import account_security_router, mfa_enabled as _mfa_enabl
 
 
 def _issue_login_session(db: Session, tenant: Tenant, user: User, request: Request, device_id: str) -> dict:
+    if _account_disabled(db, user): raise HTTPException(status_code=401, detail="این حساب غیرفعال است")
     device_hash, ip_hash = _request_fingerprints(request, device_id)
     refresh_token, _ = operational_models.create_refresh_session(db, tenant_id=tenant.id, user_id=user.id, expires_at=datetime.now(timezone.utc) + timedelta(days=30), device_hash=device_hash, ip_hash=ip_hash)
     db.commit()
