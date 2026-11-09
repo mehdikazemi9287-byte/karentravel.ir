@@ -133,3 +133,11 @@
 .kh-eco-icon{width:44px;height:44px;border-radius:14px;background:#fbe3d8;color:#ef5b3d;display:grid;place-items:center;font-size:22px}
 @media(max-width:900px){.kh-eco{grid-template-columns:repeat(2,1fr);gap:12px}.kh-eco-card{padding:16px}}
 @media(max-width:420px){.kh-eco-card b{font-size:16px}}
+/* D11 + D13 — owner-approved 1405-08-18 (docs/product/approvals.md). Header phone styled like the header nav links; trip type reuses .fs-seg. */
+.kh-header-phone{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;font-family:Vazirmatn,sans-serif;font-size:15px;font-weight:500;line-height:normal;color:#3a1b3d;white-space:nowrap;text-decoration:none;direction:rtl;border-radius:100px;padding:4px 2px}
+.kh-header-phone svg{color:#ef5b3d;flex:0 0 auto}
+.kh-header-phone b{font-weight:700}
+.kh-header-phone:hover{color:#ef5b3d}
+.kh-header-phone:focus-visible,.approved-search-card .fs-seg--trip button:focus-visible{outline:3px solid #ef5b3d66;outline-offset:2px}
+.approved-search-card .fs-seg--trip{display:inline-flex}
+@media(max-width:900px){.approved-figma-home .kh-header-phone{order:4;flex-basis:100%;justify-content:center;font-size:14px;padding:0}}

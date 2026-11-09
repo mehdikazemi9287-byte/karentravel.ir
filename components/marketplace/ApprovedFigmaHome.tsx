@@ -202,6 +202,8 @@ export default function ApprovedFigmaHome() {
       <div className="bg-[#fbf3e7] content-stretch flex flex-col gap-[40px] items-center overflow-clip pb-[64px] pt-[24px] px-[64px] relative shrink-0 w-full" data-node-id="45:2" data-name="Section / Header + Hero">
         <div className="bg-[#fffcf9] content-stretch flex gap-[32px] items-center overflow-clip pl-[14px] pr-[24px] py-[10px] relative rounded-[100px] shadow-[0px_4px_20px_0px_rgba(102,77,51,0.08)] shrink-0 w-full" data-node-id="45:3" data-name="Header / Nav">
           <ComponentButton className="bg-[#ef5b3d] content-stretch flex gap-[8px] items-center overflow-clip px-[20px] py-[12px] relative rounded-[100px] shrink-0" />
+          {/* D13 (owner-approved 1405-08-18): support phone at the top of the homepage. */}
+          <a className="kh-header-phone" href={supportPhone.href} aria-label={`تماس با پشتیبانی ${supportPhone.display}`}><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg><span>پشتیبانی</span><b dir="ltr">{supportPhone.display}</b></a>
           <div className="content-stretch flex flex-[1_0_0] gap-[26px] items-center justify-end min-w-px overflow-clip relative" data-node-id="45:7" data-name="Nav Links">
             <ComponentHeaderNavItem className="h-[23px] relative shrink-0 w-[49px]" />
             <ComponentHeaderNavItem className="h-[23px] relative shrink-0 w-[61px]" item="Magazine" />
