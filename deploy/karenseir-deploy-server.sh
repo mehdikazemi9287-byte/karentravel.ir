@@ -4,7 +4,7 @@
 #   /opt/karenseir/app        git checkout (no remote; server-only commit 8ca27bd = pip mirror + catalog_data placeholder)
 # Run from the Mac:   ssh karen@188.121.123.218 'bash -s' < ~/Downloads/karenseir-deploy.sh
 # Check only:         ssh karen@188.121.123.218 'bash -s -- --check' < ~/Downloads/karenseir-deploy.sh
-# Only web/api/worker change between the running code (d2c4a98) and production; no DB migrations, no dependency changes.
+# Builds web/api/worker; runs alembic upgrade head and aborts (rolling back code + images) if it fails.
 # On a failed health check it rolls back by itself (previous branch + previous images; the DB is untouched by this release).
 set -euo pipefail
 
@@ -13,7 +13,7 @@ APP=$ROOT/app
 REPO=https://github.com/mehdikazemi9287-byte/karentravel.ir
 SERVER_ONLY=8ca27bd
 SERVICES="web api worker"
-TS=$(date +%Y%m%d-%H%M)
+TS=$(date +%Y%m%d-%H%M%S)
 
 say() { printf '%s\n' "$*"; }
 die() { say "ABORT: $*"; exit 1; }
@@ -66,11 +66,20 @@ main() {
   cd "$ROOT"
   if ! docker compose build $SERVICES; then
     say "build failed — the running containers were not touched"
-    cd "$APP" && git checkout --quiet "$PREV_BRANCH"
+    cd "$APP" && git checkout --quiet "$PREV_BRANCH" && git branch -D "release-$TS" >/dev/null
     for s in $SERVICES; do docker tag "karenseir-$s:pre-$TS" "karenseir-$s:latest"; done
     die "build failed; code back on $PREV_BRANCH"
   fi
-  docker compose run --rm -T api alembic upgrade head || say "WARN: alembic upgrade failed (this release has no migrations); continuing"
+  PREV_HEAD=$(docker compose run --rm -T api alembic current 2>/dev/null | awk 'NF{print $1}' | tail -1)
+  say "migration head before: ${PREV_HEAD:-unknown}"
+  if ! docker compose run --rm -T api alembic upgrade head; then
+    say "MIGRATION FAILED — rolling back code and images (the database backup from step 2 is kept)"
+    cd "$APP" && git checkout --quiet "$PREV_BRANCH" && git branch -D "release-$TS" >/dev/null
+    for s in $SERVICES; do docker tag "karenseir-$s:pre-$TS" "karenseir-$s:latest"; done
+    cd "$ROOT" && docker compose up -d --no-build $SERVICES
+    die "alembic upgrade failed; previous release restored. If the DB was partly migrated, restore the latest dump in $ROOT/backups."
+  fi
+  say "migration head after: $(docker compose run --rm -T api alembic current 2>/dev/null | awk 'NF{print $1}' | tail -1)"
   docker compose up -d $SERVICES
 
   say "== 6/6 health"
