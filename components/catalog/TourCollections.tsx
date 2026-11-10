@@ -99,7 +99,7 @@ export function DestinationStamps() {
       if (!live || !Array.isArray(rows)) return;
       const count = new Map<string, number>();
       rows.forEach(r => {const d = (r.destination || '').trim(); if (d) count.set(d, (count.get(d) ?? 0) + 1);});
-      setList([...count.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([d]) => d));
+      setList(Array.from(count.entries()).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([d]) => d));
     }).catch(() => undefined);
     return () => {live = false;};
   }, []);
