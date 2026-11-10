@@ -55,6 +55,7 @@ def test_tour_collections(client):
     ids = [i["id"] for i in lm["items"]]
     assert soon in ids and later not in ids and full not in ids and closed not in ids and draft not in ids
     item = next(i for i in lm["items"] if i["id"] == soon)
+    assert item["nights"] == 3 and item["departure_count"] == 1
     assert item["departures"][0]["seats_left"] is True and "base_price" not in str(lm) and "private" not in str(lm)
     assert lm["window"]["from"] < lm["window"]["to"]
 
