@@ -2347,6 +2347,76 @@ def public_tour_product_detail(tour_id: str, db: Session = Depends(get_db)) -> d
     return _public_tour_projection(tour_detail(tour_id, _public_search_identity(db), db))
 
 
+TOUR_COLLECTIONS = ("last-minute", "nowruz", "special")
+LAST_MINUTE_DAYS = 14
+_TEHRAN = timezone(timedelta(hours=3, minutes=30))
+
+
+def _nowruz_window(now: datetime) -> tuple[datetime, datetime]:
+    """Departures from 14 March up to 4 April (Tehran time) cover the Nowruz holidays (1–13 Farvardin) of the coming
+    Nowruz; once this year's holidays are over the window moves to next year."""
+    year = now.astimezone(_TEHRAN).year
+    end = datetime(year, 4, 4, tzinfo=_TEHRAN)
+    if now >= end:
+        year += 1
+        end = datetime(year, 4, 4, tzinfo=_TEHRAN)
+    return datetime(year, 3, 14, tzinfo=_TEHRAN).astimezone(timezone.utc), end.astimezone(timezone.utc)
+
+
+def tour_collection(db: Session, tenant_id: int, key: str, picked: Optional[list[str]] = None, now: Optional[datetime] = None) -> dict:
+    """Published tours for a themed page. Only real, bookable departures count (active, seats left, booking still
+    open); nothing is invented, so a page with no matching departure is honestly empty."""
+    if key not in TOUR_COLLECTIONS:
+        raise HTTPException(404, "این صفحه‌ی تور وجود ندارد")
+    now = now or datetime.now(timezone.utc)
+    tour, dep = operational_models.TourProduct, operational_models.TourDeparture
+    conds = [dep.tenant_id == tenant_id, dep.status == "active", dep.remaining > 0, dep.booking_deadline > now, dep.starts_at > now,
+             tour.id == dep.tour_id, tour.tenant_id == tenant_id, tour.status == "published"]
+    window = None
+    if key == "last-minute":
+        window = (now, now + timedelta(days=LAST_MINUTE_DAYS))
+    elif key == "nowruz":
+        window = _nowruz_window(now)
+    else:
+        if not picked:
+            return {"key": key, "items": []}
+        conds.append(tour.id.in_(picked))
+    if window:
+        conds += [dep.starts_at >= window[0], dep.starts_at < window[1]]
+    rows = db.execute(select(tour, dep).where(*conds).order_by(dep.starts_at, dep.id).limit(300)).all()
+    items: dict[str, dict] = {}
+    for t, d in rows:
+        item = items.get(t.id)
+        if item is None:
+            item = _public_tour_projection({"id": t.id, "title": t.title, "origin": t.origin, "destination": t.destination, "tour_type": t.tour_type, "details": json.loads(t.details_json)})
+            item["departures"] = []
+            items[t.id] = item
+        if len(item["departures"]) < 6:
+            item["departures"].append({"id": d.id, "starts_at": d.starts_at.isoformat(), "ends_at": d.ends_at.isoformat(), "seats_left": d.remaining <= 5})
+    out = list(items.values())
+    if key == "special":
+        order = {tid: i for i, tid in enumerate(picked or [])}
+        out.sort(key=lambda x: order.get(x["id"], 999))
+    out = out[:48]
+    result: dict = {"key": key, "items": out}
+    if window:
+        result["window"] = {"from": window[0].isoformat(), "to": window[1].isoformat()}
+    return result
+
+
+@app.get("/public/tenants/{tenant_slug}/tour-collections/{key}")
+def public_tour_collection(tenant_slug: str, key: str, response: Response, db: Session = Depends(get_db)) -> dict:
+    from .site_cms import SiteContentBlock
+    picked: list[str] = []
+    if key == "special":
+        cms_tenant = _public_tenant(db, tenant_slug)
+        raw = db.scalar(select(SiteContentBlock.published_json).where(SiteContentBlock.tenant_id == cms_tenant.id, SiteContentBlock.key == "special_tours"))
+        picked = list(json.loads(raw).get("tour_ids", [])) if raw else []
+    identity = _public_search_identity(db)
+    response.headers["Cache-Control"] = "public, max-age=60"
+    return tour_collection(db, identity.tenant_id, key, picked)
+
+
 def _tour_room_types(departure) -> list[str]:
     pricing = json.loads(departure.pricing_json)
     return [room for room in ("double", "single", "triple", "extra_bed") if (room == "double" or f"{room}_surcharge" in pricing) and isinstance(pricing.get(f"{room}_surcharge", 0), int) and not isinstance(pricing.get(f"{room}_surcharge", 0), bool) and departure.base_price + pricing.get(f"{room}_surcharge", 0) > 0]

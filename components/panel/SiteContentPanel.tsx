@@ -10,7 +10,7 @@ type Block = {key: string; label: string; draft: Json | null; published: Json | 
 type Media = {id: string; ref: string; filename: string; size_bytes: number; alt: string; created_at: string; in_use: boolean};
 type Msg = {ok: boolean; text: string} | null;
 
-type Field = {name: string; label: string; kind: 'text' | 'long' | 'image' | 'bool' | 'link' | 'cards' | 'list'; max?: number; min?: number; card?: ('title2' | 'meta')[]; hint?: string};
+type Field = {name: string; label: string; kind: 'text' | 'long' | 'image' | 'bool' | 'link' | 'cards' | 'list' | 'qa' | 'tours'; max?: number; min?: number; card?: ('title2' | 'meta')[]; hint?: string};
 const SPEC: Record<string, Field[]> = {
   announcement: [{name: 'active', label: 'نمایش نوار', kind: 'bool'}, {name: 'text', label: 'متن', kind: 'long'}, {name: 'href', label: 'لینک (اختیاری)', kind: 'link'}],
   hero: [{name: 'title', label: 'تیتر — خط اول', kind: 'text'}, {name: 'title2', label: 'تیتر — خط دوم', kind: 'text'}, {name: 'subtitle', label: 'زیرتیتر — خط اول', kind: 'text'},
@@ -22,7 +22,49 @@ const SPEC: Record<string, Field[]> = {
   compare: [{name: 'title', label: 'تیتر', kind: 'text'}, {name: 'items', label: 'دو گزینه برای مقایسه', kind: 'cards', min: 2, max: 2}],
   organization: [{name: 'title', label: 'تیتر', kind: 'text'}, {name: 'items', label: 'ویژگی‌ها', kind: 'list', min: 1, max: 4}],
   footer: [{name: 'tagline', label: 'شعار پانویس', kind: 'long'}, {name: 'copyright', label: 'متن حق نشر', kind: 'text'}],
+  faq: [{name: 'title', label: 'تیتر صفحه', kind: 'text'}, {name: 'intro', label: 'توضیح کوتاه', kind: 'long'},
+    {name: 'items', label: 'پرسش و پاسخ‌ها', kind: 'qa', min: 1, max: 40, hint: 'فقط آنچه واقعاً انجام می‌شود بنویسید. قیمت و درصد تخفیف در این بخش ثبت نمی‌شود.'}],
+  special_tours: [{name: 'title', label: 'تیتر صفحه', kind: 'text'}, {name: 'intro', label: 'توضیح کوتاه', kind: 'long'},
+    {name: 'tour_ids', label: 'تورهای انتخاب‌شده', kind: 'tours', max: 12, hint: 'از تورهای منتشرشده انتخاب کنید. توری که ظرفیتش تمام شود یا از انتشار خارج شود، خودکار از صفحه برداشته می‌شود.'}],
 };
+const PUBLIC_PAGE: Record<string, string> = {faq: '/faq', special_tours: '/tours/special'};
+
+type Qa = {question: string; answer: string};
+function QaEditor({f, value, onChange}: {f: Field; value: Qa[]; onChange: (v: Qa[]) => void}) {
+  const set = (i: number, k: keyof Qa, x: string) => onChange(value.map((q, j) => (j === i ? {...q, [k]: x} : q)));
+  const move = (i: number, d: number) => {const j = i + d; if (j < 0 || j >= value.length) return; const n = [...value]; [n[i], n[j]] = [n[j], n[i]]; onChange(n);};
+  return <fieldset className="cms-cards"><legend>{f.label}</legend>{f.hint && <p className="pn-muted">{f.hint}</p>}
+    {value.map((q, i) => <div className="cms-card" key={i}>
+      <b>{fa(i + 1)}</b>
+      <label>پرسش<input value={q.question} maxLength={160} onChange={e => set(i, 'question', e.target.value)}/></label>
+      <label>پاسخ<textarea rows={3} value={q.answer} maxLength={1200} onChange={e => set(i, 'answer', e.target.value)}/></label>
+      <div className="cms-row">
+        <button type="button" className="pn-btn ghost" disabled={i === 0} onClick={() => move(i, -1)}>بالاتر</button>
+        <button type="button" className="pn-btn ghost" disabled={i === value.length - 1} onClick={() => move(i, 1)}>پایین‌تر</button>
+        {value.length > (f.min ?? 1) && <button type="button" className="pn-btn ghost" onClick={() => onChange(value.filter((_, j) => j !== i))}>حذف</button>}
+      </div>
+    </div>)}
+    {value.length < (f.max ?? 40) && <button type="button" className="pn-btn ghost" onClick={() => onChange([...value, {question: '', answer: ''}])}>افزودن پرسش</button>}
+  </fieldset>;
+}
+
+type PublicTour = {id: string; title: string; origin: string; destination: string};
+function TourPicker({f, value, onChange}: {f: Field; value: string[]; onChange: (v: string[]) => void}) {
+  const tours = useLoad<PublicTour[]>('/public/tour-products');
+  const all = tours.state.kind === 'ready' ? tours.state.data : [];
+  const name = (id: string) => {const t = all.find(x => x.id === id); return t ? `${t.title} (${t.origin} ← ${t.destination})` : 'توری که دیگر منتشر نیست';};
+  const rest = all.filter(t => !value.includes(t.id));
+  return <fieldset className="cms-cards"><legend>{f.label}</legend>{f.hint && <p className="pn-muted">{f.hint}</p>}
+    {value.length === 0 && <p className="pn-muted">هنوز توری انتخاب نشده؛ صفحه‌ی تورهای ویژه پیام «به‌زودی» نشان می‌دهد.</p>}
+    {value.map((id, i) => <div className="cms-row" key={id}><span>{fa(i + 1)}. {name(id)}</span>
+      <button type="button" className="pn-btn ghost" onClick={() => onChange(value.filter(x => x !== id))}>حذف</button></div>)}
+    {tours.state.kind === 'error' ? <p className="pn-note error">فهرست تورها دریافت نشد.</p> : value.length < (f.max ?? 12) &&
+      <label>افزودن تور<select aria-label="افزودن تور ویژه" value="" onChange={e => e.target.value && onChange([...value, e.target.value])}>
+        <option value="">{tours.state.kind === 'ready' ? (rest.length ? 'انتخاب تور منتشرشده…' : 'تور منتشرشده‌ی دیگری نیست') : 'در حال دریافت…'}</option>
+        {rest.map(t => <option key={t.id} value={t.id}>{t.title} ({t.origin} ← {t.destination})</option>)}
+      </select></label>}
+  </fieldset>;
+}
 const CARD_FA = {title: 'عنوان', title2: 'خط دوم عنوان', meta: 'توضیح کوتاه', href: 'لینک', image: 'تصویر'};
 
 function ImagePick({value, media, onChange, label}: {value: string; media: Media[]; onChange: (v: string) => void; label: string}) {
@@ -73,6 +115,8 @@ function BlockEditor({block, media, done}: {block: Block; media: Media[]; done: 
       const val = v[f.name];
       if (f.kind === 'bool') return <label className="cms-check" key={f.name}><input type="checkbox" checked={!!val} onChange={e => put(f.name, e.target.checked)}/>{f.label}</label>;
       if (f.kind === 'image') return <label key={f.name}>{f.label}<ImagePick label={f.label} value={String(val ?? '')} media={media} onChange={x => put(f.name, x)}/></label>;
+      if (f.kind === 'qa') return <QaEditor key={f.name} f={f} value={(val as Qa[]) ?? []} onChange={x => put(f.name, x)}/>;
+      if (f.kind === 'tours') return <TourPicker key={f.name} f={f} value={(val as string[]) ?? []} onChange={x => put(f.name, x)}/>;
       if (f.kind === 'cards') return <CardsEditor key={f.name} f={f} value={(val as CmsCard[]) ?? []} media={media} onChange={x => put(f.name, x)}/>;
       if (f.kind === 'list') {const list = (val as string[]) ?? []; return <fieldset key={f.name} className="cms-cards"><legend>{f.label}</legend>
         {list.map((p, i) => <div className="cms-row" key={i}><input aria-label={`${f.label} ${fa(i + 1)}`} value={p} maxLength={60} onChange={e => put(f.name, list.map((q, j) => (j === i ? e.target.value : q)))}/>
@@ -87,7 +131,7 @@ function BlockEditor({block, media, done}: {block: Block; media: Media[]; done: 
       {block.published && <button className="pn-btn ghost" type="button" onClick={() => void unpublish()}>برداشتن از سایت</button>}
       <button className="pn-btn ghost" type="button" onClick={() => setV(DEFAULT_CONTENT[block.key as keyof typeof DEFAULT_CONTENT] as unknown as Json)}>بازگشت به پیش‌فرض</button>
       <button className="pn-btn ghost" type="button" onClick={() => void history()}>نسخه‌های قبلی</button>
-      <a className="pn-btn ghost" href="/" target="_blank" rel="noreferrer">دیدن سایت</a>
+      <a className="pn-btn ghost" href={PUBLIC_PAGE[block.key] ?? '/'} target="_blank" rel="noreferrer">دیدن سایت</a>
     </div>
     {revs && (revs.length ? <ul className="cms-revs">{revs.map(r => <li key={r.id}>نسخه‌ی {fa(r.version)} — {dateFa(r.created_at)} <button className="pn-btn ghost" type="button" onClick={() => void restore(r.id)}>برگرداندن به پیش‌نویس</button></li>)}</ul> : <p className="pn-muted">نسخه‌ی منتشرشده‌ای وجود ندارد.</p>)}
   </div>;

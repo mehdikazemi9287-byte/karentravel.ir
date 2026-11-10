@@ -133,6 +133,37 @@ class Announcement(Strict):
     href: str = Field(default="", pattern=r"^$|" + _HREF, max_length=300)
 
 
+class FaqItem(Strict):
+    question: str = Field(min_length=3, max_length=160)
+    answer: str = Field(min_length=3, max_length=1200)
+
+
+class Faq(Strict):
+    title: str = Field(min_length=1, max_length=80)
+    intro: str = Field(default="", max_length=240)
+    items: list[FaqItem] = Field(min_length=1, max_length=40)
+
+
+class SpecialTours(Strict):
+    """Tours an editor picks for /tours/special. Only ids are stored; title, dates and capacity always come from the
+    published tour itself, and a picked tour that is unpublished or sold out simply drops off the page."""
+    title: str = Field(min_length=1, max_length=80)
+    intro: str = Field(default="", max_length=240)
+    tour_ids: list[str] = Field(default_factory=list, max_length=12)
+
+    @field_validator("tour_ids")
+    @classmethod
+    def _ids(cls, v: list[str]) -> list[str]:
+        out: list[str] = []
+        for x in v:
+            x = x.strip()
+            if not x or len(x) > 40 or not all(c.isalnum() or c == "-" for c in x):
+                raise ValueError("شناسه‌ی تور نامعتبر است")
+            if x not in out:
+                out.append(x)
+        return out
+
+
 SLOTS: dict[str, tuple[type[Strict], str]] = {
     "announcement": (Announcement, "نوار اطلاع‌رسانی بالای صفحه"),
     "hero": (Hero, "بخش اصلی بالای صفحه"),
@@ -142,6 +173,8 @@ SLOTS: dict[str, tuple[type[Strict], str]] = {
     "compare": (Compare, "مقایسه‌ی دو انتخاب"),
     "organization": (Organization, "سفر سازمانی"),
     "footer": (Footer, "پانویس سایت"),
+    "faq": (Faq, "سؤالات متداول"),
+    "special_tours": (SpecialTours, "صفحه‌ی تورهای ویژه"),
 }
 PRICE_WORDS = ("تومان", "ریال", "تخفیف", "%", "٪")
 
@@ -171,7 +204,7 @@ def validate_slot(key: str, data: dict) -> dict:
         first = e.errors()[0]
         where = ".".join(str(p) for p in first["loc"])
         raise HTTPException(status_code=422, detail=f"مقدار نامعتبر در «{where}»: {first['msg']}")
-    text = json.dumps(clean, ensure_ascii=False)
+    text = json.dumps({k: v for k, v in clean.items() if k != "tour_ids"}, ensure_ascii=False)
     if any(ch.isdigit() for ch in text) and any(w in text for w in PRICE_WORDS):
         raise HTTPException(status_code=422, detail="قیمت و درصد تخفیف در محتوای سایت ثبت نمی‌شود؛ قیمت فقط از نتیجه‌ی استعلام نمایش داده می‌شود")
     return clean
