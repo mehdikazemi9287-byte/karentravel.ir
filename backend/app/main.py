@@ -2415,6 +2415,25 @@ def tour_collection(db: Session, tenant_id: int, key: str, picked: Optional[list
     return result
 
 
+@app.get("/public/tour-products/{product_id}/reviews")
+def public_tour_reviews(product_id: str, response: Response, page: int = Query(default=1, ge=1, le=100), db: Session = Depends(get_db)) -> dict:
+    """Approved customer reviews of a published tour. No reviewer identity is exposed; verified bookings come first."""
+    identity = _public_search_identity(db)
+    tour = db.scalar(select(operational_models.TourProduct).where(operational_models.TourProduct.id == product_id, operational_models.TourProduct.tenant_id == identity.tenant_id, operational_models.TourProduct.status == "published"))
+    if tour is None:
+        raise HTTPException(404, "تور منتشرشده پیدا نشد")
+    rv = operational_models.Review
+    base = select(rv).where(rv.tenant_id == identity.tenant_id, rv.service_type == "tour", rv.service_reference == product_id, rv.moderation_state == "approved")
+    avg, total = db.execute(select(func.avg(rv.rating), func.count(rv.id)).where(rv.tenant_id == identity.tenant_id, rv.service_type == "tour", rv.service_reference == product_id, rv.moderation_state == "approved")).one()
+    rows = db.scalars(base.order_by(rv.verified_booking.desc(), rv.created_at.desc(), rv.id).offset((page - 1) * 10).limit(10)).all()
+    items = []
+    for r in rows:
+        reply = db.scalar(select(operational_models.ReviewSupplierResponse.body).where(operational_models.ReviewSupplierResponse.tenant_id == identity.tenant_id, operational_models.ReviewSupplierResponse.review_id == r.id))
+        items.append({"id": r.id, "rating": r.rating, "title": r.title, "body": r.body, "verified_booking": bool(r.verified_booking), "created_at": r.created_at.isoformat() if r.created_at else None, "reply": reply})
+    response.headers["Cache-Control"] = "public, max-age=60"
+    return {"summary": {"average": round(float(avg), 1) if total else None, "count": int(total or 0)}, "items": items, "page": page, "pages": max(1, -(-int(total or 0) // 10))}
+
+
 @app.get("/public/tenants/{tenant_slug}/tour-collections/{key}")
 def public_tour_collection(tenant_slug: str, key: str, response: Response, db: Session = Depends(get_db)) -> dict:
     from .site_cms import SiteContentBlock
