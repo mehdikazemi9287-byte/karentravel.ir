@@ -1,0 +1,13 @@
+{
+  "fixture": "isolated mocked fetch, no network or real credentials",
+  "duplicate": {
+    "concurrent_identical_reads": 2,
+    "network_calls": 2,
+    "abort_signal_supplied": false
+  },
+  "refresh": {
+    "concurrent_401": 2,
+    "refresh_calls": 2,
+    "same_refresh_token_used_twice": true
+  }
+}
