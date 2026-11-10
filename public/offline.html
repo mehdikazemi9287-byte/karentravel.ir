@@ -13,7 +13,7 @@
   img{width:96px;height:96px;border-radius:24px;box-shadow:0 10px 30px rgba(58,27,61,.18)}
   h1{font-size:22px;margin:8px 0 0}
   p{margin:0;color:var(--muted);font-size:15px}
-  button{margin-top:8px;font:inherit;font-weight:800;color:#fff;background:var(--coral);border:0;border-radius:14px;padding:12px 26px;cursor:pointer}
+  button{margin-top:8px;font:inherit;font-weight:800;color:#fff;background:#bf3b1f;border:0;border-radius:14px;padding:12px 26px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -21,7 +21,8 @@
   <img src="/app-icons/icon-192.png" alt="کارن تراول">
   <h1>اتصال اینترنت برقرار نیست</h1>
   <p>برای دیدن سفرها، کیف پول و قیمت‌های به‌روز، اینترنت لازم است. هر وقت وصل شدید دوباره امتحان کنید.</p>
-  <button type="button" onclick="location.reload()">تلاش دوباره</button>
+  <button type="button" id="retry">تلاش دوباره</button>
 </main>
+<script>document.getElementById('retry').addEventListener('click',function(){location.reload()});</script>
 </body>
 </html>

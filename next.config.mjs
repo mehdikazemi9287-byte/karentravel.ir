@@ -18,6 +18,9 @@ const apiSrc = apiOrigin ? ` ${apiOrigin}` : '';
 const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
+  // KT-06 (partial): inline event-handler attributes are never allowed; inline <script> elements
+  // still need 'unsafe-inline' until per-request nonces are introduced.
+  "script-src-attr 'none'",
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: https:${apiSrc}`,
   "font-src 'self' data:",

@@ -198,7 +198,7 @@ function ComponentHeaderNavItem({ className, item = "About" }: ComponentHeaderNa
 
 export default function ApprovedFigmaHome() {
   return (
-    <div className="approved-figma-home bg-[#fbf3e7] content-stretch flex flex-col items-start relative size-full" data-node-id="44:3" data-name="KarenSeir Homepage / Desktop 1440">
+    <main id="main-content" className="approved-figma-home bg-[#fbf3e7] content-stretch flex flex-col items-start relative size-full" data-node-id="44:3" data-name="KarenSeir Homepage / Desktop 1440">
       <div className="bg-[#fbf3e7] content-stretch flex flex-col gap-[40px] items-center overflow-clip pb-[64px] pt-[24px] px-[64px] relative shrink-0 w-full" data-node-id="45:2" data-name="Section / Header + Hero">
         <div className="bg-[#fffcf9] content-stretch flex gap-[32px] items-center overflow-clip pl-[14px] pr-[24px] py-[10px] relative rounded-[100px] shadow-[0px_4px_20px_0px_rgba(102,77,51,0.08)] shrink-0 w-full" data-node-id="45:3" data-name="Header / Nav">
           <ComponentButton className="bg-[#ef5b3d] content-stretch flex gap-[8px] items-center overflow-clip px-[20px] py-[12px] relative rounded-[100px] shrink-0" />
@@ -225,7 +225,7 @@ export default function ApprovedFigmaHome() {
       <ApprovedHomeBento/>
       <ApprovedHomeLower/>
       <ApprovedFooterLight/>
-    </div>
+    </main>
   );
 }
 export function ApprovedHeader(){return (<div className="bg-[#fffcf9] content-stretch flex gap-[32px] items-center overflow-clip pl-[14px] pr-[24px] py-[10px] relative rounded-[100px] shadow-[0px_4px_20px_0px_rgba(102,77,51,0.08)] shrink-0 w-full" data-node-id="45:3" data-name="Header / Nav">

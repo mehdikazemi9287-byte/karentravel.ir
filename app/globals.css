@@ -821,6 +821,8 @@ a.cat-card:hover{box-shadow:0 12px 28px rgba(8,37,61,.12);transform:translateY(-
 .a11y-page :is(p,small,label,li,dd,dt,td,th,legend,summary,input,select,textarea,.text-sm,.text-xs,.tag,.text-link,.button,.journey-title>div>span,.trip-timeline>header>span),.pn[data-area="customer"] :is(p,small,label,li,dd,dt,td,th,legend,summary,input,select,textarea,a,button,.pn-btn,.button,.text-link,.eyebrow,.text-sm,.text-xs){font-size:max(16px,1em)}
 .a11y-page :is(.text-slate-500,.text-slate-400),.pn[data-area="customer"] :is(.text-slate-500,.text-slate-400){color:#475569}
 .approved-site .a11y-page .button.primary,.a11y-page .button.primary{background:#bf3b1f;color:#fff}
+/* KT-08: login primary buttons, white text needs 4.5:1 (#bf3b1f gives 5.4:1; brand #ef5b3d gave 3.37:1). */
+.approved-site .login-page .button.primary,.login-page .button.primary{background:#bf3b1f;color:#fff}
 .a11y-page :is(button,select,summary,.button,.text-link,input:not([type=checkbox]):not([type=radio])),.pn[data-area="customer"] :is(button,select,summary,.pn-btn,.button,input:not([type=checkbox]):not([type=radio])){min-height:44px}
 .a11y-page :is(.text-link,.customer-actions a),.pn[data-area="customer"] :is(.text-link,.customer-actions a){display:inline-flex;align-items:center;min-height:44px;padding-inline:4px}
 .a11y-page input[type=checkbox],.pn[data-area="customer"] input[type=checkbox]{width:24px;height:24px;vertical-align:middle}

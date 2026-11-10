@@ -95,7 +95,7 @@ function LoginPageInner() {
       <h1>با کد یک‌بارمصرف وارد شوید.</h1>
       <p>برای ورود به کد پیامکی نیاز دارید. اگر دریافت پیامک ممکن نشد، راه تماس با پشتیبانی در همین صفحه است.</p>
     </div>
-    <div className="container" style={{ paddingBottom: 70, display: 'grid', gap: 12, maxWidth: 480 }}>
+    <div className="container login-page" style={{ paddingBottom: 70, display: 'grid', gap: 12, maxWidth: 480 }}>
       <form onSubmit={requestCode} className="filters" style={{ display: 'grid', gap: 10 }}>
         <label><input type="checkbox" checked={organizationLogin} onChange={e => { setOrganizationLogin(e.target.checked); setChallengeId(''); }} /> ورود سازمانی</label>
         {organizationLogin && <label>سازمان<input value={organizationSlug} onChange={e => { setOrganizationSlug(e.target.value); setChallengeId(''); }} required {...persianValidity({missing:'نام کاربری سازمان را وارد کنید.'})} autoComplete="organization" aria-label="سازمان" style={{ display: 'block', width: '100%', marginTop: 4, padding: 10, borderRadius: 8, border: '1px solid var(--line)' }} /></label>}

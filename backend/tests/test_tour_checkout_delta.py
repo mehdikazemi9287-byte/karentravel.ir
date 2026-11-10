@@ -39,10 +39,10 @@ def test_supplier_fulfillment_ownership_before_issue_and_replay(client):
     assert client.get('/reservations/'+reservation['id']+'/voucher',headers=auth(employee)).status_code==409
     assert reservation['id'] in client.get('/supplier/reservations/ready',headers=auth(owner)).text
     assert reservation['id'] not in client.get('/supplier/reservations/ready',headers=auth(other)).text
-    assert client.post(url,headers=auth(other),json=payload).status_code==403
+    assert client.post(url,headers=auth(other),json=payload).status_code==404  # out of scope looks like missing (review N6)
     r=client.post(url,headers=auth(owner),json=payload);assert r.status_code==200,r.text
     assert r.json()['voucher']['status']=='issued'
-    assert client.post(url,headers=auth(other),json=payload).status_code==403
+    assert client.post(url,headers=auth(other),json=payload).status_code==404  # out of scope looks like missing (review N6)
     assert client.post(url,headers=auth(owner),json=payload).json()['voucher']['id']==r.json()['voucher']['id']
 
     with SessionLocal() as db:

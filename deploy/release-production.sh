@@ -1,6 +1,6 @@
 #!/bin/sh
 # One-shot production release of origin/production (run ON the server, from the repo checkout).
-# Safe order: refuse a dirty worktree -> DB backup -> build -> alembic upgrade (in a one-off container) -> up -> health.
+# Safe order: refuse a dirty worktree -> DB backup -> build -> API role check -> alembic upgrade (one-off `migrate` owner container) -> up -> health.
 # Usage:  APP_DIR=/path/to/karentravel.ir sh deploy/release-production.sh
 # Optional: COMPOSE="docker compose -f docker-compose.yml -f docker-compose.production-secrets.yml" (default: docker compose --env-file .env)
 set -eu
@@ -26,8 +26,11 @@ $COMPOSE exec -T db pg_dump -U karenseir -Fc karenseir > "$DUMP"
 test -s "$DUMP" || { echo "ABORT: empty database backup" >&2; exit 1; }
 echo "backup: $DUMP"
 
-$COMPOSE build api worker web
-$COMPOSE run --rm api alembic upgrade head
+$COMPOSE build api worker web migrate
+# KT-05: the API must use the restricted karenseir_api role; refuse before anything is switched.
+$COMPOSE run --rm --no-deps api python -m app.db_role_guard || { echo "ABORT: API_DATABASE_URL is not the restricted karenseir_api role (see docs/audit/fix-2026-11-10.md, KT-05). Nothing was switched." >&2; exit 1; }
+# Migrations run only through the one-off owner connection, never through the API role.
+$COMPOSE run --rm migrate alembic upgrade head
 $COMPOSE up -d
 $COMPOSE ps
 
@@ -36,5 +39,5 @@ until curl -fsS -m 5 http://127.0.0.1:8000/health >/dev/null && curl -fsS -m 5 -
   i=$((i+1)); [ "$i" -ge 30 ] && { echo "HEALTH FAILED. Rollback: git checkout $PREV && $COMPOSE up -d --build ; restore DB: $COMPOSE exec -T db pg_restore --clean --if-exists -U karenseir -d karenseir < $DUMP" >&2; exit 1; }
   sleep 5
 done
-$COMPOSE run --rm api alembic current
+$COMPOSE run --rm migrate alembic current
 echo "OK: production is at $NEW (previous $PREV, backup $DUMP)"

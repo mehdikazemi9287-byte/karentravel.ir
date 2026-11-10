@@ -15,7 +15,9 @@ services:
   api:
     build: ./backend
     environment:
-      DATABASE_URL: postgresql+psycopg://karenseir:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@db:5432/karenseir
+      # KT-05: restricted NOSUPERUSER NOBYPASSRLS role (deploy/provision-api-role.sql). The API refuses to
+      # start in production as the owner/superuser; migrations run through the `migrate` service below.
+      DATABASE_URL: ${API_DATABASE_URL:?set API_DATABASE_URL for the restricted karenseir_api role}
       MEDIA_STORAGE_ROOT: /app/media
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
       ENVIRONMENT: production
@@ -40,6 +42,17 @@ services:
       retries: 10
     volumes:
       - media_data:/app/media
+  migrate:
+    # One-off schema owner connection for `alembic upgrade head`; never used by a long-running service.
+    build: ./backend
+    profiles: ["tools"]
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://karenseir:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@db:5432/karenseir
+      ENVIRONMENT: production
+    depends_on:
+      db:
+        condition: service_healthy
   worker:
     build: ./backend
     command: ["python", "-m", "app.outbox_worker"]

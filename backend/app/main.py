@@ -24,9 +24,9 @@ from fastapi import Body, Depends, FastAPI, File, Form, Header, HTTPException, Q
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse, Response, RedirectResponse
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, Text, func, select, text, update
+from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, Text, and_, exists, func, or_, select, text, update
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Mapped, Session, mapped_column
+from sqlalchemy.orm import Mapped, Session, aliased, mapped_column
 
 from .accommodation import PROPERTY_TYPES, StayRates, nightly_rate, stay_price
 from .config import read_secret
@@ -478,12 +478,14 @@ def _require_fulfilment_scope(db: Session, user: User, reservation: "operational
     if role_has_permission(user.role, "platform:manage") and user.role not in ("supplier", "agency_partner"):
         _record_admin_override(user, f"reservation.{action}.admin_override", "reservation", {"reservation_id": reservation.id})
         return
+    # Out of scope answers exactly like a missing reservation (404), so the response does not
+    # reveal whether the id exists in the tenant (review N6).
     if user.role not in ("supplier", "agency_partner"):
-        raise HTTPException(403, "این رزرو به تأمین‌کنندهٔ جاری واگذار نشده است")
+        raise HTTPException(404, "رزرو در این tenant وجود ندارد")
     items = db.scalars(select(operational_models.BookingItem).where(operational_models.BookingItem.reservation_id == reservation.id, operational_models.BookingItem.tenant_id == user.tenant_id)).all()
     scope = _fulfiller_supplier_scope(db, user)
     if not items or not scope or any(json.loads(i.snapshot_json or "{}").get("supplier_id") not in scope for i in items):
-        raise HTTPException(403, "این رزرو به تأمین‌کنندهٔ جاری واگذار نشده است")
+        raise HTTPException(404, "رزرو در این tenant وجود ندارد")
 
 
 def booking_out(b: Booking, hotel: Hotel) -> dict:
@@ -581,6 +583,10 @@ async def lifespan(_: FastAPI):
     validate_production_config()
     if ENVIRONMENT == "production" and not await rate_limiter.ping():
         raise RuntimeError("Production Redis rate limiter is unavailable")
+    if ENVIRONMENT == "production" and DATABASE_URL.startswith("postgresql"):
+        from .db_role_guard import assert_restricted_api_role  # KT-05: refuse owner/superuser/BYPASSRLS
+        with engine.connect() as connection:
+            assert_restricted_api_role(connection)
     if ENVIRONMENT == "development":
         Base.metadata.create_all(engine)
         with SessionLocal() as db:
@@ -1279,6 +1285,7 @@ def my_organization_credit(user: User = Depends(current_user), db: Session = Dep
 # A true maker-checker (second approver) needs a pending-request table and is
 # tracked in SECURITY_REVIEW.md -> SECURITY_FOLLOWUPS.
 WALLET_FUNDING_MAX_PER_OPERATION = int(os.getenv("WALLET_FUNDING_MAX_PER_OPERATION", "500000000"))
+COMMAND_ID_CONFLICT_DETAIL = {"code": "COMMAND_ID_CONFLICT", "message": "این شناسهٔ درخواست قبلاً برای درخواست دیگری استفاده شده است"}
 CREDIT_ACCOUNT_MAX_LIMIT = int(os.getenv("CREDIT_ACCOUNT_MAX_LIMIT", "5000000000"))
 
 
@@ -1571,24 +1578,96 @@ def wallet_detail(wallet_id: str, user: User = Depends(require_permission("credi
     return {"id": wallet.id, "currency": wallet.currency, **operational_models.wallet_balances(db, tenant_id=user.tenant_id, wallet_id=wallet.id)}
 
 
+# KT-07: manual top-ups at or above this amount, or beyond the operator's rolling 24h total,
+# wait for a second finance user (maker-checker). Amounts are IRR.
+WALLET_FUNDING_APPROVAL_THRESHOLD = int(os.getenv("WALLET_FUNDING_APPROVAL_THRESHOLD", "100000000"))
+WALLET_FUNDING_DAILY_MAX_PER_OPERATOR = int(os.getenv("WALLET_FUNDING_DAILY_MAX_PER_OPERATOR", "300000000"))
+
+
+def _funding_request_output(db: Session, row: "operational_models.WalletFundingRequest") -> dict:
+    return {"request_id": row.id, "status": row.status, "wallet_id": row.wallet_id, "amount": row.amount, "command_id": row.command_id, "requested_by": row.requested_by, "decided_by": row.decided_by, "entry_id": row.ledger_entry_id, **operational_models.wallet_balances(db, tenant_id=row.tenant_id, wallet_id=row.wallet_id)}
+
+
 @app.post("/wallets/{wallet_id}/commands")
-def wallet_command(wallet_id: str, data: WalletFundingIn, user: User = Depends(require_permission("credit:fund")), db: Session = Depends(get_db)) -> dict:
+def wallet_command(wallet_id: str, data: WalletFundingIn, response: Response, user: User = Depends(require_permission("credit:fund")), db: Session = Depends(get_db)) -> dict:
     """Finance-only wallet top-up. reserve/capture/release/reverse_capture are
-    posted only by checkout funding and reservation transitions, never by hand."""
+    posted only by checkout funding and reservation transitions, never by hand.
+    Small top-ups within the operator's daily total post at once (200); larger ones are
+    recorded as pending (202) until another finance user approves them (KT-07)."""
+    FR = operational_models.WalletFundingRequest
     wallet = db.scalar(select(operational_models.Wallet).where(operational_models.Wallet.id == wallet_id, operational_models.Wallet.tenant_id == user.tenant_id))
     if wallet is None: raise HTTPException(status_code=404, detail="کیف پول در این سازمان وجود ندارد")
     if wallet.owner_type == "user" and wallet.owner_reference == str(user.id):
         raise HTTPException(status_code=403, detail="شارژ کیف پول متعلق به خود کارشناس مجاز نیست")
     if data.amount > WALLET_FUNDING_MAX_PER_OPERATION:
         raise HTTPException(status_code=409, detail="مبلغ از سقف مجاز یک عملیات شارژ بیشتر است؛ تأیید جداگانه‌ی مدیریت مالی لازم است")
+    prior = db.scalar(select(FR).where(FR.tenant_id == user.tenant_id, FR.command_id == data.command_id))
+    if prior is not None:
+        if prior.wallet_id != wallet_id or prior.amount != data.amount or prior.requested_by != user.id:
+            raise HTTPException(status_code=409, detail=COMMAND_ID_CONFLICT_DETAIL)
+        if prior.status == "pending": response.status_code = 202
+        return _funding_request_output(db, prior) | ({"entry_id": prior.ledger_entry_id, "command_id": prior.command_id} if prior.ledger_entry_id else {})
+    since = datetime.now(timezone.utc) - timedelta(hours=24)
+    recent = db.scalar(select(func.coalesce(func.sum(FR.amount), 0)).where(FR.tenant_id == user.tenant_id, FR.requested_by == user.id, FR.status.in_(["posted", "pending", "approved"]), FR.created_at >= since)) or 0
+    needs_approval = data.amount >= WALLET_FUNDING_APPROVAL_THRESHOLD or recent + data.amount > WALLET_FUNDING_DAILY_MAX_PER_OPERATOR
+    row = FR(tenant_id=user.tenant_id, wallet_id=wallet_id, amount=data.amount, command_id=data.command_id, status="pending" if needs_approval else "posted", requested_by=user.id)
     try:
-        entry = operational_models.apply_credit_command(db, tenant_id=user.tenant_id, wallet_id=wallet_id, command_id=data.command_id, entry_type=data.entry_type, amount=data.amount)
-        if entry in db.new:
+        db.add(row); db.flush()
+        if needs_approval:
+            _platform_audit(db, user, "wallet.funding.requested", "wallet", {"wallet_id": wallet_id, "request_id": row.id, "amount": data.amount, "command_id": data.command_id})
+        else:
+            entry = operational_models.apply_credit_command(db, tenant_id=user.tenant_id, wallet_id=wallet_id, command_id=data.command_id, entry_type=data.entry_type, amount=data.amount)
+            row.ledger_entry_id = entry.id
             _platform_audit(db, user, "wallet.allocate", "wallet", {"wallet_id": wallet_id, "owner_type": wallet.owner_type, "owner_reference": wallet.owner_reference, "amount": data.amount, "command_id": data.command_id})
         db.commit()
+    except IntegrityError as exc:
+        db.rollback(); raise HTTPException(status_code=409, detail=COMMAND_ID_CONFLICT_DETAIL) from exc
+    except operational_models.LedgerCommandConflict as exc:
+        db.rollback(); raise HTTPException(status_code=409, detail=COMMAND_ID_CONFLICT_DETAIL) from exc
     except ValueError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
-    return {"entry_id": entry.id, "command_id": entry.command_id, **operational_models.wallet_balances(db, tenant_id=user.tenant_id, wallet_id=wallet_id)}
+        db.rollback(); raise HTTPException(status_code=409, detail=str(exc)) from exc
+    if needs_approval:
+        response.status_code = 202
+        return _funding_request_output(db, row)
+    return {**_funding_request_output(db, row), "entry_id": row.ledger_entry_id, "command_id": row.command_id}
+
+
+class WalletFundingDecisionIn(BaseModel): decision: str = Field(pattern="^(approve|reject)$"); reason: Optional[str] = Field(default=None, max_length=500)
+
+
+@app.get("/wallet-funding-requests")
+def list_wallet_funding_requests(status_filter: str = Query(default="pending", alias="status", pattern="^(pending|posted|approved|rejected)$"), limit: int = Query(default=50, ge=1, le=200), user: User = Depends(require_permission("credit:fund")), db: Session = Depends(get_db)) -> list[dict]:
+    FR = operational_models.WalletFundingRequest
+    rows = db.scalars(select(FR).where(FR.tenant_id == user.tenant_id, FR.status == status_filter).order_by(FR.created_at.desc(), FR.id.desc()).limit(limit)).all()
+    return [_funding_request_output(db, r) for r in rows]
+
+
+@app.post("/wallet-funding-requests/{request_id}/decision")
+def decide_wallet_funding_request(request_id: str, data: WalletFundingDecisionIn, user: User = Depends(require_permission("credit:fund")), db: Session = Depends(get_db)) -> dict:
+    """Checker step: a different finance user approves or rejects a pending top-up."""
+    FR = operational_models.WalletFundingRequest
+    row = db.scalar(select(FR).where(FR.id == request_id, FR.tenant_id == user.tenant_id).with_for_update())
+    if row is None: raise HTTPException(404, "درخواست شارژ وجود ندارد")
+    if row.requested_by == user.id: raise HTTPException(403, "ثبت‌کنندهٔ درخواست نمی‌تواند آن را تأیید یا رد کند")
+    wallet = db.scalar(select(operational_models.Wallet).where(operational_models.Wallet.id == row.wallet_id, operational_models.Wallet.tenant_id == user.tenant_id))
+    if wallet is None: raise HTTPException(404, "کیف پول در این سازمان وجود ندارد")
+    if wallet.owner_type == "user" and wallet.owner_reference == str(user.id): raise HTTPException(403, "تأیید شارژ کیف پول خود کارشناس مجاز نیست")
+    target = "approved" if data.decision == "approve" else "rejected"
+    if row.status != "pending":
+        if row.status == target and row.decided_by == user.id: return _funding_request_output(db, row)
+        raise HTTPException(409, "این درخواست قبلاً بررسی شده است")
+    try:
+        if target == "approved":
+            entry = operational_models.apply_credit_command(db, tenant_id=user.tenant_id, wallet_id=row.wallet_id, command_id=row.command_id, entry_type="allocate", amount=row.amount)
+            row.ledger_entry_id = entry.id
+            _platform_audit(db, user, "wallet.allocate", "wallet", {"wallet_id": row.wallet_id, "owner_type": wallet.owner_type, "owner_reference": wallet.owner_reference, "amount": row.amount, "command_id": row.command_id, "request_id": row.id, "requested_by": row.requested_by})
+        else:
+            _platform_audit(db, user, "wallet.funding.rejected", "wallet", {"wallet_id": row.wallet_id, "request_id": row.id, "amount": row.amount})
+        row.status = target; row.decided_by = user.id; row.decided_at = datetime.now(timezone.utc); row.reason = data.reason
+        db.commit()
+    except ValueError as exc:
+        db.rollback(); raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return _funding_request_output(db, row)
 
 
 @app.post("/approvals/{approval_id}/decision")
@@ -3728,7 +3807,7 @@ def cancellation_quote(reservation_id: str, user: User = Depends(current_user), 
 def reissue_voucher(reservation_id: str, data: VoucherReissueIn, user: User = Depends(require_permission("reservation:fulfill")), db: Session = Depends(get_db)) -> dict:
     if not data.document_reference.startswith(("document://", "s3://", "vault://")): raise HTTPException(status_code=422, detail="document reference معتبر نیست")
     reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == reservation_id, operational_models.Reservation.tenant_id == user.tenant_id).with_for_update())
-    if reservation is None: raise HTTPException(status_code=409, detail="رزرو قابل صدور مجدد واچر نیست")
+    if reservation is None: raise HTTPException(status_code=404, detail="رزرو در این tenant وجود ندارد")
     # Ownership first: nothing about the voucher or the idempotency record is read for an out-of-scope caller (KT-01).
     _require_fulfilment_scope(db, user, reservation, "voucher_reissue")
     request_hash = _secure_hash(f"{reservation.id}:{data.document_reference}")
@@ -4901,6 +4980,7 @@ def advance_checkout(checkout_id: str, step: str, data: CheckoutStepIn, user: Us
             wallet = db.scalar(select(operational_models.Wallet).where(operational_models.Wallet.tenant_id == user.tenant_id, operational_models.Wallet.owner_type == "user", operational_models.Wallet.owner_reference == str(user.id), operational_models.Wallet.currency == "IRR").with_for_update())
             if wallet is None: raise HTTPException(status_code=409, detail="کیف پول ریالی معتبر وجود ندارد")
             try: wallet_entry = operational_models.apply_credit_command(db, tenant_id=user.tenant_id, wallet_id=wallet.id, command_id=f"checkout:{row.id}:wallet:{data.command_id}"[:80], entry_type="reserve", amount=data.wallet_amount, reservation_id=reservation.id)
+            except operational_models.LedgerCommandConflict as exc: raise HTTPException(status_code=409, detail=COMMAND_ID_CONFLICT_DETAIL) from exc
             except ValueError as exc: raise HTTPException(status_code=409, detail="موجودی قابل استفاده کیف پول کافی نیست") from exc
         if data.credit_amount:
             organization_ids = [a.organization_id for a in db.scalars(select(operational_models.EmployeeAssignment).where(operational_models.EmployeeAssignment.tenant_id == user.tenant_id, operational_models.EmployeeAssignment.user_id == user.id)).all()]
@@ -4911,6 +4991,7 @@ def advance_checkout(checkout_id: str, step: str, data: CheckoutStepIn, user: Us
             credit_account = accounts[0] if accounts else None
             if credit_account is None: raise HTTPException(status_code=409, detail="حساب اعتبار سازمانی مشخص و معتبر برای این حساب وجود ندارد")
             try: credit_entry = operational_models.apply_organization_credit_command(db, tenant_id=user.tenant_id, credit_account_id=credit_account.id, command_id=f"checkout:{row.id}:credit:{data.command_id}"[:80], entry_type="reserve", amount=data.credit_amount, reservation_id=reservation.id)
+            except operational_models.LedgerCommandConflict as exc: raise HTTPException(status_code=409, detail=COMMAND_ID_CONFLICT_DETAIL) from exc
             except ValueError as exc: raise HTTPException(status_code=409, detail="سقف اعتبار سازمانی کافی نیست") from exc
         db.flush()
         state["funding"] = declaration(total, funding_currency, data.wallet_amount, data.credit_amount, row.price_snapshot_hash, wallet_entry.id if wallet_entry else None, credit_entry.id if credit_entry else None)
@@ -5571,16 +5652,45 @@ def operations_records(section:str,offset:int=Query(default=0,ge=0,le=100000),li
 
 
 @app.get("/supplier/reservations/ready")
-def supplier_ready_reservations(user:User=Depends(require_permission("inventory:manage")),db:Session=Depends(get_db)) -> list[dict]:
-    supplier_ids=set(_supplier_scope(db,user))
-    pairs=db.execute(select(operational_models.Reservation,operational_models.BookingItem).join(operational_models.BookingItem,operational_models.BookingItem.reservation_id==operational_models.Reservation.id).where(operational_models.Reservation.tenant_id==user.tenant_id,operational_models.BookingItem.tenant_id==user.tenant_id,operational_models.Reservation.status.in_(["reserved","awaiting_payment","confirmed"])).order_by(operational_models.Reservation.created_at.desc()).limit(200)).all()
-    out=[]
-    for reservation,item in pairs:
-        snapshot=json.loads(item.snapshot_json)
-        if snapshot.get("supplier_id") not in supplier_ids or snapshot.get("fulfillment_mode")!="manual_supplier":continue
-        # Paid = captured bank payment for the bank part, or 100% reserved wallet/credit (QA D1).
-        if not _reservation_settlement_ready(db,reservation):continue
-        out.append({"id":reservation.id,"booking_reference":reservation.booking_reference,"title":snapshot.get("title",reservation.service_type),"service_type":reservation.service_type,"status":reservation.status,"hotel_stay":snapshot.get("hotel_stay")})
+def supplier_ready_reservations(response: Response, limit: int = Query(default=200, ge=1, le=200), before: Optional[str] = Query(default=None, max_length=120), user:User=Depends(require_permission("inventory:manage")),db:Session=Depends(get_db)) -> list[dict]:
+    """Paid manual-supplier reservations the caller can fulfil, newest first (KT-04, N2).
+
+    Scope is applied in SQL before LIMIT: every booking item of the reservation must be a
+    manual_supplier item of a supplier in the caller's scope, so a mixed-supplier package
+    (fulfilled by platform admin, owner decision 2026-11-10) is not listed to a partner.
+    Keyset pagination: pass the X-Next-Cursor response header back as ?before=."""
+    supplier_ids=sorted(_fulfiller_supplier_scope(db,user))
+    if not supplier_ids:return []
+    R,BI=operational_models.Reservation,operational_models.BookingItem
+    other=aliased(BI)
+    conditions=[R.tenant_id==user.tenant_id,R.status.in_(["reserved","awaiting_payment","confirmed"]),
+        exists().where(BI.reservation_id==R.id,BI.tenant_id==R.tenant_id),
+        ~exists().where(other.reservation_id==R.id,other.tenant_id==R.tenant_id,or_(other.supplier_id.is_(None),other.supplier_id.not_in(supplier_ids),other.fulfillment_mode.is_(None),other.fulfillment_mode!="manual_supplier"))]
+    if before:
+        try:
+            at_raw,last_id=before.rsplit("|",1);at=datetime.fromisoformat(at_raw)
+        except ValueError:
+            raise HTTPException(422,"cursor معتبر نیست")
+        conditions.append(or_(R.created_at<at,and_(R.created_at==at,R.id<last_id)))
+    out=[];next_cursor=None;batch=max(limit,50)
+    while True:
+        rows=db.scalars(select(R).where(*conditions).order_by(R.created_at.desc(),R.id.desc()).limit(batch)).all()
+        if not rows:break
+        items={}
+        for item in db.scalars(select(BI).where(BI.tenant_id==user.tenant_id,BI.reservation_id.in_([r.id for r in rows])).order_by(BI.created_at,BI.id)).all():
+            items.setdefault(item.reservation_id,[]).append(json.loads(item.snapshot_json or "{}"))
+        for reservation in rows:
+            last=reservation
+            # Paid = captured bank payment for the bank part, or 100% reserved wallet/credit (QA D1).
+            if not _reservation_settlement_ready(db,reservation):continue
+            snaps=items.get(reservation.id) or [{}]
+            out.append({"id":reservation.id,"booking_reference":reservation.booking_reference,"title":snaps[0].get("title",reservation.service_type),"service_type":reservation.service_type,"status":reservation.status,"hotel_stay":next((x["hotel_stay"] for x in snaps if x.get("hotel_stay")),None)})
+            if len(out)>=limit:break
+        if len(out)>=limit:
+            next_cursor=f"{last.created_at.isoformat()}|{last.id}";break
+        if len(rows)<batch:break
+        conditions=conditions[:4]+[or_(R.created_at<last.created_at,and_(R.created_at==last.created_at,R.id<last.id))]
+    if next_cursor:response.headers["X-Next-Cursor"]=next_cursor
     return out
 
 

@@ -1,5 +1,4 @@
 from logging.config import fileConfig
-import os
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
@@ -10,7 +9,10 @@ from app import main  # noqa: F401 - registers all models
 config = context.config
 if config.config_file_name:
     fileConfig(config.config_file_name)
-config.set_main_option("sqlalchemy.url", os.getenv("DATABASE_URL", config.get_main_option("sqlalchemy.url")))
+from app.config import read_secret  # noqa: E402
+
+# DATABASE_URL or DATABASE_URL_FILE (secrets override for the `migrate` service); '%' escaped for configparser.
+config.set_main_option("sqlalchemy.url", read_secret("DATABASE_URL", config.get_main_option("sqlalchemy.url")).replace("%", "%%"))
 target_metadata = Base.metadata
 
 

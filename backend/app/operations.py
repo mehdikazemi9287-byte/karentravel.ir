@@ -9,7 +9,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, Numeric, String, Text, UniqueConstraint, select
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, Numeric, String, Text, UniqueConstraint, event, select
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from .database import Base
@@ -700,6 +700,28 @@ class BookingItem(OperationalMixin, Base):
     product_id: Mapped[Optional[str]] = mapped_column(ForeignKey("travel_products.id"), nullable=True)
     item_type: Mapped[str] = mapped_column(String(48))
     snapshot_json: Mapped[str] = mapped_column(Text, default="{}")
+    # Derived from snapshot_json on every write (see _sync_booking_item_scope) so the supplier
+    # queue can filter by supplier in SQL before LIMIT (KT-04). Never set by hand.
+    supplier_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True, index=True)
+    fulfillment_mode: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+
+
+def booking_item_scope_from_snapshot(snapshot_json: Optional[str]) -> tuple[Optional[str], Optional[str]]:
+    try:
+        snap = json.loads(snapshot_json or "{}")
+    except (TypeError, ValueError):
+        return None, None
+    if not isinstance(snap, dict):
+        return None, None
+    supplier = snap.get("supplier_id")
+    mode = snap.get("fulfillment_mode")
+    return (str(supplier)[:36] if supplier else None), (str(mode)[:32] if mode else None)
+
+
+@event.listens_for(BookingItem, "before_insert")
+@event.listens_for(BookingItem, "before_update")
+def _sync_booking_item_scope(_mapper, _connection, target: "BookingItem") -> None:
+    target.supplier_id, target.fulfillment_mode = booking_item_scope_from_snapshot(target.snapshot_json)
 
 
 class Traveller(OperationalMixin, Base):
@@ -755,6 +777,22 @@ class Wallet(OperationalMixin, Base):
     owner_reference: Mapped[str] = mapped_column(String(64))
     currency: Mapped[str] = mapped_column(String(3), default="IRR")
     __table_args__ = (UniqueConstraint("tenant_id", "owner_type", "owner_reference", "currency", name="uq_wallet_owner"),)
+
+
+class WalletFundingRequest(OperationalMixin, Base):
+    """Every manual wallet top-up (KT-07). Small amounts within the operator's daily cap are
+    posted at once (status=posted); larger ones wait for a second finance user (maker-checker)."""
+    __tablename__ = "wallet_funding_requests"
+    wallet_id: Mapped[str] = mapped_column(ForeignKey("wallets.id"), index=True)
+    amount: Mapped[int] = mapped_column(Integer)
+    command_id: Mapped[str] = mapped_column(String(120))
+    status: Mapped[str] = mapped_column(String(24), default="pending", index=True)  # posted | pending | approved | rejected
+    requested_by: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    decided_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    decided_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    ledger_entry_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    reason: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    __table_args__ = (UniqueConstraint("tenant_id", "command_id", name="uq_wallet_funding_command"),)
 
 
 class CreditAccount(OperationalMixin, Base):
@@ -1391,7 +1429,10 @@ def settle_reservation_funding(db: Session, reservation: "Reservation", action: 
             else:
                 entry = apply_organization_credit_command(db, tenant_id=reservation.tenant_id, credit_account_id=reserve.credit_account_id, command_id=command_id, entry_type=action, amount=reserve.amount, reservation_id=reservation.id)
         except LedgerCommandConflict:
-            continue  # the reserve was already settled the other way under this command id; never both
+            # Normally the reserve was already settled the other way under this command id (never both);
+            # logged so any other mismatch is visible (review N5).
+            logging.getLogger("karenseir.funding").warning("reservation_funding_settlement_conflict", extra={"reservation_id": reservation.id, "reserve_id": reserve.id, "action": action})
+            continue
         except ValueError:
             logging.getLogger("karenseir.funding").error("reservation_funding_settlement_failed", extra={"reservation_id": reservation.id, "reserve_id": reserve.id, "action": action})
             continue

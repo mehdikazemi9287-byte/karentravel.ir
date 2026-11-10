@@ -1,3 +1,7 @@
+## Audit fix round — 2026-11-10 (۱۹ آبان ۱۴۰۵), branch fix/audit-urgent-2026-11-10
+Source only; not merged, not deployed. KT-01..KT-05, KT-07..KT-09, review N1..N7 fixed/closed; KT-06 partial. New migration head 20261110_71 (additive). Tests: SQLite 656 pass / 2 pre-existing fail / 8 skip; PostgreSQL 16 CI-like 662 / 2 / 2; tsc+build PASS; lint 45 pre-existing errors unchanged.
+OPEN: owner/devops one-time step (karenseir_api role + `migrate` service on the server compose) before the next deploy; KT-06 full fix. Details: docs/audit/fix-2026-11-10.md.
+
 ## Release + Mahan cert 6-8 + HTTPS prep — 2026-11-08 (۱۷ آبان ۱۴۰۵)
 PRs #43 (Mahan cert 6-8 fixes), #44 (guarded HTTPS script for host nginx, single-source headers), #45 (server deploy script) merged to production. Server 188.121.123.218 deployed: production 25d43ea (+ server-only 8ca27bd) on branch release-20261108-1832; previous release-20261104-1735 and images pre-20261108-1832 kept for rollback. Live check PASS: brand کارن تراول, core routes + /api/health 200. Mahan QAA scenarios 6/7/8 booked TL2C2/TL2C3/TL2C4, no tickets. Tests: 587 pass, 2 pre-existing fail, 7 skip; build PASS; lint 45 pre-existing errors.
 OPEN: HTTPS not live (server uses container nginx; container-specific script in progress); duplicate security headers live; .env origins still IP and Zarinpal callback on old karenseir.ir.
