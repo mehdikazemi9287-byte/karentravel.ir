@@ -133,3 +133,24 @@ def test_festival_window_and_activation(client):
     assert client.put("/cms/blocks/festival", json={**base, "active": False}, headers=admin).status_code == 200
     assert client.post("/cms/blocks/festival/publish", headers=admin).status_code == 200
     assert client.get(url).json() == {"key": "festival", "items": [], "festival": None}
+
+
+def test_public_tour_reviews(client):
+    tenant = _seed_public_tenant()
+    now = datetime.now(timezone.utc)
+    with SessionLocal() as db:
+        s = m.Supplier(tenant_id=tenant, supplier_type="tour", display_name="Mock QA reviews", status="active")
+        db.add(s)
+        db.flush()
+        tid = _tour(db, tenant, s.id, "Mock QA reviewed tour", now + timedelta(days=30))
+        draft = _tour(db, tenant, s.id, "Mock QA draft reviewed", now + timedelta(days=30), status="draft")
+        user_id = db.scalar(select(User.id).limit(1))
+        for i, (r, state, verified) in enumerate([(5, "approved", False), (3, "approved", True), (1, "rejected", True)]):
+            db.add(m.Review(tenant_id=tenant, user_id=user_id, service_type="tour", service_reference=tid, rating=r, title=f"Mock QA {i}", body="Mock QA review body",
+                            moderation_state=state, verified_booking=verified, command_id=f"mockqa-rv-{tid}-{i}"))
+        db.commit()
+    data = client.get(f"/public/tour-products/{tid}/reviews").json()
+    assert data["summary"] == {"average": 4.0, "count": 2}
+    assert [i["rating"] for i in data["items"]] == [3, 5]  # verified booking first
+    assert "user_id" not in str(data) and "Mock QA 2" not in str(data)
+    assert client.get(f"/public/tour-products/{draft}/reviews").status_code == 404
