@@ -2400,6 +2400,11 @@ def tour_collection(db: Session, tenant_id: int, key: str, picked: Optional[list
         if len(item["departures"]) < 6:
             item["departures"].append({"id": d.id, "starts_at": d.starts_at.isoformat(), "ends_at": d.ends_at.isoformat(), "seats_left": d.remaining <= 5})
     out = list(items.values())
+    if items:  # approved customer reviews only; no rating is shown without at least one
+        rv = operational_models.Review
+        for ref, avg, count in db.execute(select(rv.service_reference, func.avg(rv.rating), func.count(rv.id)).where(
+                rv.tenant_id == tenant_id, rv.service_type == "tour", rv.moderation_state == "approved", rv.service_reference.in_(list(items))).group_by(rv.service_reference)).all():
+            items[ref]["rating"] = {"average": round(float(avg), 1), "count": int(count)}
     if key in ("special", "festival"):
         order = {tid: i for i, tid in enumerate(picked or [])}
         out.sort(key=lambda x: order.get(x["id"], 999))

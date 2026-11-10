@@ -4,7 +4,9 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 from app import operations as m
-from app.main import SessionLocal, _nowruz_window, tour_collection
+from sqlalchemy import select
+
+from app.main import SessionLocal, User, _nowruz_window, tour_collection
 from test_search_v2_public import _seed_public_tenant
 
 TEHRAN = timezone(timedelta(hours=3, minutes=30))
@@ -57,7 +59,16 @@ def test_tour_collections(client):
     item = next(i for i in lm["items"] if i["id"] == soon)
     assert item["nights"] == 3 and item["departure_count"] == 1
     assert item["departures"][0]["seats_left"] is True and "base_price" not in str(lm) and "private" not in str(lm)
-    assert lm["window"]["from"] < lm["window"]["to"]
+    assert lm["window"]["from"] < lm["window"]["to"] and "rating" not in item
+
+    with SessionLocal() as db:
+        user_id = db.scalar(select(User.id).limit(1))
+        for i, (r, state) in enumerate([(5, "approved"), (4, "approved"), (1, "pending")]):
+            db.add(m.Review(tenant_id=tenant, user_id=user_id, service_type="tour", service_reference=soon, rating=r, title="Mock QA", body="Mock QA review body",
+                            moderation_state=state, command_id=f"mockqa-{soon}-{i}"))
+        db.commit()
+    item = next(i for i in client.get("/public/tenants/aftab-bank/tour-collections/last-minute").json()["items"] if i["id"] == soon)
+    assert item["rating"] == {"average": 4.5, "count": 2}
 
     nr = [i["id"] for i in client.get("/public/tenants/aftab-bank/tour-collections/nowruz").json()["items"]]
     assert nowruz in nr and soon not in nr

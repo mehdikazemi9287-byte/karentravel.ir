@@ -10,7 +10,7 @@ import {TripRequestForm} from '../customer/TripRequestForm';
 
 export type CollectionKey = 'last-minute' | 'nowruz' | 'special' | 'festival';
 type Dep = {id: string; starts_at: string; ends_at: string; seats_left: boolean};
-type Item = {id: string; title: string; origin: string; destination: string; details: {description?: string}; departures: Dep[]; nights?: number; departure_count?: number; transport?: string};
+type Item = {id: string; title: string; origin: string; destination: string; details: {description?: string}; departures: Dep[]; nights?: number; departure_count?: number; transport?: string; rating?: {average: number; count: number}};
 const faN = (n: number) => n.toLocaleString('fa-IR');
 type Festival = {title: string; intro: string; starts_on: string; ends_on: string; image: string; terms: string};
 type Data = {key: CollectionKey; items: Item[]; window?: {from: string; to: string}; festival?: Festival | null};
@@ -87,6 +87,7 @@ function TourPass({t, badge}: {t: Item; badge: string}) {
         <span>{t.origin}</span><i aria-hidden="true"/><span>{t.destination}</span>
       </div>
       <h2>{t.title}</h2>
+      {t.rating && <p className="tour-pass-rating" aria-label={`امتیاز ${faN(t.rating.average)} از ۵ در ${faN(t.rating.count)} نظر`}><span aria-hidden="true">★</span> {faN(t.rating.average)} <small>({faN(t.rating.count)} نظر مسافران)</small></p>}
       {t.details.description && <p className="tour-pass-desc">{t.details.description}</p>}
       <ul className="tour-pass-dates">{t.departures.slice(0, 3).map(d => <li key={d.id}>{day(d.starts_at)}</li>)}</ul>
       <span className="tour-pass-cta">برنامه، استعلام قیمت و رزرو</span>
