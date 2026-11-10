@@ -19,11 +19,12 @@ import uuid
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import Boolean, ForeignKey, Integer, String, Text, UniqueConstraint, func, select
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
+from . import approvals
 from . import operations as m
 from .database import Base
 from .operations import OperationalMixin
@@ -535,6 +536,8 @@ class AdjustIn(BaseModel):
     description: str = Field(min_length=3, max_length=2000)
     tracking_no: Optional[str] = Field(default=None, max_length=80)
     bank_name: Optional[str] = Field(default=None, max_length=80)
+    # Idempotency for the maker-checker request (wallet increase / any credit change).
+    command_id: Optional[str] = Field(default=None, min_length=8, max_length=120)
 
 
 class TreasuryRequestIn(BaseModel):
@@ -890,12 +893,12 @@ def commerce_router(get_db, current_user, role_has_permission, User, audit=None)
                 "group": {"id": group.id, "name": group.name} if group else None, **bal, "statement": out[:300],
                 "bank_account": _bank_dict(bank)}
 
-    @api.post("/commerce/users/{user_id}/adjust", status_code=201)
-    def adjust(user_id: int, data: AdjustIn, user=Depends(finance_write), db: Session = Depends(get_db)):
-        u = _target_user(db, user.tenant_id, user_id)
-        if data.target == "credit" and not (role_has_permission(user.role, "credit:manage") or role_has_permission(user.role, "platform:manage")):
-            raise HTTPException(status_code=403, detail="تغییر سقف اعتبار فقط با مجوز مدیریت اعتبار ممکن است")
-        cmd = f"adjust:{uuid.uuid4()}"
+    def _can_adjust(actor, target: str) -> bool:
+        if not (role_has_permission(actor.role, "reconciliation:manage") or role_has_permission(actor.role, "platform:manage")):
+            return False
+        return target != "credit" or role_has_permission(actor.role, "credit:manage") or role_has_permission(actor.role, "platform:manage")
+
+    def _apply_adjust(db, user, u, data: AdjustIn, cmd: str, maker_id: Optional[int] = None):
         if data.target == "wallet":
             w = _user_wallet(db, user.tenant_id, u.id)
             try:
@@ -915,9 +918,46 @@ def commerce_router(get_db, current_user, role_has_permission, User, audit=None)
         inc = data.direction == "increase"
         post_treasury(db, tenant_id=user.tenant_id, command_id=cmd, counterparty_type="user", counterparty_ref=str(u.id), counterparty_name=u.name,
                       account_type=data.target, operation="deposit" if inc and data.target == "wallet" else "adjustment",
-                      credit=data.amount if inc else 0, debit=0 if inc else data.amount, registered_by=user.id,
+                      credit=data.amount if inc else 0, debit=0 if inc else data.amount, registered_by=maker_id or user.id,
                       description=data.description, tracking_no=data.tracking_no, bank_name=data.bank_name)
-        _audit(db, user, f"commerce.{data.target}.{data.direction}", str(u.id), {"amount": data.amount})
+        _audit(db, user, f"commerce.{data.target}.{data.direction}", str(u.id), {"amount": data.amount, "maker_user_id": maker_id or user.id, "checker_user_id": user.id if maker_id else None})
+
+    def _execute_adjust(db, request, payload, checker):
+        """Maker-checker executor (H-1): runs only after a second finance user approves."""
+        data = AdjustIn(**payload["adjust"])
+        u = _target_user(db, checker.tenant_id, int(payload["user_id"]))
+        if u.id == checker.id:
+            raise approvals.MakerCheckerError(403, "تأیید تغییر حساب خودتان مجاز نیست")
+        try:
+            _apply_adjust(db, checker, u, data, f"mc:{request.id}", maker_id=request.maker_user_id)
+            db.flush()
+        except HTTPException as exc:
+            raise approvals.MakerCheckerError(exc.status_code, str(exc.detail)) from exc
+        return _balances(db, checker.tenant_id, u.id)
+
+    approvals.register("commerce.adjust", can_check=lambda actor, payload: _can_adjust(actor, payload["adjust"]["target"]),
+                       execute=_execute_adjust, label="تغییر کیف پول / سقف اعتبار کاربر")
+
+    @api.post("/commerce/users/{user_id}/adjust", status_code=201)
+    def adjust(user_id: int, data: AdjustIn, response: Response, user=Depends(finance_write), db: Session = Depends(get_db)):
+        u = _target_user(db, user.tenant_id, user_id)
+        if data.target == "credit" and not (role_has_permission(user.role, "credit:manage") or role_has_permission(user.role, "platform:manage")):
+            raise HTTPException(status_code=403, detail="تغییر سقف اعتبار فقط با مجوز مدیریت اعتبار ممکن است")
+        if u.id == user.id:
+            raise HTTPException(status_code=403, detail="تغییر حساب خودتان مجاز نیست")
+        if data.target == "credit" or data.direction == "increase":
+            # Money-creating or limit-changing: maker-checker, nothing moves until a second user approves.
+            try:
+                row = approvals.create_request(db, user=user, kind="commerce.adjust", payload={"user_id": u.id, "adjust": data.model_dump(exclude={"command_id"})},
+                                               idempotency_key=data.command_id or f"adjust:{uuid.uuid4()}", amount=data.amount, target_ref=f"user:{u.id}",
+                                               summary=f"{'سقف اعتبار' if data.target == 'credit' else 'کیف پول'} {'افزایش' if data.direction == 'increase' else 'کاهش'} — {u.name}",
+                                               audit=lambda d, a, action, entity, detail: _audit(d, a, action, entity, detail))
+            except approvals.MakerCheckerError as exc:
+                raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+            db.commit()
+            response.status_code = 202
+            return {"status": "pending_approval", "approval_request": approvals.output(row), **_balances(db, user.tenant_id, u.id)}
+        _apply_adjust(db, user, u, data, f"adjust:{uuid.uuid4()}")
         db.commit()
         return _balances(db, user.tenant_id, u.id)
 

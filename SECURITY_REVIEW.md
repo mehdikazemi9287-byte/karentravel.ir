@@ -16,14 +16,16 @@
 
 ### SECURITY_FOLLOWUPS (باقی‌مانده)
 - **H-3** HTTPS و `ALLOW_HTTP_*=0` پیش از کاربر واقعی و پرداخت (زیرساخت).
-- **H-4** اتصال API با نقش پستگرس `karenseir_api` بدون superuser و بدون BYPASSRLS؛ روی سرور بررسی شود.
-- **H-1 (ادامه)** تأیید دونفره (maker-checker) برای شارژ کیف پول و سقف اعتبار: نیازمند جدول درخواست در انتظار و migration؛ فعلاً سقف، تفکیک نقش و audit جایگزین موقت است.
-- **M-3** توکن در `sessionStorage` و CSP با `unsafe-inline`: انتقال به کوکی httpOnly یا CSP با nonce (نیازمند dynamic rendering).
-- **M-5** کلید JWT جدا برای MFA، وضعیت پرداخت و QR واچر.
-- **M-7** بررسی `ENVIRONMENT=production` روی سرور و نبود کاربرهای `*.test`.
-- `/reservations/{id}/fulfill` برای نقش `agency_partner` هنوز scope آژانس ندارد (پرداخت capture‌شده لازم است، پس جعل مالی نیست ولی باید محدود شود).
-- توابع `grs_lifecycle` (`book_with_grs`, `accept_cancellation_with_grs`) با مجوز `reservation:manage` کار می‌کنند که مشتری هم دارد؛ فعلاً از HTTP در دسترس نیستند، پیش از اتصال باید مجوز کارشناسی بگیرند.
+- **H-4** کد آماده: `deploy/karenseir-db-role-check.sh` (بررسی فقط‌خواندنی؛ `--apply` نقش `karenseir_api` را می‌سازد و تغییر `DATABASE_URL` را چاپ می‌کند). تغییر روی سرور با مالک است؛ migrationها با `MIGRATION_DATABASE_URL`.
+- **M-3** کد آماده پشت پرچم `AUTH_COOKIE_MODE` (پیش‌فرض خاموش): کوکی httpOnly + CSRF دوتایی. روشن کردن فقط پس از HTTPS با `AUTH_COOKIE_SECURE=1`. CSP با nonce هنوز باز است.
+- **M-5** کلیدهای جدا (HKDF از `JWT_SECRET` یا env جدا)؛ پس از انقضای واچرهای قدیمی `SIGNING_LEGACY_FALLBACK=0`.
+- **M-7** کد آماده: `deploy/karenseir-demo-data-disable.sh` (غیرفعال‌سازی برگشت‌پذیر داده‌ی نمونه)؛ اجرا روی سرور با مالک. بررسی `ENVIRONMENT=production` روی سرور هنوز لازم است.
 - سقف سراسری پیامک بین tenantها (شمارش فعلی زیر RLS برای هر tenant است).
+
+### بسته‌شده در شاخه‌ی fix/security-followups
+- **H-1** تأیید دونفره برای شارژ کیف پول، ایجاد حساب اعتباری و تغییر سقف اعتبار (`backend/app/approvals.py`، قابل استفاده‌ی مجدد).
+- محدود شدن `/reservations/{id}/fulfill` به تأمین‌کننده/آژانس خود.
+- مراحل تأمین‌کننده در `grs_lifecycle` فقط با نقش کارشناس عملیات.
 
 ## Orchestration security — ۱۴۰۵/۰۵/۲۹
 

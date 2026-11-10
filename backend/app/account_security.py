@@ -33,6 +33,7 @@ from sqlalchemy.orm import Mapped, Session, mapped_column
 from . import operations as m
 from .database import Base
 from .operations import OperationalMixin
+from .signing_keys import signing_key, verification_keys
 
 STEP = 30
 DIGITS = 6
@@ -270,7 +271,17 @@ def account_security_router(get_db, current_user, User, Tenant, jwt_secret: str,
     def ticket_for(user, tenant, challenge_id: Optional[str]) -> str:
         now = utcnow()
         return jwt.encode({"aud": TICKET_AUD, "sub": str(user.id), "tenant": tenant.id, "chl": challenge_id, "iat": now,
-                           "exp": now + timedelta(minutes=TICKET_MINUTES), "jti": str(uuid.uuid4())}, jwt_secret, algorithm="HS256")
+                           "exp": now + timedelta(minutes=TICKET_MINUTES), "jti": str(uuid.uuid4())}, signing_key("mfa_ticket", jwt_secret), algorithm="HS256")
+
+    def decode_ticket(token: str) -> dict:
+        """Own per-purpose key (M-5); the legacy shared key only while SIGNING_LEGACY_FALLBACK is on."""
+        last: Exception = jwt.InvalidTokenError("no key")
+        for key in verification_keys("mfa_ticket", jwt_secret):
+            try:
+                return jwt.decode(token, key, algorithms=["HS256"], audience=TICKET_AUD, options={"require": ["exp", "sub", "tenant"]})
+            except jwt.InvalidSignatureError as exc:
+                last = exc
+        raise last
 
     @api.post("/auth/2fa/verify")
     def verify(data: MfaVerifyIn, request: Request, db: Session = Depends(get_db)):
@@ -278,7 +289,7 @@ def account_security_router(get_db, current_user, User, Tenant, jwt_secret: str,
             raise HTTPException(status_code=422, detail="کد برنامه یا کد بازیابی لازم است")
         tenant = db.scalar(select(Tenant).where(Tenant.slug == data.tenant_slug))
         try:
-            claims = jwt.decode(data.mfa_ticket, jwt_secret, algorithms=["HS256"], audience=TICKET_AUD, options={"require": ["exp", "sub", "tenant"]})
+            claims = decode_ticket(data.mfa_ticket)
         except jwt.PyJWTError:
             raise HTTPException(status_code=401, detail="مهلت ورود تمام شده است؛ دوباره کد پیامکی بگیرید")
         if tenant is None or claims["tenant"] != tenant.id:

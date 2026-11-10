@@ -292,7 +292,7 @@ def test_rbac_and_tenant_scoped_deep_links(client):
     assert client.post(f"/wallets/{wallet_id}/commands", json={"command_id": "employee-denied", "entry_type": "allocate", "amount": 10}, headers=auth(employee["access_token"])).status_code == 403
     # Wallet funding is finance-only since the 1405-08-17 security review (H-1).
     assert client.post(f"/wallets/{wallet_id}/commands", json={"command_id": "admin-allocate", "entry_type": "allocate", "amount": 10}, headers=auth(org_admin["access_token"])).status_code == 403
-    assert client.post(f"/wallets/{wallet_id}/commands", json={"command_id": "finance-allocate", "entry_type": "allocate", "amount": 10}, headers=auth(login(client, "finance@aftab.test")["access_token"])).status_code == 200
+    assert client.post(f"/wallets/{wallet_id}/commands", json={"command_id": "finance-allocate", "entry_type": "allocate", "amount": 10}, headers=auth(login(client, "finance@aftab.test")["access_token"])).status_code == 202  # pending second approval (maker-checker)
     assert client.post(f"/approvals/{approval_id}/decision", json={"decision": "approve"}, headers=auth(org_admin["access_token"])).status_code == 200
 
 

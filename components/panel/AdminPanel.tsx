@@ -21,7 +21,7 @@ function CreditAccounts({org}: {org: OrgRow}) {
   const acc = useLoad<Account[]>(`/enterprise/organizations/${org.id}/credit`); const [limit, setLimit] = useState(''); const [note, setNote] = useState<{ok: boolean; text: string} | null>(null);
   async function create(e: FormEvent) {
     e.preventDefault(); setNote(null);
-    try {await acc.api.post(`/organizations/${org.id}/credit-accounts`, {organization_id: org.id, limit_amount: Number(limit), currency: 'IRR', command_id: `credit-${crypto.randomUUID()}`}); setLimit(''); acc.reload(); setNote({ok: true, text: 'حساب اعتباری ایجاد شد.'});}
+    try {const r = await acc.api.post<{status?: string}>(`/organizations/${org.id}/credit-accounts`, {organization_id: org.id, limit_amount: Number(limit), currency: 'IRR', command_id: `credit-${crypto.randomUUID()}`}); setLimit(''); acc.reload(); setNote({ok: true, text: r?.status === 'pending_approval' ? 'درخواست ثبت شد؛ حساب پس از تأیید یک کارشناس مالی دیگر (صندوق ← تأیید دوم) ایجاد می‌شود.' : 'حساب اعتباری از قبل وجود دارد.'});}
     catch (err) {const x = errorOf(err); setNote({ok: false, text: x.status === 403 ? 'ایجاد حساب اعتباری فقط با مجوز مدیریت اعتبار (بخش مالی) ممکن است.' : x.message});}
   }
   return <Card title={`حساب اعتباری ${org.name}`}>

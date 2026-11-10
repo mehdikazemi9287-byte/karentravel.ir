@@ -80,7 +80,12 @@ def test_treasury_requests_adjustments_and_subsidiary(client):
     too_much = acct["wallet"]["available"] + 1
     assert client.post(f"/commerce/users/{emp_id}/adjust", json={"target": "wallet", "direction": "decrease", "amount": too_much, "description": "کسر"}, headers=admin).status_code == 409
     up = client.post(f"/commerce/users/{emp_id}/adjust", json={"target": "credit", "direction": "increase", "amount": 20_000_000, "description": "اعتبار همکاری"}, headers=admin)
-    assert up.status_code == 201 and up.json()["credit"]["limit_amount"] >= 20_000_000
+    assert up.status_code == 202 and up.json()["status"] == "pending_approval"  # maker-checker (H-1)
+    from maker_checker_helpers import approve, ensure_user
+    assert client.post(f"/maker-checker/requests/{up.json()['approval_request']['id']}/approve", json={}, headers=admin).status_code == 403  # not the maker
+    assert client.post(f"/maker-checker/requests/{up.json()['approval_request']['id']}/approve", json={}, headers=fin).status_code == 403  # no credit:manage
+    approved = approve(client, up, _h(client, ensure_user("platform-admin@aftab.test", "platform_admin", "platform-checker")))
+    assert approved["result"]["credit"]["limit_amount"] >= 20_000_000
     assert client.post(f"/commerce/users/{emp_id}/adjust", json={"target": "credit", "direction": "increase", "amount": 1, "description": "تست دسترسی"}, headers=fin).status_code == 403
     book = client.get("/commerce/treasury", params={"counterparty_ref": str(emp_id)}, headers=fin).json()
     assert book["totals"]["credit"] >= 25_000_000

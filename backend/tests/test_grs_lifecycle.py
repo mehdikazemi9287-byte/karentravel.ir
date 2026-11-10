@@ -52,6 +52,15 @@ def _make_tenant_user_reservation(role="customer"):
         return tenant.id, reservation.id, user.id
 
 
+def _add_staff_actor(tenant_id, role="backoffice_expert"):
+    with SessionLocal() as db:
+        set_tenant_context(db, tenant_id)
+        staff = User(tenant_id=tenant_id, email=f"grs-staff-{uuid.uuid4().hex[:8]}@example.test", name="[TEST] Ops", role=role)
+        db.add(staff)
+        db.commit()
+        return staff.id
+
+
 RESERVE_PAYLOAD = {
     "property_id": 1, "check_in": "2026-09-15", "check_out": "2026-09-18",
     "booker_first_name": "[TEST]", "booker_last_name": "Guest", "booker_phone": "0000000000",
@@ -128,7 +137,8 @@ def test_reserve_is_idempotent_for_same_command_id():
 
 
 def test_book_refuses_without_independently_confirmed_payment():
-    tenant_id, reservation_id, actor_id = _make_tenant_user_reservation()
+    tenant_id, reservation_id, _ = _make_tenant_user_reservation()
+    actor_id = _add_staff_actor(tenant_id)
     adapter = _make_adapter([])
     with SessionLocal() as db:
         set_tenant_context(db, tenant_id)
@@ -142,7 +152,8 @@ def test_book_refuses_without_independently_confirmed_payment():
 
 
 def test_book_succeeds_only_with_confirmed_payment_and_booked_status():
-    tenant_id, reservation_id, actor_id = _make_tenant_user_reservation()
+    tenant_id, reservation_id, _ = _make_tenant_user_reservation()
+    actor_id = _add_staff_actor(tenant_id)
     adapter = _make_adapter([GRSTransportResponse(200, {"code": 200, "message": "", "error": None,
                                                          "value": {"reserve": {"status": "booked", "confirmation_code": "C-TEST-7"}}}, "application/json")])
     with SessionLocal() as db:
@@ -159,7 +170,8 @@ def test_book_succeeds_only_with_confirmed_payment_and_booked_status():
 
 
 def test_book_with_unexpected_status_after_success_opens_reconciliation_not_a_guess():
-    tenant_id, reservation_id, actor_id = _make_tenant_user_reservation()
+    tenant_id, reservation_id, _ = _make_tenant_user_reservation()
+    actor_id = _add_staff_actor(tenant_id)
     adapter = _make_adapter([GRSTransportResponse(200, {"code": 200, "message": "", "error": None,
                                                          "value": {"reserve": {"status": "suggested", "confirmation_code": "C-TEST-8"}}}, "application/json")])
     with SessionLocal() as db:
@@ -194,7 +206,8 @@ def test_cancellation_lifecycle_two_step_not_immediately_final():
         db.commit()
         assert reservation.status == "cancel_requested"  # not yet final
 
-        accept_cancellation_with_grs(db, reservation=reservation, adapter=adapter, command_id="cmd-9b", actor=actor)
+        staff = db.get(User, _add_staff_actor(tenant_id))
+        accept_cancellation_with_grs(db, reservation=reservation, adapter=adapter, command_id="cmd-9b", actor=staff)
         db.commit()
         assert reservation.status == "cancelled"  # final only after the explicit accept step
 
@@ -254,3 +267,58 @@ def test_backoffice_expert_can_manage_but_not_create_via_reservation_create():
         actor = db.get(User, actor_id)
         with pytest.raises(GRSPermissionError, match="lacks permission 'reservation:create'"):
             reserve_with_grs(db, reservation=reservation, adapter=adapter, reserve_payload=RESERVE_PAYLOAD, command_id="cmd-rbac-4", actor=actor)
+
+
+# --- staff-only provider steps (SECURITY_FOLLOWUPS: grs lifecycle permissions) ---
+
+@pytest.mark.parametrize("role", ["customer", "employee"])
+def test_customer_held_permission_cannot_book_with_provider(role):
+    tenant_id, reservation_id, actor_id = _make_tenant_user_reservation(role=role)
+    adapter = _make_adapter([])
+    with SessionLocal() as db:
+        set_tenant_context(db, tenant_id)
+        reservation = db.get(Reservation, reservation_id)
+        actor = db.get(User, actor_id)
+        reservation.status = "reserved"
+        reservation.provider_reference = "C-STAFF-1"
+        db.commit()
+        with pytest.raises(GRSPermissionError, match="staff permission"):
+            book_with_grs(db, reservation=reservation, adapter=adapter, command_id=f"cmd-staff-{role}", payment_or_credit_confirmed=True, actor=actor)
+        assert reservation.status == "reserved"
+    assert adapter._transport.calls == []
+
+
+@pytest.mark.parametrize("role", ["customer", "tenant_admin", "finance_operator"])
+def test_only_staff_can_accept_provider_cancellation(role):
+    tenant_id, reservation_id, actor_id = _make_tenant_user_reservation(role=role)
+    adapter = _make_adapter([])
+    with SessionLocal() as db:
+        set_tenant_context(db, tenant_id)
+        reservation = db.get(Reservation, reservation_id)
+        actor = db.get(User, actor_id)
+        reservation.status = "cancel_requested"
+        reservation.provider_reference = "C-STAFF-2"
+        db.commit()
+        with pytest.raises(GRSPermissionError, match="staff permission"):
+            accept_cancellation_with_grs(db, reservation=reservation, adapter=adapter, command_id=f"cmd-staff-acc-{role}", actor=actor)
+        assert reservation.status == "cancel_requested"
+    assert adapter._transport.calls == []
+
+
+def test_customer_cannot_request_cancellation_of_another_customers_reservation():
+    tenant_id, reservation_id, _ = _make_tenant_user_reservation()
+    with SessionLocal() as db:
+        set_tenant_context(db, tenant_id)
+        other = User(tenant_id=tenant_id, email=f"grs-other-{uuid.uuid4().hex[:8]}@example.test", name="[TEST] Other", role="customer")
+        db.add(other); db.commit()
+        other_id = other.id
+    adapter = _make_adapter([])
+    with SessionLocal() as db:
+        set_tenant_context(db, tenant_id)
+        reservation = db.get(Reservation, reservation_id)
+        reservation.status = "confirmed"
+        reservation.provider_reference = "C-STAFF-3"
+        db.commit()
+        with pytest.raises(GRSPermissionError, match="own reservation"):
+            request_cancellation_with_grs(db, reservation=reservation, adapter=adapter, command_id="cmd-staff-3", actor=db.get(User, other_id))
+    assert adapter._transport.calls == []

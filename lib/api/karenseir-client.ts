@@ -12,9 +12,30 @@ export function newId(): string {
 export type AuthSession = {
   access_token: string;
   refresh_token: string;
-  token_type: 'bearer';
+  /** 'cookie' (AUTH_COOKIE_MODE on the API): the real tokens live in httpOnly cookies the page cannot read;
+   *  access_token is then only a non-secret placeholder carrying the public claims (iss/sub) for UI keys. */
+  token_type: 'bearer' | 'cookie';
   user?: { name: string; role: string; tenant: string };
 };
+
+type CookieSessionBody = { token_type: 'cookie'; subject?: { iss?: string; sub?: string; tenant?: number }; user?: AuthSession['user'] };
+
+const CSRF_COOKIE = 'karenseir_csrf';
+
+/** Turn an API login/refresh body into the stored session. In cookie mode nothing secret is kept in JS storage. */
+function toSession(body: AuthSession | CookieSessionBody): AuthSession {
+  if (body.token_type !== 'cookie' || 'access_token' in body) return body as AuthSession;
+  const subject = (body as CookieSessionBody).subject;
+  const claims = JSON.stringify({ iss: subject?.iss, sub: subject?.sub, tenant: subject?.tenant });
+  const b64 = typeof btoa === 'function' ? btoa(unescape(encodeURIComponent(claims))) : '';
+  return { access_token: `cookie.${b64}.`, refresh_token: 'cookie', token_type: 'cookie', user: body.user };
+}
+
+function readCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const hit = document.cookie.split('; ').find(c => c.startsWith(`${name}=`));
+  return hit ? decodeURIComponent(hit.slice(name.length + 1)) : null;
+}
 
 export class ApiError extends Error {
   constructor(public readonly status: number, message: string, public readonly detail?: unknown) { super(message); }
@@ -66,20 +87,21 @@ export class KarenSeirApi {
   }
 
   async verifyOtp(tenant_slug: string, challenge_id: string, code: string) {
-    const session = await this.request<AuthSession & { mfa_required?: boolean; mfa_ticket?: string }>('/auth/otp/verify', { method: 'POST', body: JSON.stringify({ tenant_slug, challenge_id, code, device_id: this.deviceId }) }, false);
-    if (session.mfa_required && session.mfa_ticket) throw new MfaRequiredError(session.mfa_ticket, tenant_slug);
+    const body = await this.request<AuthSession & { mfa_required?: boolean; mfa_ticket?: string }>('/auth/otp/verify', { method: 'POST', body: JSON.stringify({ tenant_slug, challenge_id, code, device_id: this.deviceId }) }, false);
+    if (body.mfa_required && body.mfa_ticket) throw new MfaRequiredError(body.mfa_ticket, tenant_slug);
+    const session = toSession(body);
     this.setSession(session);
-    return session as AuthSession;
+    return session;
   }
 
   async verifyMfa(tenant_slug: string, mfa_ticket: string, factor: { code?: string; recovery_code?: string }) {
-    const session = await this.request<AuthSession>('/auth/2fa/verify', { method: 'POST', body: JSON.stringify({ tenant_slug, mfa_ticket, ...factor, device_id: this.deviceId }) }, false);
+    const session = toSession(await this.request<AuthSession>('/auth/2fa/verify', { method: 'POST', body: JSON.stringify({ tenant_slug, mfa_ticket, ...factor, device_id: this.deviceId }) }, false));
     this.setSession(session);
     return session;
   }
 
   async devLogin(email: string) {
-    const session = await this.request<AuthSession>('/auth/dev-login', { method: 'POST', body: JSON.stringify({ email }) }, false);
+    const session = toSession(await this.request<AuthSession>('/auth/dev-login', { method: 'POST', body: JSON.stringify({ email }) }, false));
     this.setSession(session);
     return session;
   }
@@ -91,7 +113,9 @@ export class KarenSeirApi {
     if (!previous) return;
     // Clear this browser immediately; navigation or a failed network request must not restore it.
     // Keepalive attempts server revocation with the captured credentials; never refresh after logout.
-    try { await this.request<void>('/auth/logout', { method:'POST', keepalive:true, headers:{Authorization:`Bearer ${previous.access_token}`}, body:JSON.stringify({refresh_token:previous.refresh_token}) }, false, false); }
+    const cookieMode = previous.token_type === 'cookie';
+    const headers: Record<string, string> = cookieMode ? { 'X-CSRF-Token': readCookie(CSRF_COOKIE) ?? '' } : { Authorization: `Bearer ${previous.access_token}` };
+    try { await this.request<void>('/auth/logout', { method:'POST', keepalive:true, credentials:'same-origin', headers, body:JSON.stringify(cookieMode ? {} : {refresh_token:previous.refresh_token}) }, false, false); }
     catch { /* Local sign-out is complete. No claim of server revocation when unreachable. */ }
   }
 
@@ -137,9 +161,11 @@ export class KarenSeirApi {
     const current = this.session;
     if (!current) throw new ApiError(401, 'نشست معتبر نیست.');
     const pending = (async () => {
-      const next = await this.request<AuthSession>('/auth/refresh', { method: 'POST', body: JSON.stringify({ refresh_token: current.refresh_token, device_id: this.deviceId }) }, false, false);
+      const cookieMode = current.token_type === 'cookie';
+      const body = cookieMode ? { device_id: this.deviceId } : { refresh_token: current.refresh_token, device_id: this.deviceId };
+      const next = await this.request<AuthSession>('/auth/refresh', { method: 'POST', headers: cookieMode ? { 'X-CSRF-Token': readCookie(CSRF_COOKIE) ?? '' } : undefined, body: JSON.stringify(body) }, false, false);
       if (this.session?.refresh_token !== current.refresh_token) throw new ApiError(401, 'نشست تغییر کرده است؛ دوباره وارد شوید.');
-      this.setSession({ ...current, ...next });
+      this.setSession(cookieMode ? { ...current, ...toSession(next), user: current.user ?? next.user } : { ...current, ...next });
     })();
     this.refreshPending = pending;
     try { await pending; } finally { if (this.refreshPending === pending) this.refreshPending = null; }
@@ -149,16 +175,20 @@ export class KarenSeirApi {
     const headers = new Headers(init.headers);
     if (!isMultipart) headers.set('Content-Type', 'application/json');
     headers.set('X-Correlation-ID', newId());
-    if (authenticated === true) {
-      if (!this.session) throw new ApiError(401, 'برای ادامه وارد شوید.');
-      headers.set('Authorization', `Bearer ${this.session.access_token}`);
-    } else if (authenticated === 'optional' && this.session) {
-      headers.set('Authorization', `Bearer ${this.session.access_token}`);
+    if (authenticated === true && !this.session) throw new ApiError(401, 'برای ادامه وارد شوید.');
+    const cookieMode = this.session?.token_type === 'cookie';
+    const sentToken = this.session?.access_token;
+    if ((authenticated === true || authenticated === 'optional') && this.session) {
+      if (cookieMode) {
+        // httpOnly cookies travel by themselves; state-changing calls carry the double-submit CSRF token.
+        const method = (init.method ?? 'GET').toUpperCase();
+        if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) headers.set('X-CSRF-Token', readCookie(CSRF_COOKIE) ?? '');
+      } else headers.set('Authorization', `Bearer ${this.session.access_token}`);
     }
-    const response = await fetch(`${this.baseUrl}${path}`, { ...init, headers });
+    const response = await fetch(`${this.baseUrl}${path}`, { credentials: 'same-origin', ...init, headers });
     if (response.status === 401 && authenticated === true && retry && this.session?.refresh_token) {
       // A delayed 401 may belong to the token another request already refreshed.
-      if (headers.get('Authorization') === `Bearer ${this.session.access_token}`) await this.refresh();
+      if (cookieMode || sentToken === this.session.access_token) await this.refresh();
       return this.request<T>(path, init, true, false, isMultipart, asText, asBlob);
     }
     if (!response.ok) {

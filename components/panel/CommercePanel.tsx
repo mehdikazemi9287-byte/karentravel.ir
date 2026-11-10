@@ -3,6 +3,8 @@
    Every figure comes from /commerce/* or /me/*; nothing is computed or invented on the client. */
 import {useState, type FormEvent, type ReactNode} from 'react';
 import {Async, Badge, Card, Empty, Stats, Table, dateFa, errorOf, fa, money, useLoad} from './PanelKit';
+import {FundingApprovals} from './FundingApprovals';
+import {newId} from '../../lib/api/karenseir-client';
 
 export type Opt = [string, string][];
 export type Field = {key: string; label: string; type?: 'text' | 'number' | 'select' | 'bool' | 'textarea' | 'date' | 'percent' | 'money'; options?: Opt; hint?: string; required?: boolean; wide?: boolean};
@@ -231,7 +233,7 @@ function UserAccount() {
   const found = useLoad<{items: Row[]}>(search ? `/commerce/users?q=${encodeURIComponent(search)}` : null);
   const acct = useLoad<Row>(uid ? `/commerce/users/${uid}/account` : null);
   const [adj, setAdj] = useState<Row>({target: 'wallet', direction: 'increase'}); const [msg, setMsg] = useState<{ok: boolean; text: string} | null>(null);
-  async function apply(e: FormEvent) {e.preventDefault(); try {await acct.api.post(`/commerce/users/${uid}/adjust`, adj); setMsg({ok: true, text: 'ثبت شد.'}); setAdj({target: adj.target, direction: adj.direction}); acct.reload();} catch (x) {setMsg({ok: false, text: errorOf(x).message});}}
+  async function apply(e: FormEvent) {e.preventDefault(); try {const r = await acct.api.post<Row>(`/commerce/users/${uid}/adjust`, {...adj, command_id: `adjust-${newId()}`}); setMsg({ok: true, text: r?.status === 'pending_approval' ? 'درخواست ثبت شد و پس از تأیید یک کارشناس مالی دیگر اجرا می‌شود.' : 'ثبت شد.'}); setAdj({target: adj.target, direction: adj.direction}); acct.reload();} catch (x) {setMsg({ok: false, text: errorOf(x).message});}}
   return <Card title="حساب کاربر (کیف پول و اعتبار)">
     <form className="pn-form" onSubmit={e => {e.preventDefault(); setSearch(q.trim());}}><label>نام، ایمیل، موبایل یا شناسه<input value={q} onChange={e => setQ(e.target.value)}/></label><button className="pn-btn">جستجو</button></form>
     {search && <Async state={found.state}>{d => d.items.length ? <div className="pn-chips" style={{margin: '10px 0'}}>{d.items.map(u => <button key={u.id} onClick={() => setUid(u.id)}>{u.name} — {fa(u.id)}</button>)}</div> : <Empty>کاربری پیدا نشد.</Empty>}</Async>}
@@ -294,7 +296,7 @@ function GatewayReport() {
 }
 
 export function FinanceTreasury() {
-  return <Tabs tabs={[['دفتر صندوق', <Book key="b"/>], ['بدهکار / بستانکار', <Subsidiary key="s"/>], ['درخواست‌های صندوق', <Requests key="r"/>], ['حساب کاربر', <UserAccount key="u"/>], ['تأمین‌کنندگان', <SupplierAccounts key="sp"/>], ['گزارش درگاه', <GatewayReport key="g"/>]]}/>;
+  return <Tabs tabs={[['دفتر صندوق', <Book key="b"/>], ['بدهکار / بستانکار', <Subsidiary key="s"/>], ['درخواست‌های صندوق', <Requests key="r"/>], ['حساب کاربر', <UserAccount key="u"/>], ['تأیید دوم', <FundingApprovals key="mc"/>], ['تأمین‌کنندگان', <SupplierAccounts key="sp"/>], ['گزارش درگاه', <GatewayReport key="g"/>]]}/>;
 }
 
 /* ------------------------------------------------------------------ customer */

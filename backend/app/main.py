@@ -34,6 +34,7 @@ from .database import Base, DATABASE_URL, SessionLocal, engine, set_tenant_conte
 from .hotel_stay import HotelStay, validate_hotel_stay, validate_hotel_rate
 from . import operations as operational_models  # register additive operational tables
 from . import traveller_identity  # traveller identity table (national code / passport), masked in lists
+from . import approvals  # maker-checker requests (H-1); registers maker_checker_requests
 from .observability import configure_logging, prometheus_metrics, record_business_event, record_request
 from .rate_limit import InMemoryRateLimiter, RedisRateLimiter, fingerprint
 from .security import role_has_permission
@@ -41,6 +42,8 @@ from .providers import configured_adapter, validate_provider_modes
 from .version import read_build_info
 
 JWT_SECRET = read_secret("JWT_SECRET", "development-only-change-before-production")
+from .signing_keys import signing_key as _signing_key, verification_keys as _verification_keys  # noqa: E402  M-5 per-purpose keys
+ACCESS_TOKEN_KEY = _signing_key("access_token", JWT_SECRET)
 JWT_ISSUER = os.getenv("JWT_ISSUER", "karenseir-api")
 JWT_AUDIENCE = os.getenv("JWT_AUDIENCE", "karenseir-web")
 ENVIRONMENT = os.getenv("ENVIRONMENT", "production")  # fail closed: dev features need an explicit opt-in
@@ -57,6 +60,8 @@ class Tenant(Base):
     slug: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(160))
     primary_color: Mapped[str] = mapped_column(String(16), default="#0E7490")
+    # Reversible deactivation (e.g. demo seed data on production): no login, no API access. NULL = active.
+    disabled_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 class User(Base):
     __tablename__ = "users"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -70,6 +75,8 @@ class User(Base):
     # unchanged. Unique only among non-null values (standard SQL null
     # semantics), matching the existing `email` uniqueness convention.
     mobile_e164: Mapped[Optional[str]] = mapped_column(String(16), unique=True, index=True, nullable=True)
+    # Reversible deactivation: a disabled account cannot log in, refresh or use an existing token. NULL = active.
+    disabled_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 class Hotel(Base):
     __tablename__ = "hotels"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -392,10 +399,10 @@ class CheckoutCreateIn(BaseModel): command_id: str = Field(min_length=8, max_len
 class CheckoutStepIn(BaseModel): command_id: str = Field(min_length=8, max_length=120); traveller_ids: list[str] = Field(default_factory=list, max_length=20); acknowledged: Optional[bool] = None; wallet_amount: int = Field(default=0, ge=0); credit_amount: int = Field(default=0, ge=0); credit_account_id: Optional[str] = Field(default=None, min_length=36, max_length=36)
 def token_for(user: User, tenant: Tenant) -> str:
     now = datetime.now(timezone.utc)
-    return jwt.encode({"sub":str(user.id),"tenant":tenant.id,"role":user.role,"type":"access","iss":JWT_ISSUER,"aud":JWT_AUDIENCE,"iat":now,"jti":str(uuid.uuid4()),"exp":now+timedelta(minutes=15)}, JWT_SECRET, algorithm="HS256")
+    return jwt.encode({"sub":str(user.id),"tenant":tenant.id,"role":user.role,"type":"access","iss":JWT_ISSUER,"aud":JWT_AUDIENCE,"iat":now,"jti":str(uuid.uuid4()),"exp":now+timedelta(minutes=15)}, ACCESS_TOKEN_KEY, algorithm="HS256")
 def current_user(authorization: Optional[str] = Header(default=None), db: Session = Depends(get_db)) -> User:
     if not authorization or not authorization.startswith("Bearer "): raise HTTPException(status_code=401, detail="توکن دسترسی لازم است")
-    try: payload = jwt.decode(authorization[7:], JWT_SECRET, algorithms=["HS256"], issuer=JWT_ISSUER, audience=JWT_AUDIENCE, options={"require":["exp","iat","iss","aud","jti","sub","tenant","type"]})
+    try: payload = jwt.decode(authorization[7:], ACCESS_TOKEN_KEY, algorithms=["HS256"], issuer=JWT_ISSUER, audience=JWT_AUDIENCE, options={"require":["exp","iat","iss","aud","jti","sub","tenant","type"]})
     except jwt.PyJWTError: raise HTTPException(status_code=401, detail="توکن نامعتبر است")
     if payload.get("type") != "access": raise HTTPException(status_code=401, detail="نوع توکن نامعتبر است")
     try: tenant_id = int(payload["tenant"])
@@ -403,7 +410,27 @@ def current_user(authorization: Optional[str] = Header(default=None), db: Sessio
     set_tenant_context(db, tenant_id)
     user = db.get(User, int(payload["sub"]))
     if not user or user.tenant_id != payload["tenant"]: raise HTTPException(status_code=401, detail="نشست نامعتبر است")
+    if _account_disabled(db, user): raise HTTPException(status_code=401, detail="این حساب غیرفعال است")
     return user
+
+
+def _account_disabled(db: Session, user) -> bool:
+    """User or its tenant deactivated (reversible; see deploy/karenseir-demo-data-disable.sh)."""
+    if getattr(user, "disabled_at", None) is not None:
+        return True
+    tenant = db.get(Tenant, user.tenant_id)
+    return tenant is None or tenant.disabled_at is not None
+
+
+def _decode_payment_state(token: str, **kwargs) -> dict:
+    """Payment callback state: current per-purpose key, then (transition) the legacy shared key."""
+    last: Exception = jwt.InvalidTokenError("no key")
+    for key in _verification_keys("payment_state", JWT_SECRET):
+        try:
+            return jwt.decode(token, key, algorithms=["HS256"], **kwargs)
+        except jwt.InvalidSignatureError as exc:
+            last = exc
+    raise last
 
 
 def _secure_hash(value: str) -> str:
@@ -546,7 +573,7 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="KarenSeir Pilot API", version="0.2.0", lifespan=lifespan,
               docs_url=None if IS_PRODUCTION else "/docs", redoc_url=None if IS_PRODUCTION else "/redoc",
               openapi_url=None if IS_PRODUCTION else "/openapi.json")
-app.add_middleware(CORSMiddleware, allow_origins=os.getenv("CORS_ORIGINS","http://localhost:3000").split(","), allow_credentials=False, allow_methods=["GET","POST","PUT","DELETE"], allow_headers=["Authorization","Content-Type","Idempotency-Key","X-Request-ID","X-Correlation-ID"])
+app.add_middleware(CORSMiddleware, allow_origins=os.getenv("CORS_ORIGINS","http://localhost:3000").split(","), allow_credentials=False, allow_methods=["GET","POST","PUT","DELETE"], allow_headers=["Authorization","Content-Type","Idempotency-Key","X-Request-ID","X-Correlation-ID","X-CSRF-Token","X-Auth-Transport"])
 
 
 def _client_ip(request: Request) -> str:
@@ -580,7 +607,7 @@ def _rate_limit_identity(request: Request, route_class: str) -> str:
     auth = request.headers.get("Authorization") or ""
     if route_class != "auth" and auth.startswith("Bearer "):
         try:
-            claims = jwt.decode(auth[7:], JWT_SECRET, algorithms=["HS256"], issuer=JWT_ISSUER, audience=JWT_AUDIENCE, options={"require": ["exp", "sub", "tenant"]})
+            claims = jwt.decode(auth[7:], ACCESS_TOKEN_KEY, algorithms=["HS256"], issuer=JWT_ISSUER, audience=JWT_AUDIENCE, options={"require": ["exp", "sub", "tenant"]})
             return f"user:{claims['tenant']}:{claims['sub']}"
         except jwt.PyJWTError:
             return f"ip:{ip}"
@@ -697,6 +724,7 @@ def dev_login(data: LoginIn, db: Session = Depends(get_db)) -> dict:
     if not user: raise HTTPException(status_code=401, detail="کاربر نمونه پیدا نشد")
     set_tenant_context(db, user.tenant_id)
     tenant = db.get(Tenant, user.tenant_id)
+    if _account_disabled(db, db.get(User, user.id)): raise HTTPException(status_code=401, detail="این حساب غیرفعال است")
     refresh_token, _ = operational_models.create_refresh_session(db, tenant_id=user.tenant_id, user_id=user.id, expires_at=datetime.now(timezone.utc) + timedelta(days=30))
     db.commit()
     return {"access_token":token_for(user, tenant),"refresh_token":refresh_token,"token_type":"bearer","user":{"name":user.name,"role":user.role,"tenant":tenant.name}}
@@ -758,7 +786,7 @@ def request_otp(data: OTPRequestIn, request: Request, db: Session = Depends(get_
         user = db.scalar(select(User).where(User.tenant_id == tenant.id, User.mobile_e164 == f"+{mobile_receptor}"))
     else:
         user = db.scalar(select(User).where(User.tenant_id == tenant.id, User.email == identifier.lower()))
-    if user is None:
+    if user is None or _account_disabled(db, user):
         _secure_hash(f"{generic_id}:000000")
         return {"status": "accepted", "challenge_id": generic_id, "expires_in": 300}
     # A real account with no mobile on file yet is NOT gated here -- it
@@ -905,7 +933,7 @@ def verify_otp(data: OTPVerifyIn, request: Request, db: Session = Depends(get_db
     auth_state.failed_attempts = 0
     auth_state.locked_until = None
     user = db.scalar(select(User).where(User.id == challenge.user_id, User.tenant_id == tenant.id))
-    if user is None:
+    if user is None or _account_disabled(db, user):
         raise HTTPException(status_code=401, detail="کد ورود معتبر نیست")
     if _mfa_enabled(db, tenant.id, user.id):  # two-step login: the authenticator code completes it at /auth/2fa/verify
         db.add(operational_models.AuthenticationAudit(tenant_id=tenant.id, user_id=user.id, action="otp.verified_mfa_pending", challenge_id=challenge.id, device_hash=device_hash, ip_hash=ip_hash))
@@ -933,7 +961,7 @@ def refresh_access(data: RefreshIn, request: Request, db: Session = Depends(get_
         db.commit()
         raise HTTPException(status_code=401, detail="نشست تمدید معتبر نیست")
     user = db.scalar(select(User).where(User.id == session.user_id, User.tenant_id == session.tenant_id))
-    if user is None: raise HTTPException(status_code=401, detail="نشست تمدید معتبر نیست")
+    if user is None or _account_disabled(db, user): raise HTTPException(status_code=401, detail="نشست تمدید معتبر نیست")
     _, current_ip_hash = _request_fingerprints(request)
     replacement, replacement_session = operational_models.create_refresh_session(db, tenant_id=user.tenant_id, user_id=user.id, expires_at=now + timedelta(days=30), family_id=session.family_id, device_hash=session.device_hash, ip_hash=current_ip_hash)
     session.revoked_at = now
@@ -1224,27 +1252,52 @@ def my_organization_credit(user: User = Depends(current_user), db: Session = Dep
 # role (credit:fund) may fund a wallet or open a credit line, never an
 # organization/tenant admin, never into an account the actor owns, and never
 # above the configured per-operation ceiling. Each one leaves an AuditEvent.
-# A true maker-checker (second approver) needs a pending-request table and is
-# tracked in SECURITY_REVIEW.md -> SECURITY_FOLLOWUPS.
+# Each one is also maker-checker: a pending request (app/approvals.py) that a
+# different credit:fund user must approve before the ledger moves.
 WALLET_FUNDING_MAX_PER_OPERATION = int(os.getenv("WALLET_FUNDING_MAX_PER_OPERATION", "500000000"))
 CREDIT_ACCOUNT_MAX_LIMIT = int(os.getenv("CREDIT_ACCOUNT_MAX_LIMIT", "5000000000"))
 
 
+def _credit_account_output(db: Session, row) -> dict:
+    return {"id": row.id, "organization_id": row.organization_id, "currency": row.currency, **operational_models.credit_balances(db, tenant_id=row.tenant_id, credit_account_id=row.id)}
+
+
+def _mc_error(exc: "approvals.MakerCheckerError") -> HTTPException:
+    return HTTPException(status_code=exc.status_code, detail=exc.message)
+
+
 @app.post("/organizations/{organization_id}/credit-accounts", status_code=status.HTTP_201_CREATED)
-def create_credit_account(organization_id: str, data: CreditAccountCreateIn, user: User = Depends(require_permission("credit:fund")), db: Session = Depends(get_db)) -> dict:
+def create_credit_account(organization_id: str, data: CreditAccountCreateIn, response: Response, user: User = Depends(require_permission("credit:fund")), db: Session = Depends(get_db)) -> dict:
+    """Maker step (H-1): opening a credit line is a pending request until a
+    different credit:fund user approves it at /maker-checker/requests/{id}/approve.
+    An account that already exists is returned unchanged (no limit change)."""
     if data.organization_id != organization_id: raise HTTPException(status_code=422, detail="سازمان مسیر و بدنه درخواست یکسان نیست")
     if data.limit_amount > CREDIT_ACCOUNT_MAX_LIMIT: raise HTTPException(status_code=409, detail="سقف درخواستی از سقف مجاز یک عملیات بیشتر است؛ تأیید جداگانه‌ی مدیریت مالی لازم است")
     organization = db.scalar(select(operational_models.Organization).where(operational_models.Organization.id == organization_id, operational_models.Organization.tenant_id == user.tenant_id))
     if organization is None: raise HTTPException(status_code=404, detail="سازمان در این tenant وجود ندارد")
-    prior = db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id == user.tenant_id, operational_models.IdempotencyKey.scope == "credit_account.create", operational_models.IdempotencyKey.key == data.command_id))
-    if prior: return json.loads(prior.response_json or "{}")
     row = db.scalar(select(operational_models.CreditAccount).where(operational_models.CreditAccount.tenant_id == user.tenant_id, operational_models.CreditAccount.organization_id == organization_id, operational_models.CreditAccount.currency == data.currency))
+    if row is not None:
+        return _credit_account_output(db, row)
+    try:
+        request_row = approvals.create_request(db, user=user, kind="credit_account.create", payload={"organization_id": organization_id, "limit_amount": data.limit_amount, "currency": data.currency},
+                                               idempotency_key=data.command_id, amount=data.limit_amount, target_ref=f"organization:{organization_id}",
+                                               summary=f"حساب اعتباری سازمان {organization.name}", audit=_platform_audit)
+    except approvals.MakerCheckerError as exc:
+        raise _mc_error(exc) from exc
+    db.commit()
+    response.status_code = status.HTTP_202_ACCEPTED
+    return {"status": "pending_approval", "approval_request": approvals.output(request_row)}
+
+
+def _execute_credit_account_create(db: Session, request, payload: dict, checker: User) -> dict:
+    if payload["limit_amount"] > CREDIT_ACCOUNT_MAX_LIMIT:
+        raise approvals.MakerCheckerError(409, "سقف درخواستی از سقف مجاز یک عملیات بیشتر است")
+    row = db.scalar(select(operational_models.CreditAccount).where(operational_models.CreditAccount.tenant_id == checker.tenant_id, operational_models.CreditAccount.organization_id == payload["organization_id"], operational_models.CreditAccount.currency == payload["currency"]))
     if row is None:
-        row = operational_models.CreditAccount(tenant_id=user.tenant_id, organization_id=organization_id, currency=data.currency, limit_amount=data.limit_amount)
+        row = operational_models.CreditAccount(tenant_id=checker.tenant_id, organization_id=payload["organization_id"], currency=payload["currency"], limit_amount=payload["limit_amount"])
         db.add(row); db.flush()
-        _platform_audit(db, user, "credit_account.created", "credit_account", {"credit_account_id": row.id, "organization_id": organization_id, "limit_amount": data.limit_amount, "currency": data.currency, "command_id": data.command_id})
-    response = {"id": row.id, "organization_id": row.organization_id, "currency": row.currency, **operational_models.credit_balances(db, tenant_id=user.tenant_id, credit_account_id=row.id)}
-    db.add(operational_models.IdempotencyKey(tenant_id=user.tenant_id, scope="credit_account.create", key=data.command_id, request_hash=_secure_hash(f"{organization_id}:{data.currency}"), response_json=json.dumps(response))); db.commit(); return response
+        _platform_audit(db, checker, "credit_account.created", "credit_account", {"credit_account_id": row.id, "organization_id": payload["organization_id"], "limit_amount": payload["limit_amount"], "currency": payload["currency"], "maker_user_id": request.maker_user_id, "checker_user_id": checker.id, "approval_request_id": request.id})
+    return _credit_account_output(db, row)
 
 
 @app.post("/organization-credit/{credit_account_id}/commands")
@@ -1506,10 +1559,13 @@ def wallet_detail(wallet_id: str, user: User = Depends(require_permission("credi
     return {"id": wallet.id, "currency": wallet.currency, **operational_models.wallet_balances(db, tenant_id=user.tenant_id, wallet_id=wallet.id)}
 
 
-@app.post("/wallets/{wallet_id}/commands")
+@app.post("/wallets/{wallet_id}/commands", status_code=status.HTTP_202_ACCEPTED)
 def wallet_command(wallet_id: str, data: WalletFundingIn, user: User = Depends(require_permission("credit:fund")), db: Session = Depends(get_db)) -> dict:
-    """Finance-only wallet top-up. reserve/capture/release/reverse_capture are
-    posted only by checkout funding and reservation transitions, never by hand."""
+    """Maker step (H-1) of a finance-only wallet top-up: records a pending
+    request; the ledger moves only when a DIFFERENT credit:fund user approves
+    it at /maker-checker/requests/{id}/approve. reserve/capture/release/
+    reverse_capture are posted only by checkout funding and reservation
+    transitions, never by hand."""
     wallet = db.scalar(select(operational_models.Wallet).where(operational_models.Wallet.id == wallet_id, operational_models.Wallet.tenant_id == user.tenant_id))
     if wallet is None: raise HTTPException(status_code=404, detail="کیف پول در این سازمان وجود ندارد")
     if wallet.owner_type == "user" and wallet.owner_reference == str(user.id):
@@ -1517,13 +1573,30 @@ def wallet_command(wallet_id: str, data: WalletFundingIn, user: User = Depends(r
     if data.amount > WALLET_FUNDING_MAX_PER_OPERATION:
         raise HTTPException(status_code=409, detail="مبلغ از سقف مجاز یک عملیات شارژ بیشتر است؛ تأیید جداگانه‌ی مدیریت مالی لازم است")
     try:
-        entry = operational_models.apply_credit_command(db, tenant_id=user.tenant_id, wallet_id=wallet_id, command_id=data.command_id, entry_type=data.entry_type, amount=data.amount)
-        if entry in db.new:
-            _platform_audit(db, user, "wallet.allocate", "wallet", {"wallet_id": wallet_id, "owner_type": wallet.owner_type, "owner_reference": wallet.owner_reference, "amount": data.amount, "command_id": data.command_id})
-        db.commit()
-    except ValueError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
-    return {"entry_id": entry.id, "command_id": entry.command_id, **operational_models.wallet_balances(db, tenant_id=user.tenant_id, wallet_id=wallet_id)}
+        row = approvals.create_request(db, user=user, kind="wallet.fund", payload={"wallet_id": wallet_id, "entry_type": "allocate", "amount": data.amount},
+                                       idempotency_key=data.command_id, amount=data.amount, target_ref=f"wallet:{wallet_id}",
+                                       summary=f"شارژ کیف پول ({wallet.owner_type})", audit=_platform_audit)
+    except approvals.MakerCheckerError as exc:
+        raise _mc_error(exc) from exc
+    db.commit()
+    return {"status": "pending_approval", "approval_request": approvals.output(row), **operational_models.wallet_balances(db, tenant_id=user.tenant_id, wallet_id=wallet_id)}
+
+
+def _execute_wallet_fund(db: Session, request, payload: dict, checker: User) -> dict:
+    wallet = db.scalar(select(operational_models.Wallet).where(operational_models.Wallet.id == payload["wallet_id"], operational_models.Wallet.tenant_id == checker.tenant_id))
+    if wallet is None: raise approvals.MakerCheckerError(404, "کیف پول در این سازمان وجود ندارد")
+    if wallet.owner_type == "user" and wallet.owner_reference == str(checker.id):
+        raise approvals.MakerCheckerError(403, "تأیید شارژ کیف پول متعلق به خود کارشناس مجاز نیست")
+    if payload["amount"] > WALLET_FUNDING_MAX_PER_OPERATION:
+        raise approvals.MakerCheckerError(409, "مبلغ از سقف مجاز یک عملیات شارژ بیشتر است")
+    entry = operational_models.apply_credit_command(db, tenant_id=checker.tenant_id, wallet_id=wallet.id, command_id=f"mc:{request.id}", entry_type="allocate", amount=payload["amount"])
+    db.flush()
+    _platform_audit(db, checker, "wallet.allocate", "wallet", {"wallet_id": wallet.id, "owner_type": wallet.owner_type, "owner_reference": wallet.owner_reference, "amount": payload["amount"], "command_id": entry.command_id, "maker_user_id": request.maker_user_id, "checker_user_id": checker.id, "approval_request_id": request.id})
+    return {"entry_id": entry.id, "command_id": entry.command_id, **operational_models.wallet_balances(db, tenant_id=checker.tenant_id, wallet_id=wallet.id)}
+
+
+approvals.register("wallet.fund", can_check=lambda actor, payload: role_has_permission(actor.role, "credit:fund"), execute=_execute_wallet_fund, label="شارژ کیف پول")
+approvals.register("credit_account.create", can_check=lambda actor, payload: role_has_permission(actor.role, "credit:fund"), execute=_execute_credit_account_create, label="ایجاد حساب اعتباری سازمان")
 
 
 @app.post("/approvals/{approval_id}/decision")
@@ -1642,7 +1715,7 @@ def initiate_payment(payment_id: str, user: User = Depends(current_user), db: Se
     attempt = operational_models.IdempotencyKey(tenant_id=user.tenant_id, scope="payment.initiate", key=intent.id, request_hash=_secure_hash(f"{intent.id}:{intent.amount}:{intent.currency}"), response_json='{"status":"initiation_pending"}')
     db.add(attempt); db.commit()  # Durable before network: timeout/crash must not trigger a second initiation.
     try:
-        callback_state = jwt.encode({"iss": JWT_ISSUER, "aud": "karenseir-zarinpal-callback", "tenant_id": user.tenant_id, "payment_intent_id": intent.id, "user_id": user.id, "amount": intent.amount, "exp": datetime.now(timezone.utc) + timedelta(minutes=30), "iat": datetime.now(timezone.utc), "jti": str(uuid.uuid4())}, JWT_SECRET, algorithm="HS256")
+        callback_state = jwt.encode({"iss": JWT_ISSUER, "aud": "karenseir-zarinpal-callback", "tenant_id": user.tenant_id, "payment_intent_id": intent.id, "user_id": user.id, "amount": intent.amount, "exp": datetime.now(timezone.utc) + timedelta(minutes=30), "iat": datetime.now(timezone.utc), "jti": str(uuid.uuid4())}, _signing_key("payment_state", JWT_SECRET), algorithm="HS256")
         result = ADAPTERS["payment"].execute("initiate", {"payment_intent_id": intent.id, "amount": intent.amount, "currency": intent.currency, "callback_state": callback_state}, ProviderContext(tenant_id=user.tenant_id, correlation_id=str(uuid.uuid4()), idempotency_key=intent.command_id))
     except Exception:
         logging.getLogger("karenseir.payment").warning("payment_provider_unavailable")
@@ -1669,7 +1742,7 @@ def initiate_payment(payment_id: str, user: User = Depends(current_user), db: Se
 
 def _verify_zarinpal_callback(state_token: str = Query(alias="state", min_length=20), authority: str = Query(alias="Authority", min_length=36, max_length=36), callback_status: str = Query(alias="Status", pattern="^(OK|NOK)$"), db: Session = Depends(get_db)) -> dict:
     try:
-        claims = jwt.decode(state_token, JWT_SECRET, algorithms=["HS256"], audience="karenseir-zarinpal-callback", issuer=JWT_ISSUER, options={"require": ["exp", "iat", "jti", "tenant_id", "payment_intent_id", "user_id", "amount"]})
+        claims = _decode_payment_state(state_token, audience="karenseir-zarinpal-callback", issuer=JWT_ISSUER, options={"require": ["exp", "iat", "jti", "tenant_id", "payment_intent_id", "user_id", "amount"]})
         tenant_id = int(claims["tenant_id"]); payment_id = str(claims["payment_intent_id"]); user_id = int(claims["user_id"]); claimed_amount = int(claims["amount"])
     except (jwt.InvalidTokenError, TypeError, ValueError, KeyError): raise HTTPException(status_code=401, detail="state پرداخت نامعتبر یا منقضی است")
     set_tenant_context(db, tenant_id)
@@ -1721,7 +1794,7 @@ def zarinpal_callback(request: Request, state_token: str = Query(alias="state", 
     # Browser reads authoritative status after its own authentication on the Web.
     payment_id = None
     try:
-        claims = jwt.decode(state_token, JWT_SECRET, algorithms=["HS256"], audience="karenseir-zarinpal-callback", issuer=JWT_ISSUER)
+        claims = _decode_payment_state(state_token, audience="karenseir-zarinpal-callback", issuer=JWT_ISSUER)
         payment_id = str(uuid.UUID(str(claims["payment_intent_id"])))
     except (jwt.InvalidTokenError, KeyError, ValueError, TypeError):
         pass
@@ -1754,7 +1827,7 @@ def _sandbox_intent(db: Session, authority: str, state_token: str):
     if len(authority) != 36 or not authority.startswith("A") or not authority[1:].isalnum():
         raise HTTPException(status_code=404, detail="Not Found")
     try:
-        claims = jwt.decode(state_token, JWT_SECRET, algorithms=["HS256"], audience="karenseir-zarinpal-callback", issuer=JWT_ISSUER, options={"require": ["exp", "iat", "jti", "tenant_id", "payment_intent_id", "user_id", "amount"]})
+        claims = _decode_payment_state(state_token, audience="karenseir-zarinpal-callback", issuer=JWT_ISSUER, options={"require": ["exp", "iat", "jti", "tenant_id", "payment_intent_id", "user_id", "amount"]})
         tenant_id = int(claims["tenant_id"]); payment_id = str(claims["payment_intent_id"]); claimed_amount = int(claims["amount"])
     except (jwt.InvalidTokenError, TypeError, ValueError, KeyError):
         raise HTTPException(status_code=401, detail="state پرداخت آزمایشی نامعتبر یا منقضی است")
@@ -1829,7 +1902,7 @@ def recover_payment_verification(payment_id: str, user: User = Depends(current_u
     if intent.status not in {"initiated", "failed"} or not intent.provider_authority: raise HTTPException(status_code=409, detail="این پرداخت در انتظار تأیید درگاه نیست")
     # Reconciliation checks the known authority and amount; it never initiates a charge.
     now = datetime.now(timezone.utc)
-    state = jwt.encode({"iss": JWT_ISSUER, "aud": "karenseir-zarinpal-callback", "tenant_id": user.tenant_id, "payment_intent_id": intent.id, "user_id": user.id, "amount": intent.amount, "exp": now+timedelta(minutes=5), "iat": now, "jti": str(uuid.uuid4())}, JWT_SECRET, algorithm="HS256")
+    state = jwt.encode({"iss": JWT_ISSUER, "aud": "karenseir-zarinpal-callback", "tenant_id": user.tenant_id, "payment_intent_id": intent.id, "user_id": user.id, "amount": intent.amount, "exp": now+timedelta(minutes=5), "iat": now, "jti": str(uuid.uuid4())}, _signing_key("payment_state", JWT_SECRET), algorithm="HS256")
     _verify_zarinpal_callback(state, intent.provider_authority, "OK", db)
     return customer_payment_status(payment_id, user, db)
 
@@ -3290,13 +3363,37 @@ def _reservation_settlement_ready(db: Session, reservation: "operational_models.
         return False  # released/inconsistent reserves: never treat as paid
 
 
+def _may_fulfil(db: Session, user: User, reservation: "operational_models.Reservation", item) -> bool:
+    """Object-level scope for /reservations/{id}/fulfill (SECURITY_FOLLOWUPS).
+
+    platform staff: any reservation in the tenant. supplier: only items whose
+    supplier the user is a member of. agency_partner: items of its own
+    supplier memberships, of a supplier linked to one of its agencies, or a
+    reservation sold on one of its agencies' sales channels. Anything else
+    (including an agency with no membership row) is refused."""
+    if role_has_permission(user.role, "platform:manage"):
+        return True
+    supplier_id = json.loads(item.snapshot_json).get("supplier_id") if item is not None else None
+    if user.role == "supplier":
+        return supplier_id is not None and supplier_id in _supplier_scope(db, user)
+    if user.role == "agency_partner":
+        if supplier_id is not None and supplier_id in _supplier_scope(db, user):
+            return True
+        agencies = db.execute(select(operational_models.Agency.supplier_id, operational_models.Agency.sales_channel_id).where(
+            operational_models.Agency.tenant_id == user.tenant_id,
+            operational_models.Agency.id.in_(select(operational_models.AgencyMembership.agency_id).where(
+                operational_models.AgencyMembership.tenant_id == user.tenant_id, operational_models.AgencyMembership.user_id == user.id)))).all()
+        return any((supplier_id is not None and a_supplier == supplier_id) or (a_channel is not None and a_channel == reservation.sales_channel_id) for a_supplier, a_channel in agencies)
+    return False
+
+
 @app.post("/reservations/{reservation_id}/fulfill")
 def fulfill_reservation(reservation_id: str, data: FulfillmentIn, user: User = Depends(require_permission("reservation:fulfill")), db: Session = Depends(get_db)) -> dict:
     reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == reservation_id, operational_models.Reservation.tenant_id == user.tenant_id).with_for_update())
     if reservation is None:
         raise HTTPException(status_code=404, detail="رزرو در این tenant وجود ندارد")
     owned_item=db.scalar(select(operational_models.BookingItem).where(operational_models.BookingItem.reservation_id==reservation.id,operational_models.BookingItem.tenant_id==user.tenant_id))
-    if user.role=="supplier" and (owned_item is None or json.loads(owned_item.snapshot_json).get("supplier_id") not in _supplier_scope(db,user)):
+    if not _may_fulfil(db, user, reservation, owned_item):
         raise HTTPException(403,"این رزرو به تأمین‌کنندهٔ جاری واگذار نشده است")
     existing_voucher = db.scalar(select(operational_models.Voucher).where(operational_models.Voucher.tenant_id == user.tenant_id, operational_models.Voucher.reservation_id == reservation.id))
     if reservation.status == "issued" and existing_voucher:
@@ -5545,6 +5642,7 @@ app.include_router(financial_integrity_router(get_db, current_user, role_has_per
 
 from .commerce import commerce_router  # noqa: E402  commercial rules + treasury
 app.include_router(commerce_router(get_db, current_user, role_has_permission, User, _platform_audit))
+app.include_router(approvals.maker_checker_router(get_db, current_user, _platform_audit))
 
 from .inventory import inventory_router  # noqa: E402  own flight inventory, contracts, sales report
 app.include_router(inventory_router(get_db, current_user, role_has_permission, User, _platform_audit))
@@ -5596,6 +5694,7 @@ from .account_security import account_security_router, mfa_enabled as _mfa_enabl
 
 
 def _issue_login_session(db: Session, tenant: Tenant, user: User, request: Request, device_id: str) -> dict:
+    if _account_disabled(db, user): raise HTTPException(status_code=401, detail="این حساب غیرفعال است")
     device_hash, ip_hash = _request_fingerprints(request, device_id)
     refresh_token, _ = operational_models.create_refresh_session(db, tenant_id=tenant.id, user_id=user.id, expires_at=datetime.now(timezone.utc) + timedelta(days=30), device_hash=device_hash, ip_hash=ip_hash)
     db.commit()
@@ -5638,3 +5737,8 @@ from .partner_requests import partner_requests_router  # noqa: E402  requests to
 app.include_router(partner_requests_router(get_db, current_user, _platform_audit, role_has_permission))
 from .after_sales import after_sales_router  # noqa: E402  Panels Phase 1 after-sales loop (customer → ops → finance → customer)
 app.include_router(after_sales_router(get_db, current_user, role_has_permission, User, _platform_audit, _verified_cancellation_quote))
+
+# M-3: optional httpOnly cookie session + double-submit CSRF (AUTH_COOKIE_MODE, default off).
+# Added last so it is the outermost layer: the rate limiter and current_user see the injected header.
+from .auth_cookies import AuthCookieMiddleware  # noqa: E402
+app.add_middleware(AuthCookieMiddleware)

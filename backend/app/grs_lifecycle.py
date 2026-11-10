@@ -64,6 +64,29 @@ def _authorize(actor, reservation: Reservation, permission: str) -> None:
         raise GRSPermissionError("actor does not belong to this reservation's tenant")
     if not role_has_permission(actor.role, permission):
         raise GRSPermissionError(f"role '{actor.role}' lacks permission '{permission}'")
+    if not _is_staff(actor) and getattr(reservation, "user_id", None) != actor.id:
+        raise GRSPermissionError("a customer may act only on their own reservation")
+
+
+# Customer-held permissions (reservation:create / reservation:manage) are not
+# enough for steps that commit or finalise a provider booking: those need an
+# operations-staff actor. Staff = reservation:manage AND backoffice:read (held
+# by backoffice_expert; platform_admin implicitly), never by customer/employee.
+STAFF_PERMISSIONS = ("reservation:manage", "backoffice:read")
+
+
+def _is_staff(actor) -> bool:
+    return all(role_has_permission(actor.role, p) for p in STAFF_PERMISSIONS)
+
+
+def _authorize_staff(actor, reservation: Reservation) -> None:
+    """Provider-committing lifecycle steps (book, accept cancellation): tenant
+    match AND an operations-staff role. Enforced here, not only at a future
+    HTTP route, so wiring a route later cannot expose them to customers."""
+    if actor.tenant_id != reservation.tenant_id:
+        raise GRSPermissionError("actor does not belong to this reservation's tenant")
+    if not _is_staff(actor):
+        raise GRSPermissionError(f"role '{actor.role}' lacks staff permission for this provider step")
 
 
 def _idempotent_guard(db: Session, *, tenant_id: int, scope: str, key: str, request_hash: str) -> Optional[dict]:
@@ -163,7 +186,7 @@ def book_with_grs(db: Session, *, reservation: Reservation, adapter, command_id:
     caller to prove payment/credit was independently confirmed - a Reserve
     response or a provider 'booked'/'definite' signal is never sufficient on
     its own, and this function will refuse to proceed without that proof."""
-    _authorize(actor, reservation, "reservation:manage")
+    _authorize_staff(actor, reservation)
     if not payment_or_credit_confirmed:
         raise GRSLifecycleError("book_with_grs refused: payment/credit confirmation was not proven by the caller")
     if not reservation.provider_reference:
@@ -240,7 +263,7 @@ def request_cancellation_with_grs(db: Session, *, reservation: Reservation, adap
 
 
 def accept_cancellation_with_grs(db: Session, *, reservation: Reservation, adapter, command_id: str, actor) -> GRSReserveOutcome:
-    _authorize(actor, reservation, "reservation:manage")
+    _authorize_staff(actor, reservation)
     request_hash = reservation.provider_reference or ""
     cached = _idempotent_guard(db, tenant_id=reservation.tenant_id, scope="grs.accept_cancel", key=command_id, request_hash=request_hash)
     if cached is not None:
