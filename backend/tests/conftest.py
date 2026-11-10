@@ -8,6 +8,10 @@ os.environ.setdefault("ENVIRONMENT", "development")
 # The shared test DB reuses accounts; the per-account SMS throttle has its own dedicated test.
 os.environ.setdefault("OTP_RESEND_COOLDOWN_SECONDS", "0")
 os.environ.setdefault("OTP_MAX_PER_HOUR", "100000")
+# Production stores uploads in /app/media (container volume); CI runners cannot create /app.
+if "MEDIA_STORAGE_ROOT" not in os.environ and "MEDIA_STORAGE_ROOT_FILE" not in os.environ:
+    import tempfile
+    os.environ["MEDIA_STORAGE_ROOT"] = tempfile.mkdtemp(prefix="karenseir-media-")
 
 from app.main import Base, SessionLocal, app, engine, seed
 
