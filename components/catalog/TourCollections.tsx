@@ -89,5 +89,6 @@ export function TourCollectionNav() {
     {COLLECTION_LINKS.map(l => <Link key={l.key} href={l.href}>{l.label}</Link>)}
     <Link href="/visa">ویزا</Link>
     <Link href="/faq">سؤالات متداول</Link>
+    <Link href="/blog">راهنمای سفر</Link>
   </nav>;
 }
