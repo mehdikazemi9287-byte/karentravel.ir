@@ -10,7 +10,7 @@ type Block = {key: string; label: string; draft: Json | null; published: Json | 
 type Media = {id: string; ref: string; filename: string; size_bytes: number; alt: string; created_at: string; in_use: boolean};
 type Msg = {ok: boolean; text: string} | null;
 
-type Field = {name: string; label: string; kind: 'text' | 'long' | 'image' | 'bool' | 'link' | 'cards' | 'list' | 'qa' | 'tours'; max?: number; min?: number; card?: ('title2' | 'meta')[]; hint?: string};
+type Field = {name: string; label: string; kind: 'text' | 'long' | 'image' | 'bool' | 'link' | 'cards' | 'list' | 'qa' | 'tours' | 'date'; max?: number; min?: number; card?: ('title2' | 'meta')[]; hint?: string};
 const SPEC: Record<string, Field[]> = {
   announcement: [{name: 'active', label: 'نمایش نوار', kind: 'bool'}, {name: 'text', label: 'متن', kind: 'long'}, {name: 'href', label: 'لینک (اختیاری)', kind: 'link'}],
   hero: [{name: 'title', label: 'تیتر — خط اول', kind: 'text'}, {name: 'title2', label: 'تیتر — خط دوم', kind: 'text'}, {name: 'subtitle', label: 'زیرتیتر — خط اول', kind: 'text'},
@@ -26,8 +26,14 @@ const SPEC: Record<string, Field[]> = {
     {name: 'items', label: 'پرسش و پاسخ‌ها', kind: 'qa', min: 1, max: 40, hint: 'فقط آنچه واقعاً انجام می‌شود بنویسید. قیمت و درصد تخفیف در این بخش ثبت نمی‌شود.'}],
   special_tours: [{name: 'title', label: 'تیتر صفحه', kind: 'text'}, {name: 'intro', label: 'توضیح کوتاه', kind: 'long'},
     {name: 'tour_ids', label: 'تورهای انتخاب‌شده', kind: 'tours', max: 12, hint: 'از تورهای منتشرشده انتخاب کنید. توری که ظرفیتش تمام شود یا از انتشار خارج شود، خودکار از صفحه برداشته می‌شود.'}],
+  festival: [{name: 'active', label: 'جشنواره فعال است', kind: 'bool'}, {name: 'title', label: 'نام جشنواره', kind: 'text'},
+    {name: 'intro', label: 'معرفی کوتاه', kind: 'long'}, {name: 'starts_on', label: 'تاریخ شروع', kind: 'date'}, {name: 'ends_on', label: 'تاریخ پایان', kind: 'date'},
+    {name: 'image', label: 'تصویر جشنواره (اختیاری)', kind: 'image'},
+    {name: 'tour_ids', label: 'تورهای جشنواره', kind: 'tours', max: 24, hint: 'صفحه‌ی جشنواره فقط وقتی فعال است و امروز بین تاریخ شروع و پایان باشد، روی سایت دیده می‌شود. درصد تخفیف را در «قوانین فروش» تعریف کنید، نه در این متن.'},
+    {name: 'terms', label: 'شرایط جشنواره', kind: 'long'}],
 };
-const PUBLIC_PAGE: Record<string, string> = {faq: '/faq', special_tours: '/tours/special'};
+const PUBLIC_PAGE: Record<string, string> = {faq: '/faq', special_tours: '/tours/special', festival: '/festival'};
+const jalaliOf = (iso: string) => {try {return iso ? new Date(iso + 'T12:00:00Z').toLocaleDateString('fa-IR', {year: 'numeric', month: 'long', day: 'numeric'}) : '';} catch {return '';}};
 
 type Qa = {question: string; answer: string};
 function QaEditor({f, value, onChange}: {f: Field; value: Qa[]; onChange: (v: Qa[]) => void}) {
@@ -73,7 +79,7 @@ function ImagePick({value, media, onChange, label}: {value: string; media: Media
     {/* eslint-disable-next-line @next/next/no-img-element */}
     {value && <img src={imageSrc(value)} alt=""/>}
     <select aria-label={label} value={value} onChange={e => onChange(e.target.value)}>
-      {builtIn && <option value={value}>تصویر فعلی سایت</option>}
+      {builtIn && <option value={value}>{value ? 'تصویر فعلی سایت' : 'بدون تصویر'}</option>}
       {media.map(m => <option key={m.id} value={m.ref}>{m.alt || m.filename}</option>)}
     </select>
   </div>;
@@ -115,6 +121,7 @@ function BlockEditor({block, media, done}: {block: Block; media: Media[]; done: 
       const val = v[f.name];
       if (f.kind === 'bool') return <label className="cms-check" key={f.name}><input type="checkbox" checked={!!val} onChange={e => put(f.name, e.target.checked)}/>{f.label}</label>;
       if (f.kind === 'image') return <label key={f.name}>{f.label}<ImagePick label={f.label} value={String(val ?? '')} media={media} onChange={x => put(f.name, x)}/></label>;
+      if (f.kind === 'date') return <label key={f.name}>{f.label}<input type="date" value={String(val ?? '')} onChange={e => put(f.name, e.target.value)}/>{val ? <small className="pn-muted">{jalaliOf(String(val))}</small> : null}</label>;
       if (f.kind === 'qa') return <QaEditor key={f.name} f={f} value={(val as Qa[]) ?? []} onChange={x => put(f.name, x)}/>;
       if (f.kind === 'tours') return <TourPicker key={f.name} f={f} value={(val as string[]) ?? []} onChange={x => put(f.name, x)}/>;
       if (f.kind === 'cards') return <CardsEditor key={f.name} f={f} value={(val as CmsCard[]) ?? []} media={media} onChange={x => put(f.name, x)}/>;
