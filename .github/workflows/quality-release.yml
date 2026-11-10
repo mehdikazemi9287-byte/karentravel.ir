@@ -62,6 +62,7 @@ jobs:
       - run: npm run test:e2e
         env:
           PLAYWRIGHT_CHANNEL: chromium
+          E2E_WEB_MODE: start
           E2E_PYTHON: python
       - run: docker build -t karenseir-web:${{ github.sha }} .
       - run: docker build -t karenseir-api:${{ github.sha }} backend
