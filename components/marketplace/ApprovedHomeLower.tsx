@@ -65,7 +65,7 @@ export function ApprovedFooterLight() {
         <p>{c.footer.tagline}</p>
         <p>پشتیبانی: <a href={supportPhone.href} dir="ltr">{supportPhone.display}</a></p>
       </div>
-      <div className="kh-foot-col"><h3>پشتیبانی</h3><Link href="/support">مرکز راهنمایی</Link><Link href="/support">پرسش‌های متداول</Link><Link href="/terms">شرایط استرداد</Link><Link href="/support">گزارش تخلف</Link></div>
+      <div className="kh-foot-col"><h3>پشتیبانی</h3><Link href="/support">مرکز راهنمایی</Link><Link href="/faq">پرسش‌های متداول</Link><Link href="/terms">شرایط استرداد</Link><Link href="/support">گزارش تخلف</Link></div>
       <div className="kh-foot-col"><h3>کارن تراول</h3><Link href="/contact">درباره ما</Link><Link href="/contact">تماس با ما</Link><Link href="/terms">قوانین و مقررات</Link><Link href="/privacy">حریم خصوصی</Link></div>
     </div>
     <p className="kh-foot-copy">{c.footer.copyright}</p>
