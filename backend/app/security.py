@@ -16,7 +16,7 @@ ROLE_PERMISSIONS: dict[str, FrozenSet[str]] = {
     "organization_admin": frozenset({"reservation:read", "approval:decide", "credit:manage", "member:manage", "trip:read"}),
     "agency_partner": frozenset({"inventory:read", "reservation:fulfill", "agency:manage", "credit:read"}),
     "supplier": frozenset({"inventory:manage", "reservation:fulfill"}),
-    "backoffice_expert": frozenset({"reservation:read", "reservation:manage", "approval:decide", "support:manage", "trip:event:create", "backoffice:read", "invoice:manage", "service_request:decide"}),
+    "backoffice_expert": frozenset({"reservation:read", "reservation:manage", "approval:decide", "support:manage", "trip:event:create", "backoffice:read", "invoice:manage", "service_request:decide", "license:verify", "inventory:publish"}),
     "finance_operator": frozenset({"credit:read", "credit:fund", "ledger:read", "reconciliation:manage", "settlement:manage", "refund:manage", "refund:override", "approval:decide", "invoice:manage", "installment:manage"}),
     "tenant_admin": frozenset({"tenant:manage", "member:manage", "reservation:read", "credit:manage", "backoffice:read"}),
     "platform_admin": frozenset({"platform:manage"}),

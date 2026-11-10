@@ -1,0 +1,2 @@
+INFO  [alembic.runtime.migration] Running upgrade 20261109_73 -> 20261110_74, Panels Phase 2 (B2B agency + charter): agency profile/licences/registry checks, agency account + ledger, markup rules,
+EXIT 0

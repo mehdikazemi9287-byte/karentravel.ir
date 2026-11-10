@@ -1,0 +1,34 @@
+        relname        | relrowsecurity | relforcerowsecurity 
+-----------------------+----------------+---------------------
+ agency_accounts       | t              | t
+ agency_booking_lines  | t              | t
+ agency_ledger_entries | t              | t
+ agency_licence_checks | t              | t
+ agency_licences       | t              | t
+ agency_markup_rules   | t              | t
+ agency_profiles       | t              | t
+ charter_blocks        | t              | t
+ charter_price_caps    | t              | t
+(9 rows)
+
+         tablename         |         policyname         
+---------------------------+----------------------------
+ agency_accounts           | karenseir_tenant_isolation
+ agency_booking_lines      | karenseir_tenant_isolation
+ agency_commission_entries | karenseir_tenant_isolation
+ agency_ledger_entries     | karenseir_tenant_isolation
+ agency_licence_checks     | karenseir_tenant_isolation
+ agency_licences           | karenseir_tenant_isolation
+ agency_markup_rules       | karenseir_tenant_isolation
+ agency_memberships        | karenseir_tenant_isolation
+ agency_profiles           | karenseir_tenant_isolation
+ agency_quotes             | karenseir_tenant_isolation
+ charter_blocks            | karenseir_tenant_isolation
+ charter_price_caps        | karenseir_tenant_isolation
+(12 rows)
+
+ column_name |       column_default       
+-------------+----------------------------
+ agency_role | 'owner'::character varying
+(1 row)
+

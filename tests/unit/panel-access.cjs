@@ -5,7 +5,7 @@ const scope={exports:{},require:p=>p.endsWith('.json')?JSON.parse(fs.readFileSyn
 vm.runInNewContext(src,scope);const A=scope.exports;
 const hrefs=(area,role)=>JSON.parse(JSON.stringify(A.navFor(area,role).map(i=>i.href)));
 // admin area: 31 links for platform admin, far fewer for back office and finance, none of the other's tools
-assert.equal(hrefs('admin','platform_admin').length,34);
+assert.equal(hrefs('admin','platform_admin').length,37);
 const bo=hrefs('admin','backoffice_expert'),fin=hrefs('admin','finance_operator'),ta=hrefs('admin','tenant_admin');
 assert.ok(bo.includes('/admin/ops')&&bo.includes('/backoffice')&&bo.includes('/admin/catalog'));
 assert.ok(!bo.includes('/finance/ledger')&&!bo.includes('/finance')&&!bo.includes('/admin')&&!bo.includes('/admin/tenants'));
@@ -22,6 +22,16 @@ assert.equal(A.canOpen('admin','/finance/refunds/0b5c1f4e-6a1d-4c3e-9f2a-1d2e3f4
 assert.equal(A.canOpen('admin','/finance/refunds/0b5c1f4e-6a1d-4c3e-9f2a-1d2e3f4a5b6c','finance_operator'),true);
 assert.equal(A.canOpen('admin','/backoffice/queues/failed_issuance','finance_operator'),false);
 assert.equal(A.canOpen('customer','/account/refunds/0b5c1f4e-6a1d-4c3e-9f2a-1d2e3f4a5b6c','customer'),true);
+// Panels Phase 2: agency sidebar groups and B2B/charter pages; staff review pages split between ops and finance
+const ag=hrefs('agency','agency_partner');
+for(const h of ['/agency/profile','/agency/credit','/agency/pricing','/agency/sell','/agency/invoices','/agency/users','/agency/inventory/flights'])assert.ok(ag.includes(h),h);
+assert.ok(A.navFor('agency','agency_partner').filter(i=>i.group).length>=14);
+assert.equal(A.canOpen('agency','/agency/inventory/flights/0b5c1f4e-6a1d-4c3e-9f2a-1d2e3f4a5b6c','agency_partner'),true);
+assert.equal(A.canOpen('agency','/agency/inventory/flights/new','supplier'),false);
+assert.ok(bo.includes('/backoffice/agencies')&&bo.includes('/backoffice/charter-blocks')&&!bo.includes('/finance/agency-accounts'));
+assert.ok(fin.includes('/finance/agency-accounts')&&fin.includes('/backoffice/agencies')&&!fin.includes('/backoffice/charter-blocks'));
+assert.equal(A.canOpen('admin','/backoffice/agencies','agency_partner'),false);
+assert.equal(A.canOpen('admin','/finance/agency-accounts','backoffice_expert'),false);
 // guard
 assert.equal(A.canOpen('admin','/finance/ledger','backoffice_expert'),false);
 assert.equal(A.canOpen('admin','/finance/ledger','finance_operator'),true);

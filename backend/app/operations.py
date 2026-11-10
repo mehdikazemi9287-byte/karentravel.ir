@@ -237,6 +237,8 @@ class AgencyMembership(OperationalMixin, Base):
     __tablename__ = "agency_memberships"
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     agency_id: Mapped[str] = mapped_column(ForeignKey("agencies.id"), index=True)
+    # Panels Phase 2 (AG-20): role inside the agency — owner (everything incl. finance, users, profile) | agent (sell and book).
+    agency_role: Mapped[str] = mapped_column(String(16), default="owner", server_default="owner")
     __table_args__ = (UniqueConstraint("tenant_id", "user_id", "agency_id", name="uq_agency_membership"),)
 
 

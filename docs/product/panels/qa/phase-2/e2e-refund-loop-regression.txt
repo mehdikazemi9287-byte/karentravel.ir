@@ -1,0 +1,5 @@
+Running 1 test using 1 worker
+
+  ✓  1 e2e/panels/refund-loop.spec.ts:27:5 › cancel → ops approve → two-person finance refund → customer sees paid refund (1.1m)
+
+  1 passed (1.3m)

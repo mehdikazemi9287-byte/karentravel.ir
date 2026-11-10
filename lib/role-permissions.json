@@ -42,7 +42,9 @@
  "backoffice_expert": [
   "approval:decide",
   "backoffice:read",
+  "inventory:publish",
   "invoice:manage",
+  "license:verify",
   "reservation:manage",
   "reservation:read",
   "service_request:decide",

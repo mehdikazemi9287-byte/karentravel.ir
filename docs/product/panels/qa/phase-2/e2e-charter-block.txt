@@ -1,0 +1,5 @@
+Running 1 test using 1 worker
+
+  ✓  1 e2e/panels/charter-block.spec.ts:43:5 › charter block: form → ops publish → allocation to a partner agency (23.1s)
+
+  1 passed (34.7s)

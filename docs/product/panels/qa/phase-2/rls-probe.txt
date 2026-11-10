@@ -1,0 +1,30 @@
+           who            | agency_accounts 
+--------------------------+-----------------
+ superuser (bypasses RLS) |              12
+(1 row)
+
+ t 
+---
+ 1
+(1 row)
+
+              who               | agency_accounts 
+--------------------------------+-----------------
+ non-superuser, app.tenant_id=1 |              12
+(1 row)
+
+ t 
+---
+ 2
+(1 row)
+
+              who               | agency_accounts 
+--------------------------------+-----------------
+ non-superuser, app.tenant_id=2 |               0
+(1 row)
+
+             who              | agency_accounts 
+------------------------------+-----------------
+ non-superuser, no tenant set |               0
+(1 row)
+

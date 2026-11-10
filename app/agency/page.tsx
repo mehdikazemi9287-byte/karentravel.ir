@@ -1,4 +1,5 @@
 import {PanelShell} from '../../components/panel/PanelKit';
 import {AgencyOverview} from '../../components/panel/AgencyPanel';
+import {AgencyTodayB2B} from '../../components/panel/b2b/AgencyB2B';
 export const metadata = {title: 'پنل همکار', robots: {index: false}};
-export default function Page() {return <PanelShell area="agency" title="پنل همکار" intro="فروش، رزروها و حساب آژانس."><AgencyOverview/></PanelShell>;}
+export default function Page() {return <PanelShell area="agency" title="امروز" intro="کارهای منتظر، وضعیت حساب و فروش آژانس."><AgencyTodayB2B/><AgencyOverview/></PanelShell>;}
