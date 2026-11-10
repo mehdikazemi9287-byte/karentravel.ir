@@ -9,7 +9,7 @@ type Post = {id: string; slug: string; title: string; excerpt: string; category:
   status: string; published_at: string | null; updated_at: string | null; body?: string};
 type Media = {id: string; ref: string; filename: string; alt: string};
 type Msg = {ok: boolean; text: string} | null;
-const CATS = [['guide', 'راهنمای مقصد'], ['tips', 'نکته‌های سفر'], ['visa', 'ویزا و مدارک'], ['news', 'اخبار کارن تراول']];
+const CATS = [['guide', 'راهنمای مقصد'], ['places', 'جاهای دیدنی'], ['events', 'رویدادها و فستیوال‌ها'], ['tips', 'نکته‌های سفر'], ['visa', 'ویزا و مدارک'], ['news', 'اخبار کارن تراول']];
 const blank = {slug: '', title: '', excerpt: '', body: '', category: 'guide', tags: '', cover: '', cover_alt: ''};
 
 function Editor({post, media, done, close}: {post: Post | null; media: Media[]; done: (m: Msg) => void; close: () => void}) {

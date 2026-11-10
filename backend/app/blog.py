@@ -23,6 +23,8 @@ from .site_cms import PRICE_WORDS, SiteMediaAsset
 
 CATEGORIES = {
     "guide": "راهنمای مقصد",
+    "places": "جاهای دیدنی",
+    "events": "رویدادها و فستیوال‌ها",
     "tips": "نکته‌های سفر",
     "visa": "ویزا و مدارک",
     "news": "اخبار کارن تراول",

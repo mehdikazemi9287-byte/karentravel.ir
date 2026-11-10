@@ -2391,6 +2391,12 @@ def tour_collection(db: Session, tenant_id: int, key: str, picked: Optional[list
             item = _public_tour_projection({"id": t.id, "title": t.title, "origin": t.origin, "destination": t.destination, "tour_type": t.tour_type, "details": json.loads(t.details_json)})
             item["departures"] = []
             items[t.id] = item
+            transport = (json.loads(t.details_json) or {}).get("transport")
+            if isinstance(transport, str) and 0 < len(transport.strip()) <= 60:
+                item["transport"] = transport.strip()
+            item["nights"] = max(0, round((d.ends_at - d.starts_at).total_seconds() / 86400))
+            item["departure_count"] = 0
+        item["departure_count"] += 1
         if len(item["departures"]) < 6:
             item["departures"].append({"id": d.id, "starts_at": d.starts_at.isoformat(), "ends_at": d.ends_at.isoformat(), "seats_left": d.remaining <= 5})
     out = list(items.values())

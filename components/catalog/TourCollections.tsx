@@ -10,7 +10,8 @@ import {TripRequestForm} from '../customer/TripRequestForm';
 
 export type CollectionKey = 'last-minute' | 'nowruz' | 'special';
 type Dep = {id: string; starts_at: string; ends_at: string; seats_left: boolean};
-type Item = {id: string; title: string; origin: string; destination: string; details: {description?: string}; departures: Dep[]};
+type Item = {id: string; title: string; origin: string; destination: string; details: {description?: string}; departures: Dep[]; nights?: number; departure_count?: number; transport?: string};
+const faN = (n: number) => n.toLocaleString('fa-IR');
 type Data = {key: CollectionKey; items: Item[]; window?: {from: string; to: string}};
 
 const tehranDay = (iso: string) => new Date(iso).toLocaleDateString('en-CA', {timeZone: 'Asia/Tehran'});
@@ -55,18 +56,56 @@ export function TourCollection({collection}: {collection: CollectionKey}) {
       <Link href="/tours">همه‌ی تورها</Link>
       {COLLECTION_LINKS.map(l => <Link key={l.key} href={l.href} aria-current={l.key === collection ? 'page' : undefined}>{l.label}</Link>)}
     </nav>
+    <DestinationStamps/>
     {error ? <section role="alert"><p>فهرست تورها اکنون دریافت نشد؛ دوباره تلاش کنید یا با پشتیبانی تماس بگیرید.</p><button className="button secondary" onClick={() => setTick(t => t + 1)}>تلاش دوباره</button></section>
       : !data ? <p role="status">در حال دریافت تورها…</p>
-      : data.items.length ? <div className="stay-property-grid">{data.items.map(t => <Link className="panel tour-collection-card" key={t.id} href={'/tours/' + t.id}>
-          <h2>{t.title}</h2>
-          <p>{t.origin} ← {t.destination}</p>
-          {t.details.description && <p className="tour-collection-desc">{t.details.description}</p>}
-          <ul className="tour-collection-dates">{t.departures.map(d => <li key={d.id}>حرکت {day(d.starts_at)}{d.seats_left && <span className="tour-seats"> · ظرفیت محدود</span>}</li>)}</ul>
-          <strong>برنامه و رزرو ←</strong>
-        </Link>)}</div>
+      : data.items.length ? <div className="pass-grid">{data.items.map(t => <TourPass key={t.id} t={t} badge={collection === 'special' ? 'انتخاب کارشناس' : collection === 'last-minute' ? 'لحظه‌آخری' : 'نوروز'}/>)}</div>
       : <div className="tour-collection-empty"><p role="status">{copy.empty}</p>
           <TripRequestForm compact title="درخواست تور" intro="مقصد و زمان سفرتان را بنویسید؛ کارشناس تور گزینه‌های موجود را به شما پیشنهاد می‌دهد."/></div>}
   </section>;
+}
+
+/** Boarding-pass tour card: route across the top, nights on the torn-off stub, real departures as stamps. */
+function TourPass({t, badge}: {t: Item; badge: string}) {
+  const limited = t.departures.some(d => d.seats_left);
+  const more = (t.departure_count ?? t.departures.length) - 1;
+  return <Link className="tour-pass" href={'/tours/' + t.id}>
+    <div className="tour-pass-main">
+      <div className="tour-pass-route" aria-label={`از ${t.origin} به ${t.destination}`}>
+        <span>{t.origin}</span><i aria-hidden="true"/><span>{t.destination}</span>
+      </div>
+      <h2>{t.title}</h2>
+      {t.details.description && <p className="tour-pass-desc">{t.details.description}</p>}
+      <ul className="tour-pass-dates">{t.departures.slice(0, 3).map(d => <li key={d.id}>{day(d.starts_at)}</li>)}</ul>
+      <span className="tour-pass-cta">برنامه، استعلام قیمت و رزرو</span>
+    </div>
+    <div className="tour-pass-stub">
+      <small>{badge}</small>
+      {t.nights ? <b>{faN(t.nights)}<em>شب</em></b> : <b>—</b>}
+      {more > 0 && <small>{faN(more + 1)} تاریخ حرکت</small>}
+      {t.transport && <small>{t.transport}</small>}
+      {limited && <span className="tour-pass-stamp">ظرفیت محدود</span>}
+    </div>
+  </Link>;
+}
+
+/** Destinations of published tours as passport stamps linking to the filtered tour list. */
+export function DestinationStamps() {
+  const [list, setList] = useState<string[]>([]);
+  useEffect(() => {
+    let live = true;
+    const base = resolveApiBase(process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000');
+    fetch(`${base}/public/tour-products`).then(r => (r.ok ? r.json() : [])).then((rows: {destination?: string}[]) => {
+      if (!live || !Array.isArray(rows)) return;
+      const count = new Map<string, number>();
+      rows.forEach(r => {const d = (r.destination || '').trim(); if (d) count.set(d, (count.get(d) ?? 0) + 1);});
+      setList([...count.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([d]) => d));
+    }).catch(() => undefined);
+    return () => {live = false;};
+  }, []);
+  if (!list.length) return null;
+  return <div className="dest-stamps" aria-label="مقصدهای تورها"><span>مقصدت کجاست؟</span>
+    {list.map((d, i) => <Link key={d} className={i % 2 ? 'alt' : ''} href={'/tours?destination=' + encodeURIComponent(d)}>{d}</Link>)}</div>;
 }
 
 export function FaqView() {
@@ -85,10 +124,10 @@ export function FaqView() {
 }
 
 export function TourCollectionNav() {
-  return <nav className="tour-collection-nav" aria-label="صفحه‌های ویژه‌ی تور">
+  return <><DestinationStamps/><nav className="tour-collection-nav" aria-label="صفحه‌های ویژه‌ی تور">
     {COLLECTION_LINKS.map(l => <Link key={l.key} href={l.href}>{l.label}</Link>)}
     <Link href="/visa">ویزا</Link>
     <Link href="/faq">سؤالات متداول</Link>
     <Link href="/blog">راهنمای سفر</Link>
-  </nav>;
+  </nav></>;
 }
