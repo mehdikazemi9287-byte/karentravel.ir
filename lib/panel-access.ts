@@ -95,7 +95,7 @@ export const PANEL_ITEMS: NavItem[] = [
   I('supplier', 'پشتیبانی', '/supplier/support', R.supplier), I('supplier', 'روابط مالی قرارداد', '/supplier/financial-context', R.supplierLinks),
 
   ...([
-    ['پیشخوان عملیات', '/admin/ops', R.opsStaff], ['محتوای سایت', '/admin/content', R.editor], ['میز بلیت قطار', '/admin/train-desk', R.desk],
+    ['پیشخوان عملیات', '/admin/ops', R.opsStaff], ['محتوای سایت', '/admin/content', R.editor], ['وبلاگ', '/admin/blog', R.editor], ['میز بلیت قطار', '/admin/train-desk', R.desk],
     ['خدمات همکار', '/admin/partner-requests', R.desk], ['پرونده‌ی قرارداد', '/admin/contracts', R.opsStaff], ['صف مدارک مسافران', '/admin/documents', R.docs],
     ['کاربران و نقش‌ها', '/admin', R.tenantAdmin], ['مستأجرها و وایت‌لیبل', '/admin/tenants', R.platform], ['سازمان‌ها', '/admin/organizations', R.tenantAdmin],
     ['تأمین‌کنندگان و آژانس‌ها', '/admin/partners', R.tenantAdmin], ['سوابق ممیزی', '/admin/audit', R.tenantAdmin], ['هتل‌ها', '/admin/catalog', R.catalog],
