@@ -154,3 +154,25 @@ def test_public_tour_reviews(client):
     assert [i["rating"] for i in data["items"]] == [3, 5]  # verified booking first
     assert "user_id" not in str(data) and "Mock QA 2" not in str(data)
     assert client.get(f"/public/tour-products/{draft}/reviews").status_code == 404
+
+
+def test_installment_collection_and_badge(client):
+    tenant = _seed_public_tenant()
+    now = datetime.now(timezone.utc)
+    with SessionLocal() as db:
+        s = m.Supplier(tenant_id=tenant, supplier_type="tour", display_name="Mock QA installment", status="active")
+        db.add(s)
+        db.flush()
+        yes = _tour(db, tenant, s.id, "Mock QA installment tour", now + timedelta(days=6))
+        no = _tour(db, tenant, s.id, "Mock QA cash tour", now + timedelta(days=7))
+        db.commit()
+    admin = _h(client, "tenant-admin@aftab.test")
+    url = "/public/tenants/aftab-bank/tour-collections/installment"
+    assert client.get(url).json()["items"] == [] or yes not in [i["id"] for i in client.get(url).json()["items"]]
+    body = {"intro": "", "nopay": True, "vamipay": True, "dibacard": False, "organization": True, "tour_ids": [yes]}
+    assert client.put("/cms/blocks/installment", json={**body, "intro": "۱۲ قسط بدون کارمزد با ۲۰٪ تخفیف"}, headers=admin).status_code == 422
+    assert client.put("/cms/blocks/installment", json=body, headers=admin).status_code == 200
+    assert client.post("/cms/blocks/installment/publish", headers=admin).status_code == 200
+    assert [i["id"] for i in client.get(url).json()["items"]] == [yes]
+    lm = {i["id"]: i for i in client.get("/public/tenants/aftab-bank/tour-collections/last-minute").json()["items"]}
+    assert lm[yes].get("installment") is True and "installment" not in lm[no]

@@ -31,8 +31,12 @@ const SPEC: Record<string, Field[]> = {
     {name: 'image', label: 'تصویر جشنواره (اختیاری)', kind: 'image'},
     {name: 'tour_ids', label: 'تورهای جشنواره', kind: 'tours', max: 24, hint: 'صفحه‌ی جشنواره فقط وقتی فعال است و امروز بین تاریخ شروع و پایان باشد، روی سایت دیده می‌شود. درصد تخفیف را در «قوانین فروش» تعریف کنید، نه در این متن.'},
     {name: 'terms', label: 'شرایط جشنواره', kind: 'long'}],
+  installment: [{name: 'intro', label: 'توضیح بالای صفحه (اختیاری)', kind: 'long'},
+    {name: 'nopay', label: 'نوپی (بانک ملی)', kind: 'bool'}, {name: 'vamipay', label: 'وامی‌پی', kind: 'bool'}, {name: 'dibacard', label: 'دیباکارت', kind: 'bool'},
+    {name: 'organization', label: 'اقساط سازمانی برای کارکنان سازمان‌های طرف قرارداد', kind: 'bool'},
+    {name: 'tour_ids', label: 'تورهای قابل خرید اقساطی', kind: 'tours', max: 48, hint: 'این تورها در همه‌ی صفحه‌ها برچسب «اقساطی» می‌گیرند. تعداد اقساط، پیش‌پرداخت و کارمزد را اینجا ننویسید؛ هر سرویس هنگام اعتبارسنجی اعلام می‌کند.'}],
 };
-const PUBLIC_PAGE: Record<string, string> = {faq: '/faq', special_tours: '/tours/special', festival: '/festival'};
+const PUBLIC_PAGE: Record<string, string> = {faq: '/faq', special_tours: '/tours/special', festival: '/festival', installment: '/tours/installment'};
 const jalaliOf = (iso: string) => {try {return iso ? new Date(iso + 'T12:00:00Z').toLocaleDateString('fa-IR', {year: 'numeric', month: 'long', day: 'numeric'}) : '';} catch {return '';}};
 
 type Qa = {question: string; answer: string};
