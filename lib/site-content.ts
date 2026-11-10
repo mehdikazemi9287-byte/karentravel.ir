@@ -17,6 +17,7 @@ export type SiteContent = {
   faq: {title: string; intro: string; items: {question: string; answer: string}[]};
   special_tours: {title: string; intro: string; tour_ids: string[]};
   festival: {active: boolean; title: string; intro: string; starts_on: string; ends_on: string; image: string; tour_ids: string[]; terms: string};
+  installment: {intro: string; nopay: boolean; vamipay: boolean; dibacard: boolean; organization: boolean; tour_ids: string[]};
 };
 
 const A = '/images/approved-figma/';
@@ -51,6 +52,7 @@ export const DEFAULT_CONTENT: SiteContent = {
   ]},
   special_tours: {title: 'تورهای ویژه', intro: 'تورهایی که کارشناسان کارن تراول برای این فصل انتخاب کرده‌اند.', tour_ids: []},
   festival: {active: false, title: 'جشنواره‌ی سفر کارن تراول', intro: '', starts_on: '', ends_on: '', image: '', tour_ids: [], terms: ''},
+  installment: {intro: '', nopay: true, vamipay: true, dibacard: true, organization: true, tour_ids: []},
 };
 
 export const tenantSlug = () => process.env.NEXT_PUBLIC_TENANT_SLUG || 'aftab-bank';

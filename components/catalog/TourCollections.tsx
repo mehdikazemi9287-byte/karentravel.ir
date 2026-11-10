@@ -8,9 +8,9 @@ import {formatJalali} from '../../lib/domain/jalali';
 import {imageSrc, tenantSlug, useSiteContent} from '../../lib/site-content';
 import {TripRequestForm} from '../customer/TripRequestForm';
 
-export type CollectionKey = 'last-minute' | 'nowruz' | 'special' | 'festival';
+export type CollectionKey = 'last-minute' | 'nowruz' | 'special' | 'festival' | 'installment';
 type Dep = {id: string; starts_at: string; ends_at: string; seats_left: boolean};
-type Item = {id: string; title: string; origin: string; destination: string; details: {description?: string}; departures: Dep[]; nights?: number; departure_count?: number; transport?: string; rating?: {average: number; count: number}};
+type Item = {id: string; title: string; origin: string; destination: string; details: {description?: string}; departures: Dep[]; nights?: number; departure_count?: number; transport?: string; rating?: {average: number; count: number}; installment?: boolean};
 const faN = (n: number) => n.toLocaleString('fa-IR');
 type Festival = {title: string; intro: string; starts_on: string; ends_on: string; image: string; terms: string};
 type Data = {key: CollectionKey; items: Item[]; window?: {from: string; to: string}; festival?: Festival | null};
@@ -23,9 +23,10 @@ export const COLLECTION_LINKS: {key: CollectionKey; href: string; label: string}
   {key: 'last-minute', href: '/tours/last-minute', label: 'تورهای لحظه‌آخری'},
   {key: 'nowruz', href: '/tours/nowruz', label: 'تورهای نوروزی'},
   {key: 'special', href: '/tours/special', label: 'تورهای ویژه'},
+  {key: 'installment', href: '/tours/installment', label: 'تور اقساطی'},
 ];
 
-const COPY: Record<Exclude<CollectionKey, 'special' | 'festival'>, {eyebrow: string; title: string; intro: string; empty: string}> = {
+const COPY: Record<Exclude<CollectionKey, 'special' | 'festival' | 'installment'>, {eyebrow: string; title: string; intro: string; empty: string}> = {
   'last-minute': {eyebrow: 'حرکت در دو هفته‌ی آینده', title: 'تورهای لحظه‌آخری', intro: 'تورهایی که در ۱۴ روز آینده حرکت می‌کنند و هنوز ظرفیت و مهلت رزرو دارند.',
     empty: 'فعلاً توری با حرکت در دو هفته‌ی آینده و ظرفیت خالی ثبت نشده است.'},
   nowruz: {eyebrow: 'تعطیلات نوروز', title: 'تورهای نوروزی', intro: 'تورهایی که حرکتشان در روزهای پایانی اسفند و تعطیلات نوروز است.',
@@ -49,6 +50,9 @@ export function TourCollection({collection}: {collection: CollectionKey}) {
   const fest = data?.festival;
   const copy = collection === 'special'
     ? {eyebrow: 'انتخاب کارشناسان', title: site.special_tours.title, intro: site.special_tours.intro, empty: 'تورهای ویژه‌ی این فصل به‌زودی معرفی می‌شوند.'}
+    : collection === 'installment'
+      ? {eyebrow: 'سفر حالا، پرداخت در چند قسط', title: 'خرید تور اقساطی', intro: site.installment.intro || 'تورهای منتخب را با یکی از سرویس‌های اقساطی همکار یا اقساط سازمانی بخرید. تعداد اقساط، پیش‌پرداخت و کارمزد را هر سرویس هنگام اعتبارسنجی اعلام می‌کند.',
+        empty: 'فهرست تورهای اقساطی به‌زودی منتشر می‌شود. درخواست خرید اقساطی ثبت کنید تا کارشناس فروش با شما تماس بگیرد.'}
     : collection === 'festival'
       ? {eyebrow: fest ? `تا ${formatJalali(fest.ends_on)}` : 'جشنواره', title: fest?.title || 'جشنواره‌ی سفر', intro: fest?.intro || '',
         empty: fest ? 'تورهای این جشنواره به‌زودی اضافه می‌شوند.' : 'در حال حاضر جشنواره‌ای برگزار نمی‌شود. تورهای ویژه و لحظه‌آخری را ببینید یا درخواست سفر بدهید.'}
@@ -68,11 +72,13 @@ export function TourCollection({collection}: {collection: CollectionKey}) {
       {COLLECTION_LINKS.map(l => <Link key={l.key} href={l.href} aria-current={l.key === collection ? 'page' : undefined}>{l.label}</Link>)}
     </nav>
     <DestinationStamps/>
+    {collection === 'installment' && <InstallmentOptions/>}
     {error ? <section role="alert"><p>فهرست تورها اکنون دریافت نشد؛ دوباره تلاش کنید یا با پشتیبانی تماس بگیرید.</p><button className="button secondary" onClick={() => setTick(t => t + 1)}>تلاش دوباره</button></section>
       : !data ? <p role="status">در حال دریافت تورها…</p>
-      : data.items.length ? <div className="pass-grid">{data.items.map(t => <TourPass key={t.id} t={t} badge={collection === 'special' ? 'انتخاب کارشناس' : collection === 'festival' ? 'جشنواره' : collection === 'last-minute' ? 'لحظه‌آخری' : 'نوروز'}/>)}</div>
+      : data.items.length ? <div className="pass-grid">{data.items.map(t => <TourPass key={t.id} t={t} badge={collection === 'special' ? 'انتخاب کارشناس' : collection === 'festival' ? 'جشنواره' : collection === 'installment' ? 'اقساطی' : collection === 'last-minute' ? 'لحظه‌آخری' : 'نوروز'}/>)}</div>
       : <div className="tour-collection-empty"><p role="status">{copy.empty}</p>
           <TripRequestForm compact title="درخواست تور" intro="مقصد و زمان سفرتان را بنویسید؛ کارشناس تور گزینه‌های موجود را به شما پیشنهاد می‌دهد."/></div>}
+    {collection === 'installment' && data && data.items.length > 0 && <div className="installment-request"><TripRequestForm compact title="درخواست خرید اقساطی" intro="مقصد، تاریخ و روش اقساط دلخواه را بنویسید؛ کارشناس فروش شرایط واقعی را اعلام و رزرو را انجام می‌دهد."/></div>}
     {fest?.terms && <details className="panel festival-terms"><summary>شرایط جشنواره</summary><p>{fest.terms}</p></details>}
   </section>;
 }
@@ -97,6 +103,7 @@ function TourPass({t, badge}: {t: Item; badge: string}) {
       {t.nights ? <b>{faN(t.nights)}<em>شب</em></b> : <b>—</b>}
       {more > 0 && <small>{faN(more + 1)} تاریخ حرکت</small>}
       {t.transport && <small>{t.transport}</small>}
+      {t.installment && <span className="tour-pass-inst">قابل خرید اقساطی</span>}
       {limited && <span className="tour-pass-stamp">ظرفیت محدود</span>}
     </div>
   </Link>;
@@ -134,6 +141,20 @@ export function FaqView() {
     <p className="faq-more">پاسخ پرسشتان را پیدا نکردید؟ <Link href="/support">با پشتیبانی در تماس باشید</Link>.</p>
     <script type="application/ld+json" dangerouslySetInnerHTML={{__html: JSON.stringify(ld).replace(/</g, '\\u003c')}}/>
   </section>;
+}
+
+/** Installment routes switched on in the CMS. Terms (count, down-payment, fee) come from each provider at credit check. */
+function InstallmentOptions() {
+  const {installment: i} = useSiteContent();
+  const opts = [
+    i.nopay && {t: 'نوپی (بانک ملی)', d: 'خرید اقساطی با اعتبار نوپی بانک ملی.'},
+    i.vamipay && {t: 'وامی‌پی', d: 'پرداخت اقساطی با وامی‌پی پس از اعتبارسنجی.'},
+    i.dibacard && {t: 'دیباکارت', d: 'خرید اقساطی با اعتبار دیباکارت پس از اعتبارسنجی.'},
+    i.organization && {t: 'اقساط سازمانی', d: 'برای کارکنان سازمان‌های طرف قرارداد کارن تراول؛ با تأیید سازمان و کسر از حقوق.', org: true},
+  ].filter(Boolean) as {t: string; d: string; org?: boolean}[];
+  if (!opts.length) return null;
+  return <div className="installment-options">{opts.map(o => <div key={o.t} className={o.org ? 'org' : ''}><span>اقساطی</span><b>{o.t}</b><p>{o.d}</p>
+    {o.org && <Link href="/solutions">همکاری سازمانی ←</Link>}</div>)}</div>;
 }
 
 function FestivalLink({current = false}: {current?: boolean}) {

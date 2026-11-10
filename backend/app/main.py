@@ -2347,7 +2347,7 @@ def public_tour_product_detail(tour_id: str, db: Session = Depends(get_db)) -> d
     return _public_tour_projection(tour_detail(tour_id, _public_search_identity(db), db))
 
 
-TOUR_COLLECTIONS = ("last-minute", "nowruz", "special", "festival")
+TOUR_COLLECTIONS = ("last-minute", "nowruz", "special", "festival", "installment")
 LAST_MINUTE_DAYS = 14
 _TEHRAN = timezone(timedelta(hours=3, minutes=30))
 
@@ -2377,7 +2377,7 @@ def tour_collection(db: Session, tenant_id: int, key: str, picked: Optional[list
         window = (now, now + timedelta(days=LAST_MINUTE_DAYS))
     elif key == "nowruz":
         window = _nowruz_window(now)
-    else:  # special / festival: editor-picked published tours
+    else:  # special / festival / installment: editor-picked published tours
         if not picked:
             return {"key": key, "items": []}
         conds.append(tour.id.in_(picked))
@@ -2405,7 +2405,7 @@ def tour_collection(db: Session, tenant_id: int, key: str, picked: Optional[list
         for ref, avg, count in db.execute(select(rv.service_reference, func.avg(rv.rating), func.count(rv.id)).where(
                 rv.tenant_id == tenant_id, rv.service_type == "tour", rv.moderation_state == "approved", rv.service_reference.in_(list(items))).group_by(rv.service_reference)).all():
             items[ref]["rating"] = {"average": round(float(avg), 1), "count": int(count)}
-    if key in ("special", "festival"):
+    if key in ("special", "festival", "installment"):
         order = {tid: i for i, tid in enumerate(picked or [])}
         out.sort(key=lambda x: order.get(x["id"], 999))
     out = out[:48]
@@ -2439,8 +2439,12 @@ def public_tour_collection(tenant_slug: str, key: str, response: Response, db: S
     from .site_cms import SiteContentBlock
     picked: list[str] = []
     festival = None
+    cms_tenant = _public_tenant(db, tenant_slug)
+    raw_inst = db.scalar(select(SiteContentBlock.published_json).where(SiteContentBlock.tenant_id == cms_tenant.id, SiteContentBlock.key == "installment"))
+    installment_ids = set(json.loads(raw_inst).get("tour_ids", [])) if raw_inst else set()
+    if key == "installment":
+        picked = [t for t in (json.loads(raw_inst).get("tour_ids", []) if raw_inst else [])]
     if key in ("special", "festival"):
-        cms_tenant = _public_tenant(db, tenant_slug)
         raw = db.scalar(select(SiteContentBlock.published_json).where(SiteContentBlock.tenant_id == cms_tenant.id, SiteContentBlock.key == ("special_tours" if key == "special" else "festival")))
         block = json.loads(raw) if raw else {}
         if key == "festival":
@@ -2453,6 +2457,9 @@ def public_tour_collection(tenant_slug: str, key: str, response: Response, db: S
     identity = _public_search_identity(db)
     response.headers["Cache-Control"] = "public, max-age=60"
     result = tour_collection(db, identity.tenant_id, key, picked)
+    for item in result["items"]:
+        if item["id"] in installment_ids:
+            item["installment"] = True
     if key == "festival":
         result["festival"] = festival
     return result

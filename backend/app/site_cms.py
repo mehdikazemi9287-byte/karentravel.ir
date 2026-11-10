@@ -200,6 +200,22 @@ class Festival(Strict):
         return self
 
 
+class Installment(Strict):
+    """/tours/installment: which installment routes are offered and which published tours qualify. No instalment
+    counts, rates or down-payments are written here: each provider states them at credit check."""
+    intro: str = Field(default="", max_length=300)
+    nopay: bool = True
+    vamipay: bool = True
+    dibacard: bool = True
+    organization: bool = True
+    tour_ids: list[str] = Field(default_factory=list, max_length=48)
+
+    @field_validator("tour_ids")
+    @classmethod
+    def _ids(cls, v: list[str]) -> list[str]:
+        return _tour_ids(v)
+
+
 SLOTS: dict[str, tuple[type[Strict], str]] = {
     "announcement": (Announcement, "نوار اطلاع‌رسانی بالای صفحه"),
     "hero": (Hero, "بخش اصلی بالای صفحه"),
@@ -212,6 +228,7 @@ SLOTS: dict[str, tuple[type[Strict], str]] = {
     "faq": (Faq, "سؤالات متداول"),
     "special_tours": (SpecialTours, "صفحه‌ی تورهای ویژه"),
     "festival": (Festival, "جشنواره"),
+    "installment": (Installment, "تور اقساطی"),
 }
 PRICE_WORDS = ("تومان", "ریال", "تخفیف", "%", "٪")
 
