@@ -11,11 +11,16 @@ test('an older search failure cannot overwrite the latest successful search', as
   });
   await page.goto('/search/results?vertical=flight&destination=Mock');
   const delayed = await first;
-  await page.getByLabel('مرتب‌سازی نتایج').selectOption('lowest_price');
-  await expect(page.getByRole('heading', { name: 'نتیجه‌ای پیدا نشد' })).toBeVisible();
+  // Flight results sort by the flight-specific orderings (cheapest/best/fastest).
+  await page.getByLabel('مرتب‌سازی نتایج').selectOption('cheapest');
+  // Zero results now offer the trip-request form instead of an empty-results heading.
+  const zeroResults = page.getByRole('region', { name: 'ثبت درخواست سفر' });
+  const failure = page.getByRole('alert').filter({ hasText: 'جست‌وجو فعلاً انجام نشد' });
+  await expect(zeroResults).toBeVisible();
+  await expect(failure).toHaveCount(0);
   await delayed.fulfill({ status: 503, json: { detail: 'Mock stale failure' } });
   // Give the released response time to reach React before checking final state.
   await page.waitForTimeout(300);
-  await expect(page.getByRole('heading', { name: 'نتیجه‌ای پیدا نشد' })).toBeVisible();
-  await expect(page.locator('.results-notice[role=alert]')).toHaveCount(0);
+  await expect(zeroResults).toBeVisible();
+  await expect(failure).toHaveCount(0);
 });

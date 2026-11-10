@@ -23,13 +23,18 @@ async function createOperationalFixture(request: APIRequestContext, suffix = 'ma
   expect(onboarded.status()).toBe(201);
   const supplierId = (await onboarded.json()).id;
   const policy = { verified: true, source: 'e2e-contract', verified_at: new Date().toISOString(), cancellation: { refundable: true, penalty_amount: 100000 } };
+  // Hotel offers must carry a dated, occupancy-specific room rate and the price check must
+  // select the matching stay (fixed-stay allotment integrity, backend/app/hotel_stay.py).
+  const hotelRate = { check_in: '2030-03-01', check_out: '2030-03-03', room_type: 'دوتخته', rate_plan: 'با صبحانه', price_basis: 'room_stay', occupancy: { adults: 2, children_ages: [] } };
+  const hotelStay = { check_in: hotelRate.check_in, check_out: hotelRate.check_out, rooms: [hotelRate.occupancy] };
   const offerIds: string[] = [];
   for (const [index, amount] of [[0, 2_000_000], [1, 2_400_000]]) {
-    const response = await request.post(`${api}/supplier/offers`, { headers: { Authorization: `Bearer ${supplier.access_token}` }, data: { supplier_id: supplierId, service_type: serviceType, title: serviceType === 'flight' ? `پرواز تهران شیراز ${index + 1}` : `هتل عملیاتی ${index + 1}`, amount, available_units: 5, valid_minutes: 60, policy, attributes: serviceType === 'flight' ? { rating: 4.5 - index * .2, origin: 'تهران', destination: 'شیراز', airline: 'هواپیمایی تست قراردادی', departure_time: '08:30', arrival_time: index ? '10:15' : '10:00', duration: index ? '۱ ساعت و ۴۵ دقیقه' : '۱ ساعت و ۳۰ دقیقه', duration_minutes: index ? 105 : 90, stops: 0, baggage: '۲۰ کیلوگرم', organization_policy_compliant: true } : { rating: 4.5 - index * .2, stars: 4, location_score: 8 - index, city: 'شیراز', room_type: 'دوتخته', breakfast: true, amenities: ['wifi'], organization_policy_compliant: true }, fulfillment_mode: 'manual_supplier', provider_key: 'manual_supplier' } });
+    const response = await request.post(`${api}/supplier/offers`, { headers: { Authorization: `Bearer ${supplier.access_token}` }, data: { supplier_id: supplierId, service_type: serviceType, title: serviceType === 'flight' ? `پرواز تهران شیراز ${index + 1}` : `هتل عملیاتی ${index + 1}`, amount, available_units: 5, valid_minutes: 60, policy, attributes: serviceType === 'flight' ? { rating: 4.5 - index * .2, origin: 'تهران', destination: 'شیراز', airline: 'هواپیمایی تست قراردادی', departure_time: '08:30', arrival_time: index ? '10:15' : '10:00', duration: index ? '۱ ساعت و ۴۵ دقیقه' : '۱ ساعت و ۳۰ دقیقه', duration_minutes: index ? 105 : 90, stops: 0, baggage: '۲۰ کیلوگرم', organization_policy_compliant: true } : { rating: 4.5 - index * .2, stars: 4, location_score: 8 - index, city: 'شیراز', room_type: 'دوتخته', breakfast: true, amenities: ['wifi'], organization_policy_compliant: true, hotel_rate: hotelRate }, fulfillment_mode: 'manual_supplier', provider_key: 'manual_supplier' } });
     expect(response.status()).toBe(201); offerIds.push((await response.json()).id);
   }
   const employee = await login(request, 'employee@aftab.test');
-  const check = await request.post(`${api}/offers/${offerIds[0]}/price-check`, { headers: { Authorization: `Bearer ${employee.access_token}` }, data: { units: 1, command_id: `e2e-price-${suffix}` } });
+  const check = await request.post(`${api}/offers/${offerIds[0]}/price-check`, { headers: { Authorization: `Bearer ${employee.access_token}` }, data: { units: 1, command_id: `e2e-price-${suffix}`, ...(serviceType === 'hotel' ? { hotel_stay: hotelStay } : {}) } });
+  expect(check.status()).toBe(201);
   const booking = await request.post(`${api}/orchestration/bookings`, { headers: { Authorization: `Bearer ${employee.access_token}` }, data: { price_check_id: (await check.json()).id, command_id: `e2e-booking-${suffix}` } });
   expect(booking.status()).toBe(201);
   return (await booking.json()).id as string;
@@ -39,13 +44,16 @@ test('frozen Homepage keeps approved structure on desktop and mobile', async ({ 
   for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844 }]) {
     await page.setViewportSize(viewport);
     await page.goto('/');
-    await expect(page.getByRole('banner')).toBeVisible();
+    // Approved reference homepage (Figma node 45:3 header + D13 support phone, owner-approved 1405-08-18).
+    await expect(page.getByRole('link', { name: 'کارن تراول، صفحه اصلی' }).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: /تماس با پشتیبانی/ }).first()).toBeVisible();
     await expect(page.getByRole('heading', { level: 1 })).toContainText('سفر را');
-    await expect(page.getByRole('tab', { name: 'پرواز', exact: true })).toBeVisible();
-    await expect(page.getByRole('tab', { name: 'هتل', exact: true })).toBeVisible();
-    await expect(page.getByText('دستیار هوشمند سفر کارن تراول')).toBeVisible();
-    await expect(page.getByText('قبل از انتخاب، کنار هم ببین.')).toBeVisible();
-    await expect(page.locator('.ref-footer')).toHaveCount(1);
+    const search = page.getByRole('region', { name: 'جست‌وجوی یکپارچه سفر' });
+    for (const name of ['پرواز', 'هتل', 'قطار', 'تور']) await expect(search.getByRole('tab', { name, exact: true })).toBeVisible();
+    await expect(search.getByRole('radiogroup', { name: 'نوع سفر' }).getByRole('radio', { name: 'رفت‌وبرگشت' })).toBeChecked();
+    await expect(search.getByRole('button', { name: 'پیدا کن', exact: true })).toBeVisible();
+    for (const name of ['کجای ایران صدایت می‌زند؟', 'همه‌ی سفر، در یک جا', 'سفر سازمانی، بدون پیچیدگی']) await expect(page.getByRole('heading', { level: 2, name })).toBeVisible();
+    await expect(page.getByRole('contentinfo')).toHaveCount(1);
     const screenshot = await page.screenshot({ fullPage: true, animations: 'disabled' });
     expect(screenshot.byteLength).toBeGreaterThan(100_000);
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
@@ -72,52 +80,60 @@ test('professional Homepage search interactions reach usable results', async ({ 
   await page.goto('/');
   await expect(page.getByRole('region', { name: 'جست‌وجوی یکپارچه سفر' })).not.toContainText(/Mock|نتایج Mock|نمایش آزمایشی/);
   await page.screenshot({ path: `${artifactDir}/search-ux/homepage-search-desktop.png`, fullPage: true, animations: 'disabled' });
-  await page.getByRole('tab', { name: 'اقامتگاه' }).click();
-  await expect(page.getByRole('tabpanel', { name: 'فرم جست‌وجوی اقامتگاه' })).toBeVisible();
-  await page.screenshot({ path: `${artifactDir}/search-ux/villa-search-state.png`, animations: 'disabled' });
-  await page.getByRole('tab', { name: 'تور' }).click();
-  await expect(page.getByRole('tabpanel', { name: 'فرم جست‌وجوی تور' })).toBeVisible();
+  // The approved homepage shows the four primary services as tabs (flight, hotel, train, tour).
+  for (const name of ['هتل', 'قطار', 'تور']) {
+    await page.getByRole('tab', { name, exact: true }).click();
+    await expect(page.getByRole('tabpanel', { name: `فرم جست‌وجوی ${name}` })).toBeVisible();
+  }
   await page.screenshot({ path: `${artifactDir}/search-ux/tour-search-state.png`, animations: 'disabled' });
   await page.getByRole('tab', { name: 'پرواز', exact: true }).click();
 
-  const origin = page.getByRole('combobox', { name: 'مبدأ' });
+  const origin = page.getByRole('combobox', { name: 'مبدأ', exact: true });
   await origin.fill('تهرون');
-  await expect(page.getByRole('option', { name: /^تهران/ })).toBeVisible();
+  await expect(page.getByRole('option', { name: /^تهران/ }).first()).toBeVisible();
   await origin.fill('تهر');
   await expect(page.getByRole('listbox', { name: 'پیشنهادهای مبدأ' })).toBeVisible();
   await expect(page.getByRole('option', { name: /فرودگاه مهرآباد/ })).toBeVisible();
   await page.screenshot({ path: `${artifactDir}/search-ux/homepage-autocomplete.png`, animations: 'disabled' });
-  await page.getByRole('option', { name: /^تهران/ }).click();
-  const destination = page.getByRole('combobox', { name: 'مقصد' });
+  await page.getByRole('option', { name: /^تهران/ }).first().click();
+  const destination = page.getByRole('combobox', { name: 'مقصد', exact: true });
   await destination.fill('شیرا');
   await expect(page.getByRole('listbox', { name: 'پیشنهادهای مقصد' })).toBeVisible();
-  await expect(page.getByRole('option', { name: /^شیراز/ })).toBeVisible();
+  await expect(page.getByRole('option', { name: /^شیراز/ }).first()).toBeVisible();
   await page.screenshot({ path: `${artifactDir}/search-ux/destination-autocomplete.png`, animations: 'disabled' });
-  await page.getByRole('option', { name: /^شیراز/ }).click();
+  await page.getByRole('option', { name: /^شیراز/ }).first().click();
 
-  await page.getByRole('button', { name: /تاریخ سفر/ }).click();
+  // Trip type lives outside the calendar (owner-approved D11); round trip stays the default.
+  const tripType = page.getByRole('radiogroup', { name: 'نوع سفر' });
+  await expect(tripType.getByRole('radio', { name: 'رفت‌وبرگشت' })).toBeChecked();
+  await page.getByRole('button', { name: 'تاریخ سفر', exact: true }).click();
   await page.getByRole('button', { name: 'ماه بعد', exact: true }).click();
-  await page.locator('.jalali-grid button:enabled').nth(0).click();
-  await page.locator('.jalali-grid button:enabled').nth(2).click();
+  await page.getByRole('button', { name: /^انتخاب ۱۰ / }).first().click();
+  await page.getByRole('button', { name: /^انتخاب ۱۲ / }).first().click();
   await page.getByRole('button', { name: '±۱ روز' }).click();
+  await expect(page.getByRole('button', { name: '±۱ روز' })).toHaveAttribute('aria-pressed', 'true');
   await page.screenshot({ path: `${artifactDir}/search-ux/date-picker.png`, animations: 'disabled' });
   await page.getByRole('button', { name: 'تأیید تاریخ' }).click();
 
-  await page.getByRole('button', { name: /مسافران/ }).click();
+  await page.getByRole('button', { name: /^مسافران/ }).click();
   await page.getByRole('button', { name: 'افزایش بزرگسال' }).click();
-  await expect(page.getByText('۳', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'کاهش بزرگسال' })).toBeEnabled();
   await page.screenshot({ path: `${artifactDir}/search-ux/passenger-picker.png`, animations: 'disabled' });
   await page.getByRole('button', { name: 'تأیید مسافران' }).click();
-  await page.getByRole('button', { name: 'یک‌طرفه' }).click();
-  await expect(page.getByRole('button', { name: 'یک‌طرفه' })).toHaveAttribute('aria-pressed', 'true');
-  await page.getByRole('button', { name: 'رفت‌وبرگشت' }).click();
-  await page.getByRole('button', { name: 'جست‌وجو', exact: true }).click();
+  await expect(page.getByRole('button', { name: /^مسافران ۲ مسافر/ })).toBeVisible();
+  await tripType.getByRole('radio', { name: 'رفت‌وبرگشت' }).click();
+  await expect(tripType.getByRole('radio', { name: 'رفت‌وبرگشت' })).toBeChecked();
+  // The fixture offers are one-way flights; a round-trip search may not price-check them.
+  await tripType.getByRole('radio', { name: 'یک‌طرفه' }).click();
+  await expect(tripType.getByRole('radio', { name: 'یک‌طرفه' })).toBeChecked();
+  await page.getByRole('button', { name: 'پیدا کن', exact: true }).click();
   await expect(page).toHaveURL(/\/search\/results\?.*vertical=flight/);
+  await expect(page).toHaveURL(/trip_type=one_way/);
   await expect(page.getByRole('heading', { name: /پرواز تهران شیراز/ }).first()).toBeVisible();
   const resultsUrl = page.url();
   await page.screenshot({ path: `${artifactDir}/search-ux/search-results-desktop.png`, fullPage: true, animations: 'disabled' });
 
-  await page.getByLabel('مرتب‌سازی نتایج').selectOption('lowest_price');
+  await page.getByLabel('مرتب‌سازی نتایج').selectOption('cheapest');
   await page.getByRole('checkbox', { name: 'فقط قابل استرداد' }).check();
   await page.getByRole('button', { name: 'اعمال فیلتر' }).click();
   await page.screenshot({ path: `${artifactDir}/search-ux/filter-panel.png`, fullPage: true, animations: 'disabled' });
@@ -165,15 +181,23 @@ test('travel commerce rental, tour, visa and cruise states are usable and honest
   expect(visaApplicationResponse.status()).toBe(201); const visaApplicationId = (await visaApplicationResponse.json()).id;
 
   await uiLogin(page, 'employee@aftab.test');
-  await page.goto('/villas'); await expect(page.locator(`a[href="/villas/${propertyId}"]`)).toBeVisible(); await page.screenshot({ path: `${artifactDir}/travel-commerce/villa-results.png`, fullPage: true, animations: 'disabled' });
-  await page.locator(`a[href="/villas/${propertyId}"]`).click(); await expect(page.getByText('واحد دربست')).toBeVisible(); await page.screenshot({ path: `${artifactDir}/travel-commerce/villa-detail.png`, fullPage: true, animations: 'disabled' });
-  await page.goto('/tours'); await expect(page.locator(`a[href="/tours/${tourId}"]`)).toBeVisible(); await page.screenshot({ path: `${artifactDir}/travel-commerce/tour-results.png`, fullPage: true, animations: 'disabled' });
-  await page.locator(`a[href="/tours/${tourId}"]`).click(); await expect(page.getByRole('button', { name: 'بررسی ظرفیت و قیمت' })).toBeVisible(); await page.screenshot({ path: `${artifactDir}/travel-commerce/tour-detail.png`, fullPage: true, animations: 'disabled' });
-  await page.getByRole('button', { name: 'بررسی ظرفیت و قیمت' }).click(); await expect(page.getByRole('status')).toContainText('واچر فقط پس از پرداخت'); await page.screenshot({ path: `${artifactDir}/travel-commerce/tour-booking.png`, fullPage: true, animations: 'disabled' });
-  await page.goto(`/visa/${visaId}`); await expect(page.getByText('صدور، شرایط احراز یا زمان پردازش را تضمین نمی‌کند')).toBeVisible(); await page.screenshot({ path: `${artifactDir}/travel-commerce/visa-detail.png`, fullPage: true, animations: 'disabled' });
+  await page.goto('/villas'); await expect(page.locator(`a[href^="/villas/${propertyId}"]`)).toBeVisible(); await page.screenshot({ path: `${artifactDir}/travel-commerce/villa-results.png`, fullPage: true, animations: 'disabled' });
+  await page.locator(`a[href^="/villas/${propertyId}"]`).click(); await expect(page.getByRole('combobox', { name: 'واحد اقامت' })).toContainText('واحد دربست — ظرفیت ۶ نفر'); await page.screenshot({ path: `${artifactDir}/travel-commerce/villa-detail.png`, fullPage: true, animations: 'disabled' });
+  await page.goto('/tours'); await expect(page.locator(`a[href^="/tours/${tourId}"]`)).toBeVisible(); await page.screenshot({ path: `${artifactDir}/travel-commerce/tour-results.png`, fullPage: true, animations: 'disabled' });
+  await page.locator(`a[href^="/tours/${tourId}"]`).click(); await expect(page.getByRole('combobox', { name: 'حرکت تور' })).toBeVisible(); await page.screenshot({ path: `${artifactDir}/travel-commerce/tour-detail.png`, fullPage: true, animations: 'disabled' });
+  // A tour quote needs a departure and a room type the organiser priced (base 15,000,000 + single surcharge 3,000,000).
+  await page.getByRole('combobox', { name: 'حرکت تور' }).selectOption({ index: 1 });
+  await page.getByRole('combobox', { name: 'نوع اتاق' }).selectOption({ label: 'یک‌نفره' });
+  await page.getByRole('button', { name: 'استعلام مبلغ و ظرفیت' }).click();
+  await expect(page.getByText('۱۸٬۰۰۰٬۰۰۰ ریال برای ۱ بزرگسال')).toBeVisible();
+  await expect(page.getByRole('status')).toContainText('شرایط و مبلغ را پیش از ثبت ظرفیت بررسی کنید'); await page.screenshot({ path: `${artifactDir}/travel-commerce/tour-booking.png`, fullPage: true, animations: 'disabled' });
+  // /visa/[id] renders the public visa guides; a customer reaches a visa service from the account's visa page.
+  await page.goto('/account/visa'); await page.locator(`a[href="/visa/products/${visaId}"]`).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'ویزای توریستی فرانسه E2E' })).toBeVisible(); await expect(page.getByText('صدور، شرایط احراز یا زمان پردازش را تضمین نمی‌کند')).toBeVisible(); await page.screenshot({ path: `${artifactDir}/travel-commerce/visa-detail.png`, fullPage: true, animations: 'disabled' });
   await page.getByRole('button', { name: 'شروع درخواست و بررسی انسانی' }).click(); await expect(page.getByRole('status')).toContainText('صدور تضمین نمی‌شود'); await page.screenshot({ path: `${artifactDir}/travel-commerce/visa-application.png`, fullPage: true, animations: 'disabled' });
   await page.goto(`/visa/applications/${visaApplicationId}`); await expect(page.getByRole('heading', { name: 'پرونده ویزا' })).toBeVisible(); await page.getByLabel('نام متقاضی ویزا').fill('مسافر مرورگر'); await page.getByLabel('شماره گذرنامه').fill('P123456789'); await page.getByRole('button', { name: 'افزودن متقاضی' }).click(); await page.getByRole('button', { name: 'ثبت بارگذاری گذرنامه' }).click(); await expect(page.getByText(/passport ·/)).toContainText('uploaded'); await page.screenshot({ path: `${artifactDir}/travel-commerce/visa-timeline.png`, fullPage: true, animations: 'disabled' });
-  await page.goto('/cruises'); await expect(page.getByText('رزرو زنده کروز: مسدود تا اتصال Provider قراردادی')).toBeVisible(); await page.screenshot({ path: `${artifactDir}/travel-commerce/cruise-state.png`, fullPage: true, animations: 'disabled' });
+  // No cruise provider is connected: the page only takes a request for a human callback, never a live booking.
+  await page.goto('/cruises'); await expect(page.getByRole('heading', { name: 'ثبت درخواست سفر دریایی' })).toBeVisible(); await expect(page.getByRole('button', { name: /رزرو|پرداخت/ })).toHaveCount(0); await page.screenshot({ path: `${artifactDir}/travel-commerce/cruise-state.png`, fullPage: true, animations: 'disabled' });
 });
 
 test('approval and tenant dashboard API flow', async ({ request }) => {
@@ -192,13 +216,18 @@ test('approval and tenant dashboard API flow', async ({ request }) => {
   expect((await dashboard.json()).bookings.some((item: { status: string }) => item.status === 'approved')).toBeTruthy();
 });
 
-test('cancellation and refund preview remains non-destructive', async ({ page }) => {
-  await page.goto('/manage-booking/book1');
-  await page.getByRole('button', { name: /کنسلی و استرداد/ }).click();
-  await expect(page.getByText('تا قبل از تأیید نهایی، رزرو شما تغییری نمی‌کند.')).toBeVisible();
-  await page.getByRole('checkbox').check();
-  await page.getByRole('button', { name: 'تأیید درخواست' }).click();
-  await expect(page.getByText('✓ درخواست ثبت شد و رزرو فعلی بدون تغییر باقی ماند.')).toBeVisible();
+test('cancellation and refund preview remains non-destructive', async ({ page, request }) => {
+  // The demo /manage-booking/book1 page is gone; the preview now comes from the backend cancellation quote.
+  const reservationId = await createOperationalFixture(request, 'refund-preview');
+  await uiLogin(page, 'employee@aftab.test');
+  await page.goto(`/manage-booking/${reservationId}`);
+  await expect(page.getByRole('heading', { name: 'قوانین و برآورد استرداد' })).toBeVisible();
+  await expect(page.getByText('جریمه طبق شرایط: ۱۰۰٬۰۰۰ ریال')).toBeVisible();
+  await expect(page.getByText('برآورد قابل استرداد: ۱٬۹۰۰٬۰۰۰ ریال')).toBeVisible();
+  await expect(page.getByText('این برآورد به معنی انجام بازپرداخت نیست؛ درخواست باید بررسی شود.')).toBeVisible();
+  const employee = await login(request, 'employee@aftab.test');
+  const reservation = await request.get(`${api}/reservations/${reservationId}`, { headers: { Authorization: `Bearer ${employee.access_token}` } });
+  expect((await reservation.json()).status).toBe('reserved');
 });
 
 test('connected trips and manage-booking use the authenticated tenant API', async ({ page, request }) => {
@@ -238,70 +267,103 @@ test('unified search results expose freshness and persist saved search', async (
 test('connected private pages fail closed without a browser session', async ({ page }) => {
   await page.goto('/trips');
   await expect(page.getByText('برای مشاهده این بخش وارد شوید.')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'ورود امن' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'ورود به حساب' })).toHaveAttribute('href', '/login?redirect=%2Ftrips');
 });
 
 test('organization and role panels enforce frontend RBAC states', async ({ page }) => {
   await uiLogin(page, 'employee@aftab.test');
   await page.getByRole('link', { name: 'سازمان', exact: true }).click();
-  await expect(page.getByText('نقش شما به این بخش دسترسی ندارد.')).toBeVisible();
-  await page.goBack();
-  await page.getByLabel('حساب آزمایشی توسعه').selectOption({ label: 'org-admin@aftab.test' });
-  await page.getByRole('button', { name: 'ورود و دریافت هتل‌ها' }).click();
+  await expect(page.getByRole('alert').getByRole('heading', { name: 'دسترسی ندارید' })).toBeVisible();
+  await expect(page.getByText('این بخش برای نقش «کارمند سازمان» در دسترس نیست.', { exact: false })).toBeVisible();
+  await uiLogin(page, 'org-admin@aftab.test');
   await page.getByRole('link', { name: 'سازمان', exact: true }).click();
-  await expect(page.getByText('ساختار سازمانی')).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'نمای کلی' })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'پنل سازمان' }).getByRole('link', { name: 'کارکنان و دسترسی‌ها' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'دسترسی ندارید' })).toHaveCount(0);
 });
 
 test('supplier, agency and backoffice panels read only authorized APIs', async ({ page }) => {
-  for (const [email, link, heading] of [['supplier@aftab.test','تأمین‌کننده','پنل تأمین‌کننده'],['agency@aftab.test','آژانس','شبکه زیرآژانس، ساختار کمیسیون و عملیات'],['backoffice@aftab.test','عملیات','BackOffice / Admin']] as const) {
+  // Each role lands in its own panel shell; the panel navigation is named after the role's area.
+  for (const [email, link, panel] of [['supplier@aftab.test','تأمین‌کننده','پنل تأمین‌کننده'],['agency@aftab.test','آژانس','پنل همکار'],['backoffice@aftab.test','عملیات','مدیریت مجموعه']] as const) {
     await uiLogin(page, email);
     await page.getByRole('link', { name: link, exact: true }).click();
-    await expect(page.getByRole('heading', { name: heading })).toBeVisible();
+    await expect(page.getByRole('navigation', { name: panel })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'دسترسی ندارید' })).toHaveCount(0);
   }
+  await expect(page.getByRole('heading', { level: 1, name: 'BackOffice / Admin' })).toBeVisible();
 });
 
 test('customer account connects profile, travellers, wallet, payment and notification preferences', async ({ page, request }) => {
-  await createOperationalFixture(request, 'account');
+  const reservationId = await createOperationalFixture(request, 'account');
   await uiLogin(page, 'employee@aftab.test');
   await page.getByRole('link', { name: 'سفرهای من' }).click();
-  await page.getByRole('link', { name: 'حساب من' }).click();
+  // Signed-in pages reach the account through the header account menu (role-filtered links).
+  await page.getByText('حساب کاربری', { exact: true }).click();
+  await page.getByRole('link', { name: 'حساب من', exact: true }).click();
+  await page.getByRole('navigation', { name: 'حساب من' }).getByRole('link', { name: 'پروفایل و مسافران' }).click();
   await expect(page.getByRole('heading', { name: 'پروفایل، مسافران و امور مالی' })).toBeVisible();
-  await page.getByLabel('نام مسافر').fill('مسافر E2E');
-  await page.getByRole('button', { name: 'افزودن' }).click();
+  // Traveller identity is validated (Iranian national code checksum) before it is saved.
+  await page.getByText('افزودن مسافر جدید', { exact: true }).click();
+  const travellerForm = page.locator('form').filter({ has: page.getByRole('button', { name: 'افزودن مسافر' }) });
+  await travellerForm.getByRole('textbox', { name: 'نام و نام خانوادگی مسافر', exact: true }).fill('مسافر E2E');
+  const nationalCode = travellerForm.getByRole('textbox', { name: /^کد ملی/ });
+  await nationalCode.fill('0012345678');
+  await expect(nationalCode).toHaveAttribute('aria-invalid', 'true');
+  await travellerForm.getByRole('button', { name: 'افزودن مسافر' }).click();
+  await expect(travellerForm.getByRole('alert')).toBeVisible();
+  await nationalCode.fill('0012345679');
+  await expect(nationalCode).toHaveAttribute('aria-invalid', 'false');
+  await travellerForm.getByRole('button', { name: 'افزودن مسافر' }).click();
   await expect(page.getByRole('status')).toContainText('مسافر افزوده شد');
+  await expect(page.getByText('مسافر E2E', { exact: true })).toBeVisible();
   if (await page.getByRole('button', { name: 'ایجاد کیف پول ریالی' }).isVisible()) {
     await page.getByRole('button', { name: 'ایجاد کیف پول ریالی' }).click();
     await expect(page.getByRole('status')).toContainText('کیف پول ایجاد شد');
   }
-  const paymentButton = page.getByRole('button', { name: /ساخت پرداخت برای/ }).first();
-  if (await paymentButton.isVisible()) {
-    await paymentButton.click();
-    await expect(page.getByRole('status')).toContainText('Payment Intent ایجاد شد');
-  }
-  const gateway = page.getByRole('button', { name: 'اتصال به درگاه' }).first();
-  await expect(gateway).toBeVisible();
-  // Mock the unavailable gateway; never initiate a financial transaction.
-  await page.route('**/payments/*/initiate', route => route.fulfill({ status: 503, json: { detail: 'درگاه پرداخت معتبر در دسترس نیست' } }));
-  await gateway.click();
-  await expect(page.getByRole('status')).toContainText('درگاه پرداخت معتبر در دسترس نیست');
+  // Payment is completed through the checkout of the reservation; never initiate a financial transaction here.
+  const employee = await login(request, 'employee@aftab.test');
+  const reference = (await (await request.get(`${api}/reservations/${reservationId}`, { headers: { Authorization: `Bearer ${employee.access_token}` } })).json()).booking_reference;
+  await expect(page.getByRole('link', { name: `تکمیل رزرو ${reference}` })).toHaveAttribute('href', `/checkout/${reservationId}`);
   const smsPreference = page.getByRole('switch', { name: /تغییرات سفر · sms/ });
+  const before = await smsPreference.getAttribute('aria-checked');
   await smsPreference.focus();
   await page.keyboard.press('Space');
   await expect(page.getByRole('status')).toContainText('ترجیحات اعلان ذخیره شد');
+  await expect(page.getByRole('switch', { name: /تغییرات سفر · sms/ })).toHaveAttribute('aria-checked', before === 'true' ? 'false' : 'true');
 });
 
 test('supplier, agency and backoffice mutations remain role-scoped', async ({ page, request }) => {
   await createOperationalFixture(request, 'panel-mutations');
+  // Supplier records are now registered by staff; a supplier publishes offers for its own suppliers.
   await uiLogin(page, 'supplier@aftab.test');
   await page.getByRole('link', { name: 'تأمین‌کننده', exact: true }).click();
-  await page.getByLabel('نام تأمین‌کننده').fill('تأمین‌کننده UI');
-  await page.getByRole('button', { name: 'ثبت' }).click();
-  await expect(page.getByRole('status')).toContainText('تأمین‌کننده ثبت شد');
+  await expect(page.getByRole('navigation', { name: 'پنل تأمین‌کننده' })).toBeVisible();
+  await page.goto('/supplier/offers/new');
+  await expect(page.getByRole('heading', { level: 1, name: 'ثبت عرضهٔ اقامت' })).toBeVisible();
+  await page.getByRole('textbox', { name: 'عنوان اقامت' }).fill('اتاق دوتخته UI');
+  await page.getByRole('textbox', { name: 'شهر', exact: true }).fill('شیراز');
+  await page.getByRole('textbox', { name: 'نوع اتاق' }).fill('دوتخته');
+  await page.getByRole('textbox', { name: 'شرح خدمت' }).fill('اتاق دوتخته با صبحانه');
+  await page.getByRole('textbox', { name: 'مرجع قرارداد' }).fill('قرارداد E2E-1405');
+  await page.getByRole('textbox', { name: 'شرایط رزرو و استرداد' }).fill('غیرقابل استرداد طبق قرارداد');
+  await page.getByLabel('تاریخ ورود').fill('2030-04-01');
+  await page.getByLabel('تاریخ خروج').fill('2030-04-03');
+  await page.getByRole('textbox', { name: 'نام برنامهٔ نرخ' }).fill('با صبحانه');
+  await page.getByRole('spinbutton', { name: 'بزرگسال در هر اتاق' }).fill('2');
+  await page.getByRole('spinbutton', { name: 'قیمت نهایی هر واحد (ریال)' }).fill('3000000');
+  await page.getByRole('spinbutton', { name: 'ظرفیت قابل رزرو' }).fill('2');
+  await page.getByRole('spinbutton', { name: 'اعتبار عرضه (دقیقه)' }).fill('60');
+  await page.getByRole('spinbutton', { name: 'جریمه طبق قرارداد (ریال)' }).fill('0');
+  await page.getByRole('checkbox', { name: 'صحت ظرفیت، مبلغ و شرایط قرارداد را تأیید می‌کنم.' }).check();
+  await page.getByRole('button', { name: 'ثبت عرضهٔ معتبر' }).click();
+  await expect(page.getByRole('status')).toContainText('عرضه در حساب تأمین‌کننده ثبت شد');
+  await expect(page.getByRole('link', { name: 'مشاهدهٔ جزئیات عرضهٔ ثبت‌شده' })).toBeVisible();
+  // Partner roles cannot reach staff mutations.
   await uiLogin(page, 'agency@aftab.test');
   await page.getByRole('link', { name: 'آژانس', exact: true }).click();
-  await page.getByPlaceholder('نام زیرآژانس جدید').fill('زیرآژانس UI');
-  await page.getByRole('button', { name: 'ثبت زیرآژانس', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('زیرآژانس ثبت شد');
+  await expect(page.getByRole('navigation', { name: 'پنل همکار' })).toBeVisible();
+  await page.goto('/backoffice');
+  await expect(page.getByRole('alert').getByRole('heading', { name: 'دسترسی ندارید' })).toBeVisible();
   await uiLogin(page, 'backoffice@aftab.test');
   await page.getByRole('link', { name: 'عملیات', exact: true }).click();
   const statusMutation = page.getByRole('button', { name: /تعلیق|فعال‌سازی/ }).first();
@@ -332,12 +394,15 @@ test('support case thread keeps customer and human-agent messages distinct', asy
 test('finance workspace fails closed for customers and opens for finance role', async ({ page }) => {
   await uiLogin(page, 'employee@aftab.test');
   await page.getByRole('link', { name: 'سفرهای من' }).click();
-  await page.getByRole('link', { name: 'مالی', exact: true }).click();
-  await expect(page.getByText('نقش شما به این بخش دسترسی ندارد.')).toBeVisible();
+  // Navigation is role-filtered, so customers get no finance link; the URL itself still fails closed.
+  await expect(page.getByRole('link', { name: 'مالی', exact: true })).toHaveCount(0);
+  await page.goto('/finance');
+  await expect(page.getByRole('alert').getByRole('heading', { name: 'دسترسی ندارید' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'پرداخت، کیف پول، اقساط و تسویه' })).toHaveCount(0);
 
   await uiLogin(page, 'finance@aftab.test');
   await page.getByRole('link', { name: 'عملیات', exact: true }).click();
-  await page.getByRole('link', { name: 'مالی', exact: true }).click();
+  await page.getByRole('navigation', { name: 'مدیریت مجموعه' }).getByRole('link', { name: 'مالی', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'پرداخت، کیف پول، اقساط و تسویه' })).toBeVisible();
 });
 
@@ -348,24 +413,28 @@ test('saved travel, itinerary, destination and map fallback use tenant APIs', as
   expect(destination.status()).toBe(201);
   await uiLogin(page, 'employee@aftab.test');
   await page.goto('/saved-trips');
-  await page.getByLabel('عنوان سفر').fill(`سفر E2E ${suffix}`);
-  await page.getByRole('button', { name: 'ساخت سفر ذخیره‌شده' }).click();
-  await expect(page.getByText('سفر ذخیره شد.', { exact: true })).toBeVisible();
-  const savedTripCard = page.locator('section').filter({ hasText: `سفر E2E ${suffix}` }).last();
-  await page.getByLabel(`مرجع آیتم سفر E2E ${suffix}`).fill('attraction:hafezieh');
-  await savedTripCard.getByRole('button', { name: 'ذخیره در علاقه‌مندی' }).click();
-  await expect(page.getByText(/علاقه‌مندی/, { exact: false }).first()).toBeVisible();
-  await savedTripCard.getByRole('button', { name: 'انتقال' }).click();
-  await expect(page.getByText(/سبد سفر/, { exact: false }).first()).toBeVisible();
+  // Saved trips are named lists that collect search selections; free-text item references are gone.
+  await page.getByRole('textbox', { name: 'عنوان فهرست سفر' }).fill(`سفر E2E ${suffix}`);
+  await page.getByRole('button', { name: 'ساخت فهرست سفر' }).click();
+  await expect(page.getByRole('status')).toContainText('فهرست سفر ذخیره شد');
+  const savedTrip = page.getByRole('region', { name: `سفر E2E ${suffix}` });
+  await expect(savedTrip.getByText('این فهرست هنوز انتخابی ندارد.')).toBeVisible();
+  await savedTrip.getByRole('textbox', { name: `یادداشت سفر E2E ${suffix}` }).fill('حافظیه و باغ ارم');
+  await savedTrip.getByRole('button', { name: 'ذخیرهٔ یادداشت' }).click();
+  await expect(page.getByRole('status')).toContainText('یادداشت ذخیره شد؛ این یادداشت رزرو نیست.');
   await page.goto('/itineraries');
-  await page.getByLabel('عنوان برنامه سفر').fill(`برنامه E2E ${suffix}`);
+  await page.getByRole('textbox', { name: 'عنوان برنامه سفر' }).fill(`برنامه E2E ${suffix}`);
   await page.getByRole('button', { name: 'ساخت برنامه' }).click();
-  await expect(page.getByRole('status')).toContainText('قابل‌ویرایش ساخته شد');
-  const itineraryCard = page.locator('section').filter({ hasText: `برنامه E2E ${suffix}` }).last();
-  await itineraryCard.getByRole('button', { name: 'افزودن آیتم' }).click();
-  await expect(itineraryCard.getByText('نیازمند بررسی زنده موجودی')).toBeVisible();
-  await page.goto('/destinations');
-  await page.locator(`a[href="/destinations/shiraz-e2e-${suffix}"]`).click();
+  const itinerary = page.locator('section').filter({ has: page.getByRole('heading', { level: 2, name: `برنامه E2E ${suffix}` }) }).last();
+  await expect(itinerary.getByRole('heading', { level: 2, name: `برنامه E2E ${suffix}` })).toBeVisible();
+  // With no priced service in the plan there is nothing to recheck; a note is not a booking.
+  await expect(itinerary.getByRole('button', { name: 'بررسی قیمت و موجودی همهٔ خدمات' })).toBeDisabled();
+  await itinerary.getByRole('textbox', { name: 'عنوان یادداشت' }).fill('بازدید حافظیه');
+  await itinerary.getByRole('button', { name: 'افزودن یادداشت سفر' }).click();
+  await expect(itinerary.getByRole('heading', { level: 3, name: 'روز ۱: بازدید حافظیه' })).toBeVisible();
+  // /destinations lists curated guides; a tenant destination is served at its own slug.
+  await page.goto(`/destinations/shiraz-e2e-${suffix}`);
+  await expect(page.getByRole('heading', { level: 1, name: 'شیراز E2E' })).toBeVisible();
   await expect(page.getByText('Offer تازه‌ای برای این مقصد موجود نیست')).toBeVisible();
   await page.goto('/map');
   await expect(page.getByText('در نبود credential نقشه')).toBeVisible();
