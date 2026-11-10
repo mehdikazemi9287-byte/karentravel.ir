@@ -19,11 +19,14 @@ process.env.E2E_API_URL ||= apiOrigin; // specs read this; workers inherit the r
 
 export default defineConfig({
   testDir: './e2e',
-  timeout: 30_000,
-  // next dev compiles each route on first visit; give assertions room for that compile.
-  expect: { timeout: 10_000 },
+  // next dev compiles each route on first visit. On shared CI runners two workers competing for that
+  // compile made a different set of navigations time out on every run, so CI runs one worker with
+  // more room and one retry; local runs keep the strict defaults.
+  timeout: process.env.CI ? 90_000 : 30_000,
+  expect: { timeout: process.env.CI ? 25_000 : 10_000 },
   fullyParallel: false,
-  retries: 0,
+  workers: process.env.CI ? 1 : undefined,
+  retries: process.env.CI ? 1 : 0,
   reporter: [['list']],
   use: { baseURL: webOrigin, trace: 'retain-on-failure', ...devices['Desktop Chrome'], channel: process.env.PLAYWRIGHT_CHANNEL || 'chrome' },
   webServer: [
