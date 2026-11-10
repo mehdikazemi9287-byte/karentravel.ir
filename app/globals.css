@@ -873,3 +873,7 @@ a.cat-card:hover{box-shadow:0 12px 28px rgba(8,37,61,.12);transform:translateY(-
 .dest-stamps a:hover{transform:rotate(0) scale(1.05)}
 @media(max-width:900px){.pass-grid{grid-template-columns:1fr}}
 @media(max-width:480px){.tour-pass{grid-template-columns:1fr 92px}.tour-pass-stub b{font-size:30px}.tour-pass-route{font-size:15px;padding:12px 14px}.tour-pass h2,.tour-pass-desc,.tour-pass-dates,.tour-pass-cta{margin-inline:14px}.dest-stamps{flex-wrap:nowrap;overflow-x:auto;padding:4px 2px}.dest-stamps a{white-space:nowrap}}
+/* Festival */
+.festival-ribbon{display:flex;flex-wrap:wrap;align-items:center;gap:12px;background:linear-gradient(90deg,#3a1b3d,#5a2a5e);color:#fdf5ea;border-radius:14px;padding:12px 18px;margin:8px 0 4px}.festival-ribbon b{color:#f6c56b;font-size:16px}.festival-ribbon span{font-size:13px;opacity:.85}.festival-link{background:#ef5b3d!important;border-color:#ef5b3d!important;color:#fff!important;font-weight:700}.festival-terms{margin-top:20px;padding:0}.festival-terms summary{cursor:pointer;padding:14px 18px;font-weight:700}.festival-terms p{margin:0;padding:0 18px 16px;line-height:2;white-space:pre-line}
+.festival-cover{width:100%;max-height:320px;object-fit:cover;border-radius:16px;margin:10px 0}
+.tour-pass-rating{margin:0 20px;color:#b98319;font-weight:800;font-size:14px}.tour-pass-rating small{color:#7f6d79;font-weight:400}@media(max-width:480px){.tour-pass-rating{margin-inline:14px}}

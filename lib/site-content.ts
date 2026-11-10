@@ -16,6 +16,7 @@ export type SiteContent = {
   footer: {tagline: string; copyright: string};
   faq: {title: string; intro: string; items: {question: string; answer: string}[]};
   special_tours: {title: string; intro: string; tour_ids: string[]};
+  festival: {active: boolean; title: string; intro: string; starts_on: string; ends_on: string; image: string; tour_ids: string[]; terms: string};
 };
 
 const A = '/images/approved-figma/';
@@ -49,6 +50,7 @@ export const DEFAULT_CONTENT: SiteContent = {
     {question: 'چطور با پشتیبانی تماس بگیرم؟', answer: 'از صفحه‌ی پشتیبانی پیام بفرستید یا با شماره‌ی پشتیبانی که پایین همه‌ی صفحه‌ها آمده تماس بگیرید. پیگیری درخواست‌ها در حساب کاربری شما ثبت می‌شود.'},
   ]},
   special_tours: {title: 'تورهای ویژه', intro: 'تورهایی که کارشناسان کارن تراول برای این فصل انتخاب کرده‌اند.', tour_ids: []},
+  festival: {active: false, title: 'جشنواره‌ی سفر کارن تراول', intro: '', starts_on: '', ends_on: '', image: '', tour_ids: [], terms: ''},
 };
 
 export const tenantSlug = () => process.env.NEXT_PUBLIC_TENANT_SLUG || 'aftab-bank';

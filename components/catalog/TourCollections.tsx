@@ -5,17 +5,19 @@ import Link from 'next/link';
 import {useEffect, useState} from 'react';
 import {resolveApiBase} from '../../lib/api/karenseir-client';
 import {formatJalali} from '../../lib/domain/jalali';
-import {tenantSlug, useSiteContent} from '../../lib/site-content';
+import {imageSrc, tenantSlug, useSiteContent} from '../../lib/site-content';
 import {TripRequestForm} from '../customer/TripRequestForm';
 
-export type CollectionKey = 'last-minute' | 'nowruz' | 'special';
+export type CollectionKey = 'last-minute' | 'nowruz' | 'special' | 'festival';
 type Dep = {id: string; starts_at: string; ends_at: string; seats_left: boolean};
-type Item = {id: string; title: string; origin: string; destination: string; details: {description?: string}; departures: Dep[]; nights?: number; departure_count?: number; transport?: string};
+type Item = {id: string; title: string; origin: string; destination: string; details: {description?: string}; departures: Dep[]; nights?: number; departure_count?: number; transport?: string; rating?: {average: number; count: number}};
 const faN = (n: number) => n.toLocaleString('fa-IR');
-type Data = {key: CollectionKey; items: Item[]; window?: {from: string; to: string}};
+type Festival = {title: string; intro: string; starts_on: string; ends_on: string; image: string; terms: string};
+type Data = {key: CollectionKey; items: Item[]; window?: {from: string; to: string}; festival?: Festival | null};
 
 const tehranDay = (iso: string) => new Date(iso).toLocaleDateString('en-CA', {timeZone: 'Asia/Tehran'});
 const day = (iso: string) => formatJalali(tehranDay(iso));
+const todayTehran = () => new Date().toLocaleDateString('en-CA', {timeZone: 'Asia/Tehran'});
 
 export const COLLECTION_LINKS: {key: CollectionKey; href: string; label: string}[] = [
   {key: 'last-minute', href: '/tours/last-minute', label: 'تورهای لحظه‌آخری'},
@@ -23,7 +25,7 @@ export const COLLECTION_LINKS: {key: CollectionKey; href: string; label: string}
   {key: 'special', href: '/tours/special', label: 'تورهای ویژه'},
 ];
 
-const COPY: Record<Exclude<CollectionKey, 'special'>, {eyebrow: string; title: string; intro: string; empty: string}> = {
+const COPY: Record<Exclude<CollectionKey, 'special' | 'festival'>, {eyebrow: string; title: string; intro: string; empty: string}> = {
   'last-minute': {eyebrow: 'حرکت در دو هفته‌ی آینده', title: 'تورهای لحظه‌آخری', intro: 'تورهایی که در ۱۴ روز آینده حرکت می‌کنند و هنوز ظرفیت و مهلت رزرو دارند.',
     empty: 'فعلاً توری با حرکت در دو هفته‌ی آینده و ظرفیت خالی ثبت نشده است.'},
   nowruz: {eyebrow: 'تعطیلات نوروز', title: 'تورهای نوروزی', intro: 'تورهایی که حرکتشان در روزهای پایانی اسفند و تعطیلات نوروز است.',
@@ -44,24 +46,34 @@ export function TourCollection({collection}: {collection: CollectionKey}) {
       .catch(() => {if (live) setError(true);});
     return () => {live = false;};
   }, [collection, tick]);
+  const fest = data?.festival;
   const copy = collection === 'special'
     ? {eyebrow: 'انتخاب کارشناسان', title: site.special_tours.title, intro: site.special_tours.intro, empty: 'تورهای ویژه‌ی این فصل به‌زودی معرفی می‌شوند.'}
-    : COPY[collection];
+    : collection === 'festival'
+      ? {eyebrow: fest ? `تا ${formatJalali(fest.ends_on)}` : 'جشنواره', title: fest?.title || 'جشنواره‌ی سفر', intro: fest?.intro || '',
+        empty: fest ? 'تورهای این جشنواره به‌زودی اضافه می‌شوند.' : 'در حال حاضر جشنواره‌ای برگزار نمی‌شود. تورهای ویژه و لحظه‌آخری را ببینید یا درخواست سفر بدهید.'}
+      : COPY[collection];
+  const left = fest ? Math.max(0, Math.round((new Date(fest.ends_on + 'T00:00:00+03:30').getTime() - new Date(todayTehran() + 'T00:00:00+03:30').getTime()) / 864e5)) : 0;
   return <section className="tour-marketplace customer-page">
     <span className="eyebrow">{copy.eyebrow}</span>
     <h1>{copy.title}</h1>
     {copy.intro && <p>{copy.intro}</p>}
+    {fest && <div className="festival-ribbon"><b>{left === 0 ? 'آخرین روز جشنواره' : `${faN(left)} روز تا پایان جشنواره`}</b><span>از {formatJalali(fest.starts_on)} تا {formatJalali(fest.ends_on)}</span></div>}
+    {/* eslint-disable-next-line @next/next/no-img-element */}
+    {fest?.image && <img className="festival-cover" src={imageSrc(fest.image)} alt={fest.title}/>}
     {data?.window && collection === 'nowruz' && <p className="tour-window">حرکت از {day(data.window.from)} تا {day(new Date(new Date(data.window.to).getTime() - 864e5).toISOString())}</p>}
     <nav className="tour-collection-nav" aria-label="صفحه‌های تور">
       <Link href="/tours">همه‌ی تورها</Link>
+      <FestivalLink current={collection === 'festival'}/>
       {COLLECTION_LINKS.map(l => <Link key={l.key} href={l.href} aria-current={l.key === collection ? 'page' : undefined}>{l.label}</Link>)}
     </nav>
     <DestinationStamps/>
     {error ? <section role="alert"><p>فهرست تورها اکنون دریافت نشد؛ دوباره تلاش کنید یا با پشتیبانی تماس بگیرید.</p><button className="button secondary" onClick={() => setTick(t => t + 1)}>تلاش دوباره</button></section>
       : !data ? <p role="status">در حال دریافت تورها…</p>
-      : data.items.length ? <div className="pass-grid">{data.items.map(t => <TourPass key={t.id} t={t} badge={collection === 'special' ? 'انتخاب کارشناس' : collection === 'last-minute' ? 'لحظه‌آخری' : 'نوروز'}/>)}</div>
+      : data.items.length ? <div className="pass-grid">{data.items.map(t => <TourPass key={t.id} t={t} badge={collection === 'special' ? 'انتخاب کارشناس' : collection === 'festival' ? 'جشنواره' : collection === 'last-minute' ? 'لحظه‌آخری' : 'نوروز'}/>)}</div>
       : <div className="tour-collection-empty"><p role="status">{copy.empty}</p>
           <TripRequestForm compact title="درخواست تور" intro="مقصد و زمان سفرتان را بنویسید؛ کارشناس تور گزینه‌های موجود را به شما پیشنهاد می‌دهد."/></div>}
+    {fest?.terms && <details className="panel festival-terms"><summary>شرایط جشنواره</summary><p>{fest.terms}</p></details>}
   </section>;
 }
 
@@ -75,6 +87,7 @@ function TourPass({t, badge}: {t: Item; badge: string}) {
         <span>{t.origin}</span><i aria-hidden="true"/><span>{t.destination}</span>
       </div>
       <h2>{t.title}</h2>
+      {t.rating && <p className="tour-pass-rating" aria-label={`امتیاز ${faN(t.rating.average)} از ۵ در ${faN(t.rating.count)} نظر`}><span aria-hidden="true">★</span> {faN(t.rating.average)} <small>({faN(t.rating.count)} نظر مسافران)</small></p>}
       {t.details.description && <p className="tour-pass-desc">{t.details.description}</p>}
       <ul className="tour-pass-dates">{t.departures.slice(0, 3).map(d => <li key={d.id}>{day(d.starts_at)}</li>)}</ul>
       <span className="tour-pass-cta">برنامه، استعلام قیمت و رزرو</span>
@@ -123,8 +136,16 @@ export function FaqView() {
   </section>;
 }
 
+function FestivalLink({current = false}: {current?: boolean}) {
+  const {festival: f} = useSiteContent();
+  const today = todayTehran();
+  if (!current && !(f.active && f.starts_on && f.starts_on <= today && today <= f.ends_on)) return null;
+  return <Link className="festival-link" href="/festival" aria-current={current ? 'page' : undefined}>{f.title || 'جشنواره'}</Link>;
+}
+
 export function TourCollectionNav() {
   return <><DestinationStamps/><nav className="tour-collection-nav" aria-label="صفحه‌های ویژه‌ی تور">
+    <FestivalLink/>
     {COLLECTION_LINKS.map(l => <Link key={l.key} href={l.href}>{l.label}</Link>)}
     <Link href="/visa">ویزا</Link>
     <Link href="/faq">سؤالات متداول</Link>

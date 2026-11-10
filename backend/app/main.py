@@ -2347,7 +2347,7 @@ def public_tour_product_detail(tour_id: str, db: Session = Depends(get_db)) -> d
     return _public_tour_projection(tour_detail(tour_id, _public_search_identity(db), db))
 
 
-TOUR_COLLECTIONS = ("last-minute", "nowruz", "special")
+TOUR_COLLECTIONS = ("last-minute", "nowruz", "special", "festival")
 LAST_MINUTE_DAYS = 14
 _TEHRAN = timezone(timedelta(hours=3, minutes=30))
 
@@ -2377,7 +2377,7 @@ def tour_collection(db: Session, tenant_id: int, key: str, picked: Optional[list
         window = (now, now + timedelta(days=LAST_MINUTE_DAYS))
     elif key == "nowruz":
         window = _nowruz_window(now)
-    else:
+    else:  # special / festival: editor-picked published tours
         if not picked:
             return {"key": key, "items": []}
         conds.append(tour.id.in_(picked))
@@ -2400,7 +2400,12 @@ def tour_collection(db: Session, tenant_id: int, key: str, picked: Optional[list
         if len(item["departures"]) < 6:
             item["departures"].append({"id": d.id, "starts_at": d.starts_at.isoformat(), "ends_at": d.ends_at.isoformat(), "seats_left": d.remaining <= 5})
     out = list(items.values())
-    if key == "special":
+    if items:  # approved customer reviews only; no rating is shown without at least one
+        rv = operational_models.Review
+        for ref, avg, count in db.execute(select(rv.service_reference, func.avg(rv.rating), func.count(rv.id)).where(
+                rv.tenant_id == tenant_id, rv.service_type == "tour", rv.moderation_state == "approved", rv.service_reference.in_(list(items))).group_by(rv.service_reference)).all():
+            items[ref]["rating"] = {"average": round(float(avg), 1), "count": int(count)}
+    if key in ("special", "festival"):
         order = {tid: i for i, tid in enumerate(picked or [])}
         out.sort(key=lambda x: order.get(x["id"], 999))
     out = out[:48]
@@ -2414,13 +2419,24 @@ def tour_collection(db: Session, tenant_id: int, key: str, picked: Optional[list
 def public_tour_collection(tenant_slug: str, key: str, response: Response, db: Session = Depends(get_db)) -> dict:
     from .site_cms import SiteContentBlock
     picked: list[str] = []
-    if key == "special":
+    festival = None
+    if key in ("special", "festival"):
         cms_tenant = _public_tenant(db, tenant_slug)
-        raw = db.scalar(select(SiteContentBlock.published_json).where(SiteContentBlock.tenant_id == cms_tenant.id, SiteContentBlock.key == "special_tours"))
-        picked = list(json.loads(raw).get("tour_ids", [])) if raw else []
+        raw = db.scalar(select(SiteContentBlock.published_json).where(SiteContentBlock.tenant_id == cms_tenant.id, SiteContentBlock.key == ("special_tours" if key == "special" else "festival")))
+        block = json.loads(raw) if raw else {}
+        if key == "festival":
+            today = datetime.now(_TEHRAN).date().isoformat()
+            if block.get("active") and block.get("starts_on", "9") <= today <= block.get("ends_on", "0"):
+                festival = {k: block.get(k, "") for k in ("title", "intro", "starts_on", "ends_on", "image", "terms")}
+            else:
+                block = {}
+        picked = list(block.get("tour_ids", []))
     identity = _public_search_identity(db)
     response.headers["Cache-Control"] = "public, max-age=60"
-    return tour_collection(db, identity.tenant_id, key, picked)
+    result = tour_collection(db, identity.tenant_id, key, picked)
+    if key == "festival":
+        result["festival"] = festival
+    return result
 
 
 def _tour_room_types(departure) -> list[str]:

@@ -4,7 +4,9 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 from app import operations as m
-from app.main import SessionLocal, _nowruz_window, tour_collection
+from sqlalchemy import select
+
+from app.main import SessionLocal, User, _nowruz_window, tour_collection
 from test_search_v2_public import _seed_public_tenant
 
 TEHRAN = timezone(timedelta(hours=3, minutes=30))
@@ -57,7 +59,16 @@ def test_tour_collections(client):
     item = next(i for i in lm["items"] if i["id"] == soon)
     assert item["nights"] == 3 and item["departure_count"] == 1
     assert item["departures"][0]["seats_left"] is True and "base_price" not in str(lm) and "private" not in str(lm)
-    assert lm["window"]["from"] < lm["window"]["to"]
+    assert lm["window"]["from"] < lm["window"]["to"] and "rating" not in item
+
+    with SessionLocal() as db:
+        user_id = db.scalar(select(User.id).limit(1))
+        for i, (r, state) in enumerate([(5, "approved"), (4, "approved"), (1, "pending")]):
+            db.add(m.Review(tenant_id=tenant, user_id=user_id, service_type="tour", service_reference=soon, rating=r, title="Mock QA", body="Mock QA review body",
+                            moderation_state=state, command_id=f"mockqa-{soon}-{i}"))
+        db.commit()
+    item = next(i for i in client.get("/public/tenants/aftab-bank/tour-collections/last-minute").json()["items"] if i["id"] == soon)
+    assert item["rating"] == {"average": 4.5, "count": 2}
 
     nr = [i["id"] for i in client.get("/public/tenants/aftab-bank/tour-collections/nowruz").json()["items"]]
     assert nowruz in nr and soon not in nr
@@ -88,3 +99,37 @@ def test_faq_slot(client):
     assert client.put("/cms/blocks/faq", json=faq, headers=admin).status_code == 200
     assert client.post("/cms/blocks/faq/publish", headers=admin).status_code == 200
     assert client.get("/public/tenants/aftab-bank/site-content").json()["faq"]["items"][0]["question"] == "چطور رزرو کنم؟"
+
+
+def test_festival_window_and_activation(client):
+    tenant = _seed_public_tenant()
+    now = datetime.now(timezone.utc)
+    with SessionLocal() as db:
+        s = m.Supplier(tenant_id=tenant, supplier_type="tour", display_name="Mock QA festival", status="active")
+        db.add(s)
+        db.flush()
+        tid = _tour(db, tenant, s.id, "Mock QA festival tour", now + timedelta(days=20))
+        db.commit()
+    admin = _h(client, "tenant-admin@aftab.test")
+    today = now.astimezone(TEHRAN).date()
+    base = {"active": True, "title": "جشنواره‌ی پاییز", "intro": "تورهای منتخب پاییز", "image": "", "terms": "", "tour_ids": [tid],
+            "starts_on": (today - timedelta(days=1)).isoformat(), "ends_on": (today + timedelta(days=5)).isoformat()}
+    assert client.put("/cms/blocks/festival", json={**base, "ends_on": (today - timedelta(days=3)).isoformat()}, headers=admin).status_code == 422
+    assert client.put("/cms/blocks/festival", json={**base, "title": "جشنواره با ۳۰٪ تخفیف"}, headers=admin).status_code == 422
+    url = "/public/tenants/aftab-bank/tour-collections/festival"
+    assert client.get(url).json() == {"key": "festival", "items": [], "festival": None}
+
+    assert client.put("/cms/blocks/festival", json=base, headers=admin).status_code == 200
+    assert client.post("/cms/blocks/festival/publish", headers=admin).status_code == 200
+    live = client.get(url).json()
+    assert live["festival"]["title"] == "جشنواره‌ی پاییز" and [i["id"] for i in live["items"]] == [tid]
+
+    # not started yet → nothing public
+    later = {**base, "starts_on": (today + timedelta(days=2)).isoformat()}
+    assert client.put("/cms/blocks/festival", json=later, headers=admin).status_code == 200
+    assert client.post("/cms/blocks/festival/publish", headers=admin).status_code == 200
+    assert client.get(url).json()["festival"] is None
+    # switched off
+    assert client.put("/cms/blocks/festival", json={**base, "active": False}, headers=admin).status_code == 200
+    assert client.post("/cms/blocks/festival/publish", headers=admin).status_code == 200
+    assert client.get(url).json() == {"key": "festival", "items": [], "festival": None}
