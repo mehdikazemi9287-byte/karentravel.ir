@@ -83,16 +83,21 @@ main() {
     for s in $SERVICES; do docker tag "karenseir-$s:pre-$TS" "karenseir-$s:latest"; done
     die "build failed; code back on $PREV_BRANCH"
   fi
-  PREV_HEAD=$(docker compose run --rm -T api alembic current 2>/dev/null | awk 'NF{print $1}' | tail -1)
+  # Once the API runs as the least-privilege karenseir_api role (H-4), migrations keep the owner role:
+  # MIGRATION_DATABASE_URL in $ROOT/.env (see karenseir-db-role-check.sh). Absent = previous behaviour.
+  MIG_ENV=()
+  MIG_URL=$(sed -n 's/^MIGRATION_DATABASE_URL=//p' "$ROOT/.env" 2>/dev/null | tail -1)
+  if [ -n "$MIG_URL" ]; then MIG_ENV=(-e "DATABASE_URL=$MIG_URL"); say "migrations run with MIGRATION_DATABASE_URL (owner role)"; fi
+  PREV_HEAD=$(docker compose run --rm -T ${MIG_ENV[@]+"${MIG_ENV[@]}"} api alembic current 2>/dev/null | awk 'NF{print $1}' | tail -1)
   say "migration head before: ${PREV_HEAD:-unknown}"
-  if ! docker compose run --rm -T api alembic upgrade head; then
+  if ! docker compose run --rm -T ${MIG_ENV[@]+"${MIG_ENV[@]}"} api alembic upgrade head; then
     say "MIGRATION FAILED — rolling back code and images (the database backup from step 2 is kept)"
     cd "$APP" && git checkout --quiet "$PREV_BRANCH" && git branch -D "release-$TS" >/dev/null
     for s in $SERVICES; do docker tag "karenseir-$s:pre-$TS" "karenseir-$s:latest"; done
     cd "$ROOT" && docker compose up -d --no-build $SERVICES
     die "alembic upgrade failed; previous release restored. If the DB was partly migrated, restore the latest dump in $ROOT/backups."
   fi
-  say "migration head after: $(docker compose run --rm -T api alembic current 2>/dev/null | awk 'NF{print $1}' | tail -1)"
+  say "migration head after: $(docker compose run --rm -T ${MIG_ENV[@]+"${MIG_ENV[@]}"} api alembic current 2>/dev/null | awk 'NF{print $1}' | tail -1)"
   docker compose up -d $SERVICES
 
   say "== 6/6 health"
