@@ -117,6 +117,8 @@
 .kh-account-popover a,.kh-account-popover button{display:block;width:100%;padding:10px;text-align:start;border-radius:8px;background:transparent;color:inherit}
 .kh-account-popover a:hover,.kh-account-popover button:hover{background:#f6eee2}
 .kh-account-popover p{padding:8px;font-family:Vazirmatn}
+/* the header pill clips its overflow; while the account menu is open its popover must show below the pill and above the page */
+[data-name="Header / Nav"]:has(.kh-account-menu[open]){overflow:visible;z-index:50}
 /* services strip as in the approved render: large gold outline icon above the label */
 @media(min-width:701px){.kh-strip a{flex-direction:column;gap:10px;padding:6px 56px}.kh-strip svg{width:52px;height:52px;stroke-width:1.4}}
 /* CMS announcement bar */

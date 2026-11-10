@@ -14,13 +14,14 @@ for (const redirect of ['https://payment.example.test/mock', 'http://payment.exa
     await page.route('**/payments/mock-payment/initiate', route => route.fulfill({ json: { redirect_url: redirect } }));
     await page.route('https://payment.example.test/**', route => route.fulfill({ contentType: 'text/html', body: '<h1>Mock payment destination</h1>' }));
     await page.goto('/checkout/mock-reservation');
-    await page.getByRole('button', { name: 'شروع و ذخیره Checkout' }).click();
-    await page.getByRole('button', { name: 'اتصال به درگاه معتبر' }).click();
+    await page.getByRole('button', { name: 'شروع یا ادامهٔ رزرو' }).click();
+    await page.getByRole('button', { name: 'ادامه در درگاه پرداخت' }).click();
     if (redirect?.startsWith('https:')) {
       await expect(page).toHaveURL(redirect);
       await expect(page.getByRole('heading', { name: 'Mock payment destination' })).toBeVisible();
     } else {
-      await expect(page.getByRole('status')).not.toHaveText('Checkout ذخیره شد و قابل resume است.');
+      // Non-https, script or malformed redirects are refused; a missing one is reported as unavailable.
+      await expect(page.getByRole('status')).toHaveText(redirect === undefined ? /درگاه پرداخت در دسترس نیست/ : /اتصال به درگاه انجام نشد/);
       await expect(page).toHaveURL(/\/checkout\/mock-reservation$/);
     }
   });

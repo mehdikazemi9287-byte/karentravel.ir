@@ -38,7 +38,10 @@ test('safarsaz, loyalty, sms campaigns, revenue and journal pages load with real
     await open(page, path);
     await expect(page.getByRole('heading', { level: 1 })).toContainText(heading.split(' ')[0]);
     await expect(page.locator('.pn-main')).toBeVisible();
-    await expect(page.locator('.pn-note.error', {hasNotText: 'سرویس پیامک هنوز وصل نیست'})).toHaveCount(0); // panel error state (Next's route announcer also uses role=alert)
+    // Panel error state (Next's route announcer also uses role=alert). Two notes share the error style but are
+    // data notices, not load failures: SMS not connected, and journal rows whose account code is not mapped yet
+    // (present once earlier specs have posted ledger entries).
+    await expect(page.locator('.pn-note.error').filter({ hasNotText: 'سرویس پیامک هنوز وصل نیست' }).filter({ hasNotText: 'کد حساب تعریف نشده' })).toHaveCount(0);
     await page.screenshot({ path: `${artifactDir}/new-modules${path.replace(/\//g, '-')}.png`, fullPage: true, animations: 'disabled' });
   }
   await open(page, '/admin/sms-campaigns');
