@@ -64,4 +64,5 @@ jobs:
           PLAYWRIGHT_CHANNEL: chromium
           E2E_PYTHON: python
       - run: docker build -t karenseir-web:${{ github.sha }} .
-      - run: docker build -t karenseir-api:${{ github.sha }} backend
+      # catalog_data is provisioned on the server (private content, not in git); an empty folder is enough to build.
+      - run: mkdir -p backend/catalog_data && docker build -t karenseir-api:${{ github.sha }} backend
