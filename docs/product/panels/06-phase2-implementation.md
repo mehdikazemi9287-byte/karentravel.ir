@@ -1,6 +1,6 @@
 # فاز ۲ پنل‌ها — B2B آژانس و چارتر: گزارش پیاده‌سازی (۱۹ آبان ۱۴۰۵)
 
-- محیط: **Source** (شاخهٔ `feat/phase2-b2b-charter` روی `production` در `42d1a98`). روی Production دیپلوی **نشده** است. migration `20261110_74` فقط روی PostgreSQL 16 محلی آزمایشی اجرا شده است.
+- محیط: **Source** (شاخهٔ `feat/phase2-b2b-charter` روی `production` در `42d1a98`). روی Production دیپلوی **نشده** است. migration `20261111_75` (پس از `20261110_74` بلاگ) فقط روی PostgreSQL 16 محلی آزمایشی اجرا شده است.
 - مرجع: `04-panel-spec.md` (§2.6، §2.7، §3، §4، فاز ۲)، `03-tax-b2b-research-1405-08-17.md`، `05-owner-legal-answers-1405-08-18.md`، `FIGMA_MAP_P2.md` (صفحهٔ Figma `222:2`).
 - شواهد QA: `qa/phase-2/README.md` و اسکرین‌شات‌ها در `qa/phase-2/screens/`.
 

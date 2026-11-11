@@ -2358,6 +2358,124 @@ def public_tour_product_detail(tour_id: str, db: Session = Depends(get_db)) -> d
     return _public_tour_projection(tour_detail(tour_id, _public_search_identity(db), db))
 
 
+TOUR_COLLECTIONS = ("last-minute", "nowruz", "special", "festival", "installment")
+LAST_MINUTE_DAYS = 14
+_TEHRAN = timezone(timedelta(hours=3, minutes=30))
+
+
+def _nowruz_window(now: datetime) -> tuple[datetime, datetime]:
+    """Departures from 14 March up to 4 April (Tehran time) cover the Nowruz holidays (1–13 Farvardin) of the coming
+    Nowruz; once this year's holidays are over the window moves to next year."""
+    year = now.astimezone(_TEHRAN).year
+    end = datetime(year, 4, 4, tzinfo=_TEHRAN)
+    if now >= end:
+        year += 1
+        end = datetime(year, 4, 4, tzinfo=_TEHRAN)
+    return datetime(year, 3, 14, tzinfo=_TEHRAN).astimezone(timezone.utc), end.astimezone(timezone.utc)
+
+
+def tour_collection(db: Session, tenant_id: int, key: str, picked: Optional[list[str]] = None, now: Optional[datetime] = None) -> dict:
+    """Published tours for a themed page. Only real, bookable departures count (active, seats left, booking still
+    open); nothing is invented, so a page with no matching departure is honestly empty."""
+    if key not in TOUR_COLLECTIONS:
+        raise HTTPException(404, "این صفحه‌ی تور وجود ندارد")
+    now = now or datetime.now(timezone.utc)
+    tour, dep = operational_models.TourProduct, operational_models.TourDeparture
+    conds = [dep.tenant_id == tenant_id, dep.status == "active", dep.remaining > 0, dep.booking_deadline > now, dep.starts_at > now,
+             tour.id == dep.tour_id, tour.tenant_id == tenant_id, tour.status == "published"]
+    window = None
+    if key == "last-minute":
+        window = (now, now + timedelta(days=LAST_MINUTE_DAYS))
+    elif key == "nowruz":
+        window = _nowruz_window(now)
+    else:  # special / festival / installment: editor-picked published tours
+        if not picked:
+            return {"key": key, "items": []}
+        conds.append(tour.id.in_(picked))
+    if window:
+        conds += [dep.starts_at >= window[0], dep.starts_at < window[1]]
+    rows = db.execute(select(tour, dep).where(*conds).order_by(dep.starts_at, dep.id).limit(300)).all()
+    items: dict[str, dict] = {}
+    for t, d in rows:
+        item = items.get(t.id)
+        if item is None:
+            item = _public_tour_projection({"id": t.id, "title": t.title, "origin": t.origin, "destination": t.destination, "tour_type": t.tour_type, "details": json.loads(t.details_json)})
+            item["departures"] = []
+            items[t.id] = item
+            transport = (json.loads(t.details_json) or {}).get("transport")
+            if isinstance(transport, str) and 0 < len(transport.strip()) <= 60:
+                item["transport"] = transport.strip()
+            item["nights"] = max(0, round((d.ends_at - d.starts_at).total_seconds() / 86400))
+            item["departure_count"] = 0
+        item["departure_count"] += 1
+        if len(item["departures"]) < 6:
+            item["departures"].append({"id": d.id, "starts_at": d.starts_at.isoformat(), "ends_at": d.ends_at.isoformat(), "seats_left": d.remaining <= 5})
+    out = list(items.values())
+    if items:  # approved customer reviews only; no rating is shown without at least one
+        rv = operational_models.Review
+        for ref, avg, count in db.execute(select(rv.service_reference, func.avg(rv.rating), func.count(rv.id)).where(
+                rv.tenant_id == tenant_id, rv.service_type == "tour", rv.moderation_state == "approved", rv.service_reference.in_(list(items))).group_by(rv.service_reference)).all():
+            items[ref]["rating"] = {"average": round(float(avg), 1), "count": int(count)}
+    if key in ("special", "festival", "installment"):
+        order = {tid: i for i, tid in enumerate(picked or [])}
+        out.sort(key=lambda x: order.get(x["id"], 999))
+    out = out[:48]
+    result: dict = {"key": key, "items": out}
+    if window:
+        result["window"] = {"from": window[0].isoformat(), "to": window[1].isoformat()}
+    return result
+
+
+@app.get("/public/tour-products/{product_id}/reviews")
+def public_tour_reviews(product_id: str, response: Response, page: int = Query(default=1, ge=1, le=100), db: Session = Depends(get_db)) -> dict:
+    """Approved customer reviews of a published tour. No reviewer identity is exposed; verified bookings come first."""
+    identity = _public_search_identity(db)
+    tour = db.scalar(select(operational_models.TourProduct).where(operational_models.TourProduct.id == product_id, operational_models.TourProduct.tenant_id == identity.tenant_id, operational_models.TourProduct.status == "published"))
+    if tour is None:
+        raise HTTPException(404, "تور منتشرشده پیدا نشد")
+    rv = operational_models.Review
+    base = select(rv).where(rv.tenant_id == identity.tenant_id, rv.service_type == "tour", rv.service_reference == product_id, rv.moderation_state == "approved")
+    avg, total = db.execute(select(func.avg(rv.rating), func.count(rv.id)).where(rv.tenant_id == identity.tenant_id, rv.service_type == "tour", rv.service_reference == product_id, rv.moderation_state == "approved")).one()
+    rows = db.scalars(base.order_by(rv.verified_booking.desc(), rv.created_at.desc(), rv.id).offset((page - 1) * 10).limit(10)).all()
+    items = []
+    for r in rows:
+        reply = db.scalar(select(operational_models.ReviewSupplierResponse.body).where(operational_models.ReviewSupplierResponse.tenant_id == identity.tenant_id, operational_models.ReviewSupplierResponse.review_id == r.id))
+        items.append({"id": r.id, "rating": r.rating, "title": r.title, "body": r.body, "verified_booking": bool(r.verified_booking), "created_at": r.created_at.isoformat() if r.created_at else None, "reply": reply})
+    response.headers["Cache-Control"] = "public, max-age=60"
+    return {"summary": {"average": round(float(avg), 1) if total else None, "count": int(total or 0)}, "items": items, "page": page, "pages": max(1, -(-int(total or 0) // 10))}
+
+
+@app.get("/public/tenants/{tenant_slug}/tour-collections/{key}")
+def public_tour_collection(tenant_slug: str, key: str, response: Response, db: Session = Depends(get_db)) -> dict:
+    from .site_cms import SiteContentBlock
+    picked: list[str] = []
+    festival = None
+    cms_tenant = _public_tenant(db, tenant_slug)
+    raw_inst = db.scalar(select(SiteContentBlock.published_json).where(SiteContentBlock.tenant_id == cms_tenant.id, SiteContentBlock.key == "installment"))
+    installment_ids = set(json.loads(raw_inst).get("tour_ids", [])) if raw_inst else set()
+    if key == "installment":
+        picked = [t for t in (json.loads(raw_inst).get("tour_ids", []) if raw_inst else [])]
+    if key in ("special", "festival"):
+        raw = db.scalar(select(SiteContentBlock.published_json).where(SiteContentBlock.tenant_id == cms_tenant.id, SiteContentBlock.key == ("special_tours" if key == "special" else "festival")))
+        block = json.loads(raw) if raw else {}
+        if key == "festival":
+            today = datetime.now(_TEHRAN).date().isoformat()
+            if block.get("active") and block.get("starts_on", "9") <= today <= block.get("ends_on", "0"):
+                festival = {k: block.get(k, "") for k in ("title", "intro", "starts_on", "ends_on", "image", "terms")}
+            else:
+                block = {}
+        picked = list(block.get("tour_ids", []))
+    identity = _public_search_identity(db)
+    response.headers["Cache-Control"] = "public, max-age=60"
+    result = tour_collection(db, identity.tenant_id, key, picked)
+    for item in result["items"]:
+        if item["id"] in installment_ids:
+            item["installment"] = True
+    if key == "festival":
+        result["festival"] = festival
+    return result
+
+
 def _tour_room_types(departure) -> list[str]:
     pricing = json.loads(departure.pricing_json)
     return [room for room in ("double", "single", "triple", "extra_bed") if (room == "double" or f"{room}_surcharge" in pricing) and isinstance(pricing.get(f"{room}_surcharge", 0), int) and not isinstance(pricing.get(f"{room}_surcharge", 0), bool) and departure.base_price + pricing.get(f"{room}_surcharge", 0) > 0]
@@ -5746,6 +5864,8 @@ app.include_router(loyalty_calls_router(get_db, current_user, role_has_permissio
 
 from .site_cms import site_cms_router  # noqa: E402  site content slots (draft/publish/history) and media library
 app.include_router(site_cms_router(get_db, current_user, role_has_permission, _public_tenant, _platform_audit))
+from .blog import blog_router  # noqa: E402  blog posts (draft/publish) for travel guides and articles
+app.include_router(blog_router(get_db, current_user, role_has_permission, _public_tenant, _platform_audit))
 
 from .train_requests import train_requests_router  # noqa: E402  train ticket requests issued by an agent in the rail supplier's panel
 app.include_router(train_requests_router(get_db, current_user, role_has_permission, User, _platform_audit))

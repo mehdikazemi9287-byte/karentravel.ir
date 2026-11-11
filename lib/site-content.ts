@@ -14,6 +14,10 @@ export type SiteContent = {
   compare: {title: string; items: CmsCard[]};
   organization: {title: string; items: string[]};
   footer: {tagline: string; copyright: string};
+  faq: {title: string; intro: string; items: {question: string; answer: string}[]};
+  special_tours: {title: string; intro: string; tour_ids: string[]};
+  festival: {active: boolean; title: string; intro: string; starts_on: string; ends_on: string; image: string; tour_ids: string[]; terms: string};
+  installment: {intro: string; nopay: boolean; vamipay: boolean; dibacard: boolean; organization: boolean; tour_ids: string[]};
 };
 
 const A = '/images/approved-figma/';
@@ -35,6 +39,20 @@ export const DEFAULT_CONTENT: SiteContent = {
     {title: 'هتل عباسی اصفهان', image: A + 'imgThumb.jpg', href: '/hotels/abbasi-hotel-r4769549'}]},
   organization: {title: 'سفر سازمانی، بدون پیچیدگی', items: ['اعتبار کارکنان', 'تأیید مرحله‌ای', 'گزارش مالی']},
   footer: {tagline: 'سفر، قصه‌ی ماست. کارن تراول، همراه هر سفر توست.', copyright: '© کارن تراول. همهٔ حقوق محفوظ است.'},
+  // Built-in answers describe only what the site really does; business rules (refund rates, deadlines) are added by the team in /admin/content.
+  faq: {title: 'سؤالات متداول', intro: 'پاسخ پرسش‌های رایج درباره‌ی خرید، پرداخت و پیگیری سفر در کارن تراول.', items: [
+    {question: 'چطور بلیت، هتل یا تور رزرو کنم؟', answer: 'از صفحه‌ی اصلی نوع سفر را انتخاب کنید، مبدأ، مقصد، تاریخ و تعداد مسافران را وارد کنید و از میان نتیجه‌ها گزینه‌ی دلخواه را بردارید. قیمت و ظرفیت هر گزینه پیش از پرداخت دوباره از تأمین‌کننده استعلام می‌شود.'},
+    {question: 'اگر نتیجه‌ای برای سفرم پیدا نشد چه کنم؟', answer: 'در همان صفحه‌ی نتیجه، فرم «درخواست سفر» را پر کنید. کارشناسان کارن تراول با شما تماس می‌گیرند و گزینه‌های موجود را پیشنهاد می‌دهند.'},
+    {question: 'قیمت نهایی چه زمانی مشخص می‌شود؟', answer: 'قیمت هر بلیت، اتاق یا تور در لحظه‌ی خرید از تأمین‌کننده گرفته می‌شود و پیش از پرداخت به شما نمایش داده می‌شود. کارن تراول قیمت نمونه یا تخمینی نشان نمی‌دهد.'},
+    {question: 'بلیت و واچر خود را کجا ببینم؟', answer: 'پس از ورود به حساب کاربری، در بخش «سفرهای من» همه‌ی خریدها، وضعیت صدور و واچر (همراه با کد QR) در دسترس است.'},
+    {question: 'شرایط لغو و استرداد چیست؟', answer: 'شرایط لغو به نوع خدمت و قوانین تأمین‌کننده (ایرلاین، هتل یا برگزارکننده‌ی تور) بستگی دارد پیش از پرداخت می‌توانید آن را از پشتیبانی بپرسید. برای درخواست لغو از «سفرهای من» یا پشتیبانی اقدام کنید.'},
+    {question: 'برای سفر خارجی ویزا هم می‌گیرید؟', answer: 'در صفحه‌ی «ویزا و مدارک سفر» کشور مقصد و تاریخ سفر را ثبت کنید تا کارشناس مدارک لازم و روند کار را به شما اعلام کند.'},
+    {question: 'سازمان ما چطور می‌تواند برای کارکنانش سفر بخرد؟', answer: 'کارن تراول برای سازمان‌ها اعتبار کارکنان، تأیید مرحله‌ای و گزارش مالی دارد. از صفحه‌ی «سفر سازمانی» درخواست همکاری بدهید.'},
+    {question: 'چطور با پشتیبانی تماس بگیرم؟', answer: 'از صفحه‌ی پشتیبانی پیام بفرستید یا با شماره‌ی پشتیبانی که پایین همه‌ی صفحه‌ها آمده تماس بگیرید. پیگیری درخواست‌ها در حساب کاربری شما ثبت می‌شود.'},
+  ]},
+  special_tours: {title: 'تورهای ویژه', intro: 'تورهایی که کارشناسان کارن تراول برای این فصل انتخاب کرده‌اند.', tour_ids: []},
+  festival: {active: false, title: 'جشنواره‌ی سفر کارن تراول', intro: '', starts_on: '', ends_on: '', image: '', tour_ids: [], terms: ''},
+  installment: {intro: '', nopay: true, vamipay: true, dibacard: true, organization: true, tour_ids: []},
 };
 
 export const tenantSlug = () => process.env.NEXT_PUBLIC_TENANT_SLUG || 'aftab-bank';

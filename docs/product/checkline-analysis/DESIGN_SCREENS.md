@@ -71,3 +71,7 @@ https://www.figma.com/design/Ei8MUR9VN2yCX6BLOpvTXm/KarenSeir?node-id=174-7
 - **ویستا (vistaapp.ir):** ماژول‌های پرواز، قطار، هتل، تاکسی، کیف پول، گردشگری سلامت، ترجمه؛ معماری توسعه‌پذیر؛ پشتیبانی یک‌ساله. ← معرفی کارن‌سیر به‌شکل ماژول‌های جدا روی یک پایگاه داده.
 
 </div>
+
+## کارت پرواز تور، مهر مقصد و جشنواره (۲۰ آبان ۱۴۰۵)
+
+فیگما: https://www.figma.com/design/Ei8MUR9VN2yCX6BLOpvTXm/KarenSeir?node-id=237-2 — کامپوننت `Tour Pass` (`237:5`)، `Destination Stamp` (`237:3`)، صفحه‌ی لحظه‌آخری دسکتاپ (`237:33`) و موبایل (`237:159`)، نوار جشنواره (`238:181`). تورها نمونه‌ی بازبینی‌اند؛ کد: `components/catalog/TourCollections.tsx`.

@@ -8,7 +8,7 @@
 | `pytest` کل backend (SQLite) | **۸۱۸ موفق**، ۷ skipped، ۰ شکست (پایه پیش از فاز: ۷۹۶) | `pytest-full.txt` |
 | تست‌های تازه: `test_agency_b2b.py` (۱۶) و `test_charter_blocks.py` (۶) | سبز روی SQLite و روی **PostgreSQL 16 migrate‌شده** (همراه تست ۱۰ نخ هم‌زمان) | `pytest-phase2-postgres.txt` |
 | `test_panel_access_registry.py` (drift نقش و مجوز) | سبز | داخل اجرای کامل |
-| alembic | یک head (`20261110_74`)؛ `upgrade head`، سپس `downgrade -1` (جدول‌ها و ستون حذف شدند)، سپس دوباره `upgrade head` موفق | `alembic-upgrade.txt` |
+| alembic | یک head (`20261111_75`)؛ `upgrade head`، سپس `downgrade -1` (جدول‌ها و ستون حذف شدند)، سپس دوباره `upgrade head` موفق | `alembic-upgrade.txt` |
 | RLS | هر ۹ جدول تازه `relrowsecurity=t` و `relforcerowsecurity=t` با policy `karenseir_tenant_isolation`. نقش غیر superuser با `app.tenant_id=2` صفر ردیف و بدون tenant صفر ردیف می‌بیند | `rls-tables.txt`، `rls-probe.txt` |
 | `npm run lint` | ۰ خطا (۴۰ هشدار قدیمی؛ هیچ‌کدام در فایل‌های این فاز نیست) | — |
 | `npx tsc --noEmit` | بدون خطا | — |
