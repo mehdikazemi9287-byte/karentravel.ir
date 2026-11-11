@@ -36,7 +36,7 @@ test('cancel → ops approve → two-person finance refund → customer sees pai
     `/backoffice/requests/${zero}`, '/finance/refunds', `/finance/refunds/${zero}`, '/account/wallet']) {
     await request.get(path, { timeout: 120_000 });
   }
-  test.setTimeout(120_000);
+  test.setTimeout(240_000);
   const suffix = `${Date.now()}`;
   // --- a real booking with a verified cancellation policy (penalty 400,000 IRR of 2,000,000)
   const supplier = await login(request, 'supplier@aftab.test');

@@ -11,10 +11,11 @@ const REPORT = process.env.E2E_A11Y_REPORT || '';
 const SHOTS = process.env.E2E_SCREENSHOT_DIR || '';
 type Session = { access_token: string; refresh_token: string; token_type: string; user: { name: string; role: string; tenant: string } };
 
-const ROLES: Record<string, { email: string; pages: string[] }> = {
+const ROLES: Record<string, { email: string; role?: string; pages: string[] }> = {
   customer: { email: 'employee@aftab.test', pages: ['/account', '/account/bookings', '/account/refunds', '/account/price-changes', '/panel/today'] },
-  // welfare@ (an organization manager) because charter-block.spec turns org-admin@ into an agency partner on a shared e2e DB
-  organization: { email: 'welfare@aftab.test', pages: ['/organization', '/organization/requests', '/organization/passengers'] },
+  // welfare@ (an organization manager) because charter-block.spec turns org-admin@ into an agency partner on a shared e2e DB.
+  // refund-loop and agency-credit promote welfare@ to finance_operator, so this test puts the role back first (`role`).
+  organization: { email: 'welfare@aftab.test', role: 'welfare_manager', pages: ['/organization', '/organization/requests', '/organization/passengers'] },
   agency: { email: 'agency@aftab.test', pages: ['/agency', '/agency/credit', '/agency/passengers'] },
   supplier: { email: 'supplier@aftab.test', pages: ['/supplier', '/supplier/fulfillment'] },
   ops: { email: 'backoffice@aftab.test', pages: ['/panel/today', '/backoffice/queues/service_requests', '/backoffice/price-changes', '/backoffice/agencies'] },
@@ -29,6 +30,16 @@ async function login(request: APIRequestContext, email: string): Promise<Session
   const r = await request.post(`${API}/auth/dev-login`, { data: { email } });
   expect(r.ok(), await r.text()).toBeTruthy();
   return r.json();
+}
+async function ensureRole(request: APIRequestContext, email: string, role: string) {
+  const admin = await login(request, 'tenant-admin@aftab.test');
+  const headers = { Authorization: `Bearer ${admin.access_token}` };
+  const users = await request.get(`${API}/admin/users`, { headers });
+  expect(users.ok(), await users.text()).toBeTruthy();
+  const target = ((await users.json()) as { id: number; email: string; role: string }[]).find(u => u.email === email)!;
+  if (target.role === role) return;
+  const r = await request.put(`${API}/admin/users/${target.id}/role`, { headers, data: { role, reason: 'E2E role smoke' } });
+  expect(r.ok(), await r.text()).toBeTruthy();
 }
 async function pageAs(browser: Browser, session: Session, width = 1440): Promise<Page> {
   const ctx = await browser.newContext({ viewport: { width, height: width > 500 ? 900 : 844 }, locale: 'fa-IR' });
@@ -46,9 +57,10 @@ test.beforeAll(async ({ request }) => {
 });
 test.afterAll(() => { if (REPORT) writeFileSync(REPORT, JSON.stringify(findings, null, 2)); });
 
-for (const [role, { email, pages }] of Object.entries(ROLES)) {
+for (const [role, { email, role: userRole, pages }] of Object.entries(ROLES)) {
   test(`${role}: main panel pages render with nonce CSP and pass axe`, async ({ browser, request }) => {
     test.setTimeout(240_000);
+    if (userRole) await ensureRole(request, email, userRole);
     const page = await pageAs(browser, await login(request, email));
     const csp: string[] = []; const errors: string[] = [];
     page.on('console', m => { if (/Content Security Policy|Refused to (execute|load)/i.test(m.text())) csp.push(m.text()); });
