@@ -53,7 +53,7 @@ export function CustomerVisa() {
   return <>
     <Card title="درخواست‌های ویزای من"><Async state={res.state}>{rows => <Table rows={rows.filter(r => /visa/i.test(r.service_type))} cols={reservationCols} rowKey={r => r.id} empty="درخواست ویزایی در این حساب ثبت نشده است."/>}</Async></Card>
     <Card title="خدمات ویزای قابل‌درخواست"><Async state={products.state}>{rows => rows.length === 0 ? <Unavailable>هنوز هیچ خدمت ویزایی با قیمت و شرایط واقعی توسط تأمین‌کننده ثبت نشده است؛ به همین دلیل ثبت درخواست آنلاین ویزا فعال نیست.</Unavailable>
-      : <ul className="pn-list">{rows.map(p => <li key={p.id}><span>{p.title ?? p.name ?? p.id}</span><Link className="pn-link" href="/visa">مشاهده و درخواست</Link></li>)}</ul>}</Async></Card>
+      : <ul className="pn-list">{rows.map(p => <li key={p.id}><span>{p.title ?? p.name ?? p.id}</span><Link className="pn-link" href={`/visa/products/${p.id}`}>مشاهده و درخواست</Link></li>)}</ul>}</Async></Card>
     <Card title="راهنمای ویزای کشورها" action={<Link className="pn-link" href="/visa">همهٔ راهنماها</Link>}><Async state={guides.state}>{g => g.countries.length + g.articles.length === 0 ? <Empty>راهنمایی ثبت نشده است.</Empty>
       : <div className="pn-chips">{g.countries.map(c => <Link key={c.id} className="pn-badge" href={`/visa/cl-visa-country-${c.id}`}>{c.name}</Link>)}</div>}</Async><p className="pn-muted">این متن‌ها راهنمای عمومی‌اند؛ شرایط و مدارک را سفارت مقصد تعیین می‌کند.</p></Card>
   </>;
