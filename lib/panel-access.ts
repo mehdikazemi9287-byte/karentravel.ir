@@ -14,7 +14,7 @@ import ROLE_PERMISSIONS from './role-permissions.json';
 
 export type Area = 'customer' | 'organization' | 'agency' | 'supplier' | 'admin';
 export type Rule = {roles?: string[]; anyPermission?: string[]; notRoles?: string[]};
-export type NavItem = {label: string; href: string; area: Area; rule?: Rule; menu?: boolean; inNav?: boolean; moved?: Record<string, string>};
+export type NavItem = {label: string; href: string; area: Area; rule?: Rule; menu?: boolean; inNav?: boolean; moved?: Record<string, string>; group?: string};
 
 const PERMS = ROLE_PERMISSIONS as Record<string, string[]>;
 export function hasPermission(role: string, permission: string): boolean {
@@ -65,6 +65,9 @@ const R = {
   serviceDecide: {anyPermission: ['service_request:decide']},                                        // after_sales ops_user
   refunds: {anyPermission: ['refund:manage']},                                                        // after_sales fin_user
   reconcile: {anyPermission: ['reconciliation:manage']},                                              // after_sales recon_user
+  agencyReview: {anyPermission: ['license:verify', 'tenant:manage', 'backoffice:read', 'ledger:read'], notRoles: PARTNERS_AND_PUBLIC}, // agency_b2b.staff_reader
+  charterReview: {anyPermission: ['inventory:publish', 'tenant:manage', 'backoffice:read'], notRoles: PARTNERS_AND_PUBLIC},     // charter_blocks.staff
+  agencyCredit: {anyPermission: ['credit:fund', 'ledger:read'], notRoles: PARTNERS_AND_PUBLIC},                                // agency_b2b.finance_accounts
 } satisfies Record<string, Rule | undefined>;
 
 const I = (area: Area, label: string, href: string, rule?: Rule, extra: Partial<NavItem> = {}): NavItem => ({area, label, href, rule, inNav: true, ...extra});
@@ -82,10 +85,15 @@ export const PANEL_ITEMS: NavItem[] = [
   I('organization', 'صورتحساب و تسویه', '/organization/billing', R.orgRecords), I('organization', 'گزارش', '/organization/reports', R.orgManager),
   I('organization', 'سوابق و گردش تأیید', '/organization/audit', R.orgRecords), I('organization', 'تعهد مالی سفر', '/organization/financial-context', R.orgRecords),
 
-  I('agency', 'نمای کلی', '/agency', R.agency), I('agency', 'تورهای من', '/agency/tours', R.agency, {menu: true}), I('agency', 'فروش و پیشنهاد قیمت', '/agency/sales', R.agency),
-  I('agency', 'رزروها', '/agency/bookings', R.agency), I('agency', 'مشتریان', '/agency/customers', R.agency), I('agency', 'کمیسیون', '/agency/commissions', R.agency),
-  I('agency', 'اعتبار و حساب', '/agency/credit', R.agency), I('agency', 'تسویه و اسناد', '/agency/documents', R.agency), I('agency', 'گزارش', '/agency/reports', R.agency),
-  I('agency', 'میز کار کامل', '/agency/workspace', R.agency), I('agency', 'پشتیبانی', '/agency/support', R.agency),
+  // Agency sidebar (Figma P2 AG-*): grouped like the approved frames — today, my inventory (seller), sell & price, money, the agency itself.
+  I('agency', 'امروز', '/agency', R.agency),
+  ...([['تورهای من', '/agency/tours'], ['پرواز و بلوک صندلی', '/agency/inventory/flights']] as [string, string][]).map(([l, h]) => I('agency', l, h, R.agency, {group: 'موجودی من (فروشنده)', menu: h === '/agency/tours'})),
+  ...([['فروش با اعتبار آژانس', '/agency/sell'], ['فروش و پیشنهاد قیمت', '/agency/sales'], ['رزروها', '/agency/bookings'], ['مشتریان', '/agency/customers'], ['قواعد markup و کمیسیون', '/agency/pricing']] as [string, string][])
+    .map(([l, h]) => I('agency', l, h, R.agency, {group: 'فروش و قیمت'})),
+  ...([['حساب و اعتبار', '/agency/credit'], ['کمیسیون', '/agency/commissions'], ['صورتحساب‌ها', '/agency/invoices'], ['تسویه و اسناد', '/agency/documents'], ['گزارش', '/agency/reports']] as [string, string][])
+    .map(([l, h]) => I('agency', l, h, R.agency, {group: 'مالی و حساب'})),
+  ...([['پروفایل و مجوزها', '/agency/profile'], ['کاربران آژانس', '/agency/users'], ['میز کار کامل', '/agency/workspace'], ['پشتیبانی', '/agency/support']] as [string, string][])
+    .map(([l, h]) => I('agency', l, h, R.agency, {group: 'آژانس'})),
 
   I('supplier', 'نمای کلی', '/supplier', R.supplier, {menu: true}), I('supplier', 'خدمات، نرخ و ظرفیت', '/supplier/services', R.supplier),
   I('supplier', 'تورهای من', '/supplier/tours', R.supplier, {menu: true, moved: {agency_partner: '/agency/tours'}}), I('supplier', 'هتل‌های من', '/supplier/hotels', R.supplier, {menu: true}),
@@ -107,6 +115,7 @@ export const PANEL_ITEMS: NavItem[] = [
     ['مطالبات سازمان‌ها', '/finance/receivables', R.financeRead], ['دفتر کل و بستن دوره', '/finance/ledger', R.financeRead],
     ['عملکرد و تطبیق تأمین‌کنندگان', '/finance/suppliers', R.supplierFinance], ['روابط مالی اکوسیستم', '/admin/ecosystem', R.financeRead],
     ['صف لغو، تغییر و استرداد', '/backoffice/queues/service_requests', R.serviceDecide], ['صف استرداد مالی', '/finance/refunds', R.refunds], ['تطبیق درگاه', '/finance/reconciliation', R.reconcile],
+    ['آژانس‌ها و مجوزها', '/backoffice/agencies', R.agencyReview], ['بلوک‌های چارتر', '/backoffice/charter-blocks', R.charterReview], ['حساب و اعتبار آژانس‌ها', '/finance/agency-accounts', R.agencyCredit],
   ] as [string, string, Rule][]).map(([label, href, rule]) => I('admin', label, href, rule, {menu: true})),
   // Staff pages outside the panel shell (JourneyShell): not in the sidebar, but in the account menu for the roles that can use them.
   ...([

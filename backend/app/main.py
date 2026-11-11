@@ -3338,6 +3338,11 @@ def price_check(offer_id: str, data: PriceCheckIn, user: User = Depends(current_
     if offer.service_type == "tourist_transportation":_validate_transport_contract(json.loads(offer.attributes_json))
     if offer.service_type == "handicraft":_validate_handicraft_contract(json.loads(offer.attributes_json))
     attributes = json.loads(offer.attributes_json); final_unit_price = max(0, offer.amount + int(attributes.get("taxes", 0) or 0) + int(attributes.get("fees", 0) or 0) - int(attributes.get("discounts", 0) or 0)); final_unit_price, commercial_rule = _commercial_unit_price(db, user.tenant_id, user.id, offer, attributes, final_unit_price); final_total = final_unit_price * data.units
+    if offer.service_type == "flight":  # owner L5: the sale price never exceeds the CAO cap configured for the route and date
+        from .charter_blocks import applicable_cap
+        cap, cap_ref = applicable_cap(db, user.tenant_id, attributes)
+        if cap is not None and final_unit_price > cap:
+            raise HTTPException(status_code=409, detail={"code": "PRICE_CAP_EXCEEDED", "message": "قیمت این پرواز از سقف اعلامی سازمان هواپیمایی بیشتر است", "price_cap_unit_irr": cap, "price_cap_reference": cap_ref})
     if data.expected_final_price is not None and data.expected_final_price != final_total:
         raise HTTPException(status_code=409, detail={"code": "PRICE_CHANGED", "old_price": data.expected_final_price, "new_price": final_total, "delta": final_total - data.expected_final_price, "checked_at": now.isoformat()})
     snapshot = {"offer_id": offer.id, "service_type": offer.service_type, "supplier_id": offer.supplier_id, "title": offer.title, "unit_amount": final_unit_price, "units": data.units, "total_amount": final_total, "currency": offer.currency, "policy": json.loads(offer.policy_json), "attributes": attributes, "provider_key": offer.provider_key, "fulfillment_mode": offer.fulfillment_mode, "checked_at": now.isoformat(), "availability_state": "CONFIRMED", "price_state": "RECHECKED"}
@@ -3468,6 +3473,10 @@ def _reservation_settlement_ready(db: Session, reservation: "operational_models.
     from .funding_references import bank_payable, fully_funded_without_bank, latest_plan
     from .financial_amounts import FinancialInvariantError
     if fully_funded_without_bank(db, reservation, _secure_hash):
+        return True
+    from .agency_b2b import AgencyBookingLine  # Panels Phase 2: paid in full from the agency's own account (captured, never a guess)
+    if db.scalar(select(AgencyBookingLine.id).where(AgencyBookingLine.tenant_id == reservation.tenant_id, AgencyBookingLine.reservation_id == reservation.id,
+                                                    AgencyBookingLine.status == "captured").limit(1)) is not None:
         return True
     payment = db.scalar(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.tenant_id == reservation.tenant_id, operational_models.PaymentIntent.reservation_id == reservation.id, operational_models.PaymentIntent.status == "captured", operational_models.PaymentIntent.captured_amount > 0).order_by(operational_models.PaymentIntent.captured_amount.desc()).limit(1))
     if payment is None:
@@ -5857,6 +5866,11 @@ from .partner_requests import partner_requests_router  # noqa: E402  requests to
 app.include_router(partner_requests_router(get_db, current_user, _platform_audit, role_has_permission))
 from .after_sales import after_sales_router  # noqa: E402  Panels Phase 1 after-sales loop (customer → ops → finance → customer)
 app.include_router(after_sales_router(get_db, current_user, role_has_permission, User, _platform_audit, _verified_cancellation_quote))
+from .agency_b2b import agency_b2b_router  # noqa: E402  Panels Phase 2: agency profile/licences, wallet+credit (maker-checker), markup, booking on credit
+app.include_router(agency_b2b_router(get_db, current_user, role_has_permission, User, _platform_audit, book=orchestrate_booking, booking_input=OrchestrationBookingIn,
+                                     transition=operational_models.transition_reservation))
+from .charter_blocks import charter_blocks_router  # noqa: E402  Panels Phase 2: charter seat blocks, CAO price cap, allocations, staff publish
+app.include_router(charter_blocks_router(get_db, current_user, role_has_permission, User, _platform_audit))
 
 # M-3: optional httpOnly cookie session + double-submit CSRF (AUTH_COOKIE_MODE, default off).
 # Added last so it is the outermost layer: the rate limiter and current_user see the injected header.

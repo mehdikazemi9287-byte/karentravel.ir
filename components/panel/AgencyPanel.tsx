@@ -18,7 +18,7 @@ export function AgencyScope({children}: {children: (agency: Agency) => ReactNode
   const list = ws.state.data.agencies; const agency = list.find(a => a.id === picked) ?? list[0];
   if (!agency) return <Empty>حساب شما عضو هیچ آژانسی نیست. عضویت را مدیر مجموعه از بخش «تأمین‌کنندگان و آژانس‌ها» ثبت می‌کند.</Empty>;
   return <>{list.length > 1 && <div className="pn-form"><label>آژانس<select value={agency.id} onChange={e => {setPicked(e.target.value); try {sessionStorage.setItem(KEY, e.target.value);} catch {/* ignore */}}}>{list.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label></div>}
-    {!agency.sales_channel_linked && <Unavailable title="کانال فروش متصل نیست">تا وقتی کانال فروش این آژانس توسط مدیر مجموعه متصل نشود، رزروی به نام آژانس ثبت نمی‌شود و فهرست رزروها خالی می‌ماند.</Unavailable>}{children(agency)}</>;
+    {!agency.sales_channel_linked && <Unavailable title="کانال فروش متصل نیست">تا وقتی کانال فروش این آژانس توسط مدیر مجموعه متصل نشود، پیشنهاد قیمت به مشتری و رزروهای کانال فروش آژانس ثبت نمی‌شود. خرید با اعتبار خود آژانس به این کانال نیاز ندارد.</Unavailable>}{children(agency)}</>;
 }
 const bookingCols = [{label: 'کد پیگیری', cell: (b: Booking) => <span className="pn-ltr">{b.booking_reference}</span>}, {label: 'خدمت', cell: (b: Booking) => serviceFa(b.service_type)}, {label: 'وضعیت', cell: (b: Booking) => <Badge status={b.status}/>},
   {label: 'مبلغ', cell: (b: Booking) => money(b.total_amount, b.currency)}, {label: 'ثبت', cell: (b: Booking) => dateFa(b.created_at)}, {label: 'تأیید', cell: (b: Booking) => dateFa(b.confirmed_at)}];

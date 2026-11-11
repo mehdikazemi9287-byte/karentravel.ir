@@ -3,7 +3,7 @@
    A value that the backend does not return is shown as unavailable; nothing here invents a figure. */
 import Link from 'next/link';
 import {usePathname} from 'next/navigation';
-import {useCallback, useEffect, useState, type ReactNode} from 'react';
+import {Fragment, useCallback, useEffect, useState, type ReactNode} from 'react';
 import {useAuth} from '../../lib/api/auth-context';
 import {ApiError} from '../../lib/api/karenseir-client';
 import {AccountMenu} from '../marketplace/ApprovedFigmaHome';
@@ -34,7 +34,9 @@ export function useLoad<T>(path: string | null) {
   // Each result remembers the request inputs it answers; a result for older inputs reads as 'loading' while a request is due.
   const [loaded, setLoaded] = useState<{deps: unknown[]; state: Load<T>} | null>(null);
   const deps = [api, session, path, tick]; const current = !!loaded && loaded.deps.every((d, i) => d === deps[i]);
-  const state: Load<T> = current ? loaded.state : session && path ? {kind: 'loading'} : loaded?.state ?? {kind: 'loading'};
+  // A reload of the same request keeps showing the previous data until the fresh answer arrives (no skeleton flash, forms keep their messages).
+  const refreshing = !!loaded && !current && loaded.state.kind === 'ready' && loaded.deps[0] === api && loaded.deps[1] === session && loaded.deps[2] === path;
+  const state: Load<T> = current || refreshing ? loaded.state : session && path ? {kind: 'loading'} : loaded?.state ?? {kind: 'loading'};
   useEffect(() => {
     if (!session || !path) return; let active = true; const key = [api, session, path, tick];
     api.get<T>(path).then(data => {if (active) setLoaded({deps: key, state: {kind: 'ready', data}});}).catch(e => {if (active) setLoaded({deps: key, state: {kind: 'error', ...errorOf(e)}});});
@@ -67,7 +69,8 @@ export function PanelShell({area, title, intro, children}: {area: Area; title: s
       {session?.user ? <AccountMenu variant="panel"/> : <Link className="pn-page-login" href="/login">ورود / ثبت‌نام</Link>}
     </header><div className="pn" data-area={area}>
     <nav className="pn-nav" id="pn-nav" aria-label={navTitle}><span className="pn-nav-title">{navTitle}</span>
-      {session && links.map(({label, href}) => <Link key={href} href={href} aria-current={path === href ? 'page' : undefined}>{label}</Link>)}
+      {session && links.map(({label, href, group}, i) => <Fragment key={href}>{group && group !== links[i - 1]?.group && <span className="pn-nav-group" role="presentation">{group}</span>}
+        <Link href={href} aria-current={path === href || (href !== '/agency' && path.startsWith(href + '/')) ? 'page' : undefined}>{label}</Link></Fragment>)}
       <span className="pn-nav-foot">{area !== 'customer' && <Link href="/account">حساب من</Link>}{area === 'customer' && role && role !== 'customer' && <Link href={homeFor(role)}>پنل کاری من</Link>}</span>
     </nav>
     <main className="pn-main" id="main-content" tabIndex={-1}><header className="pn-head"><h1>{allowed ? nativeTitle : 'دسترسی ندارید'}</h1>{intro && allowed && <p>{intro}</p>}</header>
