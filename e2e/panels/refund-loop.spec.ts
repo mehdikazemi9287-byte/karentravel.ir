@@ -22,9 +22,20 @@ async function pageAs(browser: Browser, session: Session, width = 1440): Promise
   await ctx.addInitScript(value => sessionStorage.setItem('karenseir-auth-session', value), JSON.stringify(session));
   return ctx.newPage();
 }
+// next dev can abort a navigation while it compiles a route and full-reloads the page; retry such a goto once.
+async function go(page: Page, url: string) {
+  try { await page.goto(url); } catch (e) { if (!String(e).includes('ERR_ABORTED')) throw e; await page.goto(url); }
+}
 async function shot(page: Page, name: string) { if (SHOTS) await page.screenshot({ path: `${SHOTS}/${name}.png`, fullPage: true }); }
 
 test('cancel → ops approve → two-person finance refund → customer sees paid refund', async ({ browser, request }) => {
+  // next dev compiles a route on its first visit and then full-reloads open pages, which can swallow a client-side
+  // navigation (seen on CI: the page "navigated" back to itself). Compile every route this journey visits first.
+  const zero = '00000000-0000-0000-0000-000000000000';
+  for (const path of [`/account/bookings/${zero}/cancel`, `/account/refunds/${zero}`, '/backoffice/queues/service_requests',
+    `/backoffice/requests/${zero}`, '/finance/refunds', `/finance/refunds/${zero}`, '/account/wallet']) {
+    await request.get(path, { timeout: 120_000 });
+  }
   test.setTimeout(120_000);
   const suffix = `${Date.now()}`;
   // --- a real booking with a verified cancellation policy (penalty 400,000 IRR of 2,000,000)
@@ -59,7 +70,7 @@ test('cancel → ops approve → two-person finance refund → customer sees pai
 
   // --- customer: 3-step cancel wizard with the server's penalty preview
   const cust = await pageAs(browser, customer);
-  await cust.goto(`/account/bookings/${res.id}/cancel`);
+  await go(cust, `/account/bookings/${res.id}/cancel`);
   await expect(cust.getByRole('heading', { name: /درخواست برای رزرو/ })).toBeVisible();
   await shot(cust, 'C-03a-step1_1440');
   await cust.getByRole('button', { name: 'ادامه' }).click();
@@ -77,10 +88,10 @@ test('cancel → ops approve → two-person finance refund → customer sees pai
 
   // --- ops: queue → handling → start review → approve with the verified policy
   const ops = await pageAs(browser, await login(request, 'backoffice@aftab.test'));
-  await ops.goto('/backoffice/queues/service_requests');
+  await go(ops, '/backoffice/queues/service_requests');
   await expect(ops.getByRole('table', { name: 'صف درخواست‌های لغو، تغییر و استرداد' })).toBeVisible();
   await shot(ops, 'OPS-02-queue_1440');
-  await ops.goto(`/backoffice/requests/${requestId}`);
+  await go(ops, `/backoffice/requests/${requestId}`);
   await ops.getByRole('button', { name: 'شروع بررسی' }).click();
   await expect(ops.getByRole('status').filter({ hasText: 'ثبت شد' })).toBeVisible();
   await ops.getByRole('button', { name: 'تأیید و ارسال به مالی' }).click();
@@ -91,7 +102,7 @@ test('cancel → ops approve → two-person finance refund → customer sees pai
 
   // --- finance maker
   const fin1 = await pageAs(browser, await login(request, 'finance@aftab.test'));
-  await fin1.goto('/finance/refunds');
+  await go(fin1, '/finance/refunds');
   await shot(fin1, 'FIN-02-queue_1440');
   const mine = await ok<{ refund: { id: string; amount: number } }>(request.get(`${API}/me/service-requests/${requestId}`, { headers: auth(customer) }));
   expect(mine.refund.amount).toBe(1_600_000);
@@ -111,7 +122,7 @@ test('cancel → ops approve → two-person finance refund → customer sees pai
 
   // --- finance checker (a different user)
   const fin2 = await pageAs(browser, await login(request, 'welfare@aftab.test'));
-  await fin2.goto(refundUrl);
+  await go(fin2, refundUrl);
   await fin2.getByRole('button', { name: 'تأیید و پرداخت' }).click();
   await fin2.getByRole('dialog').getByLabel(/بررسی کردم/).check();
   await fin2.getByRole('dialog').getByRole('button', { name: 'تأیید و پرداخت' }).click();
@@ -120,16 +131,16 @@ test('cancel → ops approve → two-person finance refund → customer sees pai
   await shot(fin2, 'FIN-02a-paid_1440');
 
   // --- customer sees each step, the paid refund and the wallet credit
-  await cust.goto(`/account/refunds/${requestId}`);
+  await go(cust, `/account/refunds/${requestId}`);
   await expect(cust.locator('[data-status="refund_paid"]').first()).toBeVisible();
   for (const step of ['ثبت درخواست', 'شروع بررسی', 'تأیید درخواست', 'ورود به صف پرداخت', 'پرداخت استرداد']) await expect(cust.getByRole('list', { name: 'روند' })).toContainText(step);
   await shot(cust, 'C-04a-refund-timeline_1440');
-  await cust.goto('/account/wallet');
+  await go(cust, '/account/wallet');
   await expect(cust.getByRole('table', { name: 'تاریخچهٔ کیف پول' })).toContainText('۱۶۰٬۰۰۰ تومان');
   await shot(cust, 'C-06-wallet_1440');
   const mobile = await pageAs(browser, customer, 390);
   for (const [path, name] of [['/account/refunds', 'C-04-refunds_390'], [`/account/refunds/${requestId}`, 'C-04a-refund-timeline_390'], ['/account', 'C-01-today_390'], [`/account/bookings/${res.id}`, 'C-03-booking-detail_390']] as const) {
-    await mobile.goto(path); await mobile.waitForLoadState('networkidle');
+    await go(mobile, path); await mobile.waitForLoadState('networkidle');
     expect(await mobile.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), `${path} has no horizontal scroll at 390`).toBeTruthy();
     await shot(mobile, name);
   }
