@@ -2,14 +2,14 @@
 agency booking lines, charter blocks, CAO price caps; agency_memberships.agency_role. Every new table is tenant-isolated
 with FORCE ROW LEVEL SECURITY; registry checks and the agency ledger are append-only for the API role.
 
-Revision ID: 20261110_74
-Revises: 20261109_73
+Revision ID: 20261111_75
+Revises: 20261110_74 (blog posts)
 """
 from alembic import op
 import sqlalchemy as sa
 
-revision = "20261110_74"
-down_revision = "20261109_73"
+revision = "20261111_75"
+down_revision = "20261110_74"
 branch_labels = None
 depends_on = None
 
