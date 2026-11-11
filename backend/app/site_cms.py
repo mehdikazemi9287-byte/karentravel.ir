@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from typing import Callable, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 from sqlalchemy import DateTime, ForeignKey, Integer, LargeBinary, String, Text, UniqueConstraint, select
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
@@ -133,6 +133,89 @@ class Announcement(Strict):
     href: str = Field(default="", pattern=r"^$|" + _HREF, max_length=300)
 
 
+class FaqItem(Strict):
+    question: str = Field(min_length=3, max_length=160)
+    answer: str = Field(min_length=3, max_length=1200)
+
+
+class Faq(Strict):
+    title: str = Field(min_length=1, max_length=80)
+    intro: str = Field(default="", max_length=240)
+    items: list[FaqItem] = Field(min_length=1, max_length=40)
+
+
+def _tour_ids(v: list[str]) -> list[str]:
+    out: list[str] = []
+    for x in v:
+        x = x.strip()
+        if not x or len(x) > 40 or not all(c.isalnum() or c == "-" for c in x):
+            raise ValueError("شناسه‌ی تور نامعتبر است")
+        if x not in out:
+            out.append(x)
+    return out
+
+
+class SpecialTours(Strict):
+    """Tours an editor picks for /tours/special. Only ids are stored; title, dates and capacity always come from the
+    published tour itself, and a picked tour that is unpublished or sold out simply drops off the page."""
+    title: str = Field(min_length=1, max_length=80)
+    intro: str = Field(default="", max_length=240)
+    tour_ids: list[str] = Field(default_factory=list, max_length=12)
+
+    @field_validator("tour_ids")
+    @classmethod
+    def _ids(cls, v: list[str]) -> list[str]:
+        return _tour_ids(v)
+
+
+class Festival(Strict):
+    """A time-boxed sales festival page (/festival). It is public only while active and today (Tehran) is within the
+    dates; the tours shown are real published tours picked here. Discount figures never go in this text: real
+    discounts come only from commerce rules and show at checkout."""
+    active: bool = False
+    title: str = Field(min_length=1, max_length=80)
+    intro: str = Field(default="", max_length=300)
+    starts_on: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    ends_on: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    image: str = Field(default="", max_length=200, pattern=r"^$|^(/images/[A-Za-z0-9_./-]+|media:[0-9a-f-]{36})$")
+    tour_ids: list[str] = Field(default_factory=list, max_length=24)
+    terms: str = Field(default="", max_length=1500)
+
+    @field_validator("tour_ids")
+    @classmethod
+    def _ids(cls, v: list[str]) -> list[str]:
+        return _tour_ids(v)
+
+    @model_validator(mode="after")
+    def _dates(self):
+        from datetime import date
+        try:
+            a, b = date.fromisoformat(self.starts_on), date.fromisoformat(self.ends_on)
+        except ValueError:
+            raise ValueError("تاریخ جشنواره نامعتبر است")
+        if b < a:
+            raise ValueError("تاریخ پایان جشنواره باید بعد از تاریخ شروع باشد")
+        if (b - a).days > 120:
+            raise ValueError("جشنواره حداکثر ۱۲۰ روز است")
+        return self
+
+
+class Installment(Strict):
+    """/tours/installment: which installment routes are offered and which published tours qualify. No instalment
+    counts, rates or down-payments are written here: each provider states them at credit check."""
+    intro: str = Field(default="", max_length=300)
+    nopay: bool = True
+    vamipay: bool = True
+    dibacard: bool = True
+    organization: bool = True
+    tour_ids: list[str] = Field(default_factory=list, max_length=48)
+
+    @field_validator("tour_ids")
+    @classmethod
+    def _ids(cls, v: list[str]) -> list[str]:
+        return _tour_ids(v)
+
+
 SLOTS: dict[str, tuple[type[Strict], str]] = {
     "announcement": (Announcement, "نوار اطلاع‌رسانی بالای صفحه"),
     "hero": (Hero, "بخش اصلی بالای صفحه"),
@@ -142,6 +225,10 @@ SLOTS: dict[str, tuple[type[Strict], str]] = {
     "compare": (Compare, "مقایسه‌ی دو انتخاب"),
     "organization": (Organization, "سفر سازمانی"),
     "footer": (Footer, "پانویس سایت"),
+    "faq": (Faq, "سؤالات متداول"),
+    "special_tours": (SpecialTours, "صفحه‌ی تورهای ویژه"),
+    "festival": (Festival, "جشنواره"),
+    "installment": (Installment, "تور اقساطی"),
 }
 PRICE_WORDS = ("تومان", "ریال", "تخفیف", "%", "٪")
 
@@ -171,7 +258,7 @@ def validate_slot(key: str, data: dict) -> dict:
         first = e.errors()[0]
         where = ".".join(str(p) for p in first["loc"])
         raise HTTPException(status_code=422, detail=f"مقدار نامعتبر در «{where}»: {first['msg']}")
-    text = json.dumps(clean, ensure_ascii=False)
+    text = json.dumps({k: v for k, v in clean.items() if k not in ("tour_ids", "starts_on", "ends_on", "image")}, ensure_ascii=False)
     if any(ch.isdigit() for ch in text) and any(w in text for w in PRICE_WORDS):
         raise HTTPException(status_code=422, detail="قیمت و درصد تخفیف در محتوای سایت ثبت نمی‌شود؛ قیمت فقط از نتیجه‌ی استعلام نمایش داده می‌شود")
     return clean
