@@ -283,8 +283,8 @@ test('organization and role panels enforce frontend RBAC states', async ({ page 
 });
 
 test('supplier, agency and backoffice panels read only authorized APIs', async ({ page }) => {
-  // Each role lands in its own panel shell; the panel navigation is named after the role's area.
-  for (const [email, link, panel] of [['supplier@aftab.test','تأمین‌کننده','پنل تأمین‌کننده'],['agency@aftab.test','آژانس','پنل همکار'],['backoffice@aftab.test','عملیات','مدیریت مجموعه']] as const) {
+  // Each role lands in its own panel shell; the panel navigation is named after the role's area (staff: ops / finance / admin).
+  for (const [email, link, panel] of [['supplier@aftab.test','تأمین‌کننده','پنل تأمین‌کننده'],['agency@aftab.test','آژانس','پنل همکار'],['backoffice@aftab.test','عملیات','عملیات']] as const) {
     await uiLogin(page, email);
     await page.getByRole('link', { name: link, exact: true }).click();
     await expect(page.getByRole('navigation', { name: panel })).toBeVisible();
@@ -402,7 +402,8 @@ test('finance workspace fails closed for customers and opens for finance role', 
 
   await uiLogin(page, 'finance@aftab.test');
   await page.getByRole('link', { name: 'عملیات', exact: true }).click();
-  await page.getByRole('navigation', { name: 'مدیریت مجموعه' }).getByRole('link', { name: 'مالی', exact: true }).click();
+  // Staff pages are split into operations / finance / admin areas; the area switcher leads to finance.
+  await page.getByRole('navigation', { name: 'عملیات' }).getByRole('link', { name: 'مالی', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'پرداخت، کیف پول، اقساط و تسویه' })).toBeVisible();
 });
 

@@ -81,7 +81,7 @@ export function PanelShell({area: declared, title, intro, children}: {area: Area
         : allowed ? children : <NoAccess role={role} path={path} area={area}/>}
       <Card title="وضعیت و دسترسی"><p className="pn-access-note">اطلاعات تأییدنشده و خدمات متصل‌نشده با وضعیت مشخص نمایش داده می‌شوند.</p><p className="pn-access-note">عملیات فقط با نقش و مجوز همان حساب انجام می‌شود.</p></Card>
     </main></div>
-    {tabs.length > 1 && <nav className="pn-bottom" aria-label={`میان‌بر ${navTitle}`}>{tabs.map(t => <Link key={t.href} href={t.href} aria-current={current(t.href) ? 'page' : undefined}><span aria-hidden="true">{t.glyph}</span>{t.label}</Link>)}
+    {tabs.length > 1 && <nav className="pn-bottom" aria-label={`میان‌بر پنل ${navTitle}`}>{tabs.map(t => <Link key={t.href} href={t.href} aria-current={current(t.href) ? 'page' : undefined}><span aria-hidden="true">{t.glyph}</span>{t.label}</Link>)}
       <a href="#pn-nav"><span aria-hidden="true">☰</span>بیشتر</a></nav>}
     <p className="pn-page-foot">اطلاعات واقعی از حساب و سازمان شما دریافت می‌شود.</p></div>;
 }

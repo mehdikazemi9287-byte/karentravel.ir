@@ -1,0 +1,2 @@
+PASS panel nav is role-filtered, guard denies other roles, agency tours live in the agency panel
+EXIT 0
