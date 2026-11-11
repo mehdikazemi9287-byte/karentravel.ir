@@ -41,7 +41,7 @@ async function go(page: Page, url: string) {
 test.beforeAll(async ({ request }) => {
   test.setTimeout(600_000);
   // next dev compiles a route on first visit; compile every page once so the visits below measure the page, not the compiler.
-  for (const p of new Set(Object.values(ROLES).flatMap(r => r.pages))) await request.get(p, { timeout: 120_000 });
+  for (const p of Array.from(new Set(Object.values(ROLES).flatMap(r => r.pages)))) await request.get(p, { timeout: 120_000 });
 });
 test.afterAll(() => { if (REPORT) writeFileSync(REPORT, JSON.stringify(findings, null, 2)); });
 
