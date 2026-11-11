@@ -132,3 +132,13 @@
 /* Panels Phase 2: sidebar group headings (agency menu, Figma P2 AG-*) */
 .pn-nav-group{display:block;font-size:12px;font-weight:700;color:#e9c98a;padding:12px 14px 4px;line-height:1.6}
 @media (max-width:900px){.pn-nav-group{display:none!important}}
+
+/* Phase 1 rest: staff area switcher (ops / finance / admin) and the bottom navigation for every panel area */
+.pn-areas{display:flex;gap:4px;background:rgba(255,255,255,.08);border-radius:12px;padding:4px;margin:0 0 6px}
+.pn-nav .pn-areas a{flex:1 1 0;text-align:center;padding:6px 8px;font-size:13px;border-radius:10px}
+.pn-nav .pn-areas a[aria-current=true]{background:#fff;color:var(--pn-plum)}
+@media(max-width:700px){
+  .pn-bottom a{min-height:48px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+  .pn-bottom a span{display:block}
+  .pn-page .pn-nav .pn-areas{flex:0 0 auto}
+}

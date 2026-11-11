@@ -267,7 +267,8 @@ def seller_view(b: CharterBlock, sold: int) -> dict:
         out.update({"platform_fee_irr": None, "vat_on_fee_irr": None, "net_payable_irr": None, "fee_status": "not_set"})
         return out
     fee = bps_of(gross, b.platform_fee_bps)
-    v = vat_rate_on(utcnow().date())
+    from sqlalchemy.orm import object_session
+    v = vat_rate_on(utcnow().date(), object_session(b), b.tenant_id)
     vat = bps_of(fee, v.rate_bps)
     out.update({"platform_fee_irr": fee, "vat_rate_bps": v.rate_bps, "vat_rate_id": v.id, "vat_on_fee_irr": vat, "net_payable_irr": gross - fee - vat, "fee_status": "contract"})
     return out

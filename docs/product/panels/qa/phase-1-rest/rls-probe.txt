@@ -1,0 +1,15 @@
+superuser (RLS bypass) rows per tenant:
+price_change_proposals: 1:2
+scoped_travellers: 1:1
+settlement_imports: 1:1
+bank_payout_batches: 1:1
+tax_rate_periods: 2:1
+ops_sla_policies: 
+api role, app.tenant_id=2:
+price_change_proposals: 
+scoped_travellers: 
+settlement_imports: 
+bank_payout_batches: 
+tax_rate_periods: 2 n=1
+ops_sla_policies: 
+api role, no tenant set: 0

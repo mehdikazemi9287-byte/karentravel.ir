@@ -14,24 +14,11 @@ try {
   const pathMounted = u.pathname !== '/' && u.pathname !== '';
   if (!pathMounted || isDev || allowHttpPreview) apiOrigin = u.origin;
 } catch {}
-const apiSrc = apiOrigin ? ` ${apiOrigin}` : '';
-const csp = [
-  "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
-  "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: https:${apiSrc}`,
-  "font-src 'self' data:",
-  `connect-src 'self'${apiSrc}`,
-  "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "frame-ancestors 'none'",
-  "worker-src 'self' blob:",
-  ...(isDev || allowHttpPreview ? [] : ['upgrade-insecure-requests']),
-].join('; ');
+// The CSP itself is built per request with a nonce in proxy.ts (lib/csp.ts); these two build-time inputs are passed to it.
 
 const nextConfig = {
   output: 'standalone',
+  env: {KS_CSP_API_ORIGIN: apiOrigin, KS_CSP_HTTP_PREVIEW: allowHttpPreview ? '1' : ''},
   poweredByHeader: false,
   // The installable customer app lives at /app; its route folder is app/customer-app because a nested
   // app/app/ folder fails to compile inside the Docker image (WORKDIR /app -> /app/app/app/page.tsx).
@@ -53,7 +40,7 @@ const nextConfig = {
       {
         source: '/:path*',
         headers: [
-          { key: 'Content-Security-Policy', value: csp },
+          // Content-Security-Policy: set once per request by proxy.ts (nonce), not here.
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'X-Frame-Options', value: 'DENY' },

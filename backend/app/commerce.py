@@ -945,21 +945,23 @@ def commerce_router(get_db, current_user, role_has_permission, User, audit=None)
             raise HTTPException(status_code=403, detail="تغییر سقف اعتبار فقط با مجوز مدیریت اعتبار ممکن است")
         if u.id == user.id:
             raise HTTPException(status_code=403, detail="تغییر حساب خودتان مجاز نیست")
-        if data.target == "credit" or data.direction == "increase":
-            # Money-creating or limit-changing: maker-checker, nothing moves until a second user approves.
-            try:
-                row = approvals.create_request(db, user=user, kind="commerce.adjust", payload={"user_id": u.id, "adjust": data.model_dump(exclude={"command_id"})},
-                                               idempotency_key=data.command_id or f"adjust:{uuid.uuid4()}", amount=data.amount, target_ref=f"user:{u.id}",
-                                               summary=f"{'سقف اعتبار' if data.target == 'credit' else 'کیف پول'} {'افزایش' if data.direction == 'increase' else 'کاهش'} — {u.name}",
-                                               audit=lambda d, a, action, entity, detail: _audit(d, a, action, entity, detail))
-            except approvals.MakerCheckerError as exc:
-                raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
-            db.commit()
-            response.status_code = 202
-            return {"status": "pending_approval", "approval_request": approvals.output(row), **_balances(db, user.tenant_id, u.id)}
-        _apply_adjust(db, user, u, data, f"adjust:{uuid.uuid4()}")
+        if data.target == "wallet" and data.direction == "decrease":
+            # Early answer for an impossible decrease; the approval re-checks the balance at execution time.
+            available = m.wallet_balances(db, tenant_id=user.tenant_id, wallet_id=_user_wallet(db, user.tenant_id, u.id).id)["available"]
+            if available < data.amount:
+                raise HTTPException(status_code=409, detail="موجودی کیف پول کافی نیست")
+        # Every manual wallet/credit change (increase, DECREASE, limit) is maker-checker: nothing moves until a
+        # second finance user approves (security follow-up: a single user could otherwise drain a wallet).
+        try:
+            row = approvals.create_request(db, user=user, kind="commerce.adjust", payload={"user_id": u.id, "adjust": data.model_dump(exclude={"command_id"})},
+                                           idempotency_key=data.command_id or f"adjust:{uuid.uuid4()}", amount=data.amount, target_ref=f"user:{u.id}",
+                                           summary=f"{'سقف اعتبار' if data.target == 'credit' else 'کیف پول'} {'افزایش' if data.direction == 'increase' else 'کاهش'} — {u.name}",
+                                           audit=lambda d, a, action, entity, detail: _audit(d, a, action, entity, detail))
+        except approvals.MakerCheckerError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
         db.commit()
-        return _balances(db, user.tenant_id, u.id)
+        response.status_code = 202
+        return {"status": "pending_approval", "approval_request": approvals.output(row), **_balances(db, user.tenant_id, u.id)}
 
     # ---- treasury requests (customer side + review)
     def _req_dict(r):

@@ -38,6 +38,7 @@ from . import approvals  # maker-checker requests (H-1); registers maker_checker
 from .observability import configure_logging, prometheus_metrics, record_business_event, record_request
 from .rate_limit import InMemoryRateLimiter, RedisRateLimiter, fingerprint
 from .security import role_has_permission
+from . import sms_guard  # noqa: E402  global per-destination SMS cap (table registered on Base)
 from .providers import configured_adapter, validate_provider_modes
 from .version import read_build_info
 
@@ -799,7 +800,7 @@ def request_otp(data: OTPRequestIn, request: Request, db: Session = Depends(get_
     now = datetime.now(timezone.utc)
     if auth_state and auth_state.locked_until and _aware(auth_state.locked_until) > now:
         return {"status": "accepted", "challenge_id": generic_id, "expires_in": 300}
-    if _otp_throttled(db, tenant.id, user.id, now) or _sms_daily_cap_reached(db, tenant.id, now):
+    if _otp_throttled(db, tenant.id, user.id, now) or _sms_daily_cap_reached(db, tenant.id, now) or not sms_guard.reserve_sms(db, user.mobile_e164 or ""):
         logging.getLogger("karenseir.security").warning("otp_throttled", extra={"status": 202, "path": "/auth/otp/request"})
         db.rollback()
         return {"status": "accepted", "challenge_id": generic_id, "expires_in": 300}
@@ -879,6 +880,16 @@ def register_request(data: RegisterRequestIn, request: Request, db: Session = De
     if user.id and (_otp_throttled(db, tenant.id, user.id, datetime.now(timezone.utc)) or _sms_daily_cap_reached(db, tenant.id, datetime.now(timezone.utc))):
         logging.getLogger("karenseir.security").warning("otp_throttled", extra={"status": 202, "path": "/auth/register/request"})
         db.commit()  # keep a freshly registered account; just don't send another SMS
+        return {"status": "accepted", "challenge_id": generic_id, "expires_in": 300}
+    # Global per-destination cap across all tenants (sms_guard). A savepoint keeps a freshly registered account while the
+    # refused slot is not written; the answer is the same generic 202 as every other throttle (enumeration-safe).
+    with db.begin_nested() as _sp:
+        _dest_ok = sms_guard.reserve_sms(db, user.mobile_e164 or "")
+        if not _dest_ok:
+            _sp.rollback()
+    if not _dest_ok:
+        logging.getLogger("karenseir.security").warning("otp_throttled", extra={"status": 202, "path": "/auth/register/request"})
+        db.commit()
         return {"status": "accepted", "challenge_id": generic_id, "expires_in": 300}
     code = f"{secrets.randbelow(1_000_000):06d}"
     challenge = operational_models.OTPChallenge(tenant_id=tenant.id, user_id=user.id, identifier_hash=_secure_hash(mobile_e164.lower()), code_hash="pending", expires_at=datetime.now(timezone.utc) + timedelta(minutes=5))
@@ -5871,6 +5882,10 @@ app.include_router(agency_b2b_router(get_db, current_user, role_has_permission, 
                                      transition=operational_models.transition_reservation))
 from .charter_blocks import charter_blocks_router  # noqa: E402  Panels Phase 2: charter seat blocks, CAO price cap, allocations, staff publish
 app.include_router(charter_blocks_router(get_db, current_user, role_has_permission, User, _platform_audit))
+
+from .panel_ops import panel_ops_router  # noqa: E402  Panels Phase 1 rest: capabilities, today, SLA, tax rates, failed payments, price change, passengers, settlement, bank batches
+from .security import ROLE_PERMISSIONS as _ROLE_PERMISSIONS  # noqa: E402
+app.include_router(panel_ops_router(get_db, current_user, role_has_permission, User, _platform_audit, _ROLE_PERMISSIONS))
 
 # M-3: optional httpOnly cookie session + double-submit CSRF (AUTH_COOKIE_MODE, default off).
 # Added last so it is the outermost layer: the rate limiter and current_user see the injected header.

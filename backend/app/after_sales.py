@@ -322,15 +322,44 @@ def handling_for(db: Session, req: m.BookingServiceRequest) -> ServiceRequestHan
     return h
 
 
-def next_step(status: str, since: Optional[datetime], now: Optional[datetime] = None) -> Optional[dict]:
+def next_step(status: str, since: Optional[datetime], now: Optional[datetime] = None, minutes: Optional[int] = None) -> Optional[dict]:
+    """Next step of a request and its ETA. `minutes` is the tenant's configured SLA (OpsSlaPolicy); else the default hours."""
     rule = NEXT_STEP.get(status)
     if rule is None:
         return None
     title, owner, hours = rule
     if hours is None:
-        return {"title": title, "owner": owner, "eta": None, "overdue": False, "sla_hours": None, "paused": True}
-    eta = (_aw(since) or utcnow()) + timedelta(hours=hours)
-    return {"title": title, "owner": owner, "eta": eta.isoformat(), "overdue": eta < (now or utcnow()), "sla_hours": hours, "paused": False}
+        return {"title": title, "owner": owner, "eta": None, "overdue": False, "sla_hours": None, "sla_minutes": None, "paused": True}
+    total = minutes if minutes is not None else hours * 60
+    eta = (_aw(since) or utcnow()) + timedelta(minutes=total)
+    return {"title": title, "owner": owner, "eta": eta.isoformat(), "overdue": eta < (now or utcnow()), "sla_hours": round(total / 60, 2),
+            "sla_minutes": total, "sla_source": "tenant" if minutes is not None else "default", "paused": False}
+
+
+# ============================================================================ configurable SLA (Phase 1 rest)
+SLA_REQUEST_TYPES = tuple(TYPE_FA)
+SLA_STATUSES = tuple(s for s, (_, _, h) in NEXT_STEP.items() if h is not None)
+SLA_MINUTES_RANGE = (15, 60 * 24 * 30)
+
+
+class OpsSlaPolicy(OperationalMixin, Base):
+    """Tenant SLA target in minutes for one (request type, status) of the ops queue. Missing row = NEXT_STEP default."""
+    __tablename__ = "ops_sla_policies"
+    request_type: Mapped[str] = mapped_column(String(16))
+    status: Mapped[str] = mapped_column(String(32))
+    minutes: Mapped[int] = mapped_column(Integer)
+    reason: Mapped[str] = mapped_column(String(300))
+    updated_by_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    __table_args__ = (UniqueConstraint("tenant_id", "request_type", "status", name="uq_ops_sla_policy"),)
+
+
+def sla_overrides(db: Session, tenant_id: int) -> dict[tuple[str, str], int]:
+    return {(r.request_type, r.status): r.minutes for r in db.scalars(select(OpsSlaPolicy).where(OpsSlaPolicy.tenant_id == tenant_id)).all()}
+
+
+def request_next_step(db: Session, req: "m.BookingServiceRequest", since: Optional[datetime], overrides: Optional[dict] = None) -> Optional[dict]:
+    table = overrides if overrides is not None else sla_overrides(db, req.tenant_id)
+    return next_step(req.status, since, minutes=table.get((req.request_type, req.status)))
 
 
 def mask_sheba(sheba: Optional[str]) -> Optional[str]:
@@ -510,7 +539,7 @@ def after_sales_router(get_db, current_user, role_has_permission, User, audit, q
                   "actor": ACTOR_FA.get(e.actor_kind, e.actor_kind) if customer_view else (names.get(e.actor_id) or ACTOR_FA.get(e.actor_kind)),
                   "at": _iso(e.created_at), "to_status": e.to_status, "note": e.note,
                   "internal": e.internal} for e in events]
-        return {"steps": steps, "next": next_step(req.status, h.status_since)}
+        return {"steps": steps, "next": request_next_step(db, req, h.status_since)}
 
     def _refund_view(db: Session, refund: Optional[m.RefundRecord], ex: Optional[RefundExecution], finance: bool = False) -> Optional[dict]:
         if refund is None:
@@ -538,7 +567,7 @@ def after_sales_router(get_db, current_user, role_has_permission, User, audit, q
                "refund_destination_label": METHOD_FA.get(h.refund_destination or ""), "penalty_amount": h.penalty_amount,
                "penalty_source": h.penalty_source, "approved_amount": h.approved_amount, "decision_reason": h.decision_reason,
                "customer_question": h.customer_question if req.status == "needs_customer" else None,
-               "refund": _refund_view(db, refund, ex), "next": next_step(req.status, h.status_since),
+               "refund": _refund_view(db, refund, ex), "next": request_next_step(db, req, h.status_since),
                "can_withdraw": req.status == "submitted", "can_reply": req.status == "needs_customer"}
         if not customer_view:
             names = _names(db, [h.assigned_to_user_id, h.decided_by_user_id, h.customer_user_id])

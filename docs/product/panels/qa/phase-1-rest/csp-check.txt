@@ -1,0 +1,5 @@
+Production build (npm run build && next start, local) — GET / response header and script tags (1405-08-20):
+content-security-policy: default-src 'self'; script-src 'self' 'nonce-<per-request>' 'strict-dynamic'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: <api origin>; font-src 'self' data:; connect-src 'self' <api origin>; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; worker-src 'self' blob:; upgrade-insecure-requests
+<script> tags in the HTML without a nonce attribute: 0
+X-Frame-Options / Referrer-Policy / other headers: still sent once from next.config.mjs.
+Dev server (e2e): role-smoke.spec.ts asserts the nonce policy on every visited panel page and that no CSP violation / page error is logged.

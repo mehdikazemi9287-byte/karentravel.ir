@@ -99,11 +99,37 @@ class VatRate:
     legal_reference: str
 
 
-def vat_rate_on(day: date) -> VatRate:
+def vat_rate_on(day: date, db: Optional[Session] = None, tenant_id: Optional[int] = None) -> VatRate:
+    """VAT rate for `day`. With a session, the tenant's dated table (`tax_rate_periods`, FIN-11, admin-edited) is the
+    source once it holds any active VAT row; until then the reviewed code schedule above. A date the source does not
+    cover is an error, never a guess."""
+    if db is not None and tenant_id is not None:
+        rows = db.scalars(select(TaxRatePeriod).where(TaxRatePeriod.tenant_id == tenant_id, TaxRatePeriod.tax_type == "VAT",
+                                                      TaxRatePeriod.status == "active")).all()
+        if rows:
+            for r in rows:
+                if r.effective_from <= day and (r.effective_to is None or day <= r.effective_to):
+                    return VatRate(r.code, r.rate_bps, r.legal_reference)
+            raise LookupError(f"no VAT rate configured for {day.isoformat()}")
     for rid, start, end, bps, ref in VAT_RATE_SCHEDULE:
         if start <= day and (end is None or day <= end):
             return VatRate(rid, bps, ref)
     raise LookupError(f"no VAT rate configured for {day.isoformat()}")
+
+
+class TaxRatePeriod(OperationalMixin, Base):
+    """Dated tax rate (FIN-11). Rows are never edited in place: a correction retires the row and adds a new one."""
+    __tablename__ = "tax_rate_periods"
+    tax_type: Mapped[str] = mapped_column(String(16), default="VAT", index=True)
+    code: Mapped[str] = mapped_column(String(40))
+    rate_bps: Mapped[int] = mapped_column(Integer)
+    effective_from: Mapped[date] = mapped_column(Date)
+    effective_to: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    legal_reference: Mapped[str] = mapped_column(String(300))
+    status: Mapped[str] = mapped_column(String(12), default="active", index=True)  # active | retired
+    created_by_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    retired_by_user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    retire_reason: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
 
 
 _FA_DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
@@ -622,6 +648,14 @@ def agency_membership(db: Session, agency_id: str, user, role_has_permission, *,
     raise HTTPException(status_code=404, detail="آژانس در دسترس این حساب نیست")
 
 
+def _vat_out(db: Session, tenant_id: int) -> Optional[dict]:
+    try:
+        v = vat_rate_on(utcnow().date(), db, tenant_id)
+    except LookupError:
+        return None
+    return {"id": v.id, "rate_bps": v.rate_bps, "legal_reference": v.legal_reference}
+
+
 # ------------------------------------------------------------------------------------------------ router
 def agency_b2b_router(get_db, current_user, role_has_permission, User, audit: Callable, *, book: Callable, booking_input, transition: Callable) -> APIRouter:
     api = APIRouter(tags=["agency-b2b"])
@@ -695,7 +729,7 @@ def agency_b2b_router(get_db, current_user, role_has_permission, User, audit: Ca
                 "member_role": role, "member_role_label": MEMBER_ROLES.get(role, "کارکنان مجموعه"), "kyc_status": p.kyc_status if p else "draft",
                 "valid_licence_types": lic_types, "can_book": bool(p and p.kyc_status == "active" and acc is not None),
                 "can_charter": bool(p and p.kyc_status == "active" and "BAND_ALEF" in lic_types), "account": balances(acc),
-                "vat": {"id": vat_rate_on(utcnow().date()).id, "rate_bps": vat_rate_on(utcnow().date()).rate_bps, "legal_reference": vat_rate_on(utcnow().date()).legal_reference}}
+                "vat": _vat_out(db, user.tenant_id)}
 
     @api.get("/agency/{agency_id}/profile")
     def get_profile(agency_id: str, user=Depends(current_user), db: Session = Depends(get_db)) -> dict:
@@ -862,7 +896,7 @@ def agency_b2b_router(get_db, current_user, role_has_permission, User, audit: Ca
     def list_rules(agency_id: str, user=Depends(current_user), db: Session = Depends(get_db)) -> dict:
         agency, role = membership(db, agency_id, user)
         rows = db.scalars(select(AgencyMarkupRule).where(AgencyMarkupRule.tenant_id == user.tenant_id, AgencyMarkupRule.agency_id == agency.id).order_by(AgencyMarkupRule.priority, AgencyMarkupRule.created_at)).all()
-        v = vat_rate_on(utcnow().date())
+        v = vat_rate_on(utcnow().date(), db, user.tenant_id)
         return {"member_role": role, "contract": {"commission_bps": agency.commission_bps, "platform_markup_bps": agency.markup_bps, "vat_rate_bps": v.rate_bps, "vat_rate_id": v.id,
                                                    "vat_legal_reference": v.legal_reference, "read_only": True},
                 "items": [rule_out(r) for r in rows]}
@@ -951,7 +985,7 @@ def agency_b2b_router(get_db, current_user, role_has_permission, User, audit: Ca
         else:
             markup = markup_for(rule, unit_net, check.units)
         cap, cap_ref = (applicable_cap(db, user.tenant_id, attrs) if offer.service_type == "flight" else (None, None))
-        out = compute_line(net_irr=check.amount, units=check.units, commission_bps=agency.commission_bps, vat=vat_rate_on(today), markup_irr=markup, cap_unit_irr=cap)
+        out = compute_line(net_irr=check.amount, units=check.units, commission_bps=agency.commission_bps, vat=vat_rate_on(today, db, user.tenant_id), markup_irr=markup, cap_unit_irr=cap)
         out["price_cap_reference"] = cap_ref
         out["markup_rule_id"] = rule.id if rule else None
         out["markup_source"] = "override" if markup_override is not None else ("rule" if rule else "none")
