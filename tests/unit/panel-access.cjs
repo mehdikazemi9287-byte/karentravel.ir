@@ -4,15 +4,29 @@ const src=ts.transpileModule(fs.readFileSync('lib/panel-access.ts','utf8'),{comp
 const scope={exports:{},require:p=>p.endsWith('.json')?JSON.parse(fs.readFileSync(path.join('lib',p),'utf8')):require(p)};scope.module={exports:scope.exports};
 vm.runInNewContext(src,scope);const A=scope.exports;
 const hrefs=(area,role)=>JSON.parse(JSON.stringify(A.navFor(area,role).map(i=>i.href)));
-// admin area: 31 links for platform admin, far fewer for back office and finance, none of the other's tools
-assert.equal(hrefs('admin','platform_admin').length,37);
-const bo=hrefs('admin','backoffice_expert'),fin=hrefs('admin','finance_operator'),ta=hrefs('admin','tenant_admin');
+// staff pages are split into three areas (ops / finance / admin); a role's staff menu is the union of the areas it can open
+const staffHrefs=role=>[...new Set(['ops','finance','admin'].flatMap(a=>hrefs(a,role)))];
+assert.equal(staffHrefs('platform_admin').length,45);
+const bo=staffHrefs('backoffice_expert'),fin=staffHrefs('finance_operator'),ta=staffHrefs('tenant_admin');
 assert.ok(bo.includes('/admin/ops')&&bo.includes('/backoffice')&&bo.includes('/admin/catalog'));
 assert.ok(!bo.includes('/finance/ledger')&&!bo.includes('/finance')&&!bo.includes('/admin')&&!bo.includes('/admin/tenants'));
 assert.ok(fin.includes('/finance')&&fin.includes('/finance/ledger')&&fin.includes('/admin/ops'));
 assert.ok(!fin.includes('/admin/content')&&!fin.includes('/admin/sales-desk')&&!fin.includes('/backoffice'));
 assert.ok(ta.includes('/admin')&&!ta.includes('/admin/tenants')&&!ta.includes('/admin/catalog'));
-assert.ok(bo.length<20&&fin.length<20,`bo=${bo.length} fin=${fin.length}`);
+// Phase 1 rest: areas, «امروز», new pages, bottom nav
+assert.equal(A.staffArea('/finance/refunds'),'finance');assert.equal(A.staffArea('/backoffice/agencies'),'ops');assert.equal(A.staffArea('/admin/ops'),'ops');assert.equal(A.staffArea('/admin/audit'),'admin');
+assert.equal(A.areaFor('admin','/finance/refunds/0b5c1f4e-6a1d-4c3e-9f2a-1d2e3f4a5b6c'),'finance');assert.equal(A.areaFor('admin','/backoffice/requests/x'),'ops');assert.equal(A.areaFor('customer','/account'),'customer');
+assert.ok(!hrefs('ops','finance_operator').includes('/backoffice/queues/service_requests')&&hrefs('finance','finance_operator')[0]==='/panel/today');
+assert.deepEqual(JSON.parse(JSON.stringify(A.staffAreasFor('backoffice_expert').map(a=>a.area))).includes('finance'),bo.some(h=>A.staffArea(h)==='finance'));
+assert.ok(fin.includes('/finance/failed-payments')&&fin.includes('/finance/settlement-import')&&fin.includes('/finance/bank-batches')&&fin.includes('/finance/approvals')&&fin.includes('/finance/tax-rates'));
+assert.ok(bo.includes('/backoffice/price-changes')&&!bo.includes('/finance/bank-batches')&&!bo.includes('/admin/sla')&&ta.includes('/admin/sla'));
+assert.equal(A.canOpen('customer','/panel/today','customer'),true);assert.equal(A.canOpen('admin','/finance/bank-batches','backoffice_expert'),false);
+assert.equal(A.canOpen('customer','/account/price-changes','customer'),true);assert.equal(A.canOpen('organization','/organization/passengers','employee'),false);
+assert.ok(hrefs('agency','agency_partner').includes('/agency/passengers')&&hrefs('organization','organization_admin').includes('/organization/passengers'));
+for(const [area,role] of [['customer','customer'],['agency','agency_partner'],['ops','backoffice_expert'],['finance','finance_operator'],['admin','tenant_admin'],['organization','organization_admin'],['supplier','supplier']]){
+  const t=A.mobileTabsFor(area,role);assert.ok(t.length>=2&&t.length<=4,`${area}:${t.length}`);for(const x of t)assert.ok(A.canOpen(area,x.href,role),`${area} tab ${x.href}`);}
+assert.deepEqual(JSON.parse(JSON.stringify(A.mobileTabsFor('finance','finance_operator').map(t=>t.href))),['/panel/today','/finance/refunds','/finance/approvals','/finance/reconciliation']);
+assert.ok(bo.length<25&&fin.length<28,`bo=${bo.length} fin=${fin.length}`);
 // after-sales (Panels Phase 1): ops queue for back office only, refund queue and reconciliation for finance only
 assert.ok(bo.includes('/backoffice/queues/service_requests')&&!bo.includes('/finance/refunds')&&!bo.includes('/finance/reconciliation'));
 assert.ok(fin.includes('/finance/refunds')&&fin.includes('/finance/reconciliation')&&!fin.includes('/backoffice/queues/service_requests'));

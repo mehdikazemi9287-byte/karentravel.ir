@@ -7,7 +7,7 @@ import {Fragment, useCallback, useEffect, useState, type ReactNode} from 'react'
 import {useAuth} from '../../lib/api/auth-context';
 import {ApiError} from '../../lib/api/karenseir-client';
 import {AccountMenu} from '../marketplace/ApprovedFigmaHome';
-import {canOpen, homeFor, itemFor, navFor, ROLE_FA, type Area} from '../../lib/panel-access';
+import {AREA_FA, areaFor, canOpen, homeFor, itemFor, mobileTabsFor, navFor, ROLE_FA, staffAreasFor, type Area} from '../../lib/panel-access';
 import './panel.css';
 
 export type {Area} from '../../lib/panel-access';
@@ -45,9 +45,6 @@ export function useLoad<T>(path: string | null) {
   return {state, reload: useCallback(() => setTick(t => t + 1), []), api, session};
 }
 
-/* Ops panel mobile bottom navigation (Figma ops mobile app): پیشخوان، فروش، قراردادها، صندوق، بیشتر */
-const OPS_TABS: [string, string, string][] = [['پیشخوان', '/admin/ops', '◉'], ['فروش', '/admin/sales-desk', '☏'], ['قراردادها', '/admin/contracts', '▤'], ['صندوق', '/finance/treasury', '◫'], ['بیشتر', '#pn-nav', '☰']];
-
 /** Shown instead of a page this role cannot use: says so in plain Persian and points to the user's own panel. */
 export function NoAccess({role, path, area}: {role: string; path: string; area: Area}) {
   const moved = itemFor(area, path)?.moved?.[role]; const home = homeFor(role);
@@ -56,21 +53,27 @@ export function NoAccess({role, path, area}: {role: string; path: string; area: 
     <div style={{display: 'flex', gap: 8, flexWrap: 'wrap'}}>{moved && <Link className="pn-btn" href={moved}>رفتن به همین بخش در پنل شما</Link>}<Link className={moved ? 'pn-btn ghost' : 'pn-btn'} href={home}>بازگشت به پنل من</Link></div></div>;
 }
 
-export function PanelShell({area, title, intro, children}: {area: Area; title: string; intro?: string; children: ReactNode}) {
+export function PanelShell({area: declared, title, intro, children}: {area: Area; title: string; intro?: string; children: ReactNode}) {
   const {session} = useAuth(); const path = usePathname() ?? '';
   const role = (session as {user?: {role?: string}} | null)?.user?.role ?? '';
+  // Staff pages declared as 'admin' sit in the operations, finance or administration area by their path (spec §1.1).
+  const area = areaFor(declared, path);
   // Navigation and the guard come from one registry (lib/panel-access.ts); the API stays the authority for every call.
   const links = navFor(area, role); const allowed = canOpen(area, path, role);
-  const navTitle = {customer: 'حساب من', organization: 'پنل سازمان', agency: 'پنل همکار', supplier: 'پنل تأمین‌کننده', admin: 'مدیریت مجموعه'}[area];
+  const navTitle = AREA_FA[area];
   const nativeTitle = links.find(i => i.href === path)?.label ?? title;
-  const opsTabs = OPS_TABS.filter(([, href]) => href.startsWith('#') || canOpen('admin', href, role));
-  return <div className="pn-page" data-figma-page="129:11966"><a className="skip-link" href="#main-content">پرش به محتوای اصلی</a>
+  const staff = area === 'ops' || area === 'finance' || area === 'admin';
+  const areas = staff && session ? staffAreasFor(role) : [];
+  const tabs = session ? mobileTabsFor(area, role) : [];
+  const current = (href: string) => path === href || (href !== '/agency' && href !== '/admin' && href !== '/finance' && path.startsWith(href + '/'));
+  return <div className="pn-page" data-figma-page="129:11966" data-area={area}><a className="skip-link" href="#main-content">پرش به محتوای اصلی</a>
     <header className="pn-page-header"><Link className="pn-page-brand" href="/">کارن تراول</Link>
       {session?.user ? <AccountMenu variant="panel"/> : <Link className="pn-page-login" href="/login">ورود / ثبت‌نام</Link>}
     </header><div className="pn" data-area={area}>
     <nav className="pn-nav" id="pn-nav" aria-label={navTitle}><span className="pn-nav-title">{navTitle}</span>
+      {areas.length > 1 && <span className="pn-areas" role="group" aria-label="بخش کاری">{areas.map(a => <Link key={a.area} href={a.href} aria-current={a.area === area ? 'true' : undefined}>{a.label}</Link>)}</span>}
       {session && links.map(({label, href, group}, i) => <Fragment key={href}>{group && group !== links[i - 1]?.group && <span className="pn-nav-group" role="presentation">{group}</span>}
-        <Link href={href} aria-current={path === href || (href !== '/agency' && path.startsWith(href + '/')) ? 'page' : undefined}>{label}</Link></Fragment>)}
+        <Link href={href} aria-current={current(href) ? 'page' : undefined}>{label}</Link></Fragment>)}
       <span className="pn-nav-foot">{area !== 'customer' && <Link href="/account">حساب من</Link>}{area === 'customer' && role && role !== 'customer' && <Link href={homeFor(role)}>پنل کاری من</Link>}</span>
     </nav>
     <main className="pn-main" id="main-content" tabIndex={-1}><header className="pn-head"><h1>{allowed ? nativeTitle : 'دسترسی ندارید'}</h1>{intro && allowed && <p>{intro}</p>}</header>
@@ -78,7 +81,8 @@ export function PanelShell({area, title, intro, children}: {area: Area; title: s
         : allowed ? children : <NoAccess role={role} path={path} area={area}/>}
       <Card title="وضعیت و دسترسی"><p className="pn-access-note">اطلاعات تأییدنشده و خدمات متصل‌نشده با وضعیت مشخص نمایش داده می‌شوند.</p><p className="pn-access-note">عملیات فقط با نقش و مجوز همان حساب انجام می‌شود.</p></Card>
     </main></div>
-    {area === 'admin' && session && opsTabs.length > 1 && <nav className="pn-bottom" aria-label="میان‌بر پنل عملیات">{opsTabs.map(([label, href, glyph]) => <Link key={href} href={href} aria-current={path === href ? 'page' : undefined}><span aria-hidden="true">{glyph}</span>{label}</Link>)}</nav>}
+    {tabs.length > 1 && <nav className="pn-bottom" aria-label={`میان‌بر ${navTitle}`}>{tabs.map(t => <Link key={t.href} href={t.href} aria-current={current(t.href) ? 'page' : undefined}><span aria-hidden="true">{t.glyph}</span>{t.label}</Link>)}
+      <a href="#pn-nav"><span aria-hidden="true">☰</span>بیشتر</a></nav>}
     <p className="pn-page-foot">اطلاعات واقعی از حساب و سازمان شما دریافت می‌شود.</p></div>;
 }
 export function Card({title, action, children}: {title?: string; action?: ReactNode; children: ReactNode}) {return <section className="pn-card">{(title || action) && <div className="pn-card-head">{title && <h2>{title}</h2>}{action}</div>}{children}</section>;}

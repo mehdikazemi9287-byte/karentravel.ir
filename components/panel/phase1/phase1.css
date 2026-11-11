@@ -1,0 +1,13 @@
+/* Panels Phase 1 rest — follows the Panels library tokens (Figma 207:2); TodayCard levels bad / warn / info. */
+.p1-today{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.p1-today li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:center;background:var(--pn-surface,#fffcf9);border-radius:16px;padding:14px 16px;border-inline-start:6px solid var(--pn-info,#1f5f8b)}
+.p1-today li.bad{border-inline-start-color:var(--pn-bad,#9b2414)}.p1-today li.warn{border-inline-start-color:var(--pn-warn,#7a5200)}
+.p1-count{font-size:28px;font-weight:800;color:var(--pn-plum,#3a1b3d);min-width:48px;text-align:center}
+.p1-today-text{display:grid;gap:2px}.p1-today-text b{font-size:16px}.p1-today-text small{font-size:13px;color:var(--pn-muted,#6e5e70)}
+.p1-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;align-items:end}
+.p1-form textarea{min-height:44px}
+.p1-inline{display:inline-flex;gap:8px;align-items:center;font-size:14px;font-weight:600}
+.p1-inline select,.p1-inline input:not([type=checkbox]){min-height:40px;border:1.5px solid #d9cdc0;border-radius:12px;padding:6px 10px;font:inherit;background:#fff}
+.p1-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+.p1-stats span{display:grid;gap:2px;background:var(--pn-cream,#fdf5ea);border-radius:14px;padding:10px 14px}.p1-stats small{font-size:13px;color:var(--pn-muted,#6e5e70)}.p1-stats b{font-size:18px;color:var(--pn-plum,#3a1b3d)}
+@media(max-width:700px){.p1-today li{grid-template-columns:auto minmax(0,1fr)}.p1-today li .as-btn{grid-column:1/-1}}
