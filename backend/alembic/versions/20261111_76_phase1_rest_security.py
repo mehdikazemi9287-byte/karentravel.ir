@@ -2,14 +2,14 @@
 organization/agency, gateway settlement imports, bank payout batches (all tenant-isolated with FORCE ROW LEVEL SECURITY),
 and the global per-destination SMS counter (deliberately not a tenant table: keyed hash only, no tenant_id, no RLS).
 
-Revision ID: 20261110_75
-Revises: 20261110_74
+Revision ID: 20261111_76
+Revises: 20261111_75
 """
 from alembic import op
 import sqlalchemy as sa
 
-revision = "20261110_75"
-down_revision = "20261110_74"
+revision = "20261111_76"
+down_revision = "20261111_75"
 branch_labels = None
 depends_on = None
 
