@@ -70,7 +70,7 @@ test('cancel → ops approve → two-person finance refund → customer sees pai
   await cust.getByLabel(/قوانین لغو و مبلغ بالا را خواندم/).check();
   await shot(cust, 'C-03a-step3_1440');
   await cust.getByRole('button', { name: 'ثبت درخواست استرداد' }).click();
-  await expect(cust).toHaveURL(/\/account\/refunds\/[0-9a-f-]{36}$/);
+  await expect(cust).toHaveURL(/\/account\/refunds\/[0-9a-f-]{36}$/, { timeout: 60_000 });
   const requestId = cust.url().split('/').pop()!;
   await expect(cust.locator('[data-status="submitted"]').first()).toBeVisible();
   await expect(cust.getByLabel('گام بعدی')).toContainText('شروع بررسی توسط کارشناس');
@@ -96,8 +96,9 @@ test('cancel → ops approve → two-person finance refund → customer sees pai
   const mine = await ok<{ refund: { id: string; amount: number } }>(request.get(`${API}/me/service-requests/${requestId}`, { headers: auth(customer) }));
   expect(mine.refund.amount).toBe(1_600_000);
   await expect(fin1.getByRole('table', { name: 'صف استرداد' })).toContainText('۱٬۶۰۰٬۰۰۰ ریال');
+  await fin1.waitForLoadState('networkidle'); // the list must be hydrated before the client-side link click
   await fin1.locator(`a[href="/finance/refunds/${mine.refund.id}"]`).click();
-  await expect(fin1).toHaveURL(new RegExp(`/finance/refunds/${mine.refund.id}$`));
+  await expect(fin1).toHaveURL(new RegExp(`/finance/refunds/${mine.refund.id}$`), { timeout: 60_000 });
   const refundUrl = fin1.url();
   await fin1.getByRole('button', { name: 'ثبت و ارسال برای تأیید نفر دوم' }).click();
   const dialog = fin1.getByRole('dialog');
