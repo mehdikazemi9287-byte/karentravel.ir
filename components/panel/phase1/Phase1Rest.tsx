@@ -27,7 +27,7 @@ export function TodayPage() {
   const home = homeFor(role);
   const area: Area = ['backoffice_expert'].includes(role) ? 'ops' : role === 'finance_operator' ? 'finance' : ['tenant_admin', 'platform_admin'].includes(role) ? 'admin'
     : home.startsWith('/agency') ? 'agency' : home.startsWith('/organization') || home.startsWith('/employee') ? 'organization' : home.startsWith('/supplier') ? 'supplier' : 'customer';
-  return <PanelShell area={area} title="امروز" intro="کارهای منتظر شما، به ترتیب فوریت. فقط صف‌هایی که نقش شما روی آن‌ها کار می‌کند."><TodayBody/></PanelShell>;
+  return <PanelShell area={area} title="امروز" intro="کارهای منتظر شما، به ترتیب فوریت. فقط صف‌هایی که نقش شما روی آن‌ها کار می‌کند."><div className="as"><TodayBody/></div></PanelShell>;
 }
 function TodayBody() {
   const {state, reload} = useLoad<{items: TodayItem[]; approvals: McRow[]; generated_at: string}>('/panel/today');

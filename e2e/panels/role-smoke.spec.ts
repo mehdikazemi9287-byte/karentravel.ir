@@ -13,7 +13,8 @@ type Session = { access_token: string; refresh_token: string; token_type: string
 
 const ROLES: Record<string, { email: string; pages: string[] }> = {
   customer: { email: 'employee@aftab.test', pages: ['/account', '/account/bookings', '/account/refunds', '/account/price-changes', '/panel/today'] },
-  organization: { email: 'org-admin@aftab.test', pages: ['/organization', '/organization/requests', '/organization/passengers'] },
+  // welfare@ (an organization manager) because charter-block.spec turns org-admin@ into an agency partner on a shared e2e DB
+  organization: { email: 'welfare@aftab.test', pages: ['/organization', '/organization/requests', '/organization/passengers'] },
   agency: { email: 'agency@aftab.test', pages: ['/agency', '/agency/credit', '/agency/passengers'] },
   supplier: { email: 'supplier@aftab.test', pages: ['/supplier', '/supplier/fulfillment'] },
   ops: { email: 'backoffice@aftab.test', pages: ['/panel/today', '/backoffice/queues/service_requests', '/backoffice/price-changes', '/backoffice/agencies'] },
@@ -65,7 +66,7 @@ for (const [role, { email, pages }] of Object.entries(ROLES)) {
       const serious = axe.violations.filter(v => v.impact === 'serious' || v.impact === 'critical');
       findings[`${role} ${path}`] = axe.violations.map(v => ({ id: v.id, impact: v.impact, nodes: v.nodes.length }));
       expect(axe.violations.filter(v => v.impact === 'critical').map(v => v.id), `${path} critical a11y`).toEqual([]);
-      if (NEW_PAGES.has(path)) expect(serious.map(v => `${v.id}×${v.nodes.length}`), `${path} serious a11y`).toEqual([]);
+      if (NEW_PAGES.has(path)) expect(serious.map(v => `${v.id}: ${v.nodes.map(n => `${n.target.join(' ')} — ${n.failureSummary ?? ''}`).join(' | ')}`), `${path} serious a11y`).toEqual([]);
       if (SHOTS) await page.screenshot({ path: `${SHOTS}/${role}${path.replace(/\//g, '_')}.png`, fullPage: true });
     }
     expect(csp, 'CSP violations').toEqual([]);

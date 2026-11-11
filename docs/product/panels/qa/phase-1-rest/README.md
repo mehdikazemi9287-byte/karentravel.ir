@@ -16,6 +16,8 @@
 | e2e (یکی‌یکی، dev server، chrome) | role-smoke ۸/۸، critical-flows ۱۷/۱۷، refund-loop ۱/۱، agency-credit ۱/۱، charter-block ۱/۱، public-auth ۲/۲، payment-handoff ۵/۵، search-ordering ۱/۱، new-modules ۱۲/۱۲ | خروجی‌ها در گزارش PR |
 | axe (wcag2a/aa، ۲۹ بازدید صفحه در ۷ نقش) | هیچ یافتهٔ critical/serious (و در این اجرا هیچ یافته‌ای) | `axe-findings.json` |
 
+CI (اولین اجرا روی PR #82) دو شکست در `role-smoke` نشان داد که هر دو اصلاح شد: (۱) در پایگاه دادهٔ مشترک e2e، `charter-block.spec` حساب `org-admin@` را آژانس همکار می‌کند، پس smoke برای سازمان از `welfare@` (مدیر سازمان) استفاده می‌کند؛ (۲) صفحه‌های تازه داخل `div.as` نبودند و رنگ متن دکمه (`--pn-action-ink`) تعریف نمی‌شد (کنتراست ۳٫۵:۱)؛ اکنون همه داخل `.as` هستند. اجرای محلی `charter-block` + `role-smoke` پس از اصلاح: ۹/۹.
+
 تغییر در specهای موجود فقط به خاطر جدا شدن ناحیه‌های کارکنان: در `critical-flows.spec.ts` نام منوی کارشناس عملیات اکنون «عملیات» است (قبلاً «مدیریت مجموعه»)، و مالی از سوئیچ بخش به «مالی» می‌رود.
 
 ## محدودیت‌ها
