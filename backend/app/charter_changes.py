@@ -29,6 +29,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, select
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
+from . import approvals
 from . import operations as m
 from .agency_b2b import AgencyBookingLine, agency_membership
 from .agency_settlement import credit_remaining, notify_agency, queue_credit_refund
@@ -220,15 +221,47 @@ def charter_changes_router(get_db, current_user, role_has_permission, User, audi
         db.rollback()
         return out
 
-    @api.post("/staff/charter/blocks/{block_id}/schedule-change", status_code=201)
+    def can_apply(actor, _payload) -> bool:
+        return any(role_has_permission(actor.role, p) for p in ("inventory:publish", "tenant:manage"))
+
+    def _execute(db: Session, request, payload: dict, checker) -> dict:
+        data = ChangeIn.model_validate(payload["change"])
+        try:
+            ch = apply_change(db, checker, payload["block_id"], data, f"mc:{request.id}", payload["request_hash"], request.maker_user_id)
+        except HTTPException as exc:
+            d = exc.detail
+            raise ValueError(d.get("message") if isinstance(d, dict) else str(d)) from exc
+        return {"change_id": ch.id, "kind": ch.kind}
+
+    approvals.register("charter.schedule_change", can_check=can_apply, execute=_execute, label="تغییر یا لغو پرواز چارتر")
+
+    @api.post("/staff/charter/blocks/{block_id}/schedule-change", status_code=202)
     def confirm(block_id: str, data: ChangeIn, idempotency_key: str = Header(alias="Idempotency-Key", min_length=8, max_length=120),
                 user=Depends(publisher), db: Session = Depends(get_db)) -> dict:
+        """Maker: validates and records a maker-checker request. Nothing changes until a second staff user approves it."""
         h = _hash({"block_id": block_id, **data.model_dump(mode="json")})
-        prior = db.scalar(select(CharterScheduleChange).where(CharterScheduleChange.tenant_id == user.tenant_id, CharterScheduleChange.idempotency_key == idempotency_key))
-        if prior is not None:
-            if prior.request_hash != h:
-                raise HTTPException(status_code=409, detail="این شناسهٔ درخواست قبلاً با محتوای دیگری استفاده شده است")
-            return change_out(db, prior)
+        b = block_for(db, user, block_id)
+        validate(b, data)
+        pending = [r for r in db.scalars(select(approvals.MakerCheckerRequest).where(approvals.MakerCheckerRequest.tenant_id == user.tenant_id,
+                                                                                        approvals.MakerCheckerRequest.kind == "charter.schedule_change",
+                                                                                        approvals.MakerCheckerRequest.target_ref == f"charter_block:{b.id}",
+                                                                                        approvals.MakerCheckerRequest.status == "pending"))
+                   if _aw(r.expires_at) > utcnow() and r.idempotency_key != idempotency_key]
+        if pending:
+            raise HTTPException(status_code=409, detail="برای این پرواز یک تغییر یا لغو در انتظار تأیید نفر دوم است")
+        flight = f"{b.airline_code}{b.flight_number} {b.origin}-{b.destination}"
+        try:
+            r = approvals.create_request(db, user=user, kind="charter.schedule_change", idempotency_key=idempotency_key,
+                                         payload={"block_id": b.id, "change": data.model_dump(mode="json"), "request_hash": h},
+                                         summary=f"{'لغو' if data.kind == 'cancel' else 'تغییر زمان'} پرواز چارتر {flight}", target_ref=f"charter_block:{b.id}", audit=audit)
+        except approvals.MakerCheckerError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+        audit(db, user, "charter.block.change_requested", "charter_block", {"block_id": b.id, "kind": data.kind, "mc_request_id": r.id})
+        db.commit()
+        return {"request_id": r.id, "status": r.status, "kind": data.kind, "message": "درخواست ثبت شد و پس از تأیید کارشناس دوم اعمال می‌شود."}
+
+    def apply_change(db: Session, user, block_id: str, data: ChangeIn, idempotency_key: str, h: str, maker_id: int) -> CharterScheduleChange:
+        """Runs inside the checker's approval: re-validates against the block as it is now, then records and applies the change."""
         b = block_for(db, user, block_id, lock=True)
         rule = validate(b, data)
         imp = impact(db, b, data.kind)
@@ -237,7 +270,7 @@ def charter_changes_router(get_db, current_user, role_has_permission, User, audi
                                    new_departure_at=_aw(data.new_departure_at) if data.kind == "change" else None,
                                    new_arrival_at=_aw(data.new_arrival_at) if data.kind == "change" else None, shift_minutes=rule["shift_minutes"],
                                    full_refund_eligible=1 if rule["full_refund_eligible"] else 0, reason=data.reason.strip(),
-                                   impact_json=json.dumps(public(imp), ensure_ascii=False, default=str), idempotency_key=idempotency_key, request_hash=h, created_by_user_id=user.id)
+                                   impact_json=json.dumps(public(imp), ensure_ascii=False, default=str), idempotency_key=idempotency_key, request_hash=h, created_by_user_id=maker_id)
         db.add(ch)
         db.flush()
         inst = db.get(FlightInstance, b.instance_id)
@@ -316,9 +349,8 @@ def charter_changes_router(get_db, current_user, role_has_permission, User, audi
             db.add(m.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="charter_change_notice", aggregate_id=n.id, event_type=f"charter.{data.kind}.customer_notice",
                                  payload_json=json.dumps({"reservation_id": r.id, "change_id": ch.id}), correlation_id=str(uuid.uuid4()), idempotency_key=f"ccn:{n.id}"))
         audit(db, user, f"charter.block.{'schedule_changed' if data.kind == 'change' else 'cancelled'}", "charter_block",
-              {"block_id": b.id, "change_id": ch.id, "shift_minutes": ch.shift_minutes, "notices": len(notices), "public_bookings": len(imp["_b2c"])})
-        db.commit()
-        return change_out(db, ch)
+              {"block_id": b.id, "change_id": ch.id, "shift_minutes": ch.shift_minutes, "notices": len(notices), "public_bookings": len(imp["_b2c"]), "maker_user_id": maker_id})
+        return ch
 
     def _cancel_request(db: Session, user, r: m.Reservation, ch: CharterScheduleChange, flight: str) -> str:
         """Cancel request in the existing after-sales queue on the customer's behalf (carrier cancellation → full refund by ops + two finance users)."""
@@ -352,7 +384,8 @@ def charter_changes_router(get_db, current_user, role_has_permission, User, audi
             r = refund_out(db, refund)
             status = {"executed": "refunded", "pending_approval": "refund_pending"}.get(r["status"], "refund_rejected")
         return {"id": n.id, "change_id": n.change_id, "block_id": n.block_id, "kind": n.kind, "agency_id": n.agency_id, "reservation_id": n.reservation_id,
-                "booking_reference": res.booking_reference if res else None, "passengers": n.passengers, "seats_held": n.seats_held, "status": status,
+                "booking_reference": res.booking_reference if res else None, "passengers": n.passengers,
+                "amount_irr": (db.get(AgencyBookingLine, n.booking_line_id).net_irr if n.booking_line_id else None), "seats_held": n.seats_held, "status": status,
                 "status_label": NOTICE_FA.get(status, status), "flight": f"{b.airline_code}{b.flight_number}" if b else None, "route": f"{b.origin}-{b.destination}" if b else None,
                 "old_departure_at": _iso(ch.old_departure_at) if ch else None, "new_departure_at": _iso(ch.new_departure_at) if ch else None,
                 "shift_minutes": ch.shift_minutes if ch else None, "full_refund_eligible": bool(ch.full_refund_eligible) if ch else False, "reason": ch.reason if ch else None,
@@ -366,7 +399,14 @@ def charter_changes_router(get_db, current_user, role_has_permission, User, audi
         b = block_for(db, user, block_id)
         rows = db.scalars(select(CharterScheduleChange).where(CharterScheduleChange.tenant_id == user.tenant_id, CharterScheduleChange.block_id == b.id)
                           .order_by(CharterScheduleChange.created_at.desc())).all()
-        out = {"items": [change_out(db, c) for c in rows], "block_status": b.status,
+        reqs = [approvals.output(r) for r in db.scalars(select(approvals.MakerCheckerRequest).where(
+            approvals.MakerCheckerRequest.tenant_id == user.tenant_id, approvals.MakerCheckerRequest.kind == "charter.schedule_change",
+            approvals.MakerCheckerRequest.target_ref == f"charter_block:{b.id}").order_by(approvals.MakerCheckerRequest.created_at.desc()))]
+        for r in reqs:
+            if r["status"] == "pending" and r["expires_at"] and datetime.fromisoformat(r["expires_at"]) <= utcnow():
+                r["status"] = "expired"
+            r["can_decide"] = r["status"] == "pending" and r["maker_user_id"] != user.id and can_apply(user, {})
+        out = {"items": [change_out(db, c) for c in rows], "block_status": b.status, "requests": reqs, "me": user.id,
                "can_change": any(role_has_permission(user.role, p) for p in ("inventory:publish", "tenant:manage"))}
         db.commit()
         return out

@@ -21,10 +21,11 @@ from test_charter_blocks import block_body
 
 @pytest.fixture()
 def cw(client):
-    owner, ops, fin1, fin2, buyer_owner = _user("agency_partner"), _user("backoffice_expert"), _user("finance_operator"), _user("finance_operator"), _user("agency_partner")
+    owner, ops, fin1, fin2, buyer_owner, ops2 = (_user("agency_partner"), _user("backoffice_expert"), _user("finance_operator"), _user("finance_operator"),
+                                                 _user("agency_partner"), _user("backoffice_expert"))
     a, buyer = make_agency(owner), make_agency(buyer_owner)
     w = {"agency_id": a, "owner": login(client, owner), "ops": login(client, ops), "fin1": login(client, fin1), "fin2": login(client, fin2), "buyer": buyer,
-         "bh": login(client, buyer_owner)}
+         "bh": login(client, buyer_owner), "ops2": login(client, ops2)}
     activate(client, w["owner"], w["ops"], a)
     activate(client, w["bh"], w["ops"], buyer, licence_type="BAND_BE")
     fund(client, w["fin1"], w["fin2"], buyer, limit=500_000_000)
@@ -65,6 +66,16 @@ def change_body(blk, hours=3, **over):
     return body
 
 
+def apply(client, cw, bid, body, k=None):
+    """Maker (ops) asks, a second ops user approves; returns the recorded change."""
+    r = client.post(f"/staff/charter/blocks/{bid}/schedule-change", json=body, headers={**cw["ops"], **(k or key())})
+    assert r.status_code == 202, r.text
+    assert client.post(f"/maker-checker/requests/{r.json()['request_id']}/approve", json={}, headers=cw["ops"]).status_code == 403  # the maker
+    ok = client.post(f"/maker-checker/requests/{r.json()['request_id']}/approve", json={}, headers=cw["ops2"])
+    assert ok.status_code == 200, ok.text
+    return client.get(f"/staff/charter/blocks/{bid}/schedule-changes", headers=cw["ops"]).json()["items"][0]
+
+
 def balance(agency_id):
     with SessionLocal() as db:
         return db.scalar(select(AgencyAccount.balance_irr).where(AgencyAccount.agency_id == agency_id))
@@ -92,12 +103,15 @@ def test_change_over_two_hours_notice_and_refund_to_credit(client, cw):
     bid, buyer, bh = cw["block"]["id"], cw["buyer"], cw["bh"]
     body = change_body(cw["block"], hours=3)
     k = key()
-    r = client.post(f"/staff/charter/blocks/{bid}/schedule-change", json=body, headers={**cw["ops"], **k})
-    assert r.status_code == 201, r.text
-    ch = r.json()
-    assert ch["shift_minutes"] == 180 and ch["full_refund_eligible"] is True
-    assert client.post(f"/staff/charter/blocks/{bid}/schedule-change", json=body, headers={**cw["ops"], **k}).json()["id"] == ch["id"]  # replay
+    first = client.post(f"/staff/charter/blocks/{bid}/schedule-change", json=body, headers={**cw["ops"], **k})
+    assert first.status_code == 202, first.text
+    assert client.post(f"/staff/charter/blocks/{bid}/schedule-change", json=body, headers={**cw["ops"], **k}).json()["request_id"] == first.json()["request_id"]  # replay
     assert client.post(f"/staff/charter/blocks/{bid}/schedule-change", json={**body, "reason": "متن دیگر برای همان کلید"}, headers={**cw["ops"], **k}).status_code == 409
+    assert client.post(f"/staff/charter/blocks/{bid}/schedule-change", json=body, headers={**cw["ops"], **key()}).status_code == 409  # one pending at a time
+    with SessionLocal() as db:
+        assert db.get(CharterBlock, bid).departure_at.replace(tzinfo=timezone.utc) == datetime.fromisoformat(cw["block"]["departure_at"])  # nothing before the checker
+    ch = apply(client, cw, bid, body, k)
+    assert ch["shift_minutes"] == 180 and ch["full_refund_eligible"] is True
     with SessionLocal() as db:
         b = db.get(CharterBlock, bid)
         offer = db.get(m.Offer, b.offer_id)
@@ -130,7 +144,7 @@ def test_change_over_two_hours_notice_and_refund_to_credit(client, cw):
 
 def test_change_within_two_hours_allows_accept_not_full_refund(client, cw):
     bid, buyer, bh = cw["block"]["id"], cw["buyer"], cw["bh"]
-    assert client.post(f"/staff/charter/blocks/{bid}/schedule-change", json=change_body(cw["block"], hours=1), headers={**cw["ops"], **key()}).status_code == 201
+    apply(client, cw, bid, change_body(cw["block"], hours=1))
     n = client.get(f"/agency/{buyer}/charter/notices", headers=bh).json()["items"][0]
     assert n["can_request_refund"] is False
     r = client.post(f"/agency/{buyer}/charter/notices/{n['id']}/refund-request", json={}, headers={**bh, **key()})
@@ -142,8 +156,7 @@ def test_change_within_two_hours_allows_accept_not_full_refund(client, cw):
 def test_cancel_releases_seats_queues_refunds_and_opens_customer_requests(client, cw):
     bid, buyer = cw["block"]["id"], cw["buyer"]
     before = balance(buyer)
-    r = client.post(f"/staff/charter/blocks/{bid}/schedule-change", json={"kind": "cancel", "reason": "لغو پرواز توسط ایرلاین"}, headers={**cw["ops"], **key()})
-    assert r.status_code == 201, r.text
+    apply(client, cw, bid, {"kind": "cancel", "reason": "لغو پرواز توسط ایرلاین"})
     with SessionLocal() as db:
         b = db.get(CharterBlock, bid)
         assert b.status == "cancelled"
@@ -159,7 +172,10 @@ def test_cancel_releases_seats_queues_refunds_and_opens_customer_requests(client
     assert any(i["reservation"]["id"] == cw["b2c_res"] for i in queue)
     n = next(x for x in client.get(f"/agency/{buyer}/charter/notices", headers=cw["bh"]).json()["items"] if x["reservation_id"])
     assert n["kind"] == "cancel" and n["status"] == "refund_pending" and balance(buyer) == before
-    assert client.post(f"/maker-checker/requests/{n['credit_refund']['mc_request_id']}/approve", json={}, headers=cw["ops"]).status_code == 403  # maker
+    assert client.post(f"/maker-checker/requests/{n['credit_refund']['mc_request_id']}/approve", json={}, headers=cw["ops2"]).status_code == 403  # maker, no refund:manage
+    fin = client.get(f"/finance/agency-credit-refunds/{n['credit_refund']['id']}", headers=cw["fin2"]).json()
+    assert fin["can_approve"] is True and fin["refundable_irr"] == cw["line"]["breakdown"]["net_irr"] and fin["free_credit_after_irr"] - fin["free_credit_before_irr"] == fin["refundable_irr"]
+    assert fin["settlement_effect"]["commission_reversal_irr"] == cw["line"]["breakdown"]["commission_irr"]
     assert client.post(f"/maker-checker/requests/{n['credit_refund']['mc_request_id']}/approve", json={}, headers=cw["fin2"]).status_code == 200
     assert balance(buyer) == before + cw["line"]["breakdown"]["net_irr"]
     # a cancelled block cannot be changed again
