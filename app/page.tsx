@@ -2,11 +2,14 @@
 import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { ConnectedCompare, ConnectedOrganization, ConnectedRolePanel, ErrorState } from '../components/operational/ConnectedViews';
 import { useAuth } from '../lib/api/auth-context';
 import { HomeSearchExperience } from '../components/search/HomeSearchExperience';
-import { UnifiedSearchView } from '../components/operational/UnifiedSearchView';
+const UnifiedSearchView = dynamic(() => import('../components/operational/UnifiedSearchView').then(module => module.UnifiedSearchView), {
+  loading: () => <section aria-label="در حال دریافت نتایج" className="search-results-list">{[1,2,3].map(item=><article className="result-card result-skeleton" key={item}><i/><div><span/><span/><span/></div><b/></article>)}</section>,
+});
 
 const hotels = [
   { name: 'هتل پارسیان آزادی', city: 'تهران', score: '۴.۷', price: '۷٬۸۵۰٬۰۰۰', image: '/images/figma/trip-north.jpeg', tag: 'بهترین کیفیت' },

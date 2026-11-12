@@ -1,0 +1,19 @@
+✔ duplicate GET shares in-flight work and releases after completion (15.567899ms)
+✔ two concurrent 401s rotate the refresh token once (13.102087ms)
+✔ late old-token 401 retries without a second refresh (21.327664ms)
+✔ refresh completion cannot overwrite a new login (1.703768ms)
+✔ body stall has a deadline even if the transport ignores cancellation (11.088363ms)
+✔ an explicitly cancelled subscriber does not abort another GET (12.643018ms)
+✔ writes never deduplicate (0.751919ms)
+✔ a write invalidates GETs begun while it is pending (3.934676ms)
+✔ session change invalidates prior response and read sharing (2.073292ms)
+✔ latest search owns state and unmount cancels it (0.394102ms)
+✔ failed refresh releases the flight so a later attempt can recover (1.021223ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 411.257589
