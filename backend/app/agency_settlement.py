@@ -493,6 +493,30 @@ def agency_settlement_router(get_db, current_user, role_has_permission, User, au
         if detail:
             ds = disputes_of(db, st)
             by_line = {d.line_id: d for d in ds if d.status in ("open", "adjustment_pending")}
+            lines_all = lines_of(db, st)
+            refs = {r.id: r.booking_reference for r in db.scalars(select(m.Reservation).where(m.Reservation.tenant_id == st.tenant_id, m.Reservation.id.in_(
+                {x.reservation_id for x in lines_all if x.reservation_id})))} if lines_all else {}
+            rows: dict[str, dict] = {}
+            for x in lines_all:
+                if x.line_type not in ("SALE", "REFUND", "COMMISSION", "VAT", "COMMISSION_REVERSAL", "VAT_REVERSAL") or not x.reservation_id:
+                    continue
+                key = f"{x.reservation_id}:{'R' if x.line_type in ('REFUND', 'COMMISSION_REVERSAL', 'VAT_REVERSAL') else 'S'}:{x.ledger_entry_id}"
+                r = rows.setdefault(key, {"key": key, "reservation_id": x.reservation_id, "booking_reference": refs.get(x.reservation_id), "kind": "sale",
+                                          "date": _iso(x.occurred_at), "sale_irr": 0, "refund_irr": 0, "commission_irr": 0, "vat_irr": 0, "net_irr": 0, "line_id": None,
+                                          "open_dispute_id": None})
+                if x.line_type == "SALE":
+                    r["sale_irr"], r["line_id"] = x.amount_irr, x.id
+                elif x.line_type == "REFUND":
+                    r["refund_irr"], r["line_id"], r["kind"] = x.amount_irr, x.id, "refund"
+                elif x.line_type in ("COMMISSION", "COMMISSION_REVERSAL"):
+                    r["commission_irr"] += x.amount_irr
+                else:
+                    r["vat_irr"] += x.amount_irr
+                r["net_irr"] += x.amount_irr
+            for r in rows.values():
+                r["open_dispute_id"] = by_line[r["line_id"]].id if r["line_id"] in by_line else None
+                r["disputable"] = st.status in ("issued", "disputed") and r["line_id"] is not None and r["open_dispute_id"] is None
+            out["booking_rows"] = sorted(rows.values(), key=lambda r: r["date"] or "")
             out["lines"] = [{"id": x.id, "line_no": x.line_no, "line_type": x.line_type, "type_label": LINE_FA.get(x.line_type, x.line_type), "amount_irr": x.amount_irr,
                              "description": x.description, "reservation_id": x.reservation_id, "vat_rate_id": x.vat_rate_id, "vat_rate_bps": x.vat_rate_bps,
                              "occurred_at": _iso(x.occurred_at), "dispute_id": x.dispute_id, "open_dispute_id": by_line[x.id].id if x.id in by_line else None,
@@ -548,7 +572,7 @@ def agency_settlement_router(get_db, current_user, role_has_permission, User, au
         st.status, st.issued_at = "issued", utcnow()
         event(db, st, "issued", "finance", checker.id, payload={"mc_request_id": request.id, "maker_user_id": request.maker_user_id}, key=f"ase-issued:{st.id}")
         notify_agency(db, st.tenant_id, st.agency_id, title=f"صورت تسویهٔ {st.statement_no} صادر شد",
-                      message="صورت تسویهٔ دوره صادر شد. لطفاً ردیف‌ها را بررسی و تأیید کنید یا روی ردیف اعتراض ثبت کنید.", link=f"/agency/settlement-statements/{st.id}",
+                      message="صورت تسویهٔ دوره صادر شد. لطفاً ردیف‌ها را بررسی و تأیید کنید یا روی ردیف اعتراض ثبت کنید.", link=f"/agency/settlements/{st.id}",
                       event_type="agency_settlement.issued", aggregate_type="agency_settlement", aggregate_id=st.id, key=f"ase-issued:{st.id}", payload={"net_irr": st.net_irr})
         return {"settlement_id": st.id, "status": st.status}
 
@@ -579,7 +603,7 @@ def agency_settlement_router(get_db, current_user, role_has_permission, User, au
         event(db, st, "settled", "finance", checker.id, note=payload.get("note"), payload={"mc_request_id": request.id, "ledger_entries": posted,
                                                                                          "bank_reference": payload.get("bank_reference")}, key=f"ase-settled:{st.id}")
         notify_agency(db, st.tenant_id, st.agency_id, title=f"صورت تسویهٔ {st.statement_no} تسویه شد", message="تسویهٔ دوره در حساب آژانس ثبت شد.",
-                      link=f"/agency/settlement-statements/{st.id}", event_type="agency_settlement.settled", aggregate_type="agency_settlement", aggregate_id=st.id,
+                      link=f"/agency/settlements/{st.id}", event_type="agency_settlement.settled", aggregate_type="agency_settlement", aggregate_id=st.id,
                       key=f"ase-settled:{st.id}", payload={"net_irr": st.net_irr})
         return {"settlement_id": st.id, "status": st.status, "ledger_entries": posted}
 
@@ -609,7 +633,7 @@ def agency_settlement_router(get_db, current_user, role_has_permission, User, au
         if st.status == "accepted":  # a later correction needs the agency's acceptance again
             st.status, st.accepted_at = "issued", None
         notify_agency(db, st.tenant_id, st.agency_id, title=f"اصلاحیه روی صورت {st.statement_no}", message="یک ردیف اصلاحیه به صورت تسویه اضافه شد.",
-                      link=f"/agency/settlement-statements/{st.id}", event_type="agency_settlement.adjusted", aggregate_type="agency_settlement", aggregate_id=st.id,
+                      link=f"/agency/settlements/{st.id}", event_type="agency_settlement.adjusted", aggregate_type="agency_settlement", aggregate_id=st.id,
                       key=f"ase-adj:{request.id}", payload={"amount_irr": line.amount_irr})
         return {"settlement_id": st.id, "line_id": line.id, "net_irr": st.net_irr}
 
@@ -796,7 +820,7 @@ def agency_settlement_router(get_db, current_user, role_has_permission, User, au
                 event(db, st, "dispute_accepted", "finance", user.id, note=data.reason, dispute_id=d.id, payload={"amount_irr": 0})
                 after_dispute_change(db, st, user.id)
                 msg = "اعتراض بدون اصلاحیه پذیرفته شد"
-        notify_agency(db, st.tenant_id, st.agency_id, title=f"نتیجهٔ اعتراض صورت {st.statement_no}", message=msg, link=f"/agency/settlement-statements/{st.id}",
+        notify_agency(db, st.tenant_id, st.agency_id, title=f"نتیجهٔ اعتراض صورت {st.statement_no}", message=msg, link=f"/agency/settlements/{st.id}",
                       event_type=f"agency_settlement.dispute_{d.status}", aggregate_type="agency_settlement_dispute", aggregate_id=d.id, key=f"asd:{d.id}:{d.status}")
         audit(db, user, f"agency.settlement.dispute_{data.decision}", "agency_settlement", {"settlement_id": st.id, "dispute_id": d.id, "status": d.status})
         db.commit()
@@ -814,6 +838,38 @@ def agency_settlement_router(get_db, current_user, role_has_permission, User, au
             i["agency_name"] = ags.get(i["agency_id"])
         db.commit()
         return {"items": items}
+
+    @api.get("/finance/agency-credit-refunds/{rid}")
+    def fin_credit_refund(rid: str, user=Depends(fin_reader), db: Session = Depends(get_db)) -> dict:
+        """FIN-02c: what goes back to the agency credit, the agency's free credit before/after, and the effect on the period settlement
+        (commission and its VAT reversed for the refunded part only). The approval itself is the maker-checker request."""
+        from .agency_b2b import balances
+        row = db.scalar(select(AgencyCreditRefund).where(AgencyCreditRefund.id == rid, AgencyCreditRefund.tenant_id == user.tenant_id))
+        if row is None:
+            raise HTTPException(status_code=404, detail="بازگشت به اعتبار یافت نشد")
+        out = refund_out(db, row)
+        line = db.get(AgencyBookingLine, row.booking_line_id)
+        agency = db.get(m.Agency, row.agency_id)
+        acc = balances(account_for(db, user.tenant_id, row.agency_id))
+        rate = vat_rate_on(tehran_day(line.created_at), db, user.tenant_id)
+        rev = half_up(line.commission_irr * row.amount_irr, line.net_irr) if line.net_irr else 0
+        mc = db.get(approvals.MakerCheckerRequest, row.mc_request_id) if row.mc_request_id else None
+        nm = names(db, [row.created_by_user_id, mc.checker_user_id if mc else None])
+        free_before = acc["available_irr"] if row.status != "executed" else acc["available_irr"] - row.amount_irr
+        out.update({"agency_name": agency.display_name if agency else None, "title": line.title, "units": line.units, "paid_from_credit_irr": line.net_irr,
+                    "refundable_irr": row.amount_irr, "method": "agency_credit", "ledger_type": "REFUND",
+                    "free_credit_before_irr": free_before, "free_credit_after_irr": free_before + row.amount_irr,
+                    "settlement_effect": {"commission_bps": line.commission_bps, "commission_reversal_irr": rev, "vat_rate_bps": rate.rate_bps, "vat_rate_id": rate.id,
+                                          "vat_reversal_irr": bps_of(rev, rate.rate_bps), "commission_kept_irr": line.commission_irr - rev,
+                                          "vat_kept_irr": bps_of(line.commission_irr - rev, rate.rate_bps)},
+                    "maker": nm.get(row.created_by_user_id), "maker_user_id": row.created_by_user_id, "checker": nm.get(mc.checker_user_id) if mc else None,
+                    "mc_status": mc.status if mc else None, "note": row.note,
+                    "can_approve": bool(mc and mc.status == "pending" and mc.maker_user_id != user.id and role_has_permission(user.role, "refund:manage")),
+                    "destinations": [{"key": "agency_credit", "label": "بازگشت به اعتبار آژانس", "available": True, "detail": "آژانس با مسافر خودش تسویه می‌کند."},
+                                     {"key": "agency_iban", "label": "واریز به شبای آژانس", "available": False, "detail": "هنوز پیاده نشده است؛ نیازمند تصمیم مالک (با دلیل و تأیید نفر دوم)."},
+                                     {"key": "customer", "label": "کیف پول یا کارت مسافر", "available": False, "detail": "برای رزرو آژانسی مجاز نیست؛ مسافر مشتری آژانس است."}]})
+        db.commit()
+        return out
 
     @api.post("/finance/agency-credit-refunds/{rid}/requeue", status_code=202)
     def fin_requeue(rid: str, user=Depends(current_user), db: Session = Depends(get_db)) -> dict:

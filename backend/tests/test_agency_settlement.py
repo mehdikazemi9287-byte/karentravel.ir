@@ -85,6 +85,8 @@ def test_statement_issue_dispute_adjust_settle_and_next_period(client, sw):
     issued = client.get(f"/agency/{a}/settlement-statements/{st['id']}", headers=sw["owner"]).json()
     assert issued["status"] == "issued" and issued["can_act"] is True
     lines_before = [(x["id"], x["amount_irr"]) for x in issued["lines"]]
+    row = issued["booking_rows"][0]  # AG-17 per-booking view: sale, commission, VAT on commission, row net; disputable via its sale line
+    assert (row["sale_irr"], row["commission_irr"], row["vat_irr"], row["net_irr"], row["disputable"]) == (10_000_000, -120_000, -12_000, 9_868_000, True)
     # one open statement at a time
     assert draft(client, sw).status_code == 409
     # dispute on the commission line → disputed; acceptance is blocked while it is open
