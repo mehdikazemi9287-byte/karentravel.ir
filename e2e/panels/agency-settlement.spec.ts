@@ -96,7 +96,7 @@ test('agency settlement: issue (two finance users) → dispute → adjustment �
   await expect(ag.getByText('منتظر تأیید شما').first()).toBeVisible();
   await shot(ag, 'AG-17-settlements-list_1440');
   await ag.getByRole('link', { name: 'بررسی و تأیید' }).first().click();
-  await expect(ag.locator('.b2b-steps')).toBeVisible();
+  await expect(ag.locator('.b2b-steps')).toBeVisible({ timeout: 60_000 });  // first visit compiles the route on the dev server
   await shot(ag, 'AG-17-settlement-detail_1440');
   await ag.getByRole('button', { name: 'اعتراض' }).first().click();
   await ag.getByLabel('مبلغ ادعایی به نفع آژانس (ریال)').fill('40000');
