@@ -253,3 +253,11 @@
 - One observed, pre-existing, NOT fixed (out of this phase's scope): the non-refundable badge label ("قانون استرداد تأیید نشده" - "cancellation policy not verified") is reused for the genuine "refundable: false" case, which is a misleading copy choice (conflates "unverified" with "confirmed non-refundable") - predates this phase, not introduced by GRS work, flagged rather than silently patched given the no-UI-change constraint.
 - Production changed: NO.
 - NEXT EXACT ACTION: build the remaining lifecycle orchestration (extend_hold, modify/accept-modify/cancel-modify, request_service/create_activity, refund/reconciliation tie-in to the ledger), Rules/Promotions parsing, then a real deploy once explicitly approved.
+
+## VANDAPAY PAYMENT PROVIDER (FLAG OFF) — 2026-11-12
+
+- SUPERVISOR GATE: ALLOW — HEAD `0026292`; scope = additive VandaPay provider (owner D13/D14/D15), no migration, no production write, no deploy; ZarinPal path untouched; no import from 60Online/VandaPay code (public HTTP contract only).
+- Added `backend/app/vandapay.py`, 4 endpoints (`GET /payments/methods`, `POST /payments/{id}/vandapay/initiate`, `GET /payments/vandapay/return`, `POST /payments/vandapay/webhook`), checkout button visible only when enabled (not Homepage/Search), ADR-021, `docs/integrations/vandapay.md`, registry `payment_vandapay` = READY_BLOCKED_EXTERNAL, `.env.example`.
+- Tests: `tests/test_vandapay.py` 15 passed (labelled MOCK API). Full backend: 226 passed / 6 skipped / 3 pre-existing unrelated failures in `test_outbox_worker.py` (identical on baseline `0026292`: 211 passed / 6 skipped / same 3). Frontend: `tsc --noEmit` clean, eslint clean on the changed file, `next build --webpack` succeeds.
+- Production changed: NO. Flag `VANDAPAY_ENABLED` default OFF.
+- NEXT EXACT ACTION: after VandaPay contract/legal + server: set env on a staging stack, sandbox E2E, then owner approval to enable.
