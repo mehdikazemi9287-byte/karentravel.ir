@@ -109,7 +109,8 @@ def test_change_over_two_hours_notice_and_refund_to_credit(client, cw):
     assert client.post(f"/staff/charter/blocks/{bid}/schedule-change", json={**body, "reason": "متن دیگر برای همان کلید"}, headers={**cw["ops"], **k}).status_code == 409
     assert client.post(f"/staff/charter/blocks/{bid}/schedule-change", json=body, headers={**cw["ops"], **key()}).status_code == 409  # one pending at a time
     with SessionLocal() as db:
-        assert db.get(CharterBlock, bid).departure_at.replace(tzinfo=timezone.utc) == datetime.fromisoformat(cw["block"]["departure_at"])  # nothing before the checker
+        d0 = db.get(CharterBlock, bid).departure_at
+        assert (d0 if d0.tzinfo else d0.replace(tzinfo=timezone.utc)) == datetime.fromisoformat(cw["block"]["departure_at"])  # nothing before the checker
     ch = apply(client, cw, bid, body, k)
     assert ch["shift_minutes"] == 180 and ch["full_refund_eligible"] is True
     with SessionLocal() as db:

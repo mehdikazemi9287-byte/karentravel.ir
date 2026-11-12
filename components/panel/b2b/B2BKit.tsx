@@ -16,7 +16,7 @@ export const jalali = (iso?: string | null, withTime = false) => {
 
 const KYC: Record<string, [string, string]> = {draft: ['پیش‌نویس', 'warn'], submitted: ['منتظر احراز', 'info'], active: ['فعال', 'ok'], rejected: ['ردشده', 'bad'], suspended: ['معلق', 'bad']};
 const LIC: Record<string, [string, string]> = {pending: ['منتظر احراز', 'warn'], verified: ['تأییدشده', 'ok'], rejected: ['ردشده', 'bad'], expired: ['منقضی', '']};
-const BLOCK: Record<string, [string, string]> = {draft: ['پیش‌نویس', 'warn'], submitted: ['در بازبینی عملیات', 'info'], published: ['منتشرشده', 'ok'], rejected: ['ردشده', 'bad']};
+const BLOCK: Record<string, [string, string]> = {draft: ['پیش‌نویس', 'warn'], submitted: ['در بازبینی عملیات', 'info'], published: ['منتشرشده', 'ok'], rejected: ['ردشده', 'bad'], cancelled: ['لغوشده', 'bad']};
 const CHECK: Record<string, [string, string]> = {confirmed: ['منطبق', 'ok'], mismatch: ['نامنطبق', 'bad'], not_found: ['یافت نشد', 'bad']};
 function Chip({map, status}: {map: Record<string, [string, string]>; status?: string | null}) {
   const hit = status ? map[status] : undefined;

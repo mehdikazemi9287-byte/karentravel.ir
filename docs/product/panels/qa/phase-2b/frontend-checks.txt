@@ -1,0 +1,19 @@
+== tsc
+node_modules/.bin/tsc --noEmit → 0 errors
+== lint (npm run lint)
+0 errors, 44 warnings (all in files not touched here; changed files lint clean)
+== build (npm run build)
+├ ƒ /agency/inventory/notices
+├ ƒ /agency/settlements
+├ ƒ /agency/settlements/[id]
+├ ƒ /backoffice/charter-blocks/[id]
+├ ƒ /finance/refunds/agency-credit/[id]
+├ ƒ /finance/settlements
+├ ƒ /finance/settlements/[id]
+├ ƒ /finance/settlements/agencies
+├ ƒ /finance/settlements/disputes
+├ ƒ /supplier/settlements
+exit=0
+== unit
+PASS panel nav is role-filtered, guard denies other roles, agency tours live in the agency panel
+panel-access: PASS
