@@ -127,7 +127,7 @@ EVENT_FA = {"submitted": "ثبت درخواست", "start_review": "شروع بر
             "finance_prepare": "آماده‌سازی پرداخت (نفر اول مالی)", "finance_decline": "برگشت به آماده‌سازی (نفر دوم مالی)",
             "finance_return": "برگشت از مالی به عملیات", "refund_paid": "پرداخت استرداد", "close": "بستن درخواست", "note": "یادداشت داخلی"}
 CUSTOMER_HIDDEN_EVENTS = {"assign", "note", "finance_decline"}
-METHOD_FA = {"wallet": "کیف پول کارن تراول", "bank_transfer": "واریز بانکی به شبا", "gateway": "برگشت به کارت از درگاه"}
+METHOD_FA = {"wallet": "کیف پول کارن تراول", "bank_transfer": "واریز بانکی به شبا", "gateway": "برگشت به کارت از درگاه", "agency_credit": "بازگشت به اعتبار آژانس"}
 
 
 # ============================================================================ money math (integer rial, no float)
@@ -414,6 +414,8 @@ class RequestActionIn(BaseModel):
     supplier_reference: Optional[str] = Field(default=None, max_length=120)
     supplier_refundable_amount: Optional[int] = Field(default=None, ge=0)
     supplier_penalty_amount: Optional[int] = Field(default=None, ge=0)
+    # Phase 2b: a booking the agency paid from its account is refunded to that account (agency_settlement.queue_credit_refund).
+    refund_destination: Optional[str] = Field(default=None, pattern="^agency_credit$")
 
 
 class AssignIn(BaseModel):
@@ -556,6 +558,21 @@ def after_sales_router(get_db, current_user, role_has_permission, User, audit, q
                         "pending_bank_reference": ex.bank_reference, "note": ex.note})
         return out
 
+    def _agency_refund_view(db: Session, h: ServiceRequestHandling) -> Optional[dict]:
+        if h.refund_destination != "agency_credit":
+            return None
+        rid = json.loads(h.destination_json or "{}").get("agency_credit_refund_id")
+        if not rid:
+            return None
+        from .agency_settlement import AgencyCreditRefund, refund_out
+        row = db.scalar(select(AgencyCreditRefund).where(AgencyCreditRefund.id == rid, AgencyCreditRefund.tenant_id == h.tenant_id))
+        if row is None:
+            return None
+        o = refund_out(db, row)
+        return {"id": row.id, "status": o["status"], "status_label": o["status_label"], "amount": row.amount_irr, "currency": "IRR", "destination": "agency_credit",
+                "destination_label": METHOD_FA["agency_credit"], "method": "agency_credit", "bank_reference": None, "paid_at": o["executed_at"],
+                "mc_request_id": row.mc_request_id}
+
     def _request_out(db: Session, req: m.BookingServiceRequest, res: m.Reservation, h: ServiceRequestHandling, customer_view: bool) -> dict:
         refund = db.get(m.RefundRecord, h.refund_id) if h.refund_id else None
         ex = db.scalar(select(RefundExecution).where(RefundExecution.tenant_id == req.tenant_id, RefundExecution.refund_id == refund.id)) if refund else None
@@ -567,7 +584,7 @@ def after_sales_router(get_db, current_user, role_has_permission, User, audit, q
                "refund_destination_label": METHOD_FA.get(h.refund_destination or ""), "penalty_amount": h.penalty_amount,
                "penalty_source": h.penalty_source, "approved_amount": h.approved_amount, "decision_reason": h.decision_reason,
                "customer_question": h.customer_question if req.status == "needs_customer" else None,
-               "refund": _refund_view(db, refund, ex), "next": request_next_step(db, req, h.status_since),
+               "refund": _refund_view(db, refund, ex) or _agency_refund_view(db, h), "next": request_next_step(db, req, h.status_since),
                "can_withdraw": req.status == "submitted", "can_reply": req.status == "needs_customer"}
         if not customer_view:
             names = _names(db, [h.assigned_to_user_id, h.decided_by_user_id, h.customer_user_id])
@@ -746,10 +763,19 @@ def after_sales_router(get_db, current_user, role_has_permission, User, audit, q
                "policy_at_booking": json.loads(res.policy_at_booking_json or "{}"), "current_quote": current,
                "payment": {"id": payment.id, "captured_amount": payment.captured_amount, "refunded_amount": payment.refunded_amount,
                            "refundable_remaining": max(paid_remaining, 0), "provider_reference": payment.provider_reference} if payment else None,
-               "money": money_view, "can_override": role_has_permission(user.role, "refund:override"),
+               "money": money_view, "can_override": role_has_permission(user.role, "refund:override"), "agency_credit": _agency_option(db, res),
                "allowed_actions": [a for a in OPS_ACTIONS if req.status in TRANSITIONS[a][0]] + ["note"]}
         db.commit()
         return out
+
+    def _agency_option(db: Session, res: m.Reservation) -> Optional[dict]:
+        from .agency_settlement import credit_line_for_reservation, credit_remaining
+        line = credit_line_for_reservation(db, res.tenant_id, res.id)
+        if line is None:
+            return None
+        agency = db.get(m.Agency, line.agency_id)
+        return {"available": True, "label": METHOD_FA["agency_credit"], "agency_id": line.agency_id, "agency_name": agency.display_name if agency else None,
+                "net_irr": line.net_irr, "remaining_irr": credit_remaining(db, line), "required": _captured_payment(db, res) is None}
 
     @router.post("/ops/queues/service_requests/items/{request_id}/assign")
     def assign(request_id: str, data: AssignIn, user=Depends(ops_user), db: Session = Depends(get_db)) -> dict:
@@ -840,7 +866,16 @@ def after_sales_router(get_db, current_user, role_has_permission, User, audit, q
         if mode is None:
             raise HTTPException(422, "قوانین لغو تأییدشده ندارد؛ جریمه را دستی و با دلیل وارد کنید")
         payment = _captured_payment(db, res, lock=True)
-        paid_remaining = max((payment.captured_amount - payment.refunded_amount - _claimed(db, payment)) if payment else 0, 0)
+        from .agency_settlement import credit_line_for_reservation, credit_remaining
+        agency_line = credit_line_for_reservation(db, req.tenant_id, res.id)
+        if data.refund_destination == "agency_credit" and agency_line is None:
+            raise HTTPException(422, "این رزرو از حساب آژانس پرداخت نشده است؛ بازگشت به اعتبار آژانس ممکن نیست")
+        to_agency = agency_line is not None and (data.refund_destination == "agency_credit" or payment is None)
+        if to_agency:
+            payment = None
+            paid_remaining = credit_remaining(db, agency_line)
+        else:
+            paid_remaining = max((payment.captured_amount - payment.refunded_amount - _claimed(db, payment)) if payment else 0, 0)
         if mode == "policy":
             if quote is None:
                 raise HTTPException(409, "قوانین لغو این رزرو تأییدشده نیست؛ حالت دستی با دلیل را انتخاب کنید")
@@ -862,8 +897,21 @@ def after_sales_router(get_db, current_user, role_has_permission, User, audit, q
         h.decision_reason, h.decided_by_user_id, h.decided_at = reason, user.id, utcnow()
         if req.request_type == "cancel" and res.status == "cancel_requested":
             m.transition_reservation(db, res, "cancelled", user.id, f"{key}:cancelled")
+        if to_agency and refund_amount > 0:
+            from .agency_settlement import queue_credit_refund
+            try:
+                row = queue_credit_refund(db, user=user, line=agency_line, amount=refund_amount, penalty=penalty, source="service_request", key=f"sr:{req.id}:{key}",
+                                          audit=audit, service_request_id=req.id, note=reason)
+            except ValueError as exc:
+                raise HTTPException(409, str(exc)) from exc
+            h.refund_destination = "agency_credit"
+            h.destination_json = json.dumps({"agency_credit_refund_id": row.id, "agency_id": agency_line.agency_id}, ensure_ascii=False)
+            _transition(db, req, h, "queue_refund", None, "system", payload={"agency_credit_refund_id": row.id, "amount": refund_amount}, command_id=f"{key}:queue")
+            _notify(db, req, h, "درخواست شما تأیید شد و بازگشت به اعتبار آژانس در انتظار تأیید مالی است",
+                    f"مبلغ {refund_amount:,} ریال پس از تأیید کارشناس مالی به اعتبار آژانس برمی‌گردد.")
+            return
         if refund_amount <= 0 or payment is None:
-            _notify(db, req, h, "درخواست شما تأیید شد", "طبق قوانین لغو، مبلغی برای استرداد باقی نمی‌ماند." if payment else "پرداختی برای استرداد ثبت نشده است.")
+            _notify(db, req, h, "درخواست شما تأیید شد", "طبق قوانین لغو، مبلغی برای استرداد باقی نمی‌ماند." if (payment or to_agency) else "پرداختی برای استرداد ثبت نشده است.")
             return
         pb = db.scalar(select(m.PriceBreakdown).where(m.PriceBreakdown.tenant_id == req.tenant_id, m.PriceBreakdown.booking_id == res.id))
         breakdown = vat_reversal(refund_amount=refund_amount, customer_total=pb.total_selling_price if pb else None, service_fee=pb.service_fee if pb else None,

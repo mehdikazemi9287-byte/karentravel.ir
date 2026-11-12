@@ -22,3 +22,21 @@
 .b2b-soon{border:1.5px dashed #d9cdc0;border-radius:16px;padding:14px;display:grid;gap:6px;background:#faf6f0}
 .b2b-soon b::after{content:" · به‌زودی";color:var(--pn-coral,#ef5b3d);font-weight:700}
 .b2b-flags .as-chip,.b2b-section .as-chip{white-space:normal;max-width:100%;overflow-wrap:anywhere}
+/* Phase 2b (Figma P3 243:2): settlement stepper, summary box, notice boxes, scrollable pills on mobile. */
+.b2b-steps{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.b2b-steps li{display:flex;align-items:center;gap:6px}.b2b-step-arrow{color:var(--pn-muted,#6e5e70);font-size:14px}
+.b2b-step{border-radius:999px;padding:6px 12px;font-size:14px;font-weight:500;border:1px dashed var(--pn-line,#eadfd2);background:#fff;color:var(--pn-muted,#6e5e70)}
+.b2b-steps li[data-state=done] .b2b-step{background:var(--pn-ok-bg);color:var(--pn-ok);border-style:solid;border-color:transparent}
+.b2b-steps li[data-state=current] .b2b-step{background:var(--pn-action);color:var(--pn-action-ink);border-style:solid;border-color:transparent}
+.b2b-steps li[data-state=bad] .b2b-step{background:var(--pn-bad-bg);color:var(--pn-bad);border-style:solid;border-color:transparent}
+.b2b-steps-mobile{display:none}
+@media(max-width:700px){.b2b-steps{display:none}.b2b-steps-mobile{display:block}}
+.b2b-sum{display:grid;gap:6px;margin:0}.b2b-sum div{display:flex;justify-content:space-between;gap:12px;align-items:baseline}.b2b-sum dt{flex:1}.b2b-sum dd{margin:0;font-weight:600;white-space:nowrap}
+.b2b-sum .soft{background:var(--pn-cream,#fdf5ea);border-radius:12px;padding:10px 12px}
+.b2b-sum .total{background:#eeeaf6;border-radius:12px;padding:12px 14px;font-weight:600}.b2b-sum .total dd{color:#4a3a8a;font-size:17px;font-weight:700}
+.b2b-pills{flex-wrap:nowrap;overflow-x:auto;max-width:100%}
+.b2b-more summary{cursor:pointer;color:var(--pn-plum,#3a1b3d);font-weight:600;min-height:44px;display:flex;align-items:center}
+.b2b-box{border-radius:12px;padding:12px 14px;background:#f1ece6;display:grid;gap:2px}.b2b-box.new{background:#eeeaf6;border:1px solid #4a3a8a}.b2b-box b{font-size:17px}
+.b2b-notice{border:1px solid var(--pn-gold,#b98319)}
+.pn-chips button[aria-selected=true]{background:var(--pn-plum,#3a1b3d);color:#fff;border-color:var(--pn-plum,#3a1b3d)}
+.b2b-pills button{min-height:44px;font-size:14px}

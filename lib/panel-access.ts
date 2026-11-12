@@ -72,6 +72,7 @@ const R = {
   priceChanges: {anyPermission: ['service_request:decide', 'refund:manage', 'tenant:manage'], notRoles: PARTNERS_AND_PUBLIC},     // panel_ops.proposals
   financeOps: {anyPermission: ['ledger:read', 'reconciliation:manage', 'tenant:manage'], notRoles: PARTNERS_AND_PUBLIC},          // panel_ops.finance_read
   approvals: {anyPermission: ['credit:fund', 'refund:manage', 'tenant:manage', 'credit:manage'], notRoles: PARTNERS_AND_PUBLIC},   // /maker-checker/requests (kinds the user may check)
+  agencySettlement: {anyPermission: ['settlement:manage', 'ledger:read', 'refund:manage'], notRoles: PARTNERS_AND_PUBLIC},       // agency_settlement.fin_reader
 } satisfies Record<string, Rule | undefined>;
 
 /* Mobile bottom navigation (Figma BottomNav 209:393: four destinations + «بیشتر»): order and glyph per page. */
@@ -111,10 +112,10 @@ export const PANEL_ITEMS: NavItem[] = [
 
   // Agency sidebar (Figma P2 AG-*): grouped like the approved frames — today, my inventory (seller), sell & price, money, the agency itself.
   I('agency', 'امروز', '/agency', R.agency),
-  ...([['تورهای من', '/agency/tours'], ['پرواز و بلوک صندلی', '/agency/inventory/flights']] as [string, string][]).map(([l, h]) => I('agency', l, h, R.agency, {group: 'موجودی من (فروشنده)', menu: h === '/agency/tours'})),
+  ...([['تورهای من', '/agency/tours'], ['پرواز و بلوک صندلی', '/agency/inventory/flights'], ['اطلاعیه‌های تغییر پرواز', '/agency/inventory/notices']] as [string, string][]).map(([l, h]) => I('agency', l, h, R.agency, {group: 'موجودی من (فروشنده)', menu: h === '/agency/tours'})),
   ...([['فروش با اعتبار آژانس', '/agency/sell'], ['فروش و پیشنهاد قیمت', '/agency/sales'], ['رزروها', '/agency/bookings'], ['مشتریان', '/agency/customers'], ['قواعد markup و کمیسیون', '/agency/pricing']] as [string, string][])
     .map(([l, h]) => I('agency', l, h, R.agency, {group: 'فروش و قیمت'})),
-  ...([['حساب و اعتبار', '/agency/credit'], ['کمیسیون', '/agency/commissions'], ['صورتحساب‌ها', '/agency/invoices'], ['تسویه و اسناد', '/agency/documents'], ['گزارش', '/agency/reports']] as [string, string][])
+  ...([['حساب و اعتبار', '/agency/credit'], ['صورت تسویهٔ دوره‌ای', '/agency/settlements'], ['کمیسیون', '/agency/commissions'], ['صورتحساب‌ها', '/agency/invoices'], ['تسویه و اسناد', '/agency/documents'], ['گزارش', '/agency/reports']] as [string, string][])
     .map(([l, h]) => I('agency', l, h, R.agency, {group: 'مالی و حساب'})),
   ...([['پروفایل و مجوزها', '/agency/profile'], ['کاربران آژانس', '/agency/users'], ['مسافران آژانس', '/agency/passengers'], ['میز کار کامل', '/agency/workspace'], ['پشتیبانی', '/agency/support']] as [string, string][])
     .map(([l, h]) => I('agency', l, h, R.agency, {group: 'آژانس'})),
@@ -142,7 +143,8 @@ export const PANEL_ITEMS: NavItem[] = [
     ['آژانس‌ها و مجوزها', '/backoffice/agencies', R.agencyReview], ['بلوک‌های چارتر', '/backoffice/charter-blocks', R.charterReview], ['حساب و اعتبار آژانس‌ها', '/finance/agency-accounts', R.agencyCredit],
     ['امروز', '/panel/today', R.any], ['تأییدهای دونفره', '/finance/approvals', R.approvals], ['پیشنهاد تغییر قیمت', '/backoffice/price-changes', R.priceChanges],
     ['پرداخت‌های ناموفق', '/finance/failed-payments', R.financeOps], ['ورود فایل تسویهٔ درگاه', '/finance/settlement-import', R.reconcile], ['پرداخت گروهی بانکی', '/finance/bank-batches', R.refunds],
-    ['نرخ مالیات تاریخ‌دار', '/finance/tax-rates', R.financeOps], ['SLA صف عملیات', '/admin/sla', R.tenantAdmin],
+    ['نرخ مالیات تاریخ‌دار', '/finance/tax-rates', R.financeOps], ['تسویهٔ دوره‌ای آژانس‌ها', '/finance/settlements/agencies', R.agencySettlement],
+    ['اعتراض‌های تسویهٔ آژانس', '/finance/settlements/disputes', R.agencySettlement], ['SLA صف عملیات', '/admin/sla', R.tenantAdmin],
   ] as [string, string, Rule][]).map(([label, href, rule]) => I(staffArea(href), label, href, rule, {menu: true})),
   // Staff pages outside the panel shell (JourneyShell): not in the sidebar, but in the account menu for the roles that can use them.
   ...([
@@ -150,6 +152,7 @@ export const PANEL_ITEMS: NavItem[] = [
     ['پرونده‌های عملیات', '/backoffice/records', R.backoffice], ['میز پشتیبانی', '/backoffice/support', R.support], ['وضعیت اعلان‌ها', '/backoffice/notifications', R.tripOps],
     ['رکوردهای مالی', '/finance/records', R.ledger], ['حسابداری و کمیسیون', '/finance/accounting', R.ledger],
     ['رسیدگی به درخواست مشتری', '/backoffice/requests', R.serviceDecide], ['صف‌های عملیات', '/backoffice/queues', R.serviceDecide],
+    ['تسویهٔ آژانس‌ها', '/finance/settlements', R.agencySettlement],  // guards /finance/settlements/[id] (Phase 2b)
   ] as [string, string, Rule][]).map(([label, href, rule]) => I(staffArea(href), label, href, rule, {menu: true, inNav: false})),
 ];
 
