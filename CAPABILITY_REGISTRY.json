@@ -209,6 +209,13 @@
       "blocker": null,
       "last_verified_at": "2026-08-24",
       "evidence": "CHECKPOINT.md commit history, no single golden-journey test file found"
+    },
+    "payment_vandapay": {
+      "status": "READY_BLOCKED_EXTERNAL",
+      "reason": "VandaPay («پرداخت با ونداپی») provider built and tested with a labelled MOCK API: server-side intent with Idempotency-Key, redirect to VandaPay hosted checkout, signed-state browser return and HMAC-signed webhook that both re-read the intent server-to-server (status succeeded + exact rial amount + IRR + key mode + our metadata); unknown/pending never captured. Feature flag VANDAPAY_ENABLED is OFF by default: /payments/methods hides it and its endpoints answer 404.",
+      "blocker": "Owner decision D15: VandaPay PSP contract + legal opinion; VandaPay server/domain + merchant keys (sk_test_/sk_live_) and webhook secret not provisioned",
+      "last_verified_at": "2026-11-12",
+      "evidence": "branch feat/vandapay-gateway; backend/tests/test_vandapay.py (15 tests, MOCK); docs/adr/ADR-021-vandapay-payment-provider.md"
     }
   }
 }
