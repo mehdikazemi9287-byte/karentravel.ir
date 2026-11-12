@@ -61,7 +61,8 @@ AUTHORITIES = ("cao", "mcth")
 CHECK_RESULTS = {"confirmed": "منطبق", "mismatch": "نامنطبق", "not_found": "یافت نشد"}
 KYC_STATUSES = ("draft", "submitted", "active", "rejected", "suspended")
 MEMBER_ROLES = {"owner": "مدیر آژانس", "agent": "کارشناس فروش آژانس"}
-LEDGER_TYPES = ("TOPUP", "DECREASE", "HOLD", "CAPTURE", "RELEASE", "REFUND", "COMMISSION", "LIMIT_CHANGE")
+LEDGER_TYPES = ("TOPUP", "DECREASE", "HOLD", "CAPTURE", "RELEASE", "REFUND", "COMMISSION", "LIMIT_CHANGE",
+                "COMM_REVERSAL", "ADJ_CREDIT", "ADJ_DEBIT", "SETTLE_IN")  # the last four: settlement postings (agency_settlement.py)
 SERVICE_SCOPES = ("any", "flight", "flight_charter", "hotel", "tour")
 
 
@@ -612,7 +613,8 @@ def valid_licence_types(db: Session, tenant_id: int, agency_id: str, today: Opti
 
 
 def entry_out(e: AgencyLedgerEntry) -> dict:
-    sign = {"TOPUP": 1, "DECREASE": -1, "CAPTURE": -1, "REFUND": 1, "COMMISSION": 1}.get(e.entry_type, 0)
+    sign = {"TOPUP": 1, "DECREASE": -1, "CAPTURE": -1, "REFUND": 1, "COMMISSION": 1, "COMM_REVERSAL": -1, "ADJ_CREDIT": 1, "ADJ_DEBIT": -1,
+            "SETTLE_IN": 1}.get(e.entry_type, 0)
     return {"id": e.id, "entry_type": e.entry_type, "amount_irr": e.amount_irr, "signed_amount_irr": sign * e.amount_irr if sign else None,
             "balance_after": e.balance_after, "held_after": e.held_after, "limit_after": e.limit_after, "reservation_id": e.reservation_id,
             "reference": e.reference, "note": e.note, "created_at": _iso(e.created_at)}
@@ -819,7 +821,7 @@ def agency_b2b_router(get_db, current_user, role_has_permission, User, audit: Ca
         return [{"id": r.id, "kind": r.kind, "status": r.status, "summary": r.summary, "amount_irr": r.amount, "created_at": _iso(r.created_at), "decided_at": _iso(r.decided_at)} for r in rows]
 
     @api.get("/agency/{agency_id}/wallet")
-    def wallet(agency_id: str, entry_type: Optional[str] = Query(default=None, pattern="^(TOPUP|DECREASE|HOLD|CAPTURE|RELEASE|REFUND|COMMISSION|LIMIT_CHANGE)$"),
+    def wallet(agency_id: str, entry_type: Optional[str] = Query(default=None, pattern="^(TOPUP|DECREASE|HOLD|CAPTURE|RELEASE|REFUND|COMMISSION|LIMIT_CHANGE|COMM_REVERSAL|ADJ_CREDIT|ADJ_DEBIT|SETTLE_IN)$"),
                limit: int = Query(default=100, ge=1, le=500), user=Depends(current_user), db: Session = Depends(get_db)) -> dict:
         agency, role = membership(db, agency_id, user)
         acc = account_for(db, user.tenant_id, agency.id)

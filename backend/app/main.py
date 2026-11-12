@@ -5882,6 +5882,10 @@ app.include_router(agency_b2b_router(get_db, current_user, role_has_permission, 
                                      transition=operational_models.transition_reservation))
 from .charter_blocks import charter_blocks_router  # noqa: E402  Panels Phase 2: charter seat blocks, CAO price cap, allocations, staff publish
 app.include_router(charter_blocks_router(get_db, current_user, role_has_permission, User, _platform_audit))
+from .agency_settlement import agency_settlement_router  # noqa: E402  Panels Phase 2b: agency periodic settlement, disputes, refund to agency credit
+app.include_router(agency_settlement_router(get_db, current_user, role_has_permission, User, _platform_audit))
+from .charter_changes import charter_changes_router  # noqa: E402  Panels Phase 2b: charter schedule change / cancel, impact preview, agency notices
+app.include_router(charter_changes_router(get_db, current_user, role_has_permission, User, _platform_audit))
 
 from .panel_ops import panel_ops_router  # noqa: E402  Panels Phase 1 rest: capabilities, today, SLA, tax rates, failed payments, price change, passengers, settlement, bank batches
 from .security import ROLE_PERMISSIONS as _ROLE_PERMISSIONS  # noqa: E402
