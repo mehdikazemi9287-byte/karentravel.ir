@@ -6,7 +6,7 @@ vm.runInNewContext(src,scope);const A=scope.exports;
 const hrefs=(area,role)=>JSON.parse(JSON.stringify(A.navFor(area,role).map(i=>i.href)));
 // staff pages are split into three areas (ops / finance / admin); a role's staff menu is the union of the areas it can open
 const staffHrefs=role=>[...new Set(['ops','finance','admin'].flatMap(a=>hrefs(a,role)))];
-assert.equal(staffHrefs('platform_admin').length,46);
+assert.equal(staffHrefs('platform_admin').length,48);
 const bo=staffHrefs('backoffice_expert'),fin=staffHrefs('finance_operator'),ta=staffHrefs('tenant_admin');
 assert.ok(bo.includes('/admin/ops')&&bo.includes('/backoffice')&&bo.includes('/admin/catalog'));
 assert.ok(!bo.includes('/finance/ledger')&&!bo.includes('/finance')&&!bo.includes('/admin')&&!bo.includes('/admin/tenants'));
@@ -73,3 +73,12 @@ assert.ok(A.roleLinks('customer').map(x=>x[1]).includes('/quotes'));
 for(const i of A.PANEL_ITEMS){const f=path.join('app',i.href,'page.tsx');assert.ok(fs.existsSync(f),`missing page for ${i.href}`);}
 assert.equal(A.homeFor('agency_partner'),'/agency');assert.equal(A.homeFor('nobody'),'/account');
 console.log('PASS panel nav is role-filtered, guard denies other roles, agency tours live in the agency panel');
+// Phase 2b: periodic agency settlement, disputes queue and charter notices
+assert.ok(fin.includes('/finance/settlements/agencies')&&fin.includes('/finance/settlements/disputes')&&!bo.includes('/finance/settlements/agencies'));
+assert.equal(A.canOpen('admin','/finance/settlements/0b5c1f4e-6a1d-4c3e-9f2a-1d2e3f4a5b6c','backoffice_expert'),false);
+assert.equal(A.canOpen('admin','/finance/settlements/0b5c1f4e-6a1d-4c3e-9f2a-1d2e3f4a5b6c','finance_operator'),true);
+assert.equal(A.canOpen('admin','/finance/refunds/agency-credit/x','finance_operator'),true);assert.equal(A.canOpen('admin','/finance/refunds/agency-credit/x','backoffice_expert'),false);
+assert.equal(A.canOpen('admin','/backoffice/charter-blocks/x','backoffice_expert'),true);
+assert.ok(hrefs('agency','agency_partner').includes('/agency/settlements')&&hrefs('agency','agency_partner').includes('/agency/inventory/notices'));
+assert.equal(A.canOpen('agency','/agency/settlements/x','agency_partner'),true);assert.equal(A.canOpen('agency','/agency/settlements','customer'),false);
+console.log('panel-access: PASS');

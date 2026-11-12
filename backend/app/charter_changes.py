@@ -406,6 +406,7 @@ def charter_changes_router(get_db, current_user, role_has_permission, User, audi
             if r["status"] == "pending" and r["expires_at"] and datetime.fromisoformat(r["expires_at"]) <= utcnow():
                 r["status"] = "expired"
             r["can_decide"] = r["status"] == "pending" and r["maker_user_id"] != user.id and can_apply(user, {})
+            r["mine"] = r["maker_user_id"] == user.id
         out = {"items": [change_out(db, c) for c in rows], "block_status": b.status, "requests": reqs, "me": user.id,
                "can_change": any(role_has_permission(user.role, p) for p in ("inventory:publish", "tenant:manage"))}
         db.commit()

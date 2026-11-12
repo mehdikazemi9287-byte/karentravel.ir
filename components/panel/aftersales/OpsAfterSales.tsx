@@ -15,6 +15,7 @@ type Detail = QueueItem & {reason: string | null; quote: {total_amount: number; 
   penalty_amount: number | null; penalty_source: string | null; approved_amount: number | null; decision_reason: string | null; decided_by: string | null; supplier: {reference?: string; requested_at?: string; response?: {refundable_amount?: number | null; penalty_amount?: number | null; reference?: string | null; note?: string | null}};
   refund: {id: string; status: string; amount: number} | null; payment: {captured_amount: number; refunded_amount: number; refundable_remaining: number; provider_reference: string | null} | null;
   money: {customer_total: number; supplier_amount: number | null; service_fee: number | null; taxes: Record<string, number>} | null; can_override: boolean; allowed_actions: string[];
+  agency_credit: {available: boolean; label: string; agency_name: string | null; net_irr: number; remaining_irr: number; required: boolean} | null;
   timeline: {steps: Step[]; next: Next}; policy_at_booking: {source?: string; cancellation?: {refundable?: boolean; penalty_amount?: number}}};
 
 const slaChip = (n: Next) => {
@@ -65,7 +66,7 @@ export function OpsRequestHandling({id}: {id: string}) {
   }
   async function take() {setBusy(true); setError(''); try {await d.api.post(`/ops/queues/service_requests/items/${id}/assign`, {}); d.reload();} catch (e) {setError(messageOf(e));} finally {setBusy(false);}}
   return <div className="as"><Loaded state={d.state} reload={d.reload} skeleton={<><Skeleton rows={3}/><Skeleton kind="timeline"/></>}>{r => {
-    const quote = r.current_quote ?? r.quote; const remaining = r.payment?.refundable_remaining ?? 0;
+    const quote = r.current_quote ?? r.quote; const remaining = r.agency_credit?.required ? r.agency_credit.remaining_irr : r.payment?.refundable_remaining ?? 0;
     const manualPenalty = toInt(penalty); const manualRefund = manualPenalty !== null ? remaining - manualPenalty : null;
     const needsOverride = mode === 'manual' && manualRefund !== null && (quote ? manualRefund > Math.min(quote.refundable_amount, remaining) : manualRefund > 0);
     return <>
@@ -102,8 +103,11 @@ export function OpsRequestHandling({id}: {id: string}) {
         </div>
       </div>
       <DecisionDialog open={dialog === 'approve'} title="تأیید درخواست و ارسال به مالی" confirmLabel="تأیید و ارسال به صف مالی" busy={busy} error={error} onClose={() => setDialog('')}
-        onSubmit={() => void run('approve', r.request_type === 'change' ? {reason: reason.trim() || null} : {penalty_mode: mode, penalty_amount: mode === 'manual' ? manualPenalty : null, reason: reason.trim() || null})}>
+        onSubmit={() => void run('approve', r.request_type === 'change' ? {reason: reason.trim() || null} : {penalty_mode: mode, penalty_amount: mode === 'manual' ? manualPenalty : null, reason: reason.trim() || null, ...(r.agency_credit ? {refund_destination: 'agency_credit'} : {})})}>
         {r.request_type === 'change' ? <p>تغییر رزرو تأیید می‌شود و رزرو به وضعیت «تغییریافته» می‌رود.</p> : <>
+          {r.agency_credit && <fieldset className="as-choice" style={{border: 0, padding: 0, margin: 0}}><legend className="as-muted">مقصد استرداد</legend>
+            <label><input type="radio" name="dest" checked readOnly/><b>بازگشت به اعتبار آژانس</b><small>{r.agency_credit.agency_name ?? 'آژانس'} · قابل برگشت {rial(r.agency_credit.remaining_irr)} · پس از تأیید کارشناس مالی</small></label>
+            <label aria-disabled><input type="radio" name="dest" disabled/><b>کیف پول یا کارت مسافر</b><small>برای رزرو پرداخت‌شده از حساب آژانس مجاز نیست</small></label></fieldset>}
           <fieldset className="as-choice" style={{border: 0, padding: 0, margin: 0}}><legend className="as-muted">جریمه</legend>
             <label aria-disabled={!quote}><input type="radio" name="pm" disabled={!quote} checked={mode === 'policy'} onChange={() => setMode('policy')}/><b>طبق قوانین لغو تأییدشده</b><small>{quote ? `استرداد ${rial(Math.min(quote.refundable_amount, remaining))}` : 'برای این رزرو ثبت نشده است'}</small></label>
             <label><input type="radio" name="pm" checked={mode === 'manual'} onChange={() => setMode('manual')}/><b>دستی (با دلیل)</b><small>مثلاً جریمهٔ اعلامی تأمین‌کننده</small></label></fieldset>
