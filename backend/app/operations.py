@@ -1246,6 +1246,20 @@ def sweep_expired_reservations(db: Session, *, now: Optional[datetime] = None, h
     return expired_ids
 
 
+class LedgerCommandConflict(ValueError):
+    """KT-2 (review 2026-11-12): a command_id was replayed with a different target, type or amount."""
+
+
+def _same_ledger_command(existing: "FinancialLedgerEntry", **requested) -> "FinancialLedgerEntry":
+    """Idempotent replay: identical request -> the stored entry; same command_id with any differing effective field
+    (wallet/credit account, entry_type, amount, reservation, reversal) -> LedgerCommandConflict, never a silent
+    false success."""
+    for field, value in requested.items():
+        if getattr(existing, field) != value:
+            raise LedgerCommandConflict("command_id already used for a different ledger command")
+    return existing
+
+
 def post_ledger(db: Session, *, tenant_id: int, wallet_id: Optional[str] = None, credit_account_id: Optional[str] = None, command_id: str, entry_type: str, amount: int, reservation_id: Optional[str] = None, reversal_of_id: Optional[str] = None) -> FinancialLedgerEntry:
     if bool(wallet_id) == bool(credit_account_id):
         raise ValueError("ledger entry must reference exactly one of wallet_id or credit_account_id")
@@ -1253,7 +1267,7 @@ def post_ledger(db: Session, *, tenant_id: int, wallet_id: Optional[str] = None,
     if existing is None:
         existing = db.scalar(select(FinancialLedgerEntry).where(FinancialLedgerEntry.tenant_id == tenant_id, FinancialLedgerEntry.command_id == command_id))
     if existing:
-        return existing
+        return _same_ledger_command(existing, wallet_id=wallet_id, credit_account_id=credit_account_id, entry_type=entry_type, amount=amount, reservation_id=reservation_id, reversal_of_id=reversal_of_id)
     if amount <= 0:
         raise ValueError("ledger amount must be positive")
     entry = FinancialLedgerEntry(tenant_id=tenant_id, wallet_id=wallet_id, credit_account_id=credit_account_id, reservation_id=reservation_id, command_id=command_id, entry_type=entry_type, amount=amount, reversal_of_id=reversal_of_id)
@@ -1381,6 +1395,10 @@ def settle_reservation_funding(db: Session, reservation: "Reservation", action: 
                 entry = apply_credit_command(db, tenant_id=reservation.tenant_id, wallet_id=reserve.wallet_id, command_id=command_id, entry_type=action, amount=reserve.amount, reservation_id=reservation.id)
             else:
                 entry = apply_organization_credit_command(db, tenant_id=reservation.tenant_id, credit_account_id=reserve.credit_account_id, command_id=command_id, entry_type=action, amount=reserve.amount, reservation_id=reservation.id)
+        except LedgerCommandConflict:
+            # KT-2: the reserve was already settled the other way under this command id (never both); logged.
+            logging.getLogger("karenseir.funding").warning("reservation_funding_settlement_conflict", extra={"reservation_id": reservation.id, "reserve_id": reserve.id, "action": action})
+            continue
         except ValueError:
             logging.getLogger("karenseir.funding").error("reservation_funding_settlement_failed", extra={"reservation_id": reservation.id, "reserve_id": reserve.id, "action": action})
             continue

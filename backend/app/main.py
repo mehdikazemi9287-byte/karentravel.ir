@@ -24,7 +24,7 @@ from fastapi import Body, Depends, FastAPI, File, Form, Header, HTTPException, Q
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse, Response, RedirectResponse
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, Text, func, select, text, update
+from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, Text, func, or_, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
@@ -3895,9 +3895,15 @@ def cancellation_quote(reservation_id: str, user: User = Depends(current_user), 
 def reissue_voucher(reservation_id: str, data: VoucherReissueIn, user: User = Depends(require_permission("reservation:fulfill")), db: Session = Depends(get_db)) -> dict:
     if not data.document_reference.startswith(("document://", "s3://", "vault://")): raise HTTPException(status_code=422, detail="document reference معتبر نیست")
     reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == reservation_id, operational_models.Reservation.tenant_id == user.tenant_id).with_for_update())
-    if reservation is None or reservation.status not in {"issued", "changed"}: raise HTTPException(status_code=409, detail="رزرو قابل صدور مجدد واچر نیست")
+    if reservation is None: raise HTTPException(status_code=404, detail="رزرو در این حساب وجود ندارد")
+    # KT-1 (review 2026-11-12): same object-level scope as /fulfill, checked BEFORE any replay is read or any document
+    # changes: an unrelated supplier/agency gets 403 and nothing is touched.
+    owned_item = db.scalar(select(operational_models.BookingItem).where(operational_models.BookingItem.reservation_id == reservation.id, operational_models.BookingItem.tenant_id == user.tenant_id))
+    if not _may_fulfil(db, user, reservation, owned_item): raise HTTPException(status_code=403, detail="این رزرو به تأمین‌کنندهٔ جاری واگذار نشده است")
+    if reservation.status not in {"issued", "changed"}: raise HTTPException(status_code=409, detail="رزرو قابل صدور مجدد واچر نیست")
     prior = db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id == user.tenant_id, operational_models.IdempotencyKey.scope == "voucher.reissue", operational_models.IdempotencyKey.key == data.command_id))
     voucher = db.scalar(select(operational_models.Voucher).where(operational_models.Voucher.tenant_id == user.tenant_id, operational_models.Voucher.reservation_id == reservation.id).with_for_update())
+    if prior and prior.request_hash != _secure_hash(f"{reservation.id}:{data.document_reference}"): raise HTTPException(status_code=409, detail="این شناسهٔ فرمان قبلاً برای درخواست دیگری استفاده شده است")
     if prior and voucher: return {"id": voucher.id, "status": voucher.status, "revision": voucher.revision}
     if voucher is None: raise HTTPException(status_code=404, detail="واچر قبلی وجود ندارد")
     voucher.revision += 1; voucher.document_reference = data.document_reference; voucher.status = "issued"
@@ -5731,13 +5737,20 @@ def operations_records(section:str,offset:int=Query(default=0,ge=0,le=100000),li
 
 
 @app.get("/supplier/reservations/ready")
-def supplier_ready_reservations(user:User=Depends(require_permission("inventory:manage")),db:Session=Depends(get_db)) -> list[dict]:
+def supplier_ready_reservations(limit:int=Query(200,ge=1,le=500),offset:int=Query(0,ge=0,le=100000),user:User=Depends(require_permission("inventory:manage")),db:Session=Depends(get_db)) -> list[dict]:
     supplier_ids=set(_supplier_scope(db,user))
-    pairs=db.execute(select(operational_models.Reservation,operational_models.BookingItem).join(operational_models.BookingItem,operational_models.BookingItem.reservation_id==operational_models.Reservation.id).where(operational_models.Reservation.tenant_id==user.tenant_id,operational_models.BookingItem.tenant_id==user.tenant_id,operational_models.Reservation.status.in_(["reserved","awaiting_payment","confirmed"])).order_by(operational_models.Reservation.created_at.desc()).limit(200)).all()
-    out=[]
+    if not supplier_ids:return []
+    # KT-3 (review 2026-11-12): the supplier / manual-fulfilment scope is applied in SQL BEFORE the LIMIT, so newer
+    # bookings of other suppliers can no longer push this supplier's paid orders out of the queue. snapshot_json is
+    # written by json.dumps (default separators); the exact check below stays as the authority. Stable order + offset.
+    scope=or_(*[operational_models.BookingItem.snapshot_json.like(f'%"supplier_id": {json.dumps(sid)}%') for sid in sorted(supplier_ids)])
+    pairs=db.execute(select(operational_models.Reservation,operational_models.BookingItem).join(operational_models.BookingItem,operational_models.BookingItem.reservation_id==operational_models.Reservation.id).where(operational_models.Reservation.tenant_id==user.tenant_id,operational_models.BookingItem.tenant_id==user.tenant_id,operational_models.Reservation.status.in_(["reserved","awaiting_payment","confirmed"]),scope,operational_models.BookingItem.snapshot_json.like('%"fulfillment_mode": "manual_supplier"%')).order_by(operational_models.Reservation.created_at.desc(),operational_models.Reservation.id.desc(),operational_models.BookingItem.id).offset(offset).limit(limit)).all()
+    out=[];seen=set()
     for reservation,item in pairs:
         snapshot=json.loads(item.snapshot_json)
         if snapshot.get("supplier_id") not in supplier_ids or snapshot.get("fulfillment_mode")!="manual_supplier":continue
+        if reservation.id in seen:continue  # KT-3: a multi-item bundle is listed once
+        seen.add(reservation.id)
         # Paid = captured bank payment for the bank part, or 100% reserved wallet/credit (QA D1).
         if not _reservation_settlement_ready(db,reservation):continue
         out.append({"id":reservation.id,"booking_reference":reservation.booking_reference,"title":snapshot.get("title",reservation.service_type),"service_type":reservation.service_type,"status":reservation.status,"hotel_stay":snapshot.get("hotel_stay")})
