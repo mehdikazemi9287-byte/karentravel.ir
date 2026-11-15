@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="fa"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_standard" name="shell-type"/><title>کارن تراول | سامانه جامع رزرو آنلاین سفر</title><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+          "primary-container": "#EF5B3D",
+          "tertiary-fixed": "#ffdeab",
+          "surface-dim": "#e0d9cf",
+          "surface-container-lowest": "#ffffff",
+          "on-surface": "#2A1530",
+          "surface-variant": "#e8e2d8",
+          "tertiary": "#7b5500",
+          "primary-fixed": "#ffdad3",
+          "on-secondary-fixed": "#28132e",
+          "on-tertiary": "#ffffff",
+          "secondary-fixed-dim": "#dcbce0",
+          "on-error": "#ffffff",
+          "on-primary-fixed": "#3e0500",
+          "outline-variant": "#e1bfb8",
+          "surface": "#fff8f0",
+          "on-tertiary-container": "#fffbff",
+          "surface-container-high": "#eee7dd",
+          "surface-container-highest": "#e8e2d8",
+          "inverse-surface": "#33302a",
+          "secondary": "#6f5674",
+          "primary-fixed-dim": "#ffb4a4",
+          "tertiary-container": "#EFB448",
+          "inverse-on-surface": "#f7f0e6",
+          "on-error-container": "#93000a",
+          "surface-tint": "#b02e15",
+          "error-container": "#ffdad6",
+          "surface-container-low": "#faf3e9",
+          "primary": "#ad2c12",
+          "tertiary-fixed-dim": "#f8bc4f",
+          "surface-bright": "#fff8f0",
+          "on-surface-variant": "#59413c",
+          "secondary-fixed": "#f9d8fd",
+          "surface-container": "#f4ede3",
+          "on-tertiary-fixed": "#271900",
+          "on-secondary-container": "#745a79",
+          "on-primary": "#ffffff",
+          "outline": "#8d706a",
+          "inverse-primary": "#ffb4a4",
+          "on-primary-fixed-variant": "#8d1600",
+          "error": "#ba1a1a",
+          "secondary-container": "#f6d5fa",
+          "on-tertiary-fixed-variant": "#5f4100",
+          "background": "#F5EEE4",
+          "on-background": "#2A1530",
+          "on-secondary-fixed-variant": "#563e5c",
+          "on-secondary": "#ffffff",
+          "on-primary-container": "#fffbff"
+        },
+        "borderRadius": {
+          "DEFAULT": "0.25rem",
+          "lg": "0.5rem",
+          "xl": "0.75rem",
+          "full": "9999px"
+        },
+        "spacing": {
+          "margin": "3.5rem",
+          "space-xs": "0.375rem",
+          "margin-desktop": "3.5rem",
+          "space-xl": "2.5rem",
+          "space-sm": "0.75rem",
+          "gutter-desktop": "1.5rem",
+          "space-md": "1.25rem",
+          "space-lg": "1.75rem",
+          "gutter": "1.5rem"
+        },
+        "fontFamily": {
+          "headline-sm": [
+            "Vazirmatn"
+          ],
+          "body-md": [
+            "Vazirmatn"
+          ],
+          "body-lg": [
+            "Vazirmatn"
+          ],
+          "body-sm": [
+            "Vazirmatn"
+          ],
+          "headline-md": [
+            "Vazirmatn"
+          ],
+          "label-sm": [
+            "Vazirmatn"
+          ],
+          "display": [
+            "Vazirmatn"
+          ],
+          "headline-lg": [
+            "Vazirmatn"
+          ],
+          "title-md": [
+            "Vazirmatn"
+          ],
+          "label-md": [
+            "Vazirmatn"
+          ],
+          "title-lg": [
+            "Vazirmatn"
+          ],
+          "label-lg": [
+            "Vazirmatn"
+          ]
+        },
+        "fontSize": {
+          "headline-sm": [
+            "22px",
+            {
+              "lineHeight": "34px",
+              "letterSpacing": "0em",
+              "fontWeight": "700"
+            }
+          ],
+          "body-md": [
+            "14px",
+            {
+              "lineHeight": "24px",
+              "letterSpacing": "0em",
+              "fontWeight": "400"
+            }
+          ],
+          "body-lg": [
+            "16px",
+            {
+              "lineHeight": "28px",
+              "letterSpacing": "0em",
+              "fontWeight": "400"
+            }
+          ],
+          "body-sm": [
+            "12px",
+            {
+              "lineHeight": "20px",
+              "letterSpacing": "0em",
+              "fontWeight": "400"
+            }
+          ],
+          "headline-md": [
+            "28px",
+            {
+              "lineHeight": "42px",
+              "letterSpacing": "-0.01em",
+              "fontWeight": "700"
+            }
+          ],
+          "label-sm": [
+            "11px",
+            {
+              "lineHeight": "16px",
+              "letterSpacing": "0em",
+              "fontWeight": "500"
+            }
+          ],
+          "display": [
+            "48px",
+            {
+              "lineHeight": "68px",
+              "letterSpacing": "-0.02em",
+              "fontWeight": "800"
+            }
+          ],
+          "headline-lg": [
+            "36px",
+            {
+              "lineHeight": "52px",
+              "letterSpacing": "-0.015em",
+              "fontWeight": "800"
+            }
+          ],
+          "title-md": [
+            "16px",
+            {
+              "lineHeight": "26px",
+              "letterSpacing": "0em",
+              "fontWeight": "600"
+            }
+          ],
+          "label-md": [
+            "12px",
+            {
+              "lineHeight": "18px",
+              "letterSpacing": "0em",
+              "fontWeight": "500"
+            }
+          ],
+          "title-lg": [
+            "18px",
+            {
+              "lineHeight": "28px",
+              "letterSpacing": "0em",
+              "fontWeight": "600"
+            }
+          ],
+          "label-lg": [
+            "14px",
+            {
+              "lineHeight": "20px",
+              "letterSpacing": "0em",
+              "fontWeight": "600"
+            }
+          ]
+        }
+      },
+    },
+  }</script></head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased"><header class="fixed top-0 w-full z-50 bg-surface/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(42,21,48,0.04)]"><div class="w-full bg-surface-container-high/60 border-b border-outline-variant/30"><div class="max-w-7xl mx-auto px-6 lg:px-12 h-10 flex items-center justify-between font-label-md text-label-md text-on-surface-variant"><div class="flex items-center gap-6"><span>پشتیبانی شبانه‌روزی: <strong class="font-label-lg text-label-lg text-on-surface font-semibold">۰۲۱-۹۱۰۰۰۰۰۰</strong></span><span class="hidden md:inline-block w-1 h-1 rounded-full bg-outline-variant"></span><span class="hidden md:inline-flex items-center gap-1 text-tertiary font-medium"><span class="material-symbols-outlined text-[16px]">workspace_premium</span>تضمین کمترین نرخ هتل و پرواز</span></div><div class="flex items-center gap-4"><div class="flex items-center gap-2 bg-surface-container px-3 py-0.5 rounded-full text-on-surface"><span class="material-symbols-outlined text-[15px] text-tertiary-container">payments</span><span class="font-label-sm text-label-sm">واحد پول: تومان</span></div><a class="hover:text-primary transition-colors flex items-center gap-1" data-path="track-orders" href="#"><span class="material-symbols-outlined text-[16px]">receipt_long</span>پیگیری خرید و استرداد</a></div></div></div><div class="h-20 max-w-7xl mx-auto px-6 lg:px-12 flex items-center justify-between"><div class="flex items-center gap-8"><a class="flex items-center gap-2.5 focus:outline-none" data-path="home" href="#"><div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-on-primary font-headline-sm text-headline-sm shadow-[0_4px_16px_rgba(173,44,18,0.25)]"><span class="material-symbols-outlined text-[24px]">flight_takeoff</span></div><div class="flex flex-col"><span class="font-headline-sm text-headline-sm font-bold text-on-surface tracking-tight leading-none">کارن‌سیر</span><span class="font-label-sm text-label-sm text-on-surface-variant font-medium tracking-wide mt-1">KAREN TRAVEL</span></div></a><nav class="hidden xl:flex items-center gap-1 bg-surface-container-low p-1.5 rounded-full shadow-[0_2px_12px_rgba(42,21,48,0.03)]" data-active-classes="bg-primary-container text-on-primary-container font-semibold rounded-full"><a class="text-on-surface-variant hover:text-on-surface px-4 py-2 transition-all font-label-lg text-label-lg" data-path="domestic-flights" href="#">پرواز داخلی</a><a class="text-on-surface-variant hover:text-on-surface px-4 py-2 transition-all font-label-lg text-label-lg" data-path="international-flights" href="#">پرواز خارجی</a><a aria-current="page" class="px-4 py-2 transition-all bg-primary-container text-on-primary-container font-semibold rounded-full" data-path="hotels" href="#">هتل و اقامتگاه</a><a class="text-on-surface-variant hover:text-on-surface px-4 py-2 transition-all font-label-lg text-label-lg" data-path="tours" href="#">تورهای گردشگری</a><a class="text-on-surface-variant hover:text-on-surface px-4 py-2 transition-all font-label-lg text-label-lg" data-path="train-bus" href="#">قطار و اتوبوس</a><a class="text-on-surface-variant hover:text-on-surface px-4 py-2 transition-all font-label-lg text-label-lg" data-path="travel-insurance" href="#">بیمه مسافرتی</a><a class="text-on-surface-variant hover:text-on-surface px-4 py-2 transition-all font-label-lg text-label-lg" data-path="travel-magazine" href="#">مجله سفر</a></nav></div><div class="flex items-center gap-3"><div class="flex items-center gap-2.5 bg-surface-container py-1.5 px-3.5 rounded-full border border-outline-variant/40"><div class="flex flex-col text-left font-label-sm text-label-sm"><span class="font-semibold text-on-surface leading-tight">کیان احمدی</span><span class="text-tertiary font-medium text-[10px] leading-tight flex items-center justify-end gap-0.5"><span class="material-symbols-outlined text-[12px]">stars</span>کاربر VIP</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div><a class="hidden sm:inline-flex items-center justify-center px-4 py-2 rounded-full bg-primary text-on-primary font-label-lg text-label-lg hover:bg-primary-container transition-colors shadow-[0_4px_16px_rgba(173,44,18,0.2)]" data-path="flight-checkout" href="#"><span class="material-symbols-outlined text-[18px] ml-1.5">shopping_bag</span>سفرهای من</a></div></div></header><main class="w-full pt-[7.5rem] bg-surface min-h-[calc(100vh-280px)]"><div class="flex flex-col w-full">
+<!-- Interactive & Print helper scripts embedded -->
+<script>
+    function triggerPrint() {
+      window.print();
+    }
+    function copyShareLink() {
+      navigator.clipboard.writeText(window.location.href);
+      const toast = document.getElementById('share-toast');
+      if (toast) {
+        toast.classList.remove('opacity-0', 'pointer-events-none');
+        setTimeout(() => toast.classList.add('opacity-0', 'pointer-events-none'), 3000);
+      }
+    }
+    function switchFilterView(filterType) {
+      const allRows = document.querySelectorAll('[data-category]');
+      const filterPills = document.querySelectorAll('.filter-pill');
+      filterPills.forEach(pill => {
+        pill.classList.remove('bg-[#2A1530]', 'text-[#FFFAF4]');
+        pill.classList.add('bg-surface-container-lowest', 'text-on-surface-variant');
+      });
+      const activeBtn = document.getElementById('btn-filter-' + filterType);
+      if (activeBtn) {
+        activeBtn.classList.add('bg-[#2A1530]', 'text-[#FFFAF4]');
+        activeBtn.classList.remove('bg-surface-container-lowest', 'text-on-surface-variant');
+      }
+      allRows.forEach(row => {
+        if (filterType === 'all' || row.getAttribute('data-category') === filterType) {
+          row.style.display = 'grid';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    }
+    function highlightDifferences() {
+      const toggle = document.getElementById('diff-toggle');
+      const table = document.getElementById('comparison-matrix');
+      if (toggle && table) {
+        table.classList.toggle('highlight-mode');
+      }
+    }
+  </script>
+<!-- Toast Notification for Share Link -->
+<div class="fixed bottom-8 left-8 z-50 transition-opacity duration-300 opacity-0 pointer-events-none flex items-center gap-3 bg-[#2A1530] text-[#FFFAF4] px-5 py-3 rounded-full shadow-2xl" id="share-toast">
+<span class="material-symbols-outlined text-primary text-[20px]">check_circle</span>
+<span class="font-label-lg text-label-lg">لینک مقایسه با موفقیت کپی شد!</span>
+</div>
+<div class="max-w-7xl mx-auto px-6 lg:px-12 w-full pb-20">
+<!-- Section 1: Breadcrumb & Context Header -->
+<div class="pt-8 pb-6 flex flex-col gap-5">
+<nav aria-label="مسیریاب" class="flex items-center gap-2 font-label-md text-label-md text-on-surface-variant">
+<a class="hover:text-primary transition-colors flex items-center gap-1" href="#">
+<span class="material-symbols-outlined text-[16px]">home</span>
+          خانه
+        </a>
+<span class="material-symbols-outlined text-[14px] text-outline-variant rotate-180">chevron_left</span>
+<a class="hover:text-primary transition-colors" href="#">هتل‌های شیراز</a>
+<span class="material-symbols-outlined text-[14px] text-outline-variant rotate-180">chevron_left</span>
+<span class="text-on-surface font-semibold">مقایسه ۳ اقامتگاه برتر شیراز</span>
+</nav>
+<div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+<div class="flex flex-col gap-2 max-w-3xl">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary-container text-on-secondary-container w-fit font-label-sm text-label-sm font-semibold">
+<span class="material-symbols-outlined text-[15px]">compare_arrows</span>
+            تحلیل رو در رو و بی‌طرفانه کارن‌سیر
+          </div>
+<h1 class="font-headline-lg text-headline-lg font-extrabold text-[#2A1530] tracking-tight">
+            مقایسه دقیق و رو در روی ۳ هتل منتخب در شیراز
+          </h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant leading-relaxed">
+            بررسی جامع قیمت، امتیاز مسافران، موقعیت، قوانین کنسلی، خدمات رفاهی و انطباق با سیاست‌های سفرهای سازمانی.
+          </p>
+</div>
+<!-- Upper Quick Actions -->
+<div class="flex items-center gap-2.5 flex-wrap">
+<button class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-surface-container-lowest text-[#2A1530] font-label-lg text-label-lg shadow-sm hover:bg-surface-container transition-all" onclick="triggerPrint()">
+<span class="material-symbols-outlined text-[18px] text-primary">picture_as_pdf</span>
+            پرینت و دریافت PDF
+          </button>
+<button class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-surface-container-lowest text-[#2A1530] font-label-lg text-label-lg shadow-sm hover:bg-surface-container transition-all" onclick="copyShareLink()">
+<span class="material-symbols-outlined text-[18px]">share</span>
+            ارسال لینک مقایسه
+          </button>
+<a class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#2A1530] text-[#FFFAF4] font-label-lg text-label-lg shadow-sm hover:bg-opacity-90 transition-all" href="#">
+<span class="material-symbols-outlined text-[18px]">add_circle</span>
+            تغییر یا افزودن هتل
+          </a>
+</div>
+</div>
+</div>
+<!-- Quick Filter & Comparison Utilities Bar -->
+<div class="bg-surface-container-lowest p-3 rounded-2xl shadow-sm flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
+<div class="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
+<span class="font-label-md text-label-md text-on-surface-variant ml-2 shrink-0">فیلتر شاخص‌ها:</span>
+<button class="filter-pill px-4 py-1.5 rounded-full bg-[#2A1530] text-[#FFFAF4] font-label-sm text-label-sm shrink-0 transition-all" id="btn-filter-all" onclick="switchFilterView('all')">
+          همه مشخصات (۷)
+        </button>
+<button class="filter-pill px-4 py-1.5 rounded-full bg-surface-container text-on-surface-variant hover:text-[#2A1530] font-label-sm text-label-sm shrink-0 transition-all" id="btn-filter-wellness" onclick="switchFilterView('wellness')">
+          آب و اسپا
+        </button>
+<button class="filter-pill px-4 py-1.5 rounded-full bg-surface-container text-on-surface-variant hover:text-[#2A1530] font-label-sm text-label-sm shrink-0 transition-all" id="btn-filter-business" onclick="switchFilterView('business')">
+          سفرهای شرکتی
+        </button>
+<button class="filter-pill px-4 py-1.5 rounded-full bg-surface-container text-on-surface-variant hover:text-[#2A1530] font-label-sm text-label-sm shrink-0 transition-all" id="btn-filter-dining" onclick="switchFilterView('dining')">
+          پذیرایی و صبحانه
+        </button>
+</div>
+<div class="flex items-center gap-3 shrink-0 self-end md:self-auto">
+<label class="inline-flex items-center gap-2 cursor-pointer select-none">
+<input class="w-4 h-4 accent-primary rounded cursor-pointer" id="diff-toggle" onchange="highlightDifferences()" type="checkbox"/>
+<span class="font-label-sm text-label-sm text-on-surface font-medium">برجسته‌سازی تفاوت‌های کلیدی</span>
+</label>
+<span class="w-px h-5 bg-surface-variant"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">نرخ‌ها برای ۱ شب / ۲ بزرگسال</span>
+</div>
+</div>
+<!-- Section 2: Sticky 3-Hotel Header Grid -->
+<div class="sticky top-[7.5rem] z-30 pt-2 pb-4 bg-surface/95 backdrop-blur-md">
+<div class="grid grid-cols-12 gap-4 items-stretch">
+<!-- Criteria Column Anchor Spacer -->
+<div class="hidden lg:flex lg:col-span-3 flex-col justify-end p-5 bg-surface-container-high rounded-[24px]">
+<span class="font-label-sm text-label-sm text-primary uppercase font-bold tracking-wider">ستون مقایسه فنی</span>
+<span class="font-title-lg text-title-lg text-[#2A1530] font-bold mt-1">مشخصات کلیدی هتل‌ها</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
+            مشخصات فنی و شرایط رزرو را به صورت ردیف به ردیف در مقابل هم ارزیابی کنید.
+          </p>
+</div>
+<!-- Hotel 1: هتل بزرگ شیراز (Best Value Highlight) -->
+<div class="col-span-12 md:col-span-4 lg:col-span-3 relative flex flex-col justify-between p-5 rounded-[28px] bg-[#FFFAF4] shadow-md border-2 border-primary/20">
+<!-- Best Value Badge -->
+<div class="absolute -top-3.5 right-6 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary text-on-primary font-label-sm text-label-sm font-bold shadow-md">
+<span class="material-symbols-outlined text-[15px]" style="font-variation-settings: 'FILL' 1;">recommend</span>
+            ارزش خرید برتر کارن
+          </div>
+<div>
+<div class="relative h-44 rounded-2xl overflow-hidden mb-3.5 group">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="Modern luxury facade of Shiraz Grand Hotel perched on the Zagros mountainside next to Qur'an Gate at golden hour, warm ambient illumination, premium Iranian hospitality travel photo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA0O2ZxGSoclvCxuL4K0nZxTt6PIDKDljtn7ktRoO-N4myL3BkXTmDxXPUCLHOmwggx8S-M8OqfGX5TB1vCBA0EjuYljQ7318-Qhz9gC2kxDHc_VcEJ-LTxlT4wj5-twptEFZSmGwlZI8lhR-wO3cZ8ZE0wbtDkjZ9FSYOJGKOYlAaLh7Vs900qEXLXbfp6CHT71lcsIKLCz8q3iz9yWsPHE-U8RXqa_B2eeIf2dng"/>
+<button class="absolute top-2.5 left-2.5 w-8 h-8 rounded-full bg-[#2A1530]/70 text-[#FFFAF4] hover:bg-primary transition-colors flex items-center justify-center" title="حذف از مقایسه">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+<div class="absolute bottom-2.5 right-2.5 px-2.5 py-1 rounded-lg bg-[#2A1530]/85 backdrop-blur-sm text-[#FFFAF4] font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-tertiary-fixed text-[15px]" style="font-variation-settings: 'FILL' 1;">star</span>
+                ۵ ستاره لوکس
+              </div>
+</div>
+<div class="flex items-start justify-between gap-2">
+<div>
+<h2 class="font-title-lg text-title-lg font-bold text-[#2A1530] leading-tight">هتل بزرگ شیراز</h2>
+<span class="font-label-sm text-label-sm text-on-surface-variant block mt-0.5">Shiraz Grand Hotel</span>
+</div>
+<div class="flex items-center gap-1 bg-tertiary-container text-on-tertiary-container px-2.5 py-1 rounded-full font-label-md text-label-md font-bold">
+<span class="material-symbols-outlined text-[15px]">thumb_up</span>
+                ۴.۸ <span class="text-[11px] opacity-80">/ ۵</span>
+</div>
+</div>
+</div>
+<div class="pt-4 mt-3 flex flex-col gap-3">
+<div class="flex items-baseline justify-between">
+<span class="font-body-sm text-body-sm text-on-surface-variant">هر شب از:</span>
+<div class="flex flex-col items-end">
+<span class="line-through text-on-surface-variant text-[12px]">۳,۶۸۰,۰۰۰</span>
+<div class="flex items-center gap-1 text-primary">
+<span class="font-headline-sm text-headline-sm font-extrabold">۲,۹۵۰,۰۰۰</span>
+<span class="font-label-sm text-label-sm">تومان</span>
+</div>
+</div>
+</div>
+<a class="w-full inline-flex items-center justify-center gap-2 py-3 rounded-full bg-primary hover:bg-primary-container text-on-primary font-label-lg text-label-lg font-bold shadow-md transition-all" href="#">
+<span>رزرو این هتل</span>
+<span class="material-symbols-outlined text-[18px] rotate-180">arrow_forward</span>
+</a>
+</div>
+</div>
+<!-- Hotel 2: هتل زندیه شیراز -->
+<div class="col-span-12 md:col-span-4 lg:col-span-3 flex flex-col justify-between p-5 rounded-[28px] bg-surface-container-lowest shadow-sm">
+<div>
+<div class="relative h-44 rounded-2xl overflow-hidden mb-3.5 group">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="Traditional Persian architectural facade of Zandiyeh Hotel Shiraz featuring brickwork, arched stained-glass orosi windows and lush courtyard garden under soft afternoon sun" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA5p4uNn0lg_P6sVG4jb-AuJMDbMhn938EFhEI05syJ995MH7TTvakubhCD-Ub4CGFK1ysdLgPe_cx09J7D21jAYA-BnH4QxOpw1hrDeyijY8fbjaTrNu2niZanr78wmYkZSIlAqGR8D1unBxMRsK3DMTrAT7i0l3sDEp8o1r2ThQfuLiGjjB329CbAGPQAdN_p6kzdIZJY3Yvlf0shlxEMF9zJdGPG24vTPQ4CCL4"/>
+<button class="absolute top-2.5 left-2.5 w-8 h-8 rounded-full bg-[#2A1530]/70 text-[#FFFAF4] hover:bg-primary transition-colors flex items-center justify-center" title="حذف از مقایسه">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+<div class="absolute bottom-2.5 right-2.5 px-2.5 py-1 rounded-lg bg-[#2A1530]/85 backdrop-blur-sm text-[#FFFAF4] font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-tertiary-fixed text-[15px]" style="font-variation-settings: 'FILL' 1;">star</span>
+                ۵ ستاره سنتی
+              </div>
+</div>
+<div class="flex items-start justify-between gap-2">
+<div>
+<h2 class="font-title-lg text-title-lg font-bold text-[#2A1530] leading-tight">هتل زندیه شیراز</h2>
+<span class="font-label-sm text-label-sm text-on-surface-variant block mt-0.5">Zandiyeh Hotel</span>
+</div>
+<div class="flex items-center gap-1 bg-surface-container-high text-on-surface px-2.5 py-1 rounded-full font-label-md text-label-md font-bold">
+<span class="material-symbols-outlined text-[15px] text-tertiary">star</span>
+                ۴.۷ <span class="text-[11px] opacity-70">/ ۵</span>
+</div>
+</div>
+</div>
+<div class="pt-4 mt-3 flex flex-col gap-3">
+<div class="flex items-baseline justify-between">
+<span class="font-body-sm text-body-sm text-on-surface-variant">هر شب از:</span>
+<div class="flex flex-col items-end">
+<span class="text-transparent select-none text-[12px]">-</span>
+<div class="flex items-center gap-1 text-[#2A1530]">
+<span class="font-headline-sm text-headline-sm font-extrabold">۲,۴۰۰,۰۰۰</span>
+<span class="font-label-sm text-label-sm">تومان</span>
+</div>
+</div>
+</div>
+<a class="w-full inline-flex items-center justify-center gap-2 py-3 rounded-full bg-[#2A1530] hover:bg-[#3E2146] text-[#FFFAF4] font-label-lg text-label-lg font-bold transition-all" href="#">
+<span>رزرو این هتل</span>
+<span class="material-symbols-outlined text-[18px] rotate-180">arrow_forward</span>
+</a>
+</div>
+</div>
+<!-- Hotel 3: هتل چمران شیراز -->
+<div class="col-span-12 md:col-span-4 lg:col-span-3 flex flex-col justify-between p-5 rounded-[28px] bg-surface-container-lowest shadow-sm">
+<div>
+<div class="relative h-44 rounded-2xl overflow-hidden mb-3.5 group">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="Soaring high-rise tower of Chamran Grand Hotel Shiraz overlooking green gardens of Ghasrodasht and mountain ridge during crisp daylight" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBR8bfzo5iKd2SJ2lzqhreY06XgxLnWn9CSWrzl4VwFMfdPuHpBL9t8UO-pXzcryrncIbRFDdBGg1lvmWAV0iuP-gpjLCJ6sqvBV3d1mg4y6650N9soWwQNLktnyp4yg5G6AxARRq-EsVMaVYXE3ZEngKRfUagC6fdD-Dua-ExAmDT1K5pWQ_S43PkvIZQooNWFBD0QMjURR89eSAM8IP8N2HdUm8uF-5Qj6z5ZpWc"/>
+<button class="absolute top-2.5 left-2.5 w-8 h-8 rounded-full bg-[#2A1530]/70 text-[#FFFAF4] hover:bg-primary transition-colors flex items-center justify-center" title="حذف از مقایسه">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+<div class="absolute bottom-2.5 right-2.5 px-2.5 py-1 rounded-lg bg-[#2A1530]/85 backdrop-blur-sm text-[#FFFAF4] font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-tertiary-fixed text-[15px]" style="font-variation-settings: 'FILL' 1;">star</span>
+                ۵ ستاره مدرن
+              </div>
+</div>
+<div class="flex items-start justify-between gap-2">
+<div>
+<h2 class="font-title-lg text-title-lg font-bold text-[#2A1530] leading-tight">هتل بزرگ چمران</h2>
+<span class="font-label-sm text-label-sm text-on-surface-variant block mt-0.5">Chamran Grand Hotel</span>
+</div>
+<div class="flex items-center gap-1 bg-surface-container-high text-on-surface px-2.5 py-1 rounded-full font-label-md text-label-md font-bold">
+<span class="material-symbols-outlined text-[15px] text-tertiary">star</span>
+                ۴.۵ <span class="text-[11px] opacity-70">/ ۵</span>
+</div>
+</div>
+</div>
+<div class="pt-4 mt-3 flex flex-col gap-3">
+<div class="flex items-baseline justify-between">
+<span class="font-body-sm text-body-sm text-on-surface-variant">هر شب از:</span>
+<div class="flex flex-col items-end">
+<span class="text-transparent select-none text-[12px]">-</span>
+<div class="flex items-center gap-1 text-[#2A1530]">
+<span class="font-headline-sm text-headline-sm font-extrabold">۲,۱۵۰,۰۰۰</span>
+<span class="font-label-sm text-label-sm">تومان</span>
+</div>
+</div>
+</div>
+<a class="w-full inline-flex items-center justify-center gap-2 py-3 rounded-full bg-[#2A1530] hover:bg-[#3E2146] text-[#FFFAF4] font-label-lg text-label-lg font-bold transition-all" href="#">
+<span>رزرو این هتل</span>
+<span class="material-symbols-outlined text-[18px] rotate-180">arrow_forward</span>
+</a>
+</div>
+</div>
+</div>
+</div>
+<!-- Section 3: Detailed Comparison Rows Matrix -->
+<div class="flex flex-col gap-4 mt-4" id="comparison-matrix">
+<!-- Row 1: Location & Neighborhood -->
+<div class="grid grid-cols-12 gap-4 items-center bg-surface-container-lowest p-6 rounded-[24px] shadow-sm hover:shadow-md transition-shadow" data-category="location">
+<div class="col-span-12 lg:col-span-3 flex items-center gap-3">
+<div class="w-11 h-11 rounded-2xl bg-primary-fixed flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[24px]">location_on</span>
+</div>
+<div class="flex flex-col">
+<span class="font-title-md text-title-md font-bold text-[#2A1530]">موقعیت و محله</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">دسترسی شهری و جو اقامت</span>
+</div>
+</div>
+<div class="col-span-12 md:col-span-4 lg:col-span-3 bg-surface-container-low p-4 rounded-2xl flex flex-col gap-1.5 h-full justify-center">
+<div class="flex items-center gap-1.5 text-primary font-title-sm text-title-md font-bold">
+<span class="material-symbols-outlined text-[18px]">near_me</span>
+            دروازه قرآن
+          </div>
+<p class="font-body-md text-body-md text-on-surface leading-snug">
+            خوش‌آب‌وهوا، در ورودی شمالی شهر با دسترسی سریع به بزرگراه شیراز-اصفهان، باغ جهان‌نما و آرامگاه حافظ.
+          </p>
+</div>
+<div class="col-span-12 md:col-span-4 lg:col-span-3 bg-surface-container-low p-4 rounded-2xl flex flex-col gap-1.5 h-full justify-center">
+<div class="flex items-center gap-1.5 text-[#2A1530] font-title-sm text-title-md font-bold">
+<span class="material-symbols-outlined text-[18px]">holiday_village</span>
+            بافت تاریخی وکیل
+          </div>
+<p class="font-body-md text-body-md text-on-surface leading-snug">
+            قلب تپنده تاریخ شیراز؛ ۵ دقیقه پیاده‌روی تا ارگ کریم‌خان زند، حمام و بازار سنتی وکیل. مرکز اداری و سنتی.
+          </p>
+</div>
+<div class="col-span-12 md:col-span-4 lg:col-span-3 bg-surface-container-low p-4 rounded-2xl flex flex-col gap-1.5 h-full justify-center">
+<div class="flex items-center gap-1.5 text-[#2A1530] font-title-sm text-title-md font-bold">
+<span class="material-symbols-outlined text-[18px]">park</span>
+            بلوار چمران و باغات قصرالدشت
+          </div>
+<p class="font-body-md text-body-md text-on-surface leading-snug">
+            منطقه سرسبز و مدرن چمران، پیاده‌راه زیبای سلامت، هوای پاک و دسترسی آسان به مراکز تجاری غرب شهر شیراز.
+          </p>
+</div>
+</div>
+<!-- Row 2: Breakfast & Dining -->
+<div class="grid grid-cols-12 gap-4 items-center bg-surface-container-lowest p-6 rounded-[24px] shadow-sm hover:shadow-md transition-shadow" data-category="dining">
+<div class="col-span-12 lg:col-span-3 flex items-center gap-3">
+<div class="w-11 h-11 rounded-2xl bg-tertiary-fixed flex items-center justify-center text-tertiary shrink-0">
+<span class="material-symbols-outlined text-[24px]">restaurant</span>
+</div>
+<div class="flex flex-col">
+<span class="font-title-md text-title-md font-bold text-[#2A1530]">صبحانه و غذا</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">تنوع رستوران‌ها و کیفیت پذیرایی</span>
+</div>
+</div>
+<div class="col-span-12 md:col-span-4 lg:col-span-3 bg-surface-container-low p-4 rounded-2xl flex flex-col gap-2 h-full justify-center">
+<span class="inline-flex items-center gap-1 font-label-md text-label-md font-bold text-primary">
+<span class="material-symbols-outlined text-[17px]">check_circle</span>
+            بوفه سلف سرویس مجلل (رایگان)
+          </span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+            دارای ۴ رستوران مجزا: رستوران گردان با نمای ۳۶۰ درجه شیراز، رستوران ایتالیایی، سنتی و فرنگی.
+          </p>
+</div>
+<div class="col-span-12 md:col-span-4 lg:col-span-3 bg-surface-container-low p-4 rounded-2xl flex flex-col gap-2 h-full justify-center">
+<span class="inline-flex items-center gap-1 font-label-md text-label-md font-bold text-on-surface">
+<span class="material-symbols-outlined text-[17px] text-tertiary">check_circle</span>
+            بوفه سنتی ایرانی (رایگان)
+          </span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+            رستوران سنتی نگارستان با اجرای موسیقی زنده، کافی‌شاپ روباز در حیاط دلنشین و پخت نان تازه محلی.
+          </p>
+</div>
+<div class="col-span-12 md:col-span-4 lg:col-span-3 bg-surface-container-low p-4 rounded-2xl flex flex-col gap-2 h-full justify-center">
+<span class="inline-flex items-center gap-1 font-label-md text-label-md font-bold text-on-surface">
+<span class="material-symbols-outlined text-[17px] text-tertiary">check_circle</span>
+            بوفه ایرانی کامل (رایگان)
+          </span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+            رستوران پانورامیک در طبقه ۲۴ هتل با چشم‌انداز ابدی شهر، رستوران سنتی باربد و کافه ملل ۲۴ ساعته.
+          </p>
+</div>
+</div>
+<!-- Row 3: Pool & Wellness -->
+<div class="grid grid-cols-12 gap-4 items-center bg-surface-container-lowest p-6 rounded-[24px] shadow-sm hover:shadow-md transition-shadow" data-category="wellness">
+<div class="col-span-12 lg:col-span-3 flex items-center gap-3">
+<div class="w-11 h-11 rounded-2xl bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed shrink-0">
+<span class="material-symbols-outlined text-[24px]">pool</span>
+</div>
+<div class="flex flex-col">
+<span class="font-title-md text-title-md font-bold text-[#2A1530]">مجموعه آبی و اسپا</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">استخر، حمام سنتی، سونا و ماساژ</span>
+</div>
+</div>
+<div class="col-span-12 md:col-span-4 lg:col-span-3 bg-surface-container-low p-4 rounded-2xl flex flex-col gap-2 h-full justify-center">
+<div class="flex items-center gap-1.5 font-label-md text-label-md font-bold text-primary">
+<span class="material-symbols-outlined text-[18px]">verified</span>
+            استخر صخره‌ای سرپوشیده رایگان
+          </div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+            مجموعه آبی با دیواره‌های صخره طبیعی، سونای خشک و بخار، جکوزی، حوضچه آب سرد و مرکز تخصصی ماساژ تایلندی.
+          </p>
+</div>
+<div class="col-span-12 md:col-span-4 lg:col-span-3 bg-surface-container-low p-4 rounded-2xl flex flex-col gap-2 h-full justify-center">
+<div class="flex items-center gap-1.5 font-label-md text-label-md font-bold text-on-surface">
+<span class="material-symbols-outlined text-[18px] text-tertiary">spa</span>
+            حمام اصیل ایرانی زندیه رایگان
+          </div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+            تجربه اختصاصی حمام سنتی دوره قاجار، استخر فیروزه‌ای سرپوشیده، سونای معطر و خدمات سنتی دلاکی و ماساژ.
+          </p>
+</div>
+<div class="col-span-12 md:col-span-4 lg:col-span-3 bg-surface-container-low p-4 rounded-2xl flex flex-col gap-2 h-full justify-center">
+<div class="flex items-center gap-1.5 font-label-md text-label-md font-bold text-outline">
+<span class="material-symbols-outlined text-[18px]">info</span>
+            استخر با تعرفه تخفیف‌دار مهمان
+          </div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+            استخر و سونای مدرن، جکوزی، سالن بیلیارد حرفه‌ای، باشگاه پینت‌بال، گیم‌نت و آرایشگاه مردانه اختصاصی.
+          </p>
+</div>
+</div>
+<!-- Row 4: Cancellation Policy -->
+<div class="grid grid-cols-12 gap-4 items-center bg-surface-container-lowest p-6 rounded-[24px] shadow-sm hover:shadow-md transition-shadow" data-category="policy">
+<div class="col-span-12 lg:col-span-3 flex items-center gap-3">
+<div class="w-11 h-11 rounded-2xl bg-surface-variant flex items-center justify-center text-on-surface shrink-0">
+<span class="material-symbols-outlined text-[24px]">event_busy</span>
+</div>
+<div class="flex flex-col">
+<span class="font-title-md text-title-md font-bold text-[#2A1530]">سیاست کنسلی و انعطاف‌پذیری</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">ضوابط استرداد وجه کارن‌سیر</span>
+</div>
+</div>
+<!-- Hotel 1 best policy callout -->
+<div class="col-span-12 md:col-span-4 lg:col-span-3 bg-primary-fixed/30 p-4 rounded-2xl flex flex-col gap-1.5 h-full justify-center">
+<div class="flex items-center gap-1.5 font-label-md text-label-md font-bold text-primary">
+<span class="material-symbols-outlined text-[18px]">check_circle</span>
+            کنسلی ۱۰۰٪ رایگان تا ۲۴ ساعت قبل
+          </div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+            بدون هیچ جریمه یا کسر کارمزد با تضمین بازگشت آنی وجه به کیف پول مسافر توسط کارن تراول.
+          </p>
+</div>
+<div class="col-span-12 md:col-span-4 lg:col-span-3 bg-surface-container-low p-4 rounded-2xl flex flex-col gap-1.5 h-full justify-center">
+<div class="flex items-center gap-1.5 font-label-md text-label-md font-semibold text-on-surface">
+<span class="material-symbols-outlined text-[18px] text-tertiary">schedule</span>
+            کنسلی رایگان تا ۴۸ ساعت قبل
+          </div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+            کنسلی تا ۲ روز قبل از ورود رایگان؛ کمتر از ۴۸ ساعت مشمول ۵۰٪ جریمه شب اول اقامت خواهد شد.
+          </p>
+</div>
+<div class="col-span-12 md:col-span-4 lg:col-span-3 bg-surface-container-low p-4 rounded-2xl flex flex-col gap-1.5 h-full justify-center">
+<div class="flex items-center gap-1.5 font-label-md text-label-md font-semibold text-outline">
+<span class="material-symbols-outlined text-[18px]">warning</span>
+            کسر ۲۰٪ هزینه شب اول تا ۴۸ ساعت
+          </div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+            در صورت انصراف در کمتر از ۴۸ ساعت، کل هزینه شب اول سوخت خواهد شد.
+          </p>
+</div>
+</div>
+<!-- Row 5: Corporate Travel Fit -->
+<div class="grid grid-cols-12 gap-4 items-center bg-surface-container-lowest p-6 rounded-[24px] shadow-sm hover:shadow-md transition-shadow" data-category="business">
+<div class="col-span-12 lg:col-span-3 flex items-center gap-3">
+<div class="w-11 h-11 rounded-2xl bg-primary-fixed flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[24px]">business_center</span>
+</div>
+<div class="flex flex-col">
+<span class="font-title-md text-title-md font-bold text-[#2A1530]">انطباق با سفرهای شرکتی</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">سیاست B2B و امکانات اداری</span>
+</div>
+</div>
+<div class="col-span-12 md:col-span-4 lg:col-span-3 bg-surface-container-low p-4 rounded-2xl flex flex-col gap-2 h-full justify-center">
+<div class="flex items-center gap-1.5 font-label-md text-label-md font-bold text-on-surface">
+<span class="material-symbols-outlined text-[18px] text-primary">verified</span>
+            پشتیبانی ۱۰۰٪ سازمانی و فاکتور رسمی
+          </div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+            صدور آنی فاکتور رسمی ارزش‌افزوده، پذیرش قرارداد B2B، سالن همایش بین‌المللی ۵۰۰ نفره مجهز به سیستم ترجمه همزمان.
+          </p>
+</div>
+<div class="col-span-12 md:col-span-4 lg:col-span-3 bg-surface-container-low p-4 rounded-2xl flex flex-col gap-2 h-full justify-center">
+<div class="flex items-center gap-1.5 font-label-md text-label-md font-bold text-on-surface">
+<span class="material-symbols-outlined text-[18px] text-tertiary">done</span>
+            فاکتور رسمی + اتاق جلسات VIP
+          </div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+            مناسب دیدارهای مدیران ارشد، اتاق جلسات خصوصی ۲۰ نفره با خدمات پذیرایی ویژه، تجهیزات ویدئوکنفرانس و فاکتور مالیاتی.
+          </p>
+</div>
+<div class="col-span-12 md:col-span-4 lg:col-span-3 bg-surface-container-low p-4 rounded-2xl flex flex-col gap-2 h-full justify-center">
+<div class="flex items-center gap-1.5 font-label-md text-label-md font-bold text-on-surface">
+<span class="material-symbols-outlined text-[18px] text-tertiary">done</span>
+            امکانات رویدادی گسترده
+          </div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+            فاکتور رسمی معتبر شرکتی، ۳ تالار همایش چندمنظوره با ظرفیت ۸۰۰ نفر و امکان اسکان هیئت‌های بزرگ تجاری.
+          </p>
+</div>
+</div>
+<!-- Row 6: Airport Transfer -->
+<div class="grid grid-cols-12 gap-4 items-center bg-surface-container-lowest p-6 rounded-[24px] shadow-sm hover:shadow-md transition-shadow" data-category="transfer">
+<div class="col-span-12 lg:col-span-3 flex items-center gap-3">
+<div class="w-11 h-11 rounded-2xl bg-surface-variant flex items-center justify-center text-on-surface shrink-0">
+<span class="material-symbols-outlined text-[24px]">airport_shuttle</span>
+</div>
+<div class="flex flex-col">
+<span class="font-title-md text-title-md font-bold text-[#2A1530]">ترانسفر و استقبال فرودگاهی</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">انتقال فرودگاه شهید دستغیب</span>
+</div>
+</div>
+<div class="col-span-12 md:col-span-4 lg:col-span-3 bg-primary-fixed/20 p-4 rounded-2xl flex flex-col gap-1.5 h-full justify-center">
+<span class="inline-flex items-center gap-1 font-label-md text-label-md font-bold text-primary">
+<span class="material-symbols-outlined text-[17px]">directions_car</span>
+            استقبال فرودگاهی رایگان VIP کارن
+          </span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+            سرویس اختصاصی ون تشریفات هایس همراه با خوش‌آمدگویی نماینده رسمی در ترمینال پروازهای داخلی فرودگاه.
+          </p>
+</div>
+<div class="col-span-12 md:col-span-4 lg:col-span-3 bg-surface-container-low p-4 rounded-2xl flex flex-col gap-1.5 h-full justify-center">
+<span class="inline-flex items-center gap-1 font-label-md text-label-md font-semibold text-on-surface">
+<span class="material-symbols-outlined text-[17px] text-on-surface-variant">sell</span>
+            ترانسفر به درخواست مسافر (غیر رایگان)
+          </span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+            امکان رزرو تاکسی تشریفات هتل با پرداخت هزینه جداگانه در زمان ثبت رزرو یا تماس با پذیرش.
+          </p>
+</div>
+<div class="col-span-12 md:col-span-4 lg:col-span-3 bg-surface-container-low p-4 rounded-2xl flex flex-col gap-1.5 h-full justify-center">
+<span class="inline-flex items-center gap-1 font-label-md text-label-md font-semibold text-on-surface">
+<span class="material-symbols-outlined text-[17px] text-on-surface-variant">schedule</span>
+            ترانسفر با هماهنگی ۲۴ ساعت قبل
+          </span></div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+            سرویس شاتل هتل بر اساس جدول ساعات مشخص پروازها با هزینه مصوب پذیرش هتل فعال است.
+          </p>
+</div>
+</div>
+<!-- Row 7: Wi-Fi Speed & Connectivity -->
+<div class="grid grid-cols-12 gap-4 items-center bg-surface-container-lowest p-6 rounded-[24px] shadow-sm hover:shadow-md transition-shadow" data-category="business">
+<div class="col-span-12 lg:col-span-3 flex items-center gap-3">
+<div class="w-11 h-11 rounded-2xl bg-tertiary-fixed flex items-center justify-center text-tertiary shrink-0">
+<span class="material-symbols-outlined text-[24px]">wifi</span>
+</div>
+<div class="flex flex-col">
+<span class="font-title-md text-title-md font-bold text-[#2A1530]">اینترنت و وای‌فای</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">سرعت پهنای باند و پایداری اتصال</span>
+</div>
+</div>
+<div class="col-span-12 md:col-span-4 lg:col-span-3 bg-surface-container-low p-4 rounded-2xl flex flex-col gap-1.5 h-full justify-center">
+<div class="flex items-center gap-2">
+<span class="font-headline-sm text-headline-sm font-extrabold text-primary">۵۰</span>
+<span class="font-label-md text-label-md text-on-surface-variant">مگابیت نامحدود</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+            فیبر نوری پرسرعت رایگان بدون سقف دانلود در تمامی اتاق‌ها، لابی، و محوطه رستوران‌ها.
+          </p>
+</div>
+<div class="col-span-12 md:col-span-4 lg:col-span-3 bg-surface-container-low p-4 rounded-2xl flex flex-col gap-1.5 h-full justify-center">
+<div class="flex items-center gap-2">
+<span class="font-headline-sm text-headline-sm font-extrabold text-[#2A1530]">۵</span>
+<span class="font-label-md text-label-md text-on-surface-variant">گیگابایت در روز</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+            اینترنت پرسرعت رایگان برای وبگردی روزانه و مکالمات تصویری؛ حجم اضافی با تعرفه اندک قابل تمدید است.
+          </p>
+</div>
+<div class="col-span-12 md:col-span-4 lg:col-span-3 bg-surface-container-low p-4 rounded-2xl flex flex-col gap-1.5 h-full justify-center">
+<div class="flex items-center gap-2">
+<span class="font-headline-sm text-headline-sm font-extrabold text-[#2A1530]">۲</span>
+<span class="font-label-md text-label-md text-on-surface-variant">گیگابایت در روز</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+            وای‌فای رایگان در لابی و کافی‌شاپ؛ در اتاق‌ها سهمیه روزانه محدود بوده و ترافیک حجمی به فروش می‌رسد.
+          </p>
+</div>
+</div>
+</div>
+<!-- Section 4: Smart Recommendation Summary Bento Card -->
+<div class="mt-12 bg-gradient-to-br from-[#2A1530] via-[#351A3D] to-[#200F25] text-[#FFFAF4] p-8 lg:p-10 rounded-[32px] shadow-xl relative overflow-hidden">
+<!-- Decorative Persian Pattern SVG Glow in corner -->
+<div class="absolute -top-16 -left-16 w-64 h-64 bg-primary/20 rounded-full blur-3xl pointer-events-none"></div>
+<div class="absolute -bottom-16 -right-16 w-64 h-64 bg-tertiary/20 rounded-full blur-3xl pointer-events-none"></div>
+<div class="relative z-10 flex flex-col gap-8">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#4A2D54] pb-6">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-2xl bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center font-bold">
+<span class="material-symbols-outlined text-[28px]">psychology_alt</span>
+</div>
+<div>
+<span class="font-label-md text-label-md text-tertiary-fixed font-bold tracking-wide uppercase">جمع‌بندی هوشمند کارشناسان کارن</span>
+<h3 class="font-headline-md text-headline-md font-bold text-[#FFFAF4]">کدام هتل شیراز مناسب سفر شماست؟</h3>
+</div>
+</div>
+<div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#4A2D54]/70 text-[#dcbce0] font-label-md text-label-md">
+<span class="material-symbols-outlined text-primary text-[18px]">verified_user</span>
+            بر اساس تحلیل ۲,۴۵۰ نظر ثبت‌شده مسافران
+          </div>
+</div>
+<!-- 3 Persona Cards Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Recommendation 1: Shiraz Grand -->
+<div class="bg-[#3D1F47]/70 backdrop-blur-md p-6 rounded-[24px] border border-[#563e5c]/50 flex flex-col justify-between gap-5 hover:border-primary transition-colors">
+<div class="flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<span class="px-3 py-1 rounded-full bg-primary/20 text-primary-fixed font-label-sm text-label-sm font-semibold">
+                  انتخاب اول خانواده‌ها و VIP
+                </span>
+<span class="material-symbols-outlined text-tertiary-fixed text-[22px]">crown</span>
+</div>
+<h4 class="font-title-lg text-title-lg font-bold text-[#FFFAF4]">هتل بزرگ شیراز</h4>
+<p class="font-body-md text-body-md text-[#dcbce0] leading-relaxed">
+                بهترین گزینه برای خانواده‌ها و مسافرانی که به دنبال خدمات کامل لوکس، استخر صخره‌ای بی‌نظیر، آرامش دور از هیاهو و ترانسفر رایگان هستند. بالاترین درصد رضایت‌مندی کارن‌سیر.
+              </p>
+</div>
+<a class="inline-flex items-center justify-between text-tertiary-fixed hover:text-[#FFFAF4] font-label-lg text-label-lg font-bold transition-colors pt-2" href="#">
+<span>مشاهده اتاق‌های خالی هتل بزرگ</span>
+<span class="material-symbols-outlined text-[18px] rotate-180">arrow_forward</span>
+</a>
+</div>
+<!-- Recommendation 2: Zandiyeh -->
+<div class="bg-[#3D1F47]/70 backdrop-blur-md p-6 rounded-[24px] border border-[#563e5c]/50 flex flex-col justify-between gap-5 hover:border-[#EFB448] transition-colors">
+<div class="flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<span class="px-3 py-1 rounded-full bg-tertiary/40 text-tertiary-fixed font-label-sm text-label-sm font-semibold">
+                  عاشقان فرهنگ و پیاده‌روی
+                </span>
+<span class="material-symbols-outlined text-tertiary-fixed text-[22px]">museum</span>
+</div>
+<h4 class="font-title-lg text-title-lg font-bold text-[#FFFAF4]">هتل زندیه شیراز</h4>
+<p class="font-body-md text-body-md text-[#dcbce0] leading-relaxed">
+                ایده‌آل برای علاقه‌مندان به پیاده‌روی در بافت تاریخی، خرید سوغات از بازار وکیل و تجربه منحصربه‌فرد حمام اصیل ایرانی و معماری چشم‌نواز سنتی صفوی-زندیه.
+              </p>
+</div>
+<a class="inline-flex items-center justify-between text-tertiary-fixed hover:text-[#FFFAF4] font-label-lg text-label-lg font-bold transition-colors pt-2" href="#">
+<span>مشاهده اتاق‌های خالی هتل زندیه</span>
+<span class="material-symbols-outlined text-[18px] rotate-180">arrow_forward</span>
+</a>
+</div>
+<!-- Recommendation 3: Chamran -->
+<div class="bg-[#3D1F47]/70 backdrop-blur-md p-6 rounded-[24px] border border-[#563e5c]/50 flex flex-col justify-between gap-5 hover:border-outline-variant transition-colors">
+<div class="flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<span class="px-3 py-1 rounded-full bg-surface-variant/20 text-[#FFFAF4] font-label-sm text-label-sm font-semibold">
+                  سفرهای کاری و اقتصادی ۵ ستاره
+                </span>
+<span class="material-symbols-outlined text-[#FFFAF4] text-[22px]">business</span>
+</div>
+<h4 class="font-title-lg text-title-lg font-bold text-[#FFFAF4]">هتل چمران شیراز</h4>
+<p class="font-body-md text-body-md text-[#dcbce0] leading-relaxed">
+                مقرون‌به‌صرفه‌ترین اقامتگاه ۵ ستاره شیراز با سالن‌های همایش متعدد و اتاق‌های مرتفع با ویوی کارت‌پستالی شیراز، کاملاً مناسب مأموریت‌های سازمانی و گردهمایی‌ها.
+              </p>
+</div>
+<a class="inline-flex items-center justify-between text-tertiary-fixed hover:text-[#FFFAF4] font-label-lg text-label-lg font-bold transition-colors pt-2" href="#">
+<span>مشاهده اتاق‌های خالی هتل چمران</span>
+<span class="material-symbols-outlined text-[18px] rotate-180">arrow_forward</span>
+</a>
+</div>
+</div>
+<!-- Corporate Support Hotline Banner -->
+<div class="bg-[#210D27]/80 p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 mt-2">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined text-[20px]">support_agent</span>
+</div>
+<div>
+<p class="font-title-md text-title-md font-semibold text-[#FFFAF4]">نیاز به مشاوره رزرو گروهی یا هماهنگی سفر شرکتی دارید؟</p>
+<p class="font-body-sm text-body-sm text-[#dcbce0]">کارشناسان بخش اختصاصی هتل‌های شیراز کارن‌سیر آماده تنظیم بهترین نرخ قراردادی هستند.</p>
+</div>
+</div>
+<a class="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-primary text-on-primary hover:bg-primary-container font-label-lg text-label-lg font-bold shadow-md shrink-0 transition-all" href="tel:02191000000">
+<span class="material-symbols-outlined text-[18px]">call</span>
+<span>تماس مستقیم: ۰۲۱-۹۱۰۰۰۰۰۰</span>
+</a>
+</div>
+</div>
+</div>
+</div>
+</main><footer class="w-full bg-[#2A1530] text-[#FFFAF4] pt-14 pb-8 rounded-t-[32px] mt-16 shadow-[0_-8px_32px_rgba(42,21,48,0.12)]"><div class="max-w-7xl mx-auto px-6 lg:px-12"><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 pb-12 border-b border-[#4A2D54]"><div class="lg:col-span-4 flex flex-col gap-4"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-on-primary font-headline-sm text-headline-sm"><span class="material-symbols-outlined text-[24px]">flight_takeoff</span></div><span class="font-headline-md text-headline-md font-bold tracking-tight text-[#FFFAF4]">کارن‌سیر آریا</span></div><p class="font-body-md text-body-md text-[#dcbce0] leading-relaxed max-w-sm">سامانه هوشمند رزرو آنلاین بلیط هواپیما، هتل‌های ۵ ستاره بین‌المللی و تورهای لوکس اختصاصی با تضمین بهترین نرخ و پشتیبانی شبانه‌روزی.</p><div class="flex flex-col gap-2 pt-2"><div class="flex items-center gap-2 text-[#FFFAF4] font-title-md text-title-md"><span class="material-symbols-outlined text-primary text-[20px]">call</span><span>شماره پشتیبانی: ۰۲۱-۹۱۰۰۰۰۰۰</span></div><div class="flex items-center gap-2 text-[#dcbce0] font-body-sm text-body-sm"><span class="material-symbols-outlined text-tertiary-fixed text-[20px]">location_on</span><span>تهران، خیابان ولیعصر، بالاتر از پارک ساعی، برج کارن، طبقه ۸</span></div></div></div><div class="lg:col-span-2 flex flex-col gap-3"><span class="font-title-lg text-title-lg font-bold text-[#FFFAF4] mb-1">خدمات کارن</span><a class="font-body-md text-body-md text-[#dcbce0] hover:text-[#FFFAF4] transition-colors" data-path="domestic-flights" href="#">پروازهای داخلی چارتر</a><a class="font-body-md text-body-md text-[#dcbce0] hover:text-[#FFFAF4] transition-colors" data-path="international-flights" href="#">پروازهای سیستمی خارجی</a><a class="font-body-md text-body-md text-[#dcbce0] hover:text-[#FFFAF4] transition-colors" data-path="hotels" href="#">رزرو هتل‌های داخلی و خارجی</a><a class="font-body-md text-body-md text-[#dcbce0] hover:text-[#FFFAF4] transition-colors" data-path="tours" href="#">تورهای لوکس و اختصاصی</a><a class="font-body-md text-body-md text-[#dcbce0] hover:text-[#FFFAF4] transition-colors" data-path="train-bus" href="#">قطارهای ۵ ستاره فدک</a></div><div class="lg:col-span-2 flex flex-col gap-3"><span class="font-title-lg text-title-lg font-bold text-[#FFFAF4] mb-1">راهنمای مسافران</span><a class="font-body-md text-body-md text-[#dcbce0] hover:text-[#FFFAF4] transition-colors" data-path="track-orders" href="#">پیگیری و استرداد آنلاین</a><a class="font-body-md text-body-md text-[#dcbce0] hover:text-[#FFFAF4] transition-colors" data-path="travel-insurance" href="#">قوانین کنسلی بلیط و هتل</a><a class="font-body-md text-body-md text-[#dcbce0] hover:text-[#FFFAF4] transition-colors" data-path="travel-magazine" href="#">راهنمای ویزا و مدارک سفر</a><a class="font-body-md text-body-md text-[#dcbce0] hover:text-[#FFFAF4] transition-colors" data-path="user-profile" href="#">باشگاه مسافران طلایی VIP</a><a class="font-body-md text-body-md text-[#dcbce0] hover:text-[#FFFAF4] transition-colors" data-path="contact" href="#">ارتباط با مدیران شرکت</a></div><div class="lg:col-span-4 flex flex-col gap-4"><span class="font-title-lg text-title-lg font-bold text-[#FFFAF4]">مجوزها و تاییده‌های قانونی</span><div class="grid grid-cols-3 gap-3"><div class="bg-[#3A1F42] p-3 rounded-2xl flex flex-col items-center justify-center text-center gap-1.5 border border-[#563e5c]"><span class="material-symbols-outlined text-tertiary-fixed text-[28px]">verified</span><span class="font-label-sm text-label-sm text-[#FFFAF4] font-medium">اینماد ۵ ستاره</span><span class="text-[10px] text-[#dcbce0]">اعتماد الکترونیکی</span></div><div class="bg-[#3A1F42] p-3 rounded-2xl flex flex-col items-center justify-center text-center gap-1.5 border border-[#563e5c]"><span class="material-symbols-outlined text-tertiary-fixed text-[28px]">policy</span><span class="font-label-sm text-label-sm text-[#FFFAF4] font-medium">ساماندهی</span><span class="text-[10px] text-[#dcbce0]">وزارت ارشاد</span></div><div class="bg-[#3A1F42] p-3 rounded-2xl flex flex-col items-center justify-center text-center gap-1.5 border border-[#563e5c]"><span class="material-symbols-outlined text-tertiary-fixed text-[28px]">airlines</span><span class="font-label-sm text-label-sm text-[#FFFAF4] font-medium">مجوز IATA</span><span class="text-[10px] text-[#dcbce0]">هواپیمایی کشوری</span></div></div><div class="bg-[#3A1F42]/60 p-3 rounded-xl flex items-center justify-between text-[#dcbce0] font-label-md text-label-md mt-1"><span>عضویت در خبرنامه تخفیف‌های لحظه آخری</span><span class="material-symbols-outlined text-primary text-[20px]">send</span></div></div></div><div class="pt-8 flex flex-col md:flex-row items-center justify-between gap-4 font-body-sm text-body-sm text-[#dcbce0]"><p>کلیه حقوق مادی و معنوی این سامانه متعلق به شرکت خدمات مسافرت هوایی و جهانگردی کارن‌سیر آریا می‌باشد. © ۱۴۰۳</p><div class="flex items-center gap-6"><a class="hover:text-[#FFFAF4] transition-colors" href="#">حریم خصوصی</a><a class="hover:text-[#FFFAF4] transition-colors" href="#">شرایط و مقررات استفاده</a><a class="hover:text-[#FFFAF4] transition-colors" href="#">امنیت تراکنش‌ها</a></div></div></div></footer></body></html>
