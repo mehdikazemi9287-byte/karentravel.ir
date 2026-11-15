@@ -41,4 +41,8 @@
 2. پروژه اصلی در Stitch: لینک در `PROGRESS.md`.
 3. پیاده‌سازی در Next.js باید مطابق قاعده AGENTS.md مرحله‌ای انجام شود: ابتدا Figma/ADR، سپس کد صفحه‌به‌صفحه با Supervisor Gate؛ صفحه اول تنها با اصلاحات مصوب.
 
+- پیش‌نمایش آنلاین: https://mehdikazemi9287-byte.github.io/karentravel.ir/
+- Figma: https://www.figma.com/design/R3FvzMWcCVLmgKviiY0lav
+- Stitch: پروژه «Karen Travel Persian Booking Platform» (5840488886534725646)
+
 گزارش پیشرفت و QA: [`PROGRESS.md`](./PROGRESS.md)

@@ -37,9 +37,22 @@ Rollback: حذف پوشه docs/design/stitch-redesign-2026-11 یا عدم merge 
 - محدودیت: متن‌ها و اعداد نمایشی‌اند؛ در پیاده‌سازی باید برچسب Mock یا داده معتبر سرور جایگزین شود (قانون AGENTS.md).
 - برخی عناوین داخلی خروجی Stitch انگلیسی است (مثلاً `Checkout Flow`)؛ در پیاده‌سازی فارسی شود.
 
+## Figma
+
+- فایل: https://www.figma.com/design/R3FvzMWcCVLmgKviiY0lav (تیم Figma متصل: «hamid ansari's team»)
+- صفحه‌ها: `📐 Design System` (متغیرهای رنگ/فاصله/شعاع، ۸ text style با Vazirmatn، کامپوننت‌های Button[Primary/Plum/Ghost]، Chip، Badge/Mock، Service Tile) · `🖥 Desktop` (۱۴ فریم) · `📱 Mobile Web` (۷) · `📲 App` (۷).
+- همه فریم‌ها لایه‌های قابل ویرایش (auto-layout، متن واقعی، نمونه‌های کامپوننت و رنگ‌های bind‌شده به متغیر) هستند؛ هیچ اسکرین‌شاتی جای طرح نیامده.
+- محدودیت: تصاویر عکاسی در Figma به‌صورت قاب placeholder بنفش هستند (Plugin API تصویر خارجی بارگذاری نمی‌کند). نسخه پیکسلی با عکس‌ها در Stitch و GitHub Pages است.
+- مسیر جایگزین برای نسخه پیکسل‌به‌پیکسل: در Stitch صفحه را انتخاب کنید → Export → Figma → Copy → در Figma Paste (در محیط خودکار، کپی code.to.design تکمیل نشد).
+
+## Deploy
+
+- پیش‌نمایش طراحی (GitHub Pages، شاخه `gh-pages`): https://mehdikazemi9287-byte.github.io/karentravel.ir/ — بررسی‌شده در مرورگر؛ شواهد در `qa/gallery-*.jpg`.
+- Deploy روی سرور production کارن‌سیر انجام **نشد**: (۱) این خروجی طراحی است و هنوز در Next.js پیاده‌سازی نشده؛ (۲) از این محیط دسترسی SSH/کلید به سرور 188.121.123.218 وجود ندارد؛ (۳) طبق AGENTS.md هر تغییر UI/production نیازمند Supervisor Gate، تست و rollback است.
+
 ## باقی‌مانده / برنامه بعدی
 
-1. انتقال به Figma (فایل جداگانه، فریم برای هر صفحه) — گزارش در همین فایل به‌روز می‌شود.
-2. پیش‌نمایش آنلاین (deploy طراحی) — لینک در همین فایل.
+1. تأیید نهایی طرح‌ها توسط مالک (Stitch / Figma / Pages).
+2. جایگزینی عکس‌های تولیدی Stitch با تصاویر مجاز؛ فارسی‌سازی باقی‌مانده عناوین انگلیسی خروجی Stitch.
 3. پیاده‌سازی در Next.js صفحه‌به‌صفحه با Supervisor Gate؛ ترتیب پیشنهادی: صفحات داخلی (نتایج → جزئیات → checkout → مدیریت رزرو) سپس هماهنگی Homepage موبایل.
 4. Deploy روی سرور production (188.121.123.218) فقط پس از پیاده‌سازی، تست و دسترسی سرور.
