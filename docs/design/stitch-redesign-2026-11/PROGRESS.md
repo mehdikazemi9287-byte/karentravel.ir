@@ -1,0 +1,45 @@
+# گزارش پیشرفت و QA — بازطراحی Stitch کارن تراول
+
+تاریخ: ۱۴۰۵/۰۸/۲۴ (2026-11-15) · شاخه: `design/stitch-redesign-2026-11`
+
+## SUPERVISOR GATE
+
+```
+Decision: ALLOW (design-only)
+Current HEAD (main): c09b8dc
+Requested scope: بازطراحی در Google Stitch در سه سطح؛ Homepage تا حد امکان حفظ شود؛ انتقال به GitHub؛ سپس Figma و deploy
+Existing implementation: Homepage Plum/Coral/Cream (app/page.tsx → Home)، صفحات داخلی با توکن‌های قدیمی سرمه‌ای/فیروزه‌ای
+Relevant risks: Homepage محافظت‌شده است → فقط با تأیید صریح مالک (این درخواست) و با حفظ ترتیب/پالت
+Scope drift: ندارد — هیچ فایل کد اپلیکیشن، migration یا production تغییر نکرد
+Production write required: خیر
+Rollback: حذف پوشه docs/design/stitch-redesign-2026-11 یا عدم merge شاخه
+```
+
+## انجام‌شده
+
+| # | کار | وضعیت | شواهد |
+|---|---|---|---|
+| 1 | پروژه Stitch «Karen Travel Persian Booking Platform» با design system برند (کرم/بنفش‌تیره/کورال/طلایی، Vazirmatn، RTL) | ✅ | پروژه 5840488886534725646 در Stitch |
+| 2 | Homepage دسکتاپ: ابتدا نسخه Stitch از چیدمان فاصله گرفت؛ اصلاح شد تا ترتیب ۱۲ بخش فعلی (هیرو یزد، جست‌وجو، خدمات، موزاییک مقصدها، سفرهای منتخب، دستیار AI، مقایسه، تجربه‌ها، سازمانی، اعتماد، فوتر) حفظ شود | ✅ | `desktop/01-home.html` |
+| 3 | ۱۳ صفحه داخلی دسکتاپ از نو | ✅ | `desktop/02…14` |
+| 4 | ۷ صفحه وب موبایل (Homepage با همان ترتیب + bottom nav) | ✅ | `mobile/` |
+| 5 | ۷ صفحه اپلیکیشن native | ✅ | `app/` |
+| 6 | خروجی کد از Stitch → GitHub (Code to Clipboard → ویرایشگر GitHub → تفکیک و حذف تکراری‌ها با md5) | ✅ | ۲۸ فایل HTML یکتا |
+| 7 | یکسان‌سازی توکن‌های Tailwind خروجی با پالت برند (`primary-container=#EF5B3D`، `background=#F5EEE4`، `on-surface=#2A1530`، `tertiary-container=#EFB448`) | ✅ | ۱۳۵ جایگزینی |
+| 8 | گالری پیش‌نمایش `index.html` | ✅ | |
+
+## QA
+
+- همه ۲۸ فایل `dir="rtl"` دارند و فونت Vazirmatn بارگذاری می‌کنند.
+- Homepage: ۲۴۰ ارجاع به `#2A1530`، ۱۱۱ به `#EF5B3D`، ۶۰ به `#EFB448`، ۴۴ به `#F5EEE4` — پالت حفظ شده است.
+- تلفن پشتیبانی در هدر و انتخاب یک‌طرفه/رفت‌وبرگشت بیرون از تقویم (اصلاحات مصوب ۱۴۰۵/۰۸/۱۸) در طرح اعمال شده است.
+- محدودیت: فایل‌ها به Tailwind CDN، Google Fonts و تصاویر `lh3.googleusercontent.com` وابسته‌اند؛ برای پیاده‌سازی باید تصاویر واقعی/مجاز جایگزین شوند (عکس‌ها تولیدی Stitch هستند).
+- محدودیت: متن‌ها و اعداد نمایشی‌اند؛ در پیاده‌سازی باید برچسب Mock یا داده معتبر سرور جایگزین شود (قانون AGENTS.md).
+- برخی عناوین داخلی خروجی Stitch انگلیسی است (مثلاً `Checkout Flow`)؛ در پیاده‌سازی فارسی شود.
+
+## باقی‌مانده / برنامه بعدی
+
+1. انتقال به Figma (فایل جداگانه، فریم برای هر صفحه) — گزارش در همین فایل به‌روز می‌شود.
+2. پیش‌نمایش آنلاین (deploy طراحی) — لینک در همین فایل.
+3. پیاده‌سازی در Next.js صفحه‌به‌صفحه با Supervisor Gate؛ ترتیب پیشنهادی: صفحات داخلی (نتایج → جزئیات → checkout → مدیریت رزرو) سپس هماهنگی Homepage موبایل.
+4. Deploy روی سرور production (188.121.123.218) فقط پس از پیاده‌سازی، تست و دسترسی سرور.
