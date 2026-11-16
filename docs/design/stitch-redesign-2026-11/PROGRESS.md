@@ -112,3 +112,16 @@ Rollback: حذف پوشه docs/design/stitch-redesign-2026-11 یا عدم merge 
 ### سرور
 - همچنان مسدود است (BLOCKED_EXTERNAL)؛ از این محیط به سرور دسترسی نیست.
 - برای تیم آماده است: `deploy/REDESIGN_2026-11_DEPLOY.md` و فایل patch.
+
+
+## به‌روزرسانی ۱۴۰۵/۰۸/۲۵ (۳) — سه پیشنهاد جدید Stitch
+1. انیمیشن‌های تعاملی: `app/22-seat-map-interactive.html` (حالت‌های hover/press/انتخاب صندلی و tooltip قیمت) و `app/23-payment-processing.html` (لودینگ پرداخت: هواپیما روی مسیر، مراحل درگاه/بانک/صدور). انیمیشن‌ها با CSS keyframes ساخته شده‌اند و `prefers-reduced-motion` در هر دو رعایت شده است.
+2. تبلت B2B: `tablet/01-b2b-dashboard-portrait.html` (عمودی) و `tablet/02-b2b-dashboard-landscape.html` (افقی). محتوا: اعتبار سازمانی، سیاست سفر، گردش تأیید با SLA، گزارش هزینه و جدول سفرهای کارکنان.
+3. کنسلی و استرداد: `app/24-refund-request.html` ← `app/25-refund-tracking.html` ← `app/26-refund-completed.html`. مبلغ استرداد همه‌جا «پس از استعلام از تأمین‌کننده» است و هیچ عددی حدس زده نشده.
+
+### Figma
+- صفحه App: `22 Seat Map · Interaction States`، `23 Payment Processing`، `24–26 Refund`.
+- صفحه جدید `📋 Tablet`: داشبورد B2B عمودی و افقی.
+
+### سرور
+- همچنان BLOCKED_EXTERNAL؛ راهنمای deploy در `deploy/REDESIGN_2026-11_DEPLOY.md` است.

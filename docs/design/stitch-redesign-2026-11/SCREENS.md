@@ -44,6 +44,13 @@
 | اپلیکیشن | [`app/19-ancillaries.html`](./app/19-ancillaries.html) | خدمات تکمیلی |
 | اپلیکیشن | [`app/20-payment.html`](./app/20-payment.html) | پرداخت |
 | اپلیکیشن | [`app/21-booking-confirmed.html`](./app/21-booking-confirmed.html) | پرداخت موفق و صدور بلیت |
+| اپلیکیشن | [`app/22-seat-map-interactive.html`](./app/22-seat-map-interactive.html) | انتخاب صندلی تعاملی (انیمیشن) |
+| اپلیکیشن | [`app/23-payment-processing.html`](./app/23-payment-processing.html) | لودینگ پرداخت (انیمیشن) |
+| اپلیکیشن | [`app/24-refund-request.html`](./app/24-refund-request.html) | درخواست استرداد |
+| اپلیکیشن | [`app/25-refund-tracking.html`](./app/25-refund-tracking.html) | پیگیری استرداد |
+| اپلیکیشن | [`app/26-refund-completed.html`](./app/26-refund-completed.html) | استرداد انجام شد |
+| تبلت | [`tablet/01-b2b-dashboard-portrait.html`](./tablet/01-b2b-dashboard-portrait.html) | داشبورد B2B · تبلت عمودی |
+| تبلت | [`tablet/02-b2b-dashboard-landscape.html`](./tablet/02-b2b-dashboard-landscape.html) | داشبورد B2B · تبلت افقی |
 
 - مستندات Design System حالت تاریک: [`design-system-dark.html`](./design-system-dark.html)
 - گالری: [`index.html`](./index.html)
