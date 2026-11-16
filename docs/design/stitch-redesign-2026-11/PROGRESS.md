@@ -164,3 +164,6 @@ Rollback: حذف پوشه docs/design/stitch-redesign-2026-11 یا عدم merge 
 - نکته: بررسی https داخل اسکریپت از خود سرور 000 داد (curl از host به دامنه خودش وصل نمی‌شود)؛ خطای سایت نیست.
 - PR: #87 (`feat/inner-redesign-on-production` → `production`).
 - باز: `karenseir-worker-1` از قبل unhealthy است (مرتبط با این کار نیست).
+
+### Figma — کنترل کامل بودن (2026-11-16 19:40 UTC)
+فایل https://www.figma.com/design/R3FvzMWcCVLmgKviiY0lav شامل همه صفحه‌های Stitch است: دسکتاپ ۱۴/۱۴، موبایل ۷/۷، اپ ۲۶/۲۶ (۱۱ روشن، ۱۰ تاریک، ۵ تعاملی/استرداد)، تبلت ۵/۵، به‌علاوه Design System روشن و تاریک.
