@@ -9,7 +9,7 @@ set -euo pipefail
 ROOT=/opt/karenseir
 APP=$ROOT/app
 BR=design/stitch-redesign-2026-11
-RAW="https://raw.githubusercontent.com/mehdikazemi9287-byte/karentravel.ir/$BR"
+RAW="https://raw.githubusercontent.com/mehdikazemi9287-byte/karentravel.ir/${REF:-$BR}"
 TGZ="https://codeload.github.com/mehdikazemi9287-byte/karentravel.ir/tar.gz/refs/heads/$BR"
 PATCH=0002-ADR-023-inner-pages-refinement-on-production.patch
 TS=$(date +%Y%m%d-%H%M%S)
