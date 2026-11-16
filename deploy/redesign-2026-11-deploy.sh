@@ -51,6 +51,9 @@ SRC="$TMP/src"
 step "3) code: inner-pages redesign patch (ADR-022)"
 if grep -q 'redesign-2026-11.css' app/layout.tsx 2>/dev/null; then
   echo "already applied — skip"
+elif grep -q 'ApprovedShell' app/page.tsx; then
+  echo "SKIPPED (supervisor): production already uses the Figma-approved ApprovedShell header/footer for inner pages."
+  echo "The ADR-022 patch was built on the older main Shell and would overwrite an approved design. Needs a re-port on the production base first."
 else
   git apply --check "$TMP/$PATCH"
   git -c user.name="KarenSeir Deploy" -c user.email="deploy@karentravel.ir" am "$TMP/$PATCH"
