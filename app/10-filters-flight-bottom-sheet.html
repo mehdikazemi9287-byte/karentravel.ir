@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="fa"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_stack" name="shell-type"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100..900&display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;font-family:'Vazirmatn',sans-serif;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "on-secondary": "#ffffff", "on-tertiary-container": "#fffbff", "on-primary-container": "#fffbff", "tertiary-container": "#9a6c00", "inverse-primary": "#ffb4a4", "primary": "#ad2c12", "tertiary": "#7b5500", "outline": "#8d706a", "error-container": "#ffdad6", "surface-container": "#f4ede3", "surface-bright": "#fff8f0", "on-tertiary": "#ffffff", "secondary": "#6f5674", "primary-fixed-dim": "#ffb4a4", "on-tertiary-fixed-variant": "#5f4100", "background": "#fff8f0", "tertiary-fixed-dim": "#f8bc4f", "on-background": "#1e1b15", "surface-tint": "#b02e15", "secondary-fixed": "#f9d8fd", "surface-container-lowest": "#ffffff", "tertiary-fixed": "#ffdeab", "primary-fixed": "#ffdad3", "on-secondary-container": "#745a79", "surface-container-high": "#eee7dd", "outline-variant": "#e1bfb8", "surface-container-low": "#faf3e9", "surface-dim": "#e0d9cf", "inverse-on-surface": "#f7f0e6", "on-error": "#ffffff", "on-tertiary-fixed": "#271900", "surface-container-highest": "#e8e2d8", "on-primary-fixed-variant": "#8d1600", "on-primary-fixed": "#3e0500", "on-primary": "#ffffff", "surface": "#fff8f0", "on-error-container": "#93000a", "on-secondary-fixed": "#28132e", "error": "#ba1a1a", "on-surface-variant": "#59413c", "primary-container": "#cf4429", "inverse-surface": "#33302a", "surface-variant": "#e8e2d8", "secondary-container": "#f6d5fa", "on-secondary-fixed-variant": "#563e5c", "secondary-fixed-dim": "#dcbce0", "on-surface": "#1e1b15" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "gutter-desktop": "1.5rem", "space-sm": "0.75rem", "space-xs": "0.375rem", "margin-desktop": "3.5rem", "space-lg": "1.75rem", "space-xl": "2.5rem", "space-md": "1.25rem", "gutter": "1.5rem", "margin": "3.5rem" }, "fontFamily": { "headline-sm": ["Vazirmatn"], "label-md": ["Vazirmatn"], "body-md": ["Vazirmatn"], "label-lg": ["Vazirmatn"], "title-lg": ["Vazirmatn"], "headline-lg": ["Vazirmatn"], "display": ["Vazirmatn"], "body-sm": ["Vazirmatn"], "body-lg": ["Vazirmatn"], "headline-md": ["Vazirmatn"], "title-md": ["Vazirmatn"], "label-sm": ["Vazirmatn"] }, "fontSize": { "headline-sm": ["22px", { "lineHeight": "34px", "letterSpacing": "0em", "fontWeight": "700" }], "label-md": ["12px", { "lineHeight": "18px", "letterSpacing": "0em", "fontWeight": "500" }], "body-md": ["14px", { "lineHeight": "24px", "letterSpacing": "0em", "fontWeight": "400" }], "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0em", "fontWeight": "600" }], "title-lg": ["18px", { "lineHeight": "28px", "letterSpacing": "0em", "fontWeight": "600" }], "headline-lg": ["36px", { "lineHeight": "52px", "letterSpacing": "-0.015em", "fontWeight": "800" }], "display": ["48px", { "lineHeight": "68px", "letterSpacing": "-0.02em", "fontWeight": "800" }], "body-sm": ["12px", { "lineHeight": "20px", "letterSpacing": "0em", "fontWeight": "400" }], "body-lg": ["16px", { "lineHeight": "28px", "letterSpacing": "0em", "fontWeight": "400" }], "headline-md": ["28px", { "lineHeight": "42px", "letterSpacing": "-0.01em", "fontWeight": "700" }], "title-md": ["16px", { "lineHeight": "26px", "letterSpacing": "0em", "fontWeight": "600" }], "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0em", "fontWeight": "500" }] } } } };</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface font-body-md text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(42,21,48,0.04)] pt-safe"><div class="w-full px-6 pt-2 pb-1 flex items-center justify-between text-on-surface select-none"><span class="font-label-md text-label-md font-semibold tracking-normal">۹:۴۱</span><div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px]">signal_cellular_alt</span><span class="material-symbols-outlined text-[16px]">wifi</span><span class="material-symbols-outlined text-[18px]">battery_full</span></div></div><div class="h-16 px-4 flex items-center justify-between"><div class="flex items-center gap-2"><button class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface hover:bg-surface-container active:scale-95 transition-transform" onclick="history.back()"><span class="material-symbols-outlined text-[24px]">arrow_forward</span></button><h1 class="font-title-lg text-title-lg font-bold text-on-surface tracking-normal">Flight Filters</h1></div><div class="flex items-center gap-2"><button class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container"><span class="material-symbols-outlined text-[22px]">share</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex flex-col relative w-full pt-24 pb-8 bg-surface min-h-screen"><div class="flex flex-col w-full relative select-none">
+<!-- Underneath Content: Flight Search Results (Dimmed & Softly Blurred) -->
+<div class="flex flex-col w-full px-4 gap-3 opacity-30 filter blur-[2px] pointer-events-none transition-all duration-300">
+<!-- Quick Route Bar -->
+<div class="flex items-center justify-between bg-surface-container-low px-4 py-3 rounded-xl">
+<div class="flex items-center gap-2">
+<span class="font-title-md text-title-md text-on-surface">تهران (THR)</span>
+<span class="material-symbols-outlined text-[18px] text-primary rotate-180">arrow_forward</span>
+<span class="font-title-md text-title-md text-on-surface">استانبول (IST)</span>
+</div>
+<span class="font-label-md text-label-md text-secondary">پنجشنبه، ۱۲ مهر</span>
+</div>
+<!-- Flight Card 1 (Sample Mock Underneath) -->
+<div class="bg-surface-container-lowest p-4 rounded-2xl shadow-sm flex flex-col gap-3">
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-[18px]">flight_takeoff</span>
+</div>
+<span class="font-title-md text-title-md text-on-surface">ماهان ایر</span>
+</div>
+<span class="font-label-md text-label-md bg-secondary-container text-on-secondary-container px-2.5 py-1 rounded-full">سیستمی • اکونومی</span>
+</div>
+<div class="flex items-center justify-between pt-1">
+<div class="text-right">
+<p class="font-headline-sm text-headline-sm text-on-surface">۰۸:۳۰</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">تهران (IKA)</p>
+</div>
+<div class="flex flex-col items-center flex-1 px-4">
+<span class="font-label-sm text-label-sm text-secondary">۳ ساعت و ۳۰ دقیقه</span>
+<div class="w-full h-1 bg-surface-container-highest rounded-full my-1 relative">
+<div class="w-2 h-2 rounded-full bg-primary absolute -top-0.5 right-1/2 translate-x-1/2"></div>
+</div>
+<span class="font-label-sm text-label-sm text-tertiary">مستقیم</span>
+</div>
+<div class="text-left">
+<p class="font-headline-sm text-headline-sm text-on-surface">۱۱:۰۰</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">استانبول (IST)</p>
+</div>
+</div>
+<div class="flex items-center justify-between pt-2">
+<span class="font-label-sm text-label-sm text-on-surface-variant">بار مجاز: ۳۰ کیلوگرم</span>
+<div class="text-left">
+<span class="font-title-lg text-title-lg text-primary">۱۲,۴۵۰,۰۰۰</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">تومان (نمایشی)</span>
+</div>
+</div>
+</div>
+<!-- Flight Card 2 (Sample Mock Underneath) -->
+<div class="bg-surface-container-lowest p-4 rounded-2xl shadow-sm flex flex-col gap-3">
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary text-[18px]">airlines</span>
+</div>
+<span class="font-title-md text-title-md text-on-surface">ترکیش ایرلاینز</span>
+</div>
+<span class="font-label-md text-label-md bg-tertiary-fixed text-on-tertiary-fixed px-2.5 py-1 rounded-full">سیستمی</span>
+</div>
+<div class="flex items-center justify-between pt-1">
+<div class="text-right">
+<p class="font-headline-sm text-headline-sm text-on-surface">۱۴:۱۵</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">تهران (IKA)</p>
+</div>
+<div class="flex flex-col items-center flex-1 px-4">
+<span class="font-label-sm text-label-sm text-secondary">۳ ساعت و ۴۵ دقیقه</span>
+<div class="w-full h-1 bg-surface-container-highest rounded-full my-1"></div>
+<span class="font-label-sm text-label-sm text-tertiary">مستقیم</span>
+</div>
+<div class="text-left">
+<p class="font-headline-sm text-headline-sm text-on-surface">۱۷:۰۰</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">استانبول (IST)</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Deep Plum Backdrop Scrim -->
+<div class="fixed inset-0 bg-[#2A1530]/40 backdrop-blur-md z-40 transition-opacity"></div>
+<!-- Interactive Flight Filters Bottom Sheet Modal -->
+<div class="fixed inset-x-0 bottom-0 z-50 flex flex-col max-h-[777px] bg-surface rounded-t-[28px] shadow-[0_-12px_40px_rgba(42,21,48,0.22)] transform transition-transform duration-300 ease-out overflow-hidden" id="filter-sheet">
+<!-- Drag Handle & Top Header -->
+<div class="flex flex-col items-center pt-3 pb-2 px-5 bg-surface border-none shrink-0 relative">
+<!-- Drag pill -->
+<div class="w-12 h-1.5 bg-surface-dim rounded-full mb-3 cursor-grab active:cursor-grabbing"></div>
+<div class="flex items-center justify-between w-full">
+<!-- Close Button -->
+<button class="w-9 h-9 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:bg-surface-dim active:scale-95 transition-all" id="close-sheet-btn">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+<!-- Center Sheet Title & Badge -->
+<div class="flex items-center gap-2">
+<span class="font-title-lg text-title-lg font-bold text-on-surface">فیلترهای پرواز</span>
+<span class="font-label-sm text-label-sm bg-primary-fixed text-on-primary-fixed-variant px-2.5 py-0.5 rounded-full font-bold">۳ فعال</span>
+</div>
+<!-- Reset All Action Button -->
+<button class="font-label-md text-label-md font-semibold text-primary px-2 py-1 rounded-lg hover:bg-primary-fixed/30 active:scale-95 transition-all" id="reset-all-btn">
+          پاک کردن همه
+        </button>
+</div>
+</div>
+<!-- Scrollable Filter Content -->
+<div class="flex-1 overflow-y-auto px-5 py-4 space-y-6 overscroll-contain pb-6">
+<!-- 1. محدوده قیمت (Price Range) -->
+<section class="bg-surface-container-lowest p-4 rounded-2xl shadow-sm flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">payments</span>
+<span class="font-title-md text-title-md font-bold text-on-surface">محدوده قیمت</span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary font-medium">(نمایشی - Mock)</span>
+</div>
+<!-- Selected Dynamic Price readout -->
+<div class="flex items-center justify-between bg-surface-container-low px-3.5 py-2.5 rounded-xl">
+<div class="text-right">
+<span class="font-label-sm text-label-sm text-on-surface-variant block">حداقل:</span>
+<span class="font-label-lg text-label-lg font-bold text-on-surface">۸,۵۰۰,۰۰۰ <span class="font-label-sm text-label-sm font-normal text-on-surface-variant">تومان</span></span>
+</div>
+<span class="material-symbols-outlined text-[18px] text-surface-dim">trending_flat</span>
+<div class="text-left">
+<span class="font-label-sm text-label-sm text-on-surface-variant block">تا حداکثر:</span>
+<span class="font-label-lg text-label-lg font-bold text-primary" id="price-display">۱۸,۲۰۰,۰۰۰ <span class="font-label-sm text-label-sm font-normal text-on-surface-variant">تومان</span></span>
+</div>
+</div>
+<!-- Dual Slider Visual Track -->
+<div class="relative pt-2 pb-1 px-1">
+<input class="w-full accent-primary h-2 bg-surface-container-high rounded-lg cursor-pointer" id="price-slider" max="25000000" min="8500000" step="500000" type="range" value="18200000"/>
+<div class="flex justify-between items-center text-on-surface-variant font-label-sm text-label-sm mt-1.5">
+<span>۸.۵ م تومان</span>
+<span>۲۵ م تومان</span>
+</div>
+</div>
+</section>
+<!-- 2. تعداد توقف (Stops) -->
+<section class="bg-surface-container-lowest p-4 rounded-2xl shadow-sm flex flex-col gap-3">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[20px]">transit_enterexit</span>
+<span class="font-title-md text-title-md font-bold text-on-surface">تعداد توقف پرواز</span>
+</div>
+<div class="grid grid-cols-3 gap-2">
+<button class="stop-chip py-2.5 px-2 rounded-xl text-center font-label-md text-label-md font-bold transition-all bg-secondary text-on-secondary shadow-sm active:scale-95" type="button">
+            مستقیم
+            <span class="block font-label-sm text-label-sm font-normal opacity-85">بدون توقف</span>
+</button>
+<button class="stop-chip py-2.5 px-2 rounded-xl text-center font-label-md text-label-md font-medium transition-all bg-surface-container text-on-surface hover:bg-surface-container-high active:scale-95" type="button">
+            ۱ توقف
+            <span class="block font-label-sm text-label-sm font-normal text-on-surface-variant">کنسلی کمتر</span>
+</button>
+<button class="stop-chip py-2.5 px-2 rounded-xl text-center font-label-md text-label-md font-medium transition-all bg-surface-container text-on-surface hover:bg-surface-container-high active:scale-95" type="button">
+            ۲+ توقف
+            <span class="block font-label-sm text-label-sm font-normal text-on-surface-variant">قیمت اقتصادی</span>
+</button>
+</div>
+</section>
+<!-- 3. زمان حرکت پرواز رفت (Departure Time) -->
+<section class="bg-surface-container-lowest p-4 rounded-2xl shadow-sm flex flex-col gap-3">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary text-[20px]">schedule</span>
+<span class="font-title-md text-title-md font-bold text-on-surface">زمان حرکت رفت</span>
+</div>
+<div class="grid grid-cols-2 gap-2.5">
+<!-- Time Chip 1: بامداد -->
+<button class="time-chip p-3 rounded-2xl flex items-center justify-between transition-all bg-surface-container hover:bg-surface-container-high text-on-surface active:scale-95" type="button">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">bedtime</span>
+</div>
+<div class="text-right">
+<p class="font-label-md text-label-md font-bold">بامداد</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">۰۰:۰۰ تا ۰۶:۰۰</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-[18px] opacity-0 text-primary checkmark">check</span>
+</button>
+<!-- Time Chip 2: صبح (Active) -->
+<button class="time-chip p-3 rounded-2xl flex items-center justify-between transition-all bg-secondary text-on-secondary shadow-sm active:scale-95" type="button">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-on-secondary">
+<span class="material-symbols-outlined text-[18px]">wb_sunny</span>
+</div>
+<div class="text-right">
+<p class="font-label-md text-label-md font-bold">صبح</p>
+<p class="font-label-sm text-label-sm opacity-90">۰۶:۰۰ تا ۱۲:۰۰</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-[18px] opacity-100 checkmark">check</span>
+</button>
+<!-- Time Chip 3: عصر -->
+<button class="time-chip p-3 rounded-2xl flex items-center justify-between transition-all bg-surface-container hover:bg-surface-container-high text-on-surface active:scale-95" type="button">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">wb_twilight</span>
+</div>
+<div class="text-right">
+<p class="font-label-md text-label-md font-bold">عصر</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">۱۲:۰۰ تا ۱۸:۰۰</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-[18px] opacity-0 text-primary checkmark">check</span>
+</button>
+<!-- Time Chip 4: شب -->
+<button class="time-chip p-3 rounded-2xl flex items-center justify-between transition-all bg-surface-container hover:bg-surface-container-high text-on-surface active:scale-95" type="button">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">nights_stay</span>
+</div>
+<div class="text-right">
+<p class="font-label-md text-label-md font-bold">شب</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">۱۸:۰۰ تا ۲۴:۰۰</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-[18px] opacity-0 text-primary checkmark">check</span>
+</button>
+</div>
+</section>
+<!-- 4. شرکت‌های هواپیمایی (Airlines) -->
+<section class="bg-surface-container-lowest p-4 rounded-2xl shadow-sm flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">airlines</span>
+<span class="font-title-md text-title-md font-bold text-on-surface">شرکت‌های هواپیمایی</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">۴ ایرلاین</span>
+</div>
+<div class="flex flex-col gap-2.5">
+<!-- Airline 1: ماهان ایر (Checked) -->
+<label class="flex items-center justify-between p-2.5 rounded-xl bg-surface-container-low hover:bg-surface-container cursor-pointer transition-colors">
+<div class="flex items-center gap-3">
+<input checked="" class="w-5 h-5 accent-primary rounded cursor-pointer" type="checkbox"/>
+<div class="w-7 h-7 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-fixed-variant">
+<span class="material-symbols-outlined text-[16px]">flight</span>
+</div>
+<span class="font-title-md text-title-md font-medium text-on-surface">ماهان ایر</span>
+</div>
+<div class="text-left">
+<span class="font-label-sm text-label-sm text-on-surface-variant block">شروع از</span>
+<span class="font-label-md text-label-md font-bold text-on-surface">۱۲,۴۵۰,۰۰۰ <span class="font-label-sm text-label-sm font-normal text-on-surface-variant">تومان</span></span>
+</div>
+</label>
+<!-- Airline 2: ترکیش ایرلاینز (Checked) -->
+<label class="flex items-center justify-between p-2.5 rounded-xl bg-surface-container-low hover:bg-surface-container cursor-pointer transition-colors">
+<div class="flex items-center gap-3">
+<input checked="" class="w-5 h-5 accent-primary rounded cursor-pointer" type="checkbox"/>
+<div class="w-7 h-7 rounded-full bg-error-container flex items-center justify-center text-on-error-container">
+<span class="material-symbols-outlined text-[16px]">travel</span>
+</div>
+<span class="font-title-md text-title-md font-medium text-on-surface">ترکیش ایرلاینز</span>
+</div>
+<div class="text-left">
+<span class="font-label-sm text-label-sm text-on-surface-variant block">شروع از</span>
+<span class="font-label-md text-label-md font-bold text-on-surface">۱۸,۹۰۰,۰۰۰ <span class="font-label-sm text-label-sm font-normal text-on-surface-variant">تومان</span></span>
+</div>
+</label>
+<!-- Airline 3: ایران ایرتور -->
+<label class="flex items-center justify-between p-2.5 rounded-xl bg-surface-container-low hover:bg-surface-container cursor-pointer transition-colors">
+<div class="flex items-center gap-3">
+<input class="w-5 h-5 accent-primary rounded cursor-pointer" type="checkbox"/>
+<div class="w-7 h-7 rounded-full bg-tertiary-fixed flex items-center justify-center text-on-tertiary-fixed">
+<span class="material-symbols-outlined text-[16px]">connecting_airports</span>
+</div>
+<span class="font-title-md text-title-md font-medium text-on-surface">ایران ایرتور</span>
+</div>
+<div class="text-left">
+<span class="font-label-sm text-label-sm text-on-surface-variant block">شروع از</span>
+<span class="font-label-md text-label-md font-bold text-on-surface">۹,۲۰۰,۰۰۰ <span class="font-label-sm text-label-sm font-normal text-on-surface-variant">تومان</span></span>
+</div>
+</label>
+<!-- Airline 4: پگاسوس -->
+<label class="flex items-center justify-between p-2.5 rounded-xl bg-surface-container-low hover:bg-surface-container cursor-pointer transition-colors">
+<div class="flex items-center gap-3">
+<input class="w-5 h-5 accent-primary rounded cursor-pointer" type="checkbox"/>
+<div class="w-7 h-7 rounded-full bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed">
+<span class="material-symbols-outlined text-[16px]">airplane_ticket</span>
+</div>
+<span class="font-title-md text-title-md font-medium text-on-surface">پگاسوس</span>
+</div>
+<div class="text-left">
+<span class="font-label-sm text-label-sm text-on-surface-variant block">شروع از</span>
+<span class="font-label-md text-label-md font-bold text-on-surface">۱۴,۳۰۰,۰۰۰ <span class="font-label-sm text-label-sm font-normal text-on-surface-variant">تومان</span></span>
+</div>
+</label>
+</div>
+</section>
+<!-- 5. بار مجاز (Baggage) -->
+<section class="bg-surface-container-lowest p-4 rounded-2xl shadow-sm flex flex-col gap-3">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[20px]">luggage</span>
+<span class="font-title-md text-title-md font-bold text-on-surface">میزان بار مجاز</span>
+</div>
+<div class="flex flex-wrap gap-2">
+<button class="baggage-chip py-2 px-3.5 rounded-full font-label-md text-label-md transition-all bg-surface-container text-on-surface hover:bg-surface-container-high active:scale-95" type="button">
+            بدون بار (فقط کابین)
+          </button>
+<button class="baggage-chip py-2 px-3.5 rounded-full font-label-md text-label-md transition-all bg-secondary text-on-secondary font-bold shadow-sm active:scale-95" type="button">
+            بار مجاز ۲۰+ کیلوگرم
+          </button>
+<button class="baggage-chip py-2 px-3.5 rounded-full font-label-md text-label-md transition-all bg-surface-container text-on-surface hover:bg-surface-container-high active:scale-95" type="button">
+            بار مجاز ۳۰+ کیلوگرم
+          </button>
+</div>
+</section>
+<!-- 6. ضوابط و شرایط بلیط (Toggles) -->
+<section class="bg-surface-container-lowest p-4 rounded-2xl shadow-sm flex flex-col gap-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary text-[20px]">verified_user</span>
+<span class="font-title-md text-title-md font-bold text-on-surface">قوانین و نوع بلیط</span>
+</div>
+<!-- Toggle 1: استرداد آنلاین -->
+<div class="flex items-center justify-between">
+<div class="flex flex-col pr-1">
+<span class="font-title-md text-title-md font-medium text-on-surface">بلیط قابل استرداد</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">کنسلی آنلاین بدون جریمه تا ۴۸ ساعت قبل</span>
+</div>
+<button class="filter-toggle relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full bg-primary p-0.5 transition-colors duration-200 ease-in-out focus:outline-none" data-active="true" type="button">
+<span class="pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md transition duration-200 ease-in-out translate-x-[-20px]"></span>
+</button>
+</div>
+<div class="w-full h-[1px] bg-surface-container"></div>
+<!-- Toggle 2: پرواز سیستمی -->
+<div class="flex items-center justify-between">
+<div class="flex flex-col pr-1">
+<span class="font-title-md text-title-md font-medium text-on-surface">فقط پروازهای سیستمی</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">ثبات برنامه و نرخ ویژه خردسالان</span>
+</div>
+<button class="filter-toggle relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full bg-surface-container-highest p-0.5 transition-colors duration-200 ease-in-out focus:outline-none" data-active="false" type="button">
+<span class="pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md transition duration-200 ease-in-out translate-x-0"></span>
+</button>
+</div>
+</section>
+</div>
+<!-- Sticky Bottom Footer in Sheet -->
+<div class="shrink-0 p-4 bg-surface-container-low shadow-[0_-8px_20px_rgba(42,21,48,0.06)] flex items-center gap-3">
+<!-- Ghost Reset Button -->
+<button class="w-28 py-3.5 rounded-full font-label-lg text-label-lg font-bold text-secondary bg-surface hover:bg-surface-container active:scale-95 transition-all text-center" id="footer-clear-btn">
+        پاک کردن
+      </button>
+<!-- Primary Action CTA Button (Coral) -->
+<button class="flex-1 py-3.5 px-6 rounded-full font-label-lg text-label-lg font-bold text-white bg-primary shadow-[0_8px_20px_-2px_rgba(173,44,18,0.35)] hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2" id="apply-filters-btn">
+<span>نمایش ۲۴ نتیجه پرواز</span>
+<span class="material-symbols-outlined text-[18px]">arrow_back</span>
+</button>
+</div>
+</div>
+</div>
+<script>
+  // Simple Native Micro-interactions
+  (function initFilters() {
+    // Range Slider formatting
+    const priceSlider = document.getElementById('price-slider');
+    const priceDisplay = document.getElementById('price-display');
+
+    if (priceSlider && priceDisplay) {
+      priceSlider.addEventListener('input', (e) => {
+        const val = Number(e.target.value);
+        const formatted = new Intl.NumberFormat('fa-IR').format(val);
+        priceDisplay.innerHTML = `${formatted} <span class="font-label-sm text-label-sm font-normal text-on-surface-variant">تومان</span>`;
+      });
+    }
+
+    // Toggle Buttons
+    document.querySelectorAll('.filter-toggle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const isActive = btn.getAttribute('data-active') === 'true';
+        const thumb = btn.querySelector('span');
+        if (isActive) {
+          btn.setAttribute('data-active', 'false');
+          btn.classList.remove('bg-primary');
+          btn.classList.add('bg-surface-container-highest');
+          thumb.classList.remove('translate-x-[-20px]');
+          thumb.classList.add('translate-x-0');
+        } else {
+          btn.setAttribute('data-active', 'true');
+          btn.classList.add('bg-primary');
+          btn.classList.remove('bg-surface-container-highest');
+          thumb.classList.add('translate-x-[-20px]');
+          thumb.classList.remove('translate-x-0');
+        }
+      });
+    });
+
+    // Stops Segmented Chips Single Select
+    const stopChips = document.querySelectorAll('.stop-chip');
+    stopChips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        stopChips.forEach(c => {
+          c.classList.remove('bg-secondary', 'text-on-secondary');
+          c.classList.add('bg-surface-container', 'text-on-surface');
+        });
+        chip.classList.add('bg-secondary', 'text-on-secondary');
+        chip.classList.remove('bg-surface-container', 'text-on-surface');
+      });
+    });
+
+    // Time Chips
+    const timeChips = document.querySelectorAll('.time-chip');
+    timeChips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        const isSelected = chip.classList.contains('bg-secondary');
+        const iconDiv = chip.querySelector('div > div');
+        const check = chip.querySelector('.checkmark');
+        
+        if (isSelected) {
+          chip.classList.remove('bg-secondary', 'text-on-secondary');
+          chip.classList.add('bg-surface-container', 'text-on-surface');
+          if (check) check.classList.add('opacity-0');
+        } else {
+          chip.classList.add('bg-secondary', 'text-on-secondary');
+          chip.classList.remove('bg-surface-container', 'text-on-surface');
+          if (check) check.classList.remove('opacity-0');
+        }
+      });
+    });
+
+    // Baggage Chips Single Select
+    const baggageChips = document.querySelectorAll('.baggage-chip');
+    baggageChips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        baggageChips.forEach(b => {
+          b.classList.remove('bg-secondary', 'text-on-secondary', 'font-bold');
+          b.classList.add('bg-surface-container', 'text-on-surface');
+        });
+        chip.classList.add('bg-secondary', 'text-on-secondary', 'font-bold');
+        chip.classList.remove('bg-surface-container', 'text-on-surface');
+      });
+    });
+
+    // Dismiss Sheet Demo
+    const sheet = document.getElementById('filter-sheet');
+    const closeBtn = document.getElementById('close-sheet-btn');
+    const applyBtn = document.getElementById('apply-filters-btn');
+
+    const closeHandler = () => {
+      if (sheet) {
+        sheet.classList.add('translate-y-full');
+        setTimeout(() => {
+          sheet.classList.remove('translate-y-full');
+        }, 800);
+      }
+    };
+
+    if (closeBtn) closeBtn.addEventListener('click', closeHandler);
+    if (applyBtn) applyBtn.addEventListener('click', closeHandler);
+
+    // Reset All Demo
+    const resetBtn = document.getElementById('reset-all-btn');
+    const footerClear = document.getElementById('footer-clear-btn');
+    const resetAction = () => {
+      if (priceSlider) {
+        priceSlider.value = '25000000';
+        priceSlider.dispatchEvent(new Event('input'));
+      }
+      document.querySelectorAll('input[type="checkbox"]').forEach(c => c.checked = false);
+    };
+    if (resetBtn) resetBtn.addEventListener('click', resetAction);
+    if (footerClear) footerClear.addEventListener('click', resetAction);
+  })();
+</script></main></body></html>
