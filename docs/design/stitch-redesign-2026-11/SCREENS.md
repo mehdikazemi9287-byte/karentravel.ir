@@ -51,6 +51,9 @@
 | اپلیکیشن | [`app/26-refund-completed.html`](./app/26-refund-completed.html) | استرداد انجام شد |
 | تبلت | [`tablet/01-b2b-dashboard-portrait.html`](./tablet/01-b2b-dashboard-portrait.html) | داشبورد B2B · تبلت عمودی |
 | تبلت | [`tablet/02-b2b-dashboard-landscape.html`](./tablet/02-b2b-dashboard-landscape.html) | داشبورد B2B · تبلت افقی |
+| تبلت | [`tablet/03-travel-policy-settings.html`](./tablet/03-travel-policy-settings.html) | تنظیمات پالیسی و ضوابط سفر · تبلت افقی |
+| تبلت | [`tablet/04-credit-finance.html`](./tablet/04-credit-finance.html) | اعتبار و امور مالی سازمانی · تبلت افقی |
+| تبلت | [`tablet/05-quick-approve-invoice-modal.html`](./tablet/05-quick-approve-invoice-modal.html) | تأیید سریع درخواست و صدور فاکتور رسمی · تبلت افقی |
 
 - مستندات Design System حالت تاریک: [`design-system-dark.html`](./design-system-dark.html)
 - گالری: [`index.html`](./index.html)
