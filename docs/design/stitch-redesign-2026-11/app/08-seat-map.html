@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="fa"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_stack" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100%;margin:0;padding:0;background-color:#fff8f0;font-family:'Vazirmatn',sans-serif;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = {"darkMode":"class","theme":{"extend":{"colors":{"on-tertiary-fixed":"#271900","surface-tint":"#b02e15","primary-fixed":"#ffdad3","background":"#fff8f0","on-primary-fixed":"#3e0500","on-tertiary-fixed-variant":"#5f4100","outline":"#8d706a","primary-fixed-dim":"#ffb4a4","tertiary-fixed-dim":"#f8bc4f","primary-container":"#cf4429","on-error-container":"#93000a","inverse-on-surface":"#f7f0e6","error":"#ba1a1a","on-secondary":"#ffffff","surface-bright":"#fff8f0","on-primary":"#ffffff","outline-variant":"#e1bfb8","surface-container":"#f4ede3","tertiary":"#7b5500","on-secondary-fixed":"#28132e","surface-container-low":"#faf3e9","secondary-fixed-dim":"#dcbce0","on-surface-variant":"#59413c","on-primary-container":"#fffbff","primary":"#ad2c12","surface-container-lowest":"#ffffff","on-primary-fixed-variant":"#8d1600","tertiary-fixed":"#ffdeab","on-tertiary-container":"#fffbff","on-error":"#ffffff","tertiary-container":"#9a6c00","on-secondary-fixed-variant":"#563e5c","error-container":"#ffdad6","on-surface":"#1e1b15","surface-container-highest":"#e8e2d8","secondary-container":"#f6d5fa","secondary-fixed":"#f9d8fd","on-secondary-container":"#745a79","surface-container-high":"#eee7dd","secondary":"#6f5674","inverse-surface":"#33302a","inverse-primary":"#ffb4a4","surface-dim":"#e0d9cf","surface":"#fff8f0","on-tertiary":"#ffffff","surface-variant":"#e8e2d8","on-background":"#1e1b15"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"space-xs":"0.375rem","space-xl":"2.5rem","space-lg":"1.75rem","space-md":"1.25rem","gutter-desktop":"1.5rem","margin":"3.5rem","margin-desktop":"3.5rem","gutter":"1.5rem","space-sm":"0.75rem"},"fontFamily":{"body-sm":["Vazirmatn"],"title-lg":["Vazirmatn"],"headline-sm":["Vazirmatn"],"label-md":["Vazirmatn"],"label-sm":["Vazirmatn"],"display":["Vazirmatn"],"title-md":["Vazirmatn"],"body-md":["Vazirmatn"],"headline-md":["Vazirmatn"],"label-lg":["Vazirmatn"],"body-lg":["Vazirmatn"],"headline-lg":["Vazirmatn"]},"fontSize":{"body-sm":["12px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"400"}],"title-lg":["18px",{"lineHeight":"28px","letterSpacing":"0em","fontWeight":"600"}],"headline-sm":["22px",{"lineHeight":"34px","letterSpacing":"0em","fontWeight":"700"}],"label-md":["12px",{"lineHeight":"18px","letterSpacing":"0em","fontWeight":"500"}],"label-sm":["11px",{"lineHeight":"16px","letterSpacing":"0em","fontWeight":"500"}],"display":["48px",{"lineHeight":"68px","letterSpacing":"-0.02em","fontWeight":"800"}],"title-md":["16px",{"lineHeight":"26px","letterSpacing":"0em","fontWeight":"600"}],"body-md":["14px",{"lineHeight":"24px","letterSpacing":"0em","fontWeight":"400"}],"headline-md":["28px",{"lineHeight":"42px","letterSpacing":"-0.01em","fontWeight":"700"}],"label-lg":["14px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"600"}],"body-lg":["16px",{"lineHeight":"28px","letterSpacing":"0em","fontWeight":"400"}],"headline-lg":["36px",{"lineHeight":"52px","letterSpacing":"-0.015em","fontWeight":"800"}]}}}};</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface text-on-surface antialiased min-h-screen flex flex-col"><header class="fixed top-0 w-full z-50 bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="pt-safe w-full"><div class="h-6 px-6 flex items-center justify-between text-on-surface text-[12px] font-medium tracking-tight"><span class="font-semibold">9:41</span><div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[15px]">signal_cellular_alt</span><span class="material-symbols-outlined text-[15px]">wifi</span><span class="material-symbols-outlined text-[17px]">battery_full</span></div></div></div><div class="h-16 px-4 flex items-center justify-between"><div class="flex items-center gap-2"><button aria-label="بازگشت" class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface hover:bg-surface-container transition-colors" onclick="history.back()"><span class="material-symbols-outlined text-[22px]">arrow_forward</span></button><h1 class="font-title-lg text-title-lg text-on-surface font-semibold">Flight Results</h1></div><div class="flex items-center gap-2"><button aria-label="اشتراک‌گذاری" class="w-11 h-11 rounded-full flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">share</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex-1 flex flex-col relative w-full pt-22 pb-safe bg-surface"><div class="flex flex-col w-full pb-32 select-none">
+<!-- Flight Summary Card -->
+<section class="px-4 pt-3">
+<div class="bg-surface-container-lowest p-4 rounded-[24px] shadow-sm flex flex-col gap-2.5">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[19px]" style="font-variation-settings: 'FILL' 1;">flight</span>
+</div>
+<div class="flex flex-col">
+<span class="font-title-md text-title-md text-on-surface font-bold leading-tight">هواپیمایی ماهان W5-114</span>
+<span class="font-body-sm text-label-sm text-on-surface-variant">ایرباس A320 • کلاس اقتصادی</span>
+</div>
+</div>
+<span class="bg-surface-container-high px-2.5 py-1 rounded-full font-label-sm text-label-sm text-secondary font-semibold">جمعه ۲۵ خرداد</span>
+</div>
+<div class="bg-surface-container-low px-3 py-2 rounded-xl flex items-center justify-between text-on-surface">
+<div class="flex items-center gap-1.5">
+<span class="font-title-md text-title-md font-bold">تهران</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-mono">(IKA)</span>
+</div>
+<div class="flex items-center gap-1 text-outline">
+<span class="w-6 h-[2px] bg-outline-variant rounded-full"></span>
+<span class="material-symbols-outlined text-[15px] rotate-180">flight</span>
+<span class="w-6 h-[2px] bg-outline-variant rounded-full"></span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="font-title-md text-title-md font-bold">استانبول</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-mono">(IST)</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Passenger Switcher -->
+<section class="px-4 mt-3">
+<div class="flex items-center justify-between mb-1.5 px-1">
+<span class="font-label-md text-label-md text-on-surface font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-primary">airline_seat_recline_normal</span>
+        تخصیص صندلی مسافران
+      </span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">۲ مسافر</span>
+</div>
+<div class="grid grid-cols-2 gap-2">
+<!-- Passenger 1 (Active) -->
+<div class="pax-chip cursor-pointer bg-surface-container-lowest p-2.5 rounded-[18px] shadow-sm flex flex-col gap-1 transition-all relative overflow-hidden bg-primary-fixed/20 shadow-md" id="pax-1-chip">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<div class="w-6 h-6 rounded-full bg-primary text-on-primary flex items-center justify-center font-label-sm text-[10px] font-bold">۱</div>
+<span class="font-label-lg text-label-md text-on-surface font-bold truncate">کیان احمدی</span>
+</div>
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+</div>
+<div class="flex items-center justify-between mt-0.5">
+<span class="font-label-sm text-label-sm text-primary font-bold bg-primary-fixed px-2 py-0.5 rounded-full">صندلی 14B</span>
+<span class="font-label-sm text-[10px] text-on-surface-variant">میانه</span>
+</div>
+</div>
+<!-- Passenger 2 -->
+<div class="pax-chip cursor-pointer bg-surface-container-lowest p-2.5 rounded-[18px] shadow-sm flex flex-col gap-1 transition-all" id="pax-2-chip">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<div class="w-6 h-6 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center font-label-sm text-[10px] font-bold">۲</div>
+<span class="font-label-lg text-label-md text-on-surface font-bold truncate">سارا رادمنش</span>
+</div>
+<span class="bg-tertiary-fixed text-on-tertiary-fixed px-1.5 py-0.2 rounded font-label-sm text-[9px] font-bold">در نوبت</span>
+</div>
+<div class="flex items-center justify-between mt-0.5">
+<span class="font-label-sm text-label-sm text-secondary font-bold bg-secondary-container px-2 py-0.5 rounded-full">صندلی 14C</span>
+<span class="font-label-sm text-[10px] text-on-surface-variant">راهرو</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Legend Bar -->
+<section class="px-4 mt-3">
+<div class="bg-surface-container-low px-3 py-2.5 rounded-2xl flex items-center justify-between overflow-x-auto text-[11px] gap-2.5">
+<div class="flex items-center gap-1.5 shrink-0">
+<span class="w-4 h-4 rounded-md bg-surface-container-lowest shadow-sm flex items-center justify-center"></span>
+<span class="text-on-surface font-label-sm">آزاد</span>
+</div>
+<div class="flex items-center gap-1.5 shrink-0">
+<span class="w-4 h-4 rounded-md bg-primary text-on-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[11px]">check</span>
+</span>
+<span class="text-on-surface font-label-sm">انتخاب‌شده</span>
+</div>
+<div class="flex items-center gap-1.5 shrink-0">
+<span class="w-4 h-4 rounded-md bg-surface-container-highest text-on-surface-variant flex items-center justify-center opacity-60">
+<span class="material-symbols-outlined text-[10px]">close</span>
+</span>
+<span class="text-on-surface-variant font-label-sm">اشغال</span>
+</div>
+<div class="flex items-center gap-1.5 shrink-0">
+<span class="w-4 h-4 rounded-md bg-tertiary-fixed-dim/40 text-tertiary flex items-center justify-center font-bold text-[8px]">+تومان</span>
+<span class="text-on-surface font-label-sm">ویژه / خروج</span>
+</div>
+</div>
+</section>
+<!-- Fuselage / Cabin Map Canvas -->
+<section class="px-3 mt-4">
+<div class="bg-surface-container-lowest rounded-t-[50px] rounded-b-[32px] pt-4 pb-6 px-3 shadow-md flex flex-col items-center">
+<!-- Cockpit & Nose Indicator -->
+<div class="w-full flex flex-col items-center pb-2">
+<svg class="w-44 h-12 text-surface-container" fill="none" viewbox="0 0 160 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M10 44 C25 15, 60 4, 80 4 C100 4, 135 15, 150 44" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2.5"></path>
+<path d="M68 18 H92" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path>
+<circle cx="80" cy="18" fill="currentColor" r="3"></circle>
+</svg>
+<span class="font-label-sm text-[11px] text-outline tracking-wider font-semibold -mt-2">جلوی هواپیما • دماغه</span>
+<!-- Front Facilities (Galley & Restrooms) -->
+<div class="w-full max-w-xs grid grid-cols-2 gap-3 mt-3 px-2">
+<div class="bg-surface-container-low py-1.5 px-3 rounded-xl flex items-center justify-center gap-1.5 text-on-surface-variant font-label-sm">
+<span class="material-symbols-outlined text-[16px]">soup_kitchen</span>
+<span>کیترینگ و خدمه</span>
+</div>
+<div class="bg-surface-container-low py-1.5 px-3 rounded-xl flex items-center justify-center gap-1.5 text-on-surface-variant font-label-sm">
+<span class="material-symbols-outlined text-[16px]">wc</span>
+<span>سرویس بهداشتی</span>
+</div>
+</div>
+</div>
+<!-- Column Labels (A B C | Aisle | D E F) -->
+<div class="w-full max-w-sm grid grid-cols-7 gap-1.5 px-1 py-3 text-center font-bold text-on-surface-variant font-label-sm border-b-0">
+<div>A<span class="block text-[9px] font-normal text-outline">پنجره</span></div>
+<div>B<span class="block text-[9px] font-normal text-outline">میانه</span></div>
+<div>C<span class="block text-[9px] font-normal text-outline">راهرو</span></div>
+<div class="text-[10px] text-outline flex items-center justify-center">راهرو</div>
+<div>D<span class="block text-[9px] font-normal text-outline">راهرو</span></div>
+<div>E<span class="block text-[9px] font-normal text-outline">میانه</span></div>
+<div>F<span class="block text-[9px] font-normal text-outline">پنجره</span></div>
+</div>
+<!-- Seat Rows Matrix -->
+<div class="w-full max-w-sm flex flex-col gap-2 mt-1">
+<!-- Row 10: Premium Extra Legroom -->
+<div class="flex flex-col gap-1 bg-tertiary-fixed/20 p-1.5 rounded-2xl">
+<div class="flex items-center justify-between px-2 text-[10px] text-tertiary font-bold">
+<span>ردیف ۱۰ • صندلی‌های ویژه با فضای پای باز</span>
+<span class="bg-tertiary text-on-tertiary px-1.5 py-0.2 rounded-full text-[9px]">+۴۵۰,۰۰۰ تومان</span>
+</div>
+<div class="grid grid-cols-7 gap-1.5 items-center">
+<!-- 10A Free Premium -->
+<button class="seat-btn h-10 rounded-xl bg-surface-container-lowest text-tertiary flex flex-col items-center justify-center shadow-sm active:scale-95 transition-all">
+<span class="font-bold text-[11px] leading-tight">10A</span>
+<span class="text-[8px] font-mono leading-none">★</span>
+</button>
+<!-- 10B Occupied -->
+<div class="h-10 rounded-xl bg-surface-container-highest text-on-surface-variant/40 flex items-center justify-center">
+<span class="material-symbols-outlined text-[13px]">close</span>
+</div>
+<!-- 10C Free Premium -->
+<button class="seat-btn h-10 rounded-xl bg-surface-container-lowest text-tertiary flex flex-col items-center justify-center shadow-sm active:scale-95 transition-all">
+<span class="font-bold text-[11px] leading-tight">10C</span>
+<span class="text-[8px] font-mono leading-none">★</span>
+</button>
+<!-- Aisle label -->
+<div class="text-[11px] font-bold text-outline text-center">۱۰</div>
+<!-- 10D Occupied -->
+<div class="h-10 rounded-xl bg-surface-container-highest text-on-surface-variant/40 flex items-center justify-center">
+<span class="material-symbols-outlined text-[13px]">close</span>
+</div>
+<!-- 10E Occupied -->
+<div class="h-10 rounded-xl bg-surface-container-highest text-on-surface-variant/40 flex items-center justify-center">
+<span class="material-symbols-outlined text-[13px]">close</span>
+</div>
+<!-- 10F Free Premium -->
+<button class="seat-btn h-10 rounded-xl bg-surface-container-lowest text-tertiary flex flex-col items-center justify-center shadow-sm active:scale-95 transition-all">
+<span class="font-bold text-[11px] leading-tight">10F</span>
+<span class="text-[8px] font-mono leading-none">★</span>
+</button>
+</div>
+</div>
+<!-- Row 11: Standard -->
+<div class="grid grid-cols-7 gap-1.5 items-center px-1">
+<!-- 11A Occupied -->
+<div class="h-10 rounded-xl bg-surface-container-highest text-on-surface-variant/40 flex items-center justify-center">
+<span class="material-symbols-outlined text-[13px]">close</span>
+</div>
+<!-- 11B Free -->
+<button class="seat-btn h-10 rounded-xl bg-surface-container-lowest text-on-surface flex items-center justify-center shadow-sm active:scale-95 transition-all">
+<span class="font-bold text-[11px]">11B</span>
+</button>
+<!-- 11C Free -->
+<button class="seat-btn h-10 rounded-xl bg-surface-container-lowest text-on-surface flex items-center justify-center shadow-sm active:scale-95 transition-all">
+<span class="font-bold text-[11px]">11C</span>
+</button>
+<!-- Aisle -->
+<div class="text-[11px] font-bold text-outline text-center">۱۱</div>
+<!-- 11D Occupied -->
+<div class="h-10 rounded-xl bg-surface-container-highest text-on-surface-variant/40 flex items-center justify-center">
+<span class="material-symbols-outlined text-[13px]">close</span>
+</div>
+<!-- 11E Free -->
+<button class="seat-btn h-10 rounded-xl bg-surface-container-lowest text-on-surface flex items-center justify-center shadow-sm active:scale-95 transition-all">
+<span class="font-bold text-[11px]">11E</span>
+</button>
+<!-- 11F Occupied -->
+<div class="h-10 rounded-xl bg-surface-container-highest text-on-surface-variant/40 flex items-center justify-center">
+<span class="material-symbols-outlined text-[13px]">close</span>
+</div>
+</div>
+<!-- Row 12: Standard -->
+<div class="grid grid-cols-7 gap-1.5 items-center px-1">
+<!-- 12A Free -->
+<button class="seat-btn h-10 rounded-xl bg-surface-container-lowest text-on-surface flex items-center justify-center shadow-sm active:scale-95 transition-all">
+<span class="font-bold text-[11px]">12A</span>
+</button>
+<!-- 12B Occupied -->
+<div class="h-10 rounded-xl bg-surface-container-highest text-on-surface-variant/40 flex items-center justify-center">
+<span class="material-symbols-outlined text-[13px]">close</span>
+</div>
+<!-- 12C Occupied -->
+<div class="h-10 rounded-xl bg-surface-container-highest text-on-surface-variant/40 flex items-center justify-center">
+<span class="material-symbols-outlined text-[13px]">close</span>
+</div>
+<!-- Aisle -->
+<div class="text-[11px] font-bold text-outline text-center">۱۲</div>
+<!-- 12D Free -->
+<button class="seat-btn h-10 rounded-xl bg-surface-container-lowest text-on-surface flex items-center justify-center shadow-sm active:scale-95 transition-all">
+<span class="font-bold text-[11px]">12D</span>
+</button>
+<!-- 12E Free -->
+<button class="seat-btn h-10 rounded-xl bg-surface-container-lowest text-on-surface flex items-center justify-center shadow-sm active:scale-95 transition-all">
+<span class="font-bold text-[11px]">12E</span>
+</button>
+<!-- 12F Occupied -->
+<div class="h-10 rounded-xl bg-surface-container-highest text-on-surface-variant/40 flex items-center justify-center">
+<span class="material-symbols-outlined text-[13px]">close</span>
+</div>
+</div>
+<!-- EXIT ROW BANNER 1 -->
+<div class="flex items-center justify-between px-2.5 py-1 bg-tertiary-fixed rounded-xl text-on-tertiary-fixed mt-1">
+<div class="flex items-center gap-1 font-label-sm text-[10px] font-bold">
+<span class="material-symbols-outlined text-[14px]">emergency</span>
+<span>ردیف‌های خروج اضطراری (بال هواپیما) • فضای پای مضاعف</span>
+</div>
+<span class="text-[9px] font-semibold bg-tertiary-container text-on-tertiary-container px-1.5 py-0.2 rounded">+۴۵۰,۰۰۰ ت</span>
+</div>
+<!-- Row 13: Emergency Exit 1 -->
+<div class="grid grid-cols-7 gap-1.5 items-center px-1">
+<!-- 13A Occupied -->
+<div class="h-10 rounded-xl bg-surface-container-highest text-on-surface-variant/40 flex items-center justify-center">
+<span class="material-symbols-outlined text-[13px]">close</span>
+</div>
+<!-- 13B Free -->
+<button class="seat-btn h-10 rounded-xl bg-surface-container-lowest text-on-surface flex flex-col items-center justify-center shadow-sm active:scale-95 transition-all">
+<span class="font-bold text-[11px]">13B</span>
+<span class="text-[8px] text-tertiary leading-none font-bold">خروج</span>
+</button>
+<!-- 13C Free -->
+<button class="seat-btn h-10 rounded-xl bg-surface-container-lowest text-on-surface flex flex-col items-center justify-center shadow-sm active:scale-95 transition-all">
+<span class="font-bold text-[11px]">13C</span>
+<span class="text-[8px] text-tertiary leading-none font-bold">خروج</span>
+</button>
+<!-- Aisle -->
+<div class="text-[11px] font-bold text-tertiary text-center">۱۳</div>
+<!-- 13D Occupied -->
+<div class="h-10 rounded-xl bg-surface-container-highest text-on-surface-variant/40 flex items-center justify-center">
+<span class="material-symbols-outlined text-[13px]">close</span>
+</div>
+<!-- 13E Occupied -->
+<div class="h-10 rounded-xl bg-surface-container-highest text-on-surface-variant/40 flex items-center justify-center">
+<span class="material-symbols-outlined text-[13px]">close</span>
+</div>
+<!-- 13F Free -->
+<button class="seat-btn h-10 rounded-xl bg-surface-container-lowest text-on-surface flex flex-col items-center justify-center shadow-sm active:scale-95 transition-all">
+<span class="font-bold text-[11px]">13F</span>
+<span class="text-[8px] text-tertiary leading-none font-bold">خروج</span>
+</button>
+</div>
+<!-- Row 14: Emergency Exit 2 (Contains Selected Seats 14B & 14C) -->
+<div class="grid grid-cols-7 gap-1.5 items-center px-1 bg-primary-fixed/20 py-1.5 rounded-2xl">
+<!-- 14A Free -->
+<button class="seat-btn h-11 rounded-xl bg-surface-container-lowest text-on-surface flex flex-col items-center justify-center shadow-sm active:scale-95 transition-all">
+<span class="font-bold text-[11px]">14A</span>
+<span class="text-[8px] text-tertiary leading-none font-bold">خروج</span>
+</button>
+<!-- 14B SELECTED (Kian) -->
+<button class="seat-btn h-11 rounded-xl bg-primary text-on-primary flex flex-col items-center justify-center shadow-md scale-102 transition-transform">
+<span class="font-bold text-[11px] leading-tight">14B</span>
+<span class="text-[8px] font-bold leading-tight bg-primary-container px-1 rounded-full text-on-primary-container">کیان</span>
+</button>
+<!-- 14C SELECTED (Sara) -->
+<button class="seat-btn h-11 rounded-xl bg-primary text-on-primary flex flex-col items-center justify-center shadow-md scale-102 transition-transform">
+<span class="font-bold text-[11px] leading-tight">14C</span>
+<span class="text-[8px] font-bold leading-tight bg-primary-container px-1 rounded-full text-on-primary-container">سارا</span>
+</button>
+<!-- Aisle with Exit Highlight -->
+<div class="text-[12px] font-bold text-primary text-center">۱۴</div>
+<!-- 14D Occupied -->
+<div class="h-11 rounded-xl bg-surface-container-highest text-on-surface-variant/40 flex items-center justify-center">
+<span class="material-symbols-outlined text-[13px]">close</span>
+</div>
+<!-- 14E Occupied -->
+<div class="h-11 rounded-xl bg-surface-container-highest text-on-surface-variant/40 flex items-center justify-center">
+<span class="material-symbols-outlined text-[13px]">close</span>
+</div>
+<!-- 14F Free -->
+<button class="seat-btn h-11 rounded-xl bg-surface-container-lowest text-on-surface flex flex-col items-center justify-center shadow-sm active:scale-95 transition-all">
+<span class="font-bold text-[11px]">14F</span>
+<span class="text-[8px] text-tertiary leading-none font-bold">خروج</span>
+</button>
+</div>
+<!-- Row 15: Standard -->
+<div class="grid grid-cols-7 gap-1.5 items-center px-1">
+<!-- 15A Occupied -->
+<div class="h-10 rounded-xl bg-surface-container-highest text-on-surface-variant/40 flex items-center justify-center">
+<span class="material-symbols-outlined text-[13px]">close</span>
+</div>
+<!-- 15B Free -->
+<button class="seat-btn h-10 rounded-xl bg-surface-container-lowest text-on-surface flex items-center justify-center shadow-sm active:scale-95 transition-all">
+<span class="font-bold text-[11px]">15B</span>
+</button>
+<!-- 15C Occupied -->
+<div class="h-10 rounded-xl bg-surface-container-highest text-on-surface-variant/40 flex items-center justify-center">
+<span class="material-symbols-outlined text-[13px]">close</span>
+</div>
+<!-- Aisle -->
+<div class="text-[11px] font-bold text-outline text-center">۱۵</div>
+<!-- 15D Free -->
+<button class="seat-btn h-10 rounded-xl bg-surface-container-lowest text-on-surface flex items-center justify-center shadow-sm active:scale-95 transition-all">
+<span class="font-bold text-[11px]">15D</span>
+</button>
+<!-- 15E Free -->
+<button class="seat-btn h-10 rounded-xl bg-surface-container-lowest text-on-surface flex items-center justify-center shadow-sm active:scale-95 transition-all">
+<span class="font-bold text-[11px]">15E</span>
+</button>
+<!-- 15F Free -->
+<button class="seat-btn h-10 rounded-xl bg-surface-container-lowest text-on-surface flex items-center justify-center shadow-sm active:scale-95 transition-all">
+<span class="font-bold text-[11px]">15F</span>
+</button>
+</div>
+<!-- Row 16: Standard -->
+<div class="grid grid-cols-7 gap-1.5 items-center px-1">
+<!-- 16A Free -->
+<button class="seat-btn h-10 rounded-xl bg-surface-container-lowest text-on-surface flex items-center justify-center shadow-sm active:scale-95 transition-all">
+<span class="font-bold text-[11px]">16A</span>
+</button>
+<!-- 16B Free -->
+<button class="seat-btn h-10 rounded-xl bg-surface-container-lowest text-on-surface flex items-center justify-center shadow-sm active:scale-95 transition-all">
+<span class="font-bold text-[11px]">16B</span>
+</button>
+<!-- 16C Occupied -->
+<div class="h-10 rounded-xl bg-surface-container-highest text-on-surface-variant/40 flex items-center justify-center">
+<span class="material-symbols-outlined text-[13px]">close</span>
+</div>
+<!-- Aisle -->
+<div class="text-[11px] font-bold text-outline text-center">۱۶</div>
+<!-- 16D Occupied -->
+<div class="h-10 rounded-xl bg-surface-container-highest text-on-surface-variant/40 flex items-center justify-center">
+<span class="material-symbols-outlined text-[13px]">close</span>
+</div>
+<!-- 16E Free -->
+<button class="seat-btn h-10 rounded-xl bg-surface-container-lowest text-on-surface flex items-center justify-center shadow-sm active:scale-95 transition-all">
+<span class="font-bold text-[11px]">16E</span>
+</button>
+<!-- 16F Free -->
+<button class="seat-btn h-10 rounded-xl bg-surface-container-lowest text-on-surface flex items-center justify-center shadow-sm active:scale-95 transition-all">
+<span class="font-bold text-[11px]">16F</span>
+</button>
+</div>
+<!-- Row 17: Standard -->
+<div class="grid grid-cols-7 gap-1.5 items-center px-1">
+<!-- 17A Free -->
+<button class="seat-btn h-10 rounded-xl bg-surface-container-lowest text-on-surface flex items-center justify-center shadow-sm active:scale-95 transition-all">
+<span class="font-bold text-[11px]">17A</span>
+</button>
+<!-- 17B Free -->
+<button class="seat-btn h-10 rounded-xl bg-surface-container-lowest text-on-surface flex items-center justify-center shadow-sm active:scale-95 transition-all">
+<span class="font-bold text-[11px]">17B</span>
+</button>
+<!-- 17C Free -->
+<button class="seat-btn h-10 rounded-xl bg-surface-container-lowest text-on-surface flex items-center justify-center shadow-sm active:scale-95 transition-all">
+<span class="font-bold text-[11px]">17C</span>
+</button>
+<!-- Aisle -->
+<div class="text-[11px] font-bold text-outline text-center">۱۷</div>
+<!-- 17D Free -->
+<button class="seat-btn h-10 rounded-xl bg-surface-container-lowest text-on-surface flex items-center justify-center shadow-sm active:scale-95 transition-all">
+<span class="font-bold text-[11px]">17D</span>
+</button>
+<!-- 17E Occupied -->
+<div class="h-10 rounded-xl bg-surface-container-highest text-on-surface-variant/40 flex items-center justify-center">
+<span class="material-symbols-outlined text-[13px]">close</span>
+</div>
+<!-- 17F Occupied -->
+<div class="h-10 rounded-xl bg-surface-container-highest text-on-surface-variant/40 flex items-center justify-center">
+<span class="material-symbols-outlined text-[13px]">close</span>
+</div>
+</div>
+</div>
+<!-- Aircraft Wings & Engine Marker Graphic (Contextual Joy) -->
+<div class="w-full flex items-center justify-between px-2 pt-4 opacity-75">
+<div class="flex items-center gap-1 text-[10px] text-outline font-medium">
+<span class="material-symbols-outlined text-[14px]">airplanemode_active</span>
+<span>بال چپ هواپیما</span>
+</div>
+<div class="flex items-center gap-1 text-[10px] text-outline font-medium">
+<span>بال راست هواپیما</span>
+<span class="material-symbols-outlined text-[14px] scale-x-[-1]">airplanemode_active</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Informational Footnote -->
+<section class="px-4 mt-3 flex items-center justify-center">
+<div class="bg-surface-container-low px-3 py-1.5 rounded-full flex items-center gap-1.5 text-on-surface-variant font-label-sm text-[11px]">
+<span class="material-symbols-outlined text-[14px] text-tertiary">info</span>
+<span>تمام مبالغ و انتخاب‌ها به عنوان «داده نمایشی (Mock)» ارائه شده‌اند.</span>
+</div>
+</section>
+<!-- Sticky Bottom Checkout Dock -->
+<div class="fixed bottom-0 right-0 left-0 bg-surface-container-lowest/95 backdrop-blur-md pt-3 pb-safe px-4 shadow-[0_-4px_24px_rgba(42,21,48,0.08)] z-40">
+<div class="flex flex-col gap-2.5 max-w-md mx-auto">
+<!-- Summary Row -->
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<div class="flex items-center gap-1">
+<span class="font-label-sm text-label-sm text-on-surface-variant">صندلی‌های انتخابی:</span>
+<span class="font-title-md text-title-md font-bold text-primary">14B ، 14C</span>
+</div>
+<span class="font-label-sm text-[11px] text-tertiary font-medium">ردیف خروج اضطراری (فضای پای بیشتر)</span>
+</div>
+<div class="flex flex-col items-end">
+<span class="font-label-sm text-[10px] text-on-surface-variant">مجموع هزینه صندلی</span>
+<div class="flex items-baseline gap-1">
+<span class="font-title-lg text-title-lg font-bold text-on-surface">۹۰۰,۰۰۰</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">تومان</span>
+</div>
+</div>
+</div>
+<!-- Action Button -->
+<button class="w-full bg-primary hover:bg-primary-container text-on-primary py-3.5 px-6 rounded-full font-label-lg text-label-lg font-bold shadow-lg shadow-primary/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+<span>تأیید و ادامه رزرو</span>
+<span class="material-symbols-outlined text-[20px] rotate-180">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+<script>
+  // Micro-interaction for passenger chip switching
+  const pax1Chip = document.getElementById('pax-1-chip');
+  const pax2Chip = document.getElementById('pax-2-chip');
+
+  if (pax1Chip && pax2Chip) {
+    pax1Chip.addEventListener('click', () => {
+      pax1Chip.classList.add('bg-primary-fixed/20', 'shadow-md');
+      pax2Chip.classList.remove('bg-primary-fixed/20', 'shadow-md');
+    });
+
+    pax2Chip.addEventListener('click', () => {
+      pax2Chip.classList.add('bg-primary-fixed/20', 'shadow-md');
+      pax1Chip.classList.remove('bg-primary-fixed/20', 'shadow-md');
+    });
+  }
+</script></main></body></html>

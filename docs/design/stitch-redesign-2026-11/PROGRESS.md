@@ -78,3 +78,37 @@ Rollback: حذف پوشه docs/design/stitch-redesign-2026-11 یا عدم merge 
 - deploy روی سرور توسط تیم/دسترسی SSH.
 - فاز دوم پیاده‌سازی: هماهنگ‌سازی کامل جزئیات صفحات (کارت نتایج، checkout، مدیریت رزرو) با طرح‌های Stitch.
 - دریافت عکس‌های مجاز هتل‌ها.
+
+
+## به‌روزرسانی ۱۴۰۵/۰۸/۲۵ (۲) — پیشنهادهای Stitch
+
+### دور اول پیشنهادها
+- انتخاب صندلی: `app/08-seat-map.html` و `app/09-seat-confirm.html`
+- فیلترها به‌صورت پنل کشویی از پایین (bottom sheet): `app/10-filters-flight-bottom-sheet.html` و `app/11-filters-hotel-bottom-sheet.html`
+- حالت تاریک: `app/12-dark-boarding-pass.html`، `app/13-dark-wallet.html`، `app/14-dark-home.html`
+
+### دور دوم پیشنهادها
+- حالت تاریک برای بقیه صفحه‌ها: `app/15-dark-ai-assistant.html`، `app/16-dark-my-trips.html`، `app/17-dark-profile.html`
+- نمونه دقیق‌تر مسیر صندلی تا پرداخت: `app/18-seat-map-detailed.html` ← `app/19-ancillaries.html` ← `app/20-payment.html` ← `app/21-booking-confirmed.html`
+- مستندات Design System تاریک: `design-system-dark.html`
+
+### نکته فنی درباره حالت تاریک
+- Stitch این صفحه‌ها را روی بوم خودش تاریک نشان می‌دهد، ولی کد خروجی را با رنگ‌های روشن تحویل داد.
+- رنگ‌های Tailwind این صفحه‌ها را به نسخه تاریک برند برگرداندیم: زمینه `#1A0D1F`، کارت‌ها `#2A1530`، متن `#F5EEE4`، کورال `#F26A4D`.
+- ابزار تبدیل: `tools/darkify.py`، در پیام commit ثبت شده است.
+
+### Figma
+- برای مجموعه متغیرهای برند یک حالت (mode) «Dark» اضافه شد.
+- در صفحه App، نسخه تاریک ۱۰ صفحه ساخته شد:
+  - خانه، کارت پرواز، کیف پول، سفرهای من، دستیار، پروفایل
+  - صندلی دقیق، خدمات تکمیلی، پرداخت، صدور بلیت
+- صفحه‌های جدید روشن: انتخاب صندلی، تأیید صندلی و دو پنل کشویی فیلتر.
+- در صفحه Design System یک بورد «Design System · Dark mode» با جدول کنتراست اضافه شد. نسبت‌های کنتراست محاسبه‌شده:
+  - کرم روی زمینه تاریک: 16.3:1
+  - متن ثانویه: 9.7:1
+  - طلایی: 10.1:1
+  - دکمه کورال با متن سفید: 3.4:1 (فقط برای متن درشت)
+
+### سرور
+- همچنان مسدود است (BLOCKED_EXTERNAL)؛ از این محیط به سرور دسترسی نیست.
+- برای تیم آماده است: `deploy/REDESIGN_2026-11_DEPLOY.md` و فایل patch.
