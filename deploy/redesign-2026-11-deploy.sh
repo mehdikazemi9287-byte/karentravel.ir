@@ -19,7 +19,9 @@ step(){ echo; echo "=== $* ==="; }
 
 step "0) preflight"
 cd "$APP"
-if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+git config --global --get-all safe.directory | grep -qx "$APP" || git config --global --add safe.directory "$APP"
+ST=$(git status --porcelain --untracked-files=no)
+if [ -n "$ST" ]; then
   echo "BLOCKED: tracked changes in $APP — commit/stash first:"; git status --short; exit 2
 fi
 SVC=""
@@ -30,7 +32,7 @@ done
 echo "frontend service: $SVC"
 
 step "1) backup current state"
-[ -f "$ROOT/pre-redesign-HEAD.txt" ] || git rev-parse HEAD > "$ROOT/pre-redesign-HEAD.txt"
+if [ ! -s "$ROOT/pre-redesign-HEAD.txt" ]; then H=$(git rev-parse HEAD); echo "$H" > "$ROOT/pre-redesign-HEAD.txt"; fi
 echo "pre-redesign HEAD: $(cat "$ROOT/pre-redesign-HEAD.txt")   current HEAD: $(git rev-parse HEAD)"
 docker ps --format '{{.Names}} {{.Image}}' > "$ROOT/pre-redesign-images-$TS.txt"
 IMG=$(docker compose -f "$ROOT/docker-compose.yml" images -q "$SVC" 2>/dev/null | head -1 || true)
