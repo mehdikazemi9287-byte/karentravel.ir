@@ -1,0 +1,137 @@
+/*
+  Karen Travel inner-pages redesign — 2026-11 (Google Stitch → code)
+  Scope: ONLY pages rendered through Shell (.ks-inner) and the standalone search results
+  page (.search-results-page:not(.embedded)). The protected Homepage (.home-page) and the
+  search experience embedded in it are NOT touched by this file.
+  Source design: docs/design/stitch-redesign-2026-11 · Rollback: remove the import in app/layout.tsx.
+*/
+
+.ks-inner,
+.search-results-page:not(.embedded) {
+  --ink: #2a1530;
+  --ocean: #c93f24;          /* coral, darkened for AA text contrast on cream */
+  --coral: #ef5b3d;
+  --coral-hover: #e0492b;
+  --sun: #efb448;
+  --mist: #f5eee4;
+  --paper: #fffaf4;
+  --muted: #7f6d79;
+  --line: #e7dcd4;
+  --surface: #fffdf9;
+  --plum-surface: #391f41;
+  --ks-shadow: 0 18px 45px rgba(42, 21, 48, .10);
+  color: var(--ink);
+}
+
+.ks-inner { background: var(--mist); min-height: 100vh; }
+.ks-inner main { padding-bottom: 32px; }
+
+/* ---------- Header ---------- */
+.ks-inner .ks-header { background: rgba(255, 250, 244, .92); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+.ks-inner .ks-header .header { background: transparent; max-width: 1280px; height: 76px; }
+.ks-inner .brand-mark { background: var(--ink); color: var(--sun); border-radius: 14px; }
+.ks-inner .brand small { color: var(--muted); }
+.ks-inner .header nav { color: var(--ink); gap: 22px; }
+.ks-inner .header nav a { font-weight: 600; transition: color .2s; }
+.ks-inner .header nav a:hover { color: var(--coral); }
+.ks-inner .ks-phone { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 13px; color: var(--ink); direction: ltr; unicode-bidi: plaintext; }
+.ks-inner .ks-phone span { color: var(--coral); }
+.ks-inner .ks-login { background: var(--ink); color: #fff; border: 0; border-radius: 999px; padding: 9px 18px; font-weight: 700; }
+.ks-inner .ks-login:hover { background: var(--plum-surface); }
+
+/* ---------- Typography & hero blocks ---------- */
+.ks-inner .eyebrow { color: var(--ocean); font-weight: 800; }
+.ks-inner .page-hero { padding: 56px 28px 34px; }
+.ks-inner .page-hero h1,
+.ks-inner .assistant-intro h1,
+.ks-inner .dashboard h1 { color: var(--ink); letter-spacing: -1px; }
+.ks-inner .page-hero p { color: var(--muted); }
+.ks-inner .mock-label,
+.ks-inner .tag { background: #fbe9c6; color: #6a4708; border-radius: 999px; }
+
+/* ---------- Buttons ---------- */
+.ks-inner .button,
+.search-results-page:not(.embedded) .button { border-radius: 999px; padding: 11px 22px; }
+.ks-inner .primary,
+.search-results-page:not(.embedded) .primary { background: var(--coral); color: #fff; }
+.ks-inner .primary:hover,
+.search-results-page:not(.embedded) .primary:hover { background: var(--coral-hover); }
+.ks-inner .secondary,
+.search-results-page:not(.embedded) .secondary { background: var(--paper); border-color: var(--line); color: var(--ink); }
+.ks-inner .ghost { border-color: var(--line); border-radius: 999px; }
+.ks-inner :focus-visible,
+.search-results-page:not(.embedded) :focus-visible { outline: 3px solid #0b8f8b; outline-offset: 2px; }
+
+/* ---------- Cards, filters, results ---------- */
+.ks-inner .filters,
+.ks-inner .metrics > div,
+.ks-inner .panel,
+.ks-inner .hotel-card,
+.ks-inner .chat,
+.search-results-page:not(.embedded) .results-filters,
+.search-results-page:not(.embedded) .result-card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  box-shadow: none;
+}
+.ks-inner .hotel-card:hover,
+.search-results-page:not(.embedded) .result-card:hover { border-color: #e9b9a9; box-shadow: var(--ks-shadow); }
+.ks-inner .filters button { background: transparent; border-top-color: var(--line); color: var(--ink); }
+.ks-inner .result-bar { background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 10px 14px; }
+.ks-inner .hotel-card > img { border-radius: 20px 20px 0 0; }
+.ks-inner .metrics strong { color: var(--ink); }
+
+/* ---------- Compare ---------- */
+.ks-inner [class^="compare-"],
+.ks-inner [class*=" compare-"] { border-color: var(--line); }
+.ks-inner .compare-hotels { background: var(--paper); border-radius: 24px 24px 0 0; }
+
+/* ---------- Assistant chat ---------- */
+.ks-inner .chat-bar { background: var(--ink); color: #fff; }
+.ks-inner .chat-bar span { color: var(--sun); }
+.ks-inner .message.bot { background: #f3e7dc; color: var(--ink); }
+.ks-inner .message.user { background: var(--ink); color: #fff; }
+.ks-inner .chat-input button { background: var(--coral); color: #fff; border: 0; border-radius: 999px; padding: 8px 18px; font-weight: 700; }
+.ks-inner .policy-intents span,
+.ks-inner .assistant-steps span { background: var(--paper); border: 1px solid var(--line); border-radius: 999px; }
+
+/* ---------- White label (keeps tenant-aware look, only frame tones) ---------- */
+.ks-inner .wl-head { background: var(--paper); border-bottom: 1px solid var(--line); }
+
+/* ---------- Footer ---------- */
+.ks-inner .ks-footer { background: var(--ink); border-radius: 48px 48px 0 0; margin-top: 48px; }
+.ks-inner .ks-footer .brand-mark { background: var(--coral); color: #fff; }
+.ks-inner .ks-footer .brand small,
+.ks-inner .ks-footer p,
+.ks-inner .ks-footer a,
+.ks-inner .ks-footer span { color: rgba(255, 255, 255, .78); }
+.ks-inner .ks-footer a:hover { color: var(--sun); }
+.ks-inner .ks-footer .mock-label { background: rgba(239, 180, 72, .18); color: var(--sun); }
+
+/* ---------- Mobile bottom navigation ---------- */
+.ks-inner .ks-bottom-nav { display: none; }
+@media (max-width: 800px) {
+  .ks-inner .ks-phone { font-size: 12px; }
+  .ks-inner .support-link { display: none; }
+  .ks-inner .ks-bottom-nav {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    position: fixed; inset: auto 0 0 0; z-index: 40; height: 64px;
+    background: rgba(255, 250, 244, .96); backdrop-filter: blur(10px);
+    border-top: 1px solid var(--line); box-shadow: 0 -6px 18px rgba(42, 21, 48, .06);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  .ks-inner .ks-bottom-nav a { display: grid; place-items: center; align-content: center; gap: 2px; font-size: 11px; font-weight: 600; color: var(--muted); }
+  .ks-inner .ks-bottom-nav a span { font-size: 18px; line-height: 1; }
+  .ks-inner .ks-bottom-nav a:hover,
+  .ks-inner .ks-bottom-nav a:focus-visible { color: var(--coral); }
+  .ks-inner .ks-footer { border-radius: 32px 32px 0 0; padding-bottom: 88px; }
+  .ks-inner .page-hero { padding: 36px 18px 24px; }
+}
+@media (max-width: 480px) {
+  .ks-inner .ks-phone { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ks-inner *, .search-results-page:not(.embedded) * { transition: none !important; }
+}
+.ks-inner .assistant-booking-context { background: var(--paper); border: 1px solid var(--line); color: var(--ink); border-radius: 999px; }

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import 'vazirmatn/Vazirmatn-Variable-font-face.css';
 import './globals.css';
+import './redesign-2026-11.css';
 import { AuthProvider } from '../lib/api/auth-context';
 
 export const metadata: Metadata = {
