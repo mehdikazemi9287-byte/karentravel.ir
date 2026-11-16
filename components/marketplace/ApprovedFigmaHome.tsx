@@ -3,6 +3,7 @@ import Link from 'next/link';
 import {useAuth} from '../../lib/api/auth-context';
 import {roleLinks} from '../../lib/role-navigation';
 import './approved-figma.css';
+import './approved-inner-2026-11.css';
 import {ApprovedHomeLower, ApprovedFooterLight, ApprovedHomeHero, ApprovedHomeBento} from './ApprovedHomeLower';
 import {Suspense, type ReactNode} from 'react';
 import {HomeSearchExperience} from '../search/HomeSearchExperience';
@@ -245,4 +246,4 @@ export function ApprovedHeader(){return (<div className="bg-[#fffcf9] content-st
           </div>
         </div>)}
 export function ApprovedFooter(){return <ApprovedFooterLight/>}
-export function ApprovedShell({children}:{children:ReactNode}){return <div className="approved-site"><div className="approved-shared-header"><ApprovedHeader/></div><main>{children}</main><ApprovedFooter/></div>}
+export function ApprovedShell({children}:{children:ReactNode}){return <div className="approved-site ks-inner"><div className="approved-shared-header"><ApprovedHeader/></div><main>{children}</main><ApprovedFooter/></div>}
