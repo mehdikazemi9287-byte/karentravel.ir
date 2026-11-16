@@ -140,3 +140,12 @@ Rollback: حذف پوشه docs/design/stitch-redesign-2026-11 یا عدم merge 
 
 ### سرور
 - همچنان BLOCKED_EXTERNAL؛ راهنما: `deploy/REDESIGN_2026-11_DEPLOY.md`. پیش‌نمایش عمومی: GitHub Pages.
+
+## به‌روزرسانی ۱۴۰۵/۰۸/۲۵ (۵) — استقرار روی سرور (karenseir-prod، 188.121.123.218)
+- دسترسی از طریق کنسول وب ابرک (ArvanCloud) و اسکریپت `deploy/redesign-2026-11-deploy.sh`.
+- ۵ فایل ویرایش‌شده‌ی commit‌نشده روی سرور (admin/commerce، admin/inventory، contract/[reservationId]، finance/reports، finance/treasury) که از قبل داخل image زنده بودند، دور ریخته نشدند و به‌صورت commit `e1035be` روی سرور ثبت شدند.
+- پشتیبان: `pre-redesign-HEAD.txt` = `e1035be` و image `karenseir-web:pre-redesign-20261116-190552`.
+- ۷۹ فایل طراحی (همه صفحه‌ها، assets، QA، مستندات) + ADR-022 + ابزارها روی سرور در `/opt/karenseir/app/docs/design/stitch-redesign-2026-11` و commit `02e1420`.
+- **کد ADR-022 اعمال نشد (Supervisor):** شاخه `production` (که سرور روی آن است) برای صفحات داخلی از `ApprovedShell` (هدر/فوتر مصوب Figma) استفاده می‌کند؛ patch ما روی `main` قدیمی ساخته شده بود و هدر/فوتر مصوب را بازنویسی می‌کرد. لازم است بازطراحی روی پایه `production` دوباره پیاده شود.
+- گالری از روی دامنه سرو نشد: CSP تولید (`script-src 'self'`، `X-Frame-Options: DENY`) Tailwind CDN و iframeها را مسدود می‌کند. پیش‌نمایش عمومی همچنان GitHub Pages است.
+- سایت زنده تغییری نکرد (rebuild/restart انجام نشد). نکته موجود از قبل: کانتینر `karenseir-worker-1` وضعیت unhealthy دارد.
