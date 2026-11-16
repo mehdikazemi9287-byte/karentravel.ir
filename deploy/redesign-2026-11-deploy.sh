@@ -11,7 +11,7 @@ APP=$ROOT/app
 BR=design/stitch-redesign-2026-11
 RAW="https://raw.githubusercontent.com/mehdikazemi9287-byte/karentravel.ir/$BR"
 TGZ="https://codeload.github.com/mehdikazemi9287-byte/karentravel.ir/tar.gz/refs/heads/$BR"
-PATCH=0001-feat-ui-inner-pages-redesign-Plum-Coral-Cream-Shell-.patch
+PATCH=0002-ADR-023-inner-pages-refinement-on-production.patch
 TS=$(date +%Y%m%d-%H%M%S)
 LOG=$ROOT/deploy-redesign-2026-11-$TS.log
 exec > >(tee -a "$LOG") 2>&1
@@ -48,13 +48,10 @@ mkdir -p "$TMP/src" && tar -xzf "$TMP/src.tgz" -C "$TMP/src"
 SRC="$TMP/src"
 [ -d "$SRC/docs/design/stitch-redesign-2026-11" ] || { echo "BLOCKED: gallery not in tarball"; exit 3; }
 
-step "3) code: inner-pages redesign patch (ADR-022)"
+step "3) code: inner-pages refinement on production base (ADR-023)"
 CODE=0
-if grep -q 'redesign-2026-11.css' app/layout.tsx 2>/dev/null; then
+if grep -q 'approved-inner-2026-11.css' components/marketplace/ApprovedFigmaHome.tsx 2>/dev/null; then
   echo "already applied — skip"
-elif grep -q 'ApprovedShell' app/page.tsx; then
-  echo "SKIPPED (supervisor): production already uses the Figma-approved ApprovedShell header/footer for inner pages."
-  echo "The ADR-022 patch was built on the older main Shell and would overwrite an approved design. Needs a re-port on the production base first."
 else
   git apply --check "$TMP/$PATCH"
   git -c user.name="KarenSeir Deploy" -c user.email="deploy@karentravel.ir" am "$TMP/$PATCH"
@@ -67,7 +64,7 @@ step "4) design gallery + docs (everything from Stitch/Figma round 1–4)"
 mkdir -p docs/design docs/adr deploy tools/design
 rm -rf docs/design/stitch-redesign-2026-11
 cp -r "$SRC/docs/design/stitch-redesign-2026-11" docs/design/
-cp "$SRC"/docs/adr/ADR-022-*.md docs/adr/ 2>/dev/null || true
+cp "$SRC"/docs/adr/ADR-02[23]-*.md docs/adr/ 2>/dev/null || true
 cp "$SRC"/deploy/REDESIGN_2026-11_DEPLOY.md "$SRC"/deploy/redesign-2026-11-rollback.sh deploy/; cp /root/rd.sh deploy/redesign-2026-11-deploy.sh 2>/dev/null || true
 cp "$SRC"/tools/design/*.py tools/design/ 2>/dev/null || true
 git add docs/design/stitch-redesign-2026-11 docs/adr deploy tools/design
@@ -87,7 +84,9 @@ ok=1
 chk(){ local u=$1 want=$2; local c; c=$(curl -s -o /dev/null -w '%{http_code}' "$u" || echo 000); echo "$c  $u"; [ "$c" = "$want" ] || ok=0; }
 chk https://karentravel.ir/ 200
 chk https://karentravel.ir/hotels 200
-n=$(curl -s https://karentravel.ir/hotels | grep -c 'ks-inner' || true); echo "ks-inner on /hotels: $n (want ≥1)"; [ "$n" -ge 1 ] || ok=0
+chk https://karentravel.ir/services 200
+n=$(curl -s https://karentravel.ir/services | grep -c 'ks-inner' || true); echo "ks-inner on /services: $n (want ≥1)"; [ "$n" -ge 1 ] || ok=0
+h=$(curl -s https://karentravel.ir/ | grep -c 'ks-inner' || true); echo "ks-inner on / (homepage): $h (want 0)"; [ "$h" = 0 ] || ok=0
 docker compose ps "$SVC"
 echo; echo "HEAD now: $(git -C "$APP" rev-parse --short HEAD)   log: $LOG"
 if [ $ok = 1 ]; then echo "RESULT: DEPLOY OK"; else echo "RESULT: CHECK FAILED — review above; rollback: bash $APP/deploy/redesign-2026-11-rollback.sh"; fi

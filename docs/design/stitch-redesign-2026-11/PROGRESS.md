@@ -149,3 +149,9 @@ Rollback: حذف پوشه docs/design/stitch-redesign-2026-11 یا عدم merge 
 - **کد ADR-022 اعمال نشد (Supervisor):** شاخه `production` (که سرور روی آن است) برای صفحات داخلی از `ApprovedShell` (هدر/فوتر مصوب Figma) استفاده می‌کند؛ patch ما روی `main` قدیمی ساخته شده بود و هدر/فوتر مصوب را بازنویسی می‌کرد. لازم است بازطراحی روی پایه `production` دوباره پیاده شود.
 - گالری از روی دامنه سرو نشد: CSP تولید (`script-src 'self'`، `X-Frame-Options: DENY`) Tailwind CDN و iframeها را مسدود می‌کند. پیش‌نمایش عمومی همچنان GitHub Pages است.
 - سایت زنده تغییری نکرد (rebuild/restart انجام نشد). نکته موجود از قبل: کانتینر `karenseir-worker-1` وضعیت unhealthy دارد.
+
+## به‌روزرسانی ۱۴۰۵/۰۸/۲۶ (۶) — پیاده‌سازی دوباره روی پایه production (ADR-023)
+- شاخه `feat/inner-redesign-on-production` (از `25d43ea`، همان پایه سرور) و PR #87 به `production`.
+- فقط محتوای ۱۷ صفحه‌ای که با `ApprovedShell` رندر می‌شوند (خدمات، تماس، قوانین، ثبت‌نام، تأیید رزرو و…) اصلاح شد؛ صفحه اول، هدر/فوتر مصوب و صفحات JourneyShell دست‌نخورده.
+- شواهد: tsc پاک، build موفق، صفحه اول قبل/بعد پیکسل‌به‌پیکسل یکسان؛ تصویر قبل/بعد: `qa/impl/services-before-after.png`.
+- patch جدید: `deploy/patches/0002-ADR-023-inner-pages-refinement-on-production.patch`؛ patch قدیمی 0001 دیگر استفاده نمی‌شود.
