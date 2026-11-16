@@ -167,3 +167,11 @@ Rollback: حذف پوشه docs/design/stitch-redesign-2026-11 یا عدم merge 
 
 ### Figma — کنترل کامل بودن (2026-11-16 19:40 UTC)
 فایل https://www.figma.com/design/R3FvzMWcCVLmgKviiY0lav شامل همه صفحه‌های Stitch است: دسکتاپ ۱۴/۱۴، موبایل ۷/۷، اپ ۲۶/۲۶ (۱۱ روشن، ۱۰ تاریک، ۵ تعاملی/استرداد)، تبلت ۵/۵، به‌علاوه Design System روشن و تاریک.
+
+## KARENSEIR CHECKPOINT — صفحات JourneyShell (2026-11-16 19:52 UTC)
+- Production changed: بله — patch `0003` (لایه یکدستی ۴۷ صفحه JourneyShell) مستقر شد؛ `karenseir-web-1` healthy.
+- Server HEAD: `e8c095a` (روی `f1942bb` = patch 0003). Image پشتیبان قبل از این مرحله: `karenseir-web:pre-redesign-20261116-194930`.
+- Verify روی web:3000: `/`, `/services`, `/trips`, `/tours`, `/hotels`, `/flights`, `/support` همه 200؛ nginx:80 → 200.
+- Local QA: صفحه اول، /hotels، /flights، /account، /manage-booking، /restaurants پیکسل‌به‌پیکسل بدون تغییر؛ فقط دکمه‌های /trips، /tours، /support.
+- PR #87 شامل هر دو commit است (`43e344b`، `35a5e34`).
+- باز: ادغام PR #87؛ `karenseir-worker-1` unhealthy (از قبل).
