@@ -155,3 +155,12 @@ Rollback: حذف پوشه docs/design/stitch-redesign-2026-11 یا عدم merge 
 - فقط محتوای ۱۷ صفحه‌ای که با `ApprovedShell` رندر می‌شوند (خدمات، تماس، قوانین، ثبت‌نام، تأیید رزرو و…) اصلاح شد؛ صفحه اول، هدر/فوتر مصوب و صفحات JourneyShell دست‌نخورده.
 - شواهد: tsc پاک، build موفق، صفحه اول قبل/بعد پیکسل‌به‌پیکسل یکسان؛ تصویر قبل/بعد: `qa/impl/services-before-after.png`.
 - patch جدید: `deploy/patches/0002-ADR-023-inner-pages-refinement-on-production.patch`؛ patch قدیمی 0001 دیگر استفاده نمی‌شود.
+
+## KARENSEIR CHECKPOINT — استقرار ADR-023 (۱۴۰۵/۰۸/۲۶، 2026-11-16 19:35 UTC)
+- **Production changed: بله** — سرویس `web` روی karenseir-prod با image جدید بالا آمد (healthy).
+- Server HEAD: `09cd898` (= `e1035be` snapshot ویرایش‌های زنده + `02e1420` اسناد طراحی + ADR-023).
+- پشتیبان: `pre-redesign-HEAD.txt=e1035be`، imageهای `karenseir-web:pre-redesign-20261116-190552` و `…-193343`. Rollback: `bash /opt/karenseir/app/deploy/redesign-2026-11-rollback.sh`.
+- Verify (مستقیم روی کانتینر web:3000): `/` 200 و ks-inner=0 (صفحه اول دست‌نخورده)، `/services` 200 و ks-inner=1، `/contact` 200 و ks-inner=1، `/hotels` 200، `/flights` 200؛ nginx:80 → 200.
+- نکته: بررسی https داخل اسکریپت از خود سرور 000 داد (curl از host به دامنه خودش وصل نمی‌شود)؛ خطای سایت نیست.
+- PR: #87 (`feat/inner-redesign-on-production` → `production`).
+- باز: `karenseir-worker-1` از قبل unhealthy است (مرتبط با این کار نیست).
