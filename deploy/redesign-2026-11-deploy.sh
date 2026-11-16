@@ -57,6 +57,15 @@ else
   git -c user.name="KarenSeir Deploy" -c user.email="deploy@karentravel.ir" am "$TMP/$PATCH"
   CODE=1
 fi
+P3=0003-ADR-023-journey-pages-consistency.patch
+if grep -q 'JourneyShell pages (47 routes)' components/marketplace/approved-inner-2026-11.css 2>/dev/null; then
+  echo "0003 already applied — skip"
+else
+  curl -fsSL --retry 3 -m 120 -o "$TMP/$P3" "$RAW/deploy/patches/$P3"
+  git apply --check "$TMP/$P3"
+  git -c user.name="KarenSeir Deploy" -c user.email="deploy@karentravel.ir" am "$TMP/$P3"
+  CODE=1
+fi
 
 step "4) design gallery + docs (everything from Stitch/Figma round 1–4)"
 # Not served from Next public/: production CSP (script-src 'self', X-Frame-Options DENY) blocks the

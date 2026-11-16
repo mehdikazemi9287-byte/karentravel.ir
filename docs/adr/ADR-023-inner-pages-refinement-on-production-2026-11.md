@@ -16,3 +16,7 @@
 
 ## Rollback
 - `git revert` این commit یا بازگرداندن image پشتیبان `karenseir-web:pre-redesign-*` روی سرور (`deploy/redesign-2026-11-rollback.sh`).
+
+## افزوده ۱۴۰۵/۰۸/۲۶ — صفحات JourneyShell (۴۷ صفحه، تأیید مالک)
+- لایه سبک یکدستی: دکمه‌های pill، primary کورال، secondary کرم، focus ring، برچسب Mock طلایی؛ هدر/فوتر/کارت جست‌وجو/SupportDock مستثنا.
+- شواهد پیکسلی قبل/بعد: صفحه اول، /hotels، /flights، /account، /manage-booking، /restaurants بدون تفاوت؛ /trips، /tours، /support فقط دکمه‌ها (۱۱۹–۱۶۷ پیکسل). تصویر: `qa/impl/journey-trips-before-after.png`.
