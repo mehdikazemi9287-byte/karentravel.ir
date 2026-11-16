@@ -42,10 +42,10 @@ if [ -n "$IMG" ]; then docker tag "$IMG" "karenseir-web:pre-redesign-$TS" && ech
 
 step "2) fetch from GitHub ($BR)"
 TMP=$(mktemp -d)
-curl -fsSL --retry 3 -o "$TMP/$PATCH" "$RAW/deploy/patches/$PATCH"
-curl -fsSL --retry 3 -o "$TMP/src.tgz" "$TGZ"
-tar -xzf "$TMP/src.tgz" -C "$TMP"
-SRC=$(find "$TMP" -maxdepth 1 -type d -name 'karentravel.ir-*' | head -1)
+curl -fsSL --retry 3 -m 120 -o "$TMP/$PATCH" "$RAW/deploy/patches/$PATCH"
+curl -fSL --retry 3 --connect-timeout 20 -m 900 -o "$TMP/src.tgz" "$RAW/deploy/bundles/redesign-2026-11.tar.gz"
+mkdir -p "$TMP/src" && tar -xzf "$TMP/src.tgz" -C "$TMP/src"
+SRC="$TMP/src"
 [ -d "$SRC/docs/design/stitch-redesign-2026-11" ] || { echo "BLOCKED: gallery not in tarball"; exit 3; }
 
 step "3) code: inner-pages redesign patch (ADR-022)"
@@ -63,7 +63,7 @@ mkdir -p docs/design docs/adr deploy tools/design
 rm -rf docs/design/stitch-redesign-2026-11
 cp -r "$SRC/docs/design/stitch-redesign-2026-11" docs/design/
 cp "$SRC"/docs/adr/ADR-022-*.md docs/adr/ 2>/dev/null || true
-cp "$SRC"/deploy/REDESIGN_2026-11_DEPLOY.md "$SRC"/deploy/redesign-2026-11-*.sh deploy/
+cp "$SRC"/deploy/REDESIGN_2026-11_DEPLOY.md "$SRC"/deploy/redesign-2026-11-rollback.sh deploy/; cp /root/rd.sh deploy/redesign-2026-11-deploy.sh 2>/dev/null || true
 cp "$SRC"/tools/design/*.py tools/design/ 2>/dev/null || true
 git add public/design-2026-11 docs/design/stitch-redesign-2026-11 docs/adr deploy tools/design
 git -c user.name="KarenSeir Deploy" -c user.email="deploy@karentravel.ir" commit -qm "design: Stitch redesign 2026-11 gallery + docs (rounds 1-4)" || echo "nothing new to commit"
