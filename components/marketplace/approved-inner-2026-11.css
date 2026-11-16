@@ -50,3 +50,12 @@
 
 @media(max-width:800px){.approved-site.ks-inner>main .page-hero{padding:36px 18px 24px}}
 @media(prefers-reduced-motion:reduce){.approved-site.ks-inner *{transition:none!important}}
+
+/* ---- JourneyShell pages (47 routes) — light consistency layer, owner-approved 1405-08-26 ----
+   Excludes the approved header/footer, the search card and the support dock. Palette already matches. */
+.journey-page .button:not(:where(.approved-shared-header,.kh-foot,.approved-search-card,.support-dock) *){border-radius:999px}
+.journey-page .button.primary:not(:where(.approved-shared-header,.kh-foot,.approved-search-card,.support-dock) *){background:var(--j-coral,#ef5b3d);color:#fff;border-color:transparent}
+.journey-page .button.primary:not(:where(.approved-shared-header,.kh-foot,.approved-search-card,.support-dock) *):hover{background:#e0492b}
+.journey-page .button.secondary:not(:where(.approved-shared-header,.kh-foot,.approved-search-card,.support-dock) *){background:var(--j-paper,#fffaf4);border-color:#e7dcd4;color:var(--j-plum,#2a1530)}
+.journey-page :focus-visible{outline:3px solid #0b8f8b;outline-offset:2px}
+.journey-page .journey-mock{background:#fbe9c6;color:#6a4708;border-radius:999px}
