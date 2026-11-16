@@ -22,7 +22,9 @@ cd "$APP"
 git config --global --get-all safe.directory | grep -qx "$APP" || git config --global --add safe.directory "$APP"
 ST=$(git status --porcelain --untracked-files=no)
 if [ -n "$ST" ]; then
-  echo "BLOCKED: tracked changes in $APP — commit/stash first:"; git status --short; exit 2
+  # These edits are already inside the running image (COPY . .), so keep them: snapshot as a commit, never discard.
+  echo "uncommitted live edits found — snapshotting (nothing discarded):"; git status --short --untracked-files=no
+  git -c user.name="KarenSeir Deploy" -c user.email="deploy@karentravel.ir" commit -qam "server: snapshot of uncommitted live edits before redesign-2026-11 deploy"
 fi
 SVC=""
 for s in web frontend; do
