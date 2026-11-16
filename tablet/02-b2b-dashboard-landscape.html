@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="fa"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"outline":"#8d706a","on-secondary-fixed-variant":"#563e5c","on-tertiary-fixed-variant":"#5f4100","on-surface":"#1e1b15","on-primary-fixed":"#3e0500","primary":"#ad2c12","surface-tint":"#b02e15","surface-container-highest":"#e8e2d8","surface-container-low":"#faf3e9","primary-container":"#cf4429","on-secondary":"#ffffff","on-error":"#ffffff","secondary-container":"#f6d5fa","on-primary-fixed-variant":"#8d1600","on-surface-variant":"#59413c","on-tertiary-container":"#fffbff","on-error-container":"#93000a","surface-variant":"#e8e2d8","tertiary-fixed":"#ffdeab","surface-container-high":"#eee7dd","surface-container":"#f4ede3","surface-dim":"#e0d9cf","on-primary":"#ffffff","secondary":"#6f5674","inverse-surface":"#33302a","surface-bright":"#fff8f0","inverse-on-surface":"#f7f0e6","surface":"#fff8f0","on-tertiary-fixed":"#271900","on-background":"#1e1b15","outline-variant":"#e1bfb8","tertiary-container":"#9a6c00","primary-fixed-dim":"#ffb4a4","on-tertiary":"#ffffff","secondary-fixed-dim":"#dcbce0","on-secondary-fixed":"#28132e","error":"#ba1a1a","secondary-fixed":"#f9d8fd","error-container":"#ffdad6","primary-fixed":"#ffdad3","background":"#fff8f0","surface-container-lowest":"#ffffff","inverse-primary":"#ffb4a4","tertiary-fixed-dim":"#f8bc4f","on-primary-container":"#fffbff","on-secondary-container":"#745a79","tertiary":"#7b5500"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"gutter-desktop":"1.5rem","margin-desktop":"3.5rem","space-md":"1.25rem","space-lg":"1.75rem","margin":"3.5rem","space-sm":"0.75rem","space-xl":"2.5rem","gutter":"1.5rem","space-xs":"0.375rem"},"fontFamily":{"body-lg":["Vazirmatn"],"title-md":["Vazirmatn"],"label-lg":["Vazirmatn"],"headline-lg":["Vazirmatn"],"display":["Vazirmatn"],"body-md":["Vazirmatn"],"title-lg":["Vazirmatn"],"label-sm":["Vazirmatn"],"label-md":["Vazirmatn"],"headline-sm":["Vazirmatn"],"headline-md":["Vazirmatn"],"body-sm":["Vazirmatn"]},"fontSize":{"body-lg":["16px",{"lineHeight":"28px","letterSpacing":"0em","fontWeight":"400"}],"title-md":["16px",{"lineHeight":"26px","letterSpacing":"0em","fontWeight":"600"}],"label-lg":["14px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"600"}],"headline-lg":["36px",{"lineHeight":"52px","letterSpacing":"-0.015em","fontWeight":"800"}],"display":["48px",{"lineHeight":"68px","letterSpacing":"-0.02em","fontWeight":"800"}],"body-md":["14px",{"lineHeight":"24px","letterSpacing":"0em","fontWeight":"400"}],"title-lg":["18px",{"lineHeight":"28px","letterSpacing":"0em","fontWeight":"600"}],"label-sm":["11px",{"lineHeight":"16px","letterSpacing":"0em","fontWeight":"500"}],"label-md":["12px",{"lineHeight":"18px","letterSpacing":"0em","fontWeight":"500"}],"headline-sm":["22px",{"lineHeight":"34px","letterSpacing":"0em","fontWeight":"700"}],"headline-md":["28px",{"lineHeight":"42px","letterSpacing":"-0.01em","fontWeight":"700"}],"body-sm":["12px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"400"}]}}}}</script></head><body class="bg-surface font-body-md text-on-surface antialiased selection:bg-primary/20 selection:text-primary"><aside class="fixed right-0 top-0 h-full w-72 bg-surface-container-low z-50 flex flex-col justify-between py-6 px-4 shadow-[0_1px_8px_rgba(42,21,48,0.04)]"><div class="flex flex-col gap-6"><div class="flex items-center gap-3 px-3"><div class="w-11 h-11 rounded-xl bg-primary flex items-center justify-center text-on-primary shadow-sm"><span class="material-symbols-outlined text-[24px]">flight_takeoff</span></div><div class="flex flex-col"><span class="font-title-lg text-title-lg font-bold text-on-surface leading-tight">کارن تراول</span><span class="font-label-sm text-label-sm text-on-surface-variant">سامانه سفرهای شرکتی</span></div></div><div class="bg-surface-container-high rounded-xl p-3 flex items-center gap-3"><div class="w-9 h-9 rounded-lg bg-surface-container-lowest flex items-center justify-center text-secondary"><span class="material-symbols-outlined text-[20px]">corporate_fare</span></div><div class="flex flex-col overflow-hidden"><span class="font-label-md text-label-md font-semibold text-on-surface truncate">هلدینگ سرمایه‌گذاری سینا</span><span class="font-label-sm text-label-sm text-on-surface-variant">حساب طلایی سازمانی</span></div></div><nav class="flex flex-col gap-1.5" data-active-classes="bg-primary-container text-on-primary-container font-semibold shadow-sm"><a aria-current="page" class="flex items-center gap-3 px-3.5 py-3 rounded-xl transition-colors bg-primary-container text-on-primary-container font-semibold shadow-sm" data-path="dashboard" href="#"><span class="material-symbols-outlined text-[22px]">dashboard</span><span>داشبورد مدیریت</span></a><a class="flex items-center gap-3 px-3.5 py-3 rounded-xl font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="financial-credit" href="#"><span class="material-symbols-outlined text-[22px]">account_balance_wallet</span><span>اعتبار و امور مالی</span></a><a class="flex items-center gap-3 px-3.5 py-3 rounded-xl font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="approvals" href="#"><span class="material-symbols-outlined text-[22px]">fact_check</span><span>تأیید درخواست‌ها</span></a><a class="flex items-center gap-3 px-3.5 py-3 rounded-xl font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="travel-policy" href="#"><span class="material-symbols-outlined text-[22px]">policy</span><span>خط‌مشی و قوانین سفر</span></a><a class="flex items-center gap-3 px-3.5 py-3 rounded-xl font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="employees-departments" href="#"><span class="material-symbols-outlined text-[22px]">groups</span><span>کارمندان و دپارتمان‌ها</span></a><a class="flex items-center gap-3 px-3.5 py-3 rounded-xl font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="reports-analytics" href="#"><span class="material-symbols-outlined text-[22px]">query_stats</span><span>گزارش‌ها و تحلیل هزینه</span></a></nav></div><div class="bg-surface-container-highest rounded-xl p-4 flex flex-col gap-3"><div class="flex items-center justify-between"><div class="flex items-center gap-2"><span class="material-symbols-outlined text-tertiary text-[20px]">support_agent</span><span class="font-label-md text-label-md font-bold text-on-surface">پشتیبانی ۲۴ ساعته</span></div><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span></div><p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">پشتیبان سازمانی اختصاصی شما آماده پاسخگویی و هماهنگی سریع پروازها است.</p><a class="w-full text-center py-2 px-3 rounded-full bg-surface-container-lowest font-label-md text-label-md font-semibold text-on-surface hover:bg-surface hover:text-primary transition-colors" href="#">تماس مستقیم با پشتیبان</a></div></aside><div class="pr-72"><header class="fixed top-0 right-72 left-0 h-16 bg-surface/85 backdrop-blur-xl z-40 px-gutter flex items-center justify-between shadow-[0_1px_8px_rgba(42,21,48,0.04)]"><div class="flex items-center gap-4"><div class="flex items-center gap-2 bg-surface-container-low px-3.5 py-2 rounded-full cursor-pointer hover:bg-surface-container transition-colors"><span class="material-symbols-outlined text-secondary text-[18px]">apartment</span><span class="font-label-md text-label-md text-on-surface font-medium">شعبه مرکزی تهران</span><span class="material-symbols-outlined text-on-surface-variant text-[16px]">expand_more</span></div><div class="flex items-center gap-2 bg-surface-container-low px-3.5 py-2 rounded-full"><span class="material-symbols-outlined text-tertiary text-[18px]">payments</span><span class="font-label-sm text-label-sm text-on-surface-variant">بودجه تخصیص‌یافته ماه:</span><span class="font-label-md text-label-md font-bold text-on-surface">۳,۴۵۰,۰۰۰,۰۰۰ ریال</span></div></div><div class="flex items-center gap-4"><button class="relative p-2 rounded-full hover:bg-surface-container-low transition-colors text-on-surface-variant hover:text-on-surface"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-primary ring-2 ring-surface"></span></button><div class="flex items-center gap-3 bg-surface-container-low pl-4 pr-1.5 py-1.5 rounded-full"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div><div class="flex flex-col text-right"><span class="font-label-md text-label-md font-bold text-on-surface leading-tight">علیرضا سلطانی</span><span class="font-label-sm text-label-sm text-on-surface-variant leading-none">مدیر اداری و پشتیبانی</span></div></div></div></header><main class="relative pt-16 w-full min-h-screen bg-surface px-gutter py-6"><div class="flex flex-col w-full gap-5 text-on-surface">
+<!-- TOP BANNER & KPI CONTROLS -->
+<section class="bg-surface-container-lowest rounded-2xl p-4 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+<!-- Org Profile Details -->
+<div class="flex items-center gap-4 flex-wrap">
+<div class="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center text-on-secondary shadow-sm">
+<span class="material-symbols-outlined text-[28px]">domain_verification</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<h1 class="font-title-lg text-title-lg text-on-surface font-bold tracking-tight">هلدینگ سرمایه‌گذاری سینا</h1>
+<span class="bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm px-2.5 py-0.5 rounded-full font-bold">حساب طلایی B2B VIP</span>
+<span class="bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm px-2 py-0.5 rounded-full">کد: KR-7709</span>
+</div>
+<div class="flex items-center gap-3 mt-1 text-on-surface-variant font-label-md text-label-md">
+<span class="flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            سقف تنخواه ۳۰ روزه فعال (دوره آزمایشی / نمایشی Mock)
+          </span>
+<span class="text-outline-variant">•</span>
+<span class="flex items-center gap-1 text-secondary font-medium">
+<span class="material-symbols-outlined text-[16px]">verified_user</span>
+            احراز هویت حقوقی تکمیل‌شده
+          </span>
+</div>
+</div>
+</div>
+<!-- Actions & Timeline Filter -->
+<div class="flex items-center gap-3 w-full md:w-auto justify-end flex-wrap">
+<div class="bg-surface-container-low px-3.5 py-2 rounded-xl flex items-center gap-2 shadow-inner">
+<span class="material-symbols-outlined text-secondary text-[18px]">calendar_month</span>
+<span class="font-label-md text-label-md text-on-surface font-medium">دوره جاری: بهمن و اسفند ۱۴۰۳</span>
+<span class="material-symbols-outlined text-on-surface-variant text-[16px] cursor-pointer">expand_more</span>
+</div>
+<button class="bg-primary hover:bg-primary-container text-on-primary font-label-lg text-label-lg px-5 py-2.5 rounded-full flex items-center gap-2 shadow-sm transition-all duration-150 transform active:scale-95">
+<span class="material-symbols-outlined text-[20px]">add_circle</span>
+<span>درخواست مأموریت جدید</span>
+</button>
+</div>
+</section>
+<!-- 4 KPI METRIC CARDS -->
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+<!-- Card 1: Approved Total Credit -->
+<div class="bg-surface-container-lowest rounded-2xl p-4 shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface-variant font-medium">اعتبار کل مصوب (تنخواه)</span>
+<div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[18px]">account_balance</span>
+</div>
+</div>
+<div class="mt-3">
+<div class="flex items-baseline gap-1.5">
+<span class="font-headline-md text-headline-md font-extrabold text-on-surface">۵۰,۰۰۰,۰۰۰</span>
+<span class="font-label-md text-label-md text-on-surface-variant">تومان (Mock)</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1.5 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-emerald-600">sync</span>
+          شارژ خودکار روز اول هر ماه خورشیدی
+        </p>
+</div>
+</div>
+<!-- Card 2: Consumed Credit -->
+<div class="bg-surface-container-lowest rounded-2xl p-4 shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface-variant font-medium">اعتبار مصرف‌شده این ماه</span>
+<div class="w-8 h-8 rounded-lg bg-secondary-container flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[18px]">trending_up</span>
+</div>
+</div>
+<div class="mt-3">
+<div class="flex items-baseline gap-1.5">
+<span class="font-headline-md text-headline-md font-extrabold text-on-surface">۱۹,۴۰۰,۰۰۰</span>
+<span class="font-label-md text-label-md text-on-surface-variant">تومان (Mock)</span>
+</div>
+<div class="w-full bg-surface-container rounded-full h-2 mt-2 overflow-hidden">
+<div class="bg-primary h-2 rounded-full" style="width: 38.8%"></div>
+</div>
+<div class="flex justify-between items-center mt-1 text-on-surface-variant font-label-sm text-label-sm">
+<span>۳۸.۸٪ از سقف مصوب</span>
+<span class="font-bold text-on-surface">۳۰,۶۰۰,۰۰۰ تومان مانده</span>
+</div>
+</div>
+</div>
+<!-- Card 3: Pending Approvals -->
+<div class="bg-surface-container-lowest rounded-2xl p-4 shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface-variant font-medium">درخواست‌های نیازمند بررسی</span>
+<div class="w-8 h-8 rounded-lg bg-error-container flex items-center justify-center text-error">
+<span class="material-symbols-outlined text-[18px]">pending_actions</span>
+</div>
+</div>
+<div class="mt-3">
+<div class="flex items-baseline gap-2">
+<span class="font-headline-md text-headline-md font-extrabold text-error">۴</span>
+<span class="font-title-md text-title-md font-bold text-on-surface">درخواست در کارتابل</span>
+</div>
+<div class="flex items-center gap-1.5 mt-2 bg-error-container/50 px-2 py-1 rounded-lg">
+<span class="material-symbols-outlined text-[16px] text-error animate-pulse">timer</span>
+<span class="font-label-sm text-label-sm text-on-surface font-semibold">هشدار SLA: کمتر از ۲ ساعت مانده</span>
+</div>
+</div>
+</div>
+<!-- Card 4: Active Missions -->
+<div class="bg-surface-container-lowest rounded-2xl p-4 shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface-variant font-medium">مأموریت‌های فعال هم‌اکنون</span>
+<div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-[18px]">travel_explore</span>
+</div>
+</div>
+<div class="mt-3">
+<div class="flex items-baseline gap-2">
+<span class="font-headline-md text-headline-md font-extrabold text-on-surface">۶</span>
+<span class="font-title-md text-title-md font-bold text-on-surface">همکار در حال مأموریت</span>
+</div>
+<div class="flex items-center gap-1.5 mt-2 text-on-surface-variant font-label-sm text-label-sm truncate">
+<span class="material-symbols-outlined text-[15px] text-secondary">location_on</span>
+<span>شهرهای شیراز، کیش، مشهد و اصفهان</span>
+</div>
+</div>
+</div>
+</section>
+<!-- TWO-COLUMN WORKSPACE (55% Cartable / 45% Analytics & Policies) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+<!-- RIGHT COLUMN (RTL Col A - 7 Columns / 58%): Approvals Workflow Cartable -->
+<div class="lg:col-span-7 flex flex-col gap-4">
+<div class="bg-surface-container-lowest rounded-2xl p-5 shadow-sm flex flex-col gap-4">
+<!-- Cartable Header -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<div class="w-2.5 h-6 bg-primary rounded-full"></div>
+<h2 class="font-title-lg text-title-lg font-bold text-on-surface">کارتابل گردش تأیید درخواست‌های سفر (SLA)</h2>
+<span class="bg-primary/10 text-primary font-label-sm text-label-sm px-2.5 py-0.5 rounded-full font-bold">۴ مورد فعال</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">مرتب‌سازی بر اساس: فوریت زمانی</span>
+</div>
+<!-- Request Card 1 (Compliant) -->
+<div class="bg-surface-container-low rounded-xl p-4 flex flex-col gap-3.5 transition-shadow hover:shadow-md">
+<div class="flex items-start justify-between flex-wrap gap-2">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center font-bold text-secondary">
+                NR
+              </div>
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<span class="font-title-md text-title-md font-bold text-on-surface">مهندس نیما رضایی</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container px-2 py-0.5 rounded-md">واحد فنی و IT</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">مأموریت پشتیبانی سرورهای دیتاسنتر جنوب</span>
+</div>
+</div>
+<!-- Compliance Badge -->
+<div class="flex items-center gap-1.5 bg-emerald-50 text-emerald-800 px-2.5 py-1 rounded-full font-label-sm text-label-sm font-semibold">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+<span>مطابق کامل پالیسی سفر</span>
+</div>
+</div>
+<!-- Trip Detail Box -->
+<div class="bg-surface-container-lowest rounded-xl p-3 flex items-center justify-between flex-wrap gap-3">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]">flight</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md font-bold text-on-surface">تهران به شیراز (رفت و برگشت)</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">هواپیمایی وارش • کلاس اکونومی چارتر • ۳ اسفند ۱۴۰۳</span>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="font-label-sm text-label-sm text-on-surface-variant">مبلغ صورتحساب:</span>
+<div class="flex items-baseline gap-1">
+<span class="font-title-md text-title-md font-black text-on-surface">۱,۸۵۰,۰۰۰</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">تومان (Mock)</span>
+</div>
+</div>
+</div>
+<!-- SLA & Actions Footer -->
+<div class="flex items-center justify-between flex-wrap gap-3 pt-1">
+<div class="flex items-center gap-1.5 text-on-surface-variant font-label-md text-label-md">
+<span class="material-symbols-outlined text-[18px] text-amber-600">timer</span>
+<span>مهلت اقدام (SLA):</span>
+<span class="font-bold text-error">۱ ساعت و ۲۴ دقیقه باقیمانده</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-3.5 py-1.5 rounded-full bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-md text-label-md transition-colors">
+                بررسی ریز جزئیات
+              </button>
+<button class="px-4 py-1.5 rounded-full bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md font-bold shadow-sm transition-all flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">done</span>
+<span>تأیید فوری و صدور بلیت</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Request Card 2 (Policy Exception / Alert) -->
+<div class="bg-surface-container-low rounded-xl p-4 flex flex-col gap-3.5 transition-shadow hover:shadow-md">
+<div class="flex items-start justify-between flex-wrap gap-2">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center font-bold text-secondary">
+                HK
+              </div>
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<span class="font-title-md text-title-md font-bold text-on-surface">دکتر هومن کاظمی</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container px-2 py-0.5 rounded-md">معاونت بازرگانی خارجی</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">مذاکرات استراتژیک سرمایه‌گذاری شرق کشور</span>
+</div>
+</div>
+<!-- Exception Warning Badge -->
+<div class="flex items-center gap-1.5 bg-amber-100 text-amber-900 px-2.5 py-1 rounded-full font-label-sm text-label-sm font-semibold">
+<span class="material-symbols-outlined text-[16px]">warning</span>
+<span>تخطی از سقف هتلینگ (+۲۸٪ بودجه)</span>
+</div>
+</div>
+<!-- Hotel Details & Note -->
+<div class="bg-surface-container-lowest rounded-xl p-3 flex flex-col gap-2.5">
+<div class="flex items-center justify-between flex-wrap gap-3">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-[20px]">hotel</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md font-bold text-on-surface">هتل مجلل درویشی مشهد (سوئیت دوبلکس ۳ شب)</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">تاریخ ورود: ۵ اسفند • همراه با صبحانه و ترانسفر VIP</span>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="font-label-sm text-label-sm text-on-surface-variant">مبلغ صورتحساب:</span>
+<div class="flex items-baseline gap-1">
+<span class="font-title-md text-title-md font-black text-on-surface">۶,۲۰۰,۰۰۰</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">تومان (Mock)</span>
+</div>
+</div>
+</div>
+<!-- Applicant Note -->
+<div class="bg-surface-container-low p-2 rounded-lg text-on-surface-variant font-body-sm text-body-sm flex items-start gap-2">
+<span class="material-symbols-outlined text-[16px] text-secondary mt-0.5">chat</span>
+<p><strong class="font-medium text-on-surface">یادداشت متقاضی:</strong> جلسات با طرف‌های عمانی در سالن اختصاصی همین هتل برگزار می‌شود و عدم جابجایی ضرورت دارد.</p>
+</div>
+</div>
+<!-- Alert Status & Actions -->
+<div class="flex items-center justify-between flex-wrap gap-3 pt-1">
+<div class="flex items-center gap-1.5 text-on-surface-variant font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[18px] text-tertiary">notification_important</span>
+<span>نیازمند تأییدیه ویژه مدیرعامل هلدینگ</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-3 py-1.5 rounded-full bg-error-container text-error hover:bg-error hover:text-on-error font-label-md text-label-md transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">close</span>
+<span>رد درخواست</span>
+</button>
+<button class="px-4 py-1.5 rounded-full bg-secondary text-on-secondary hover:bg-secondary-container hover:text-on-secondary-container font-label-md text-label-md font-medium transition-colors">
+                ارجاع جهت توجیه بودجه
+              </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- LEFT COLUMN (RTL Col B - 5 Columns / 42%): Department Analytics & Active Travel Policies -->
+<div class="lg:col-span-5 flex flex-col gap-4">
+<!-- Department Spending Analytics Card -->
+<div class="bg-surface-container-lowest rounded-2xl p-5 shadow-sm flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[22px]">bar_chart</span>
+<h3 class="font-title-md text-title-md font-bold text-on-surface">تحلیل هزینه‌ها به تفکیک واحدها</h3>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">اسفند ۱۴۰۳ (Mock)</span>
+</div>
+<div class="flex flex-col gap-3.5">
+<!-- Department 1: Sales -->
+<div class="flex flex-col gap-1.5">
+<div class="flex justify-between items-center font-label-md text-label-md">
+<span class="text-on-surface font-semibold">واحد فروش و توسعه بازار (۴۵٪)</span>
+<span class="text-on-surface-variant">۸,۷۳۰,۰۰۰ تومان</span>
+</div>
+<div class="w-full bg-surface-container rounded-full h-2 overflow-hidden">
+<div class="bg-primary h-2 rounded-full" style="width: 45%"></div>
+</div>
+</div>
+<!-- Department 2: Technical/Support -->
+<div class="flex flex-col gap-1.5">
+<div class="flex justify-between items-center font-label-md text-label-md">
+<span class="text-on-surface font-semibold">واحد فنی و پشتیبانی میدانی (۳۲٪)</span>
+<span class="text-on-surface-variant">۶,۲۰۰,۰۰۰ تومان</span>
+</div>
+<div class="w-full bg-surface-container rounded-full h-2 overflow-hidden">
+<div class="bg-secondary h-2 rounded-full" style="width: 32%"></div>
+</div>
+</div>
+<!-- Department 3: HQ & Management -->
+<div class="flex flex-col gap-1.5">
+<div class="flex justify-between items-center font-label-md text-label-md">
+<span class="text-on-surface font-semibold">مدیریت ارشد و ستاد حقوقی (۲۳٪)</span>
+<span class="text-on-surface-variant">۴,۴۷۰,۰۰۰ تومان</span>
+</div>
+<div class="w-full bg-surface-container rounded-full h-2 overflow-hidden">
+<div class="bg-tertiary h-2 rounded-full" style="width: 23%"></div>
+</div>
+</div>
+</div>
+<!-- Monthly Invoice Total Summary Box -->
+<div class="bg-surface-container p-3.5 rounded-xl flex items-center justify-between">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface-variant">مجموع صورتحساب تجمیعی ماه:</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">شامل ۱۰٪ مالیات ارزش افزوده رسمی (۱,۹۴۰,۰۰۰ تومان)</span>
+</div>
+<div class="flex items-baseline gap-1">
+<span class="font-title-lg text-title-lg font-black text-on-surface">۱۹,۴۰۰,۰۰۰</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">تومان</span>
+</div>
+</div>
+</div>
+<!-- Active Travel Policies Card -->
+<div class="bg-surface-container-lowest rounded-2xl p-5 shadow-sm flex flex-col gap-3.5">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[22px]">gavel</span>
+<h3 class="font-title-md text-title-md font-bold text-on-surface">پالیسی‌های فعال سفر سازمان</h3>
+</div>
+<span class="bg-surface-container px-2 py-0.5 rounded-md font-label-sm text-label-sm text-secondary font-medium">۳ قانون فعال</span>
+</div>
+<!-- Policy Rules List -->
+<div class="flex flex-col gap-2.5">
+<div class="flex items-start gap-2.5 p-2 rounded-lg bg-surface-container-low">
+<span class="material-symbols-outlined text-emerald-600 text-[20px] mt-0.5">check_circle</span>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md font-bold text-on-surface">پروازهای داخلی زیر ۲ ساعت</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">الزام به رزرو بلیت اکونومی استاندارد برای کلیه رده‌ها به جز هیئت مدیره.</span>
+</div>
+</div>
+<div class="flex items-start gap-2.5 p-2 rounded-lg bg-surface-container-low">
+<span class="material-symbols-outlined text-emerald-600 text-[20px] mt-0.5">check_circle</span>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md font-bold text-on-surface">سقف اقامت هتل‌های ۵ ستاره</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">حداکثر ۱,۵۰۰,۰۰۰ تومان به ازای هر شب اقامت پرسنل عادی در شهرهای مقصد.</span>
+</div>
+</div>
+<div class="flex items-start gap-2.5 p-2 rounded-lg bg-surface-container-low">
+<span class="material-symbols-outlined text-emerald-600 text-[20px] mt-0.5">check_circle</span>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md font-bold text-on-surface">استرداد و جریمه کنسلی آنلاین</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">بازگشت آنی وجه به کیف پول اعتباری شرکت در کمتر از ۶۰ ثانیه بدون کارمزد اضافه.</span>
+</div>
+</div>
+</div>
+<!-- Download Tax Statement CTA -->
+<button class="w-full mt-1 py-2 px-3 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-md text-label-md font-semibold flex items-center justify-center gap-2 transition-colors">
+<span class="material-symbols-outlined text-[18px]">receipt_long</span>
+<span>دریافت صورتحساب رسمی مطابق سامانه مؤدیان</span>
+</button>
+</div>
+</div>
+</div>
+<!-- BOTTOM FULL-WIDTH SECTION: Recent Corporate Bookings Table -->
+<section class="bg-surface-container-lowest rounded-2xl p-5 shadow-sm flex flex-col gap-4">
+<!-- Header with Filters -->
+<div class="flex items-center justify-between flex-wrap gap-4">
+<div class="flex items-center gap-2.5">
+<div class="w-2.5 h-6 bg-secondary rounded-full"></div>
+<h2 class="font-title-lg text-title-lg font-bold text-on-surface">جدول مأموریت‌ها و سفرهای اخیر کارکنان</h2>
+</div>
+<!-- Segment Tabs -->
+<div class="flex items-center gap-1.5 bg-surface-container-low p-1 rounded-xl">
+<button class="px-3.5 py-1.5 rounded-lg bg-secondary text-on-secondary font-label-md text-label-md font-semibold shadow-sm transition-all">همه واحدها</button>
+<button class="px-3.5 py-1.5 rounded-lg text-on-surface-variant hover:text-on-surface font-label-md text-label-md transition-colors">فنی و IT</button>
+<button class="px-3.5 py-1.5 rounded-lg text-on-surface-variant hover:text-on-surface font-label-md text-label-md transition-colors">فروش</button>
+<button class="px-3.5 py-1.5 rounded-lg text-on-surface-variant hover:text-on-surface font-label-md text-label-md transition-colors">دارای فاکتور رسمی</button>
+</div>
+</div>
+<!-- Data Table -->
+<div class="overflow-x-auto w-full">
+<table class="w-full text-right border-collapse">
+<thead>
+<tr class="bg-surface-container-low text-on-surface-variant font-label-md text-label-md">
+<th class="py-3 px-4 rounded-r-xl">متقاضی و دپارتمان</th>
+<th class="py-3 px-4">نوع خدمت و مقصد</th>
+<th class="py-3 px-4">تاریخ اعزام</th>
+<th class="py-3 px-4">مبلغ پرداختی (Mock)</th>
+<th class="py-3 px-4">وضعیت رزرو</th>
+<th class="py-3 px-4 rounded-l-xl text-center">عملیات مالی</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container-high font-body-md text-body-md">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="py-3.5 px-4">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-full bg-secondary-container text-secondary flex items-center justify-center font-bold text-[12px]">MS</div>
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg font-bold text-on-surface">مهندس مریم سپهری</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">واحد فروش منطقه‌ای</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-primary">flight_takeoff</span>
+<span>پرواز تهران به تبریز (معراج)</span>
+</div>
+</td>
+<td class="py-3.5 px-4 text-on-surface-variant">۲ اسفند ۱۴۰۳</td>
+<td class="py-3.5 px-4">
+<span class="font-title-md text-title-md font-bold text-on-surface">۱,۴۵۰,۰۰۰</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant mr-1">تومان</span>
+</td>
+<td class="py-3.5 px-4">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 font-label-sm text-label-sm font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                بلیت صادر شد
+              </span>
+</td>
+<td class="py-3.5 px-4 text-center">
+<button class="text-primary hover:text-primary-container font-label-md text-label-md font-semibold inline-flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">receipt</span>
+<span>فاکتور رسمی</span>
+</button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="py-3.5 px-4">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest text-secondary flex items-center justify-center font-bold text-[12px]">PR</div>
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg font-bold text-on-surface">پرهام رستگار</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">تیم استقرار شبکه</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-tertiary">hotel</span>
+<span>هتل ۵ ستاره ترنج کیش (۲ شب)</span>
+</div>
+</td>
+<td class="py-3.5 px-4 text-on-surface-variant">۲۸ بهمن ۱۴۰۳</td>
+<td class="py-3.5 px-4">
+<span class="font-title-md text-title-md font-bold text-on-surface">۴,۱۰۰,۰۰۰</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant mr-1">تومان</span>
+</td>
+<td class="py-3.5 px-4">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+                مأموریت پایان‌یافته
+              </span>
+</td>
+<td class="py-3.5 px-4 text-center">
+<button class="text-primary hover:text-primary-container font-label-md text-label-md font-semibold inline-flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">receipt</span>
+<span>فاکتور رسمی</span>
+</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="py-3.5 px-4">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest text-secondary flex items-center justify-center font-bold text-[12px]">SK</div>
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg font-bold text-on-surface">سهراب کریمی</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">حقوقی و قراردادها</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-secondary">train</span>
+<span>قطار ۵ ستاره فدک تهران - اصفهان</span>
+</div>
+</td>
+<td class="py-3.5 px-4 text-on-surface-variant">۲۵ بهمن ۱۴۰۳</td>
+<td class="py-3.5 px-4">
+<span class="font-title-md text-title-md font-bold text-on-surface">۸۹۰,۰۰۰</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant mr-1">تومان</span>
+</td>
+<td class="py-3.5 px-4">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 font-label-sm text-label-sm font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                بلیت صادر شد
+              </span>
+</td>
+<td class="py-3.5 px-4 text-center">
+<button class="text-primary hover:text-primary-container font-label-md text-label-md font-semibold inline-flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">receipt</span>
+<span>فاکتور رسمی</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Table Pagination & Count Indicator -->
+<div class="flex items-center justify-between pt-2 text-on-surface-variant font-label-md text-label-md flex-wrap gap-2">
+<span>نمایش ۳ مأموریت اخیر از مجموع ۳۴ سفر ماه جاری</span>
+<div class="flex items-center gap-2">
+<button class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors" disabled="">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+<span class="font-medium text-on-surface px-1">صفحه ۱ از ۱۲</span>
+<button class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined text-[18px]">chevron_left</span>
+</button>
+</div>
+</div>
+</section>
+</div></main></div></body></html>
