@@ -49,6 +49,7 @@ SRC="$TMP/src"
 [ -d "$SRC/docs/design/stitch-redesign-2026-11" ] || { echo "BLOCKED: gallery not in tarball"; exit 3; }
 
 step "3) code: inner-pages redesign patch (ADR-022)"
+CODE=0
 if grep -q 'redesign-2026-11.css' app/layout.tsx 2>/dev/null; then
   echo "already applied — skip"
 elif grep -q 'ApprovedShell' app/page.tsx; then
@@ -57,21 +58,23 @@ elif grep -q 'ApprovedShell' app/page.tsx; then
 else
   git apply --check "$TMP/$PATCH"
   git -c user.name="KarenSeir Deploy" -c user.email="deploy@karentravel.ir" am "$TMP/$PATCH"
+  CODE=1
 fi
 
 step "4) design gallery + docs (everything from Stitch/Figma round 1–4)"
-rm -rf public/design-2026-11
-cp -r "$SRC/docs/design/stitch-redesign-2026-11" public/design-2026-11
+# Not served from Next public/: production CSP (script-src 'self', X-Frame-Options DENY) blocks the
+# Tailwind CDN and the gallery iframes. Public preview stays on GitHub Pages; the server keeps the full set in docs/.
 mkdir -p docs/design docs/adr deploy tools/design
 rm -rf docs/design/stitch-redesign-2026-11
 cp -r "$SRC/docs/design/stitch-redesign-2026-11" docs/design/
 cp "$SRC"/docs/adr/ADR-022-*.md docs/adr/ 2>/dev/null || true
 cp "$SRC"/deploy/REDESIGN_2026-11_DEPLOY.md "$SRC"/deploy/redesign-2026-11-rollback.sh deploy/; cp /root/rd.sh deploy/redesign-2026-11-deploy.sh 2>/dev/null || true
 cp "$SRC"/tools/design/*.py tools/design/ 2>/dev/null || true
-git add public/design-2026-11 docs/design/stitch-redesign-2026-11 docs/adr deploy tools/design
+git add docs/design/stitch-redesign-2026-11 docs/adr deploy tools/design
 git -c user.name="KarenSeir Deploy" -c user.email="deploy@karentravel.ir" commit -qm "design: Stitch redesign 2026-11 gallery + docs (rounds 1-4)" || echo "nothing new to commit"
-echo "gallery files: $(find public/design-2026-11 -type f | wc -l)"
+echo "design files on server: $(find docs/design/stitch-redesign-2026-11 -type f | wc -l)"
 
+if [ "$CODE" = 0 ]; then echo; echo "No runtime code changed — no rebuild/restart (production untouched). HEAD: $(git rev-parse --short HEAD)  log: $LOG"; echo "RESULT: DOCS DEPLOYED, CODE SKIPPED"; rm -rf "$TMP"; exit 0; fi
 step "5) build + restart frontend only ($SVC)"
 cd "$ROOT"
 export GIT_COMMIT=$(git -C "$APP" rev-parse --short HEAD) BUILD_TIMESTAMP=$(date -u +%FT%TZ)
@@ -84,8 +87,6 @@ ok=1
 chk(){ local u=$1 want=$2; local c; c=$(curl -s -o /dev/null -w '%{http_code}' "$u" || echo 000); echo "$c  $u"; [ "$c" = "$want" ] || ok=0; }
 chk https://karentravel.ir/ 200
 chk https://karentravel.ir/hotels 200
-chk https://karentravel.ir/design-2026-11/index.html 200
-chk https://karentravel.ir/design-2026-11/tablet/04-credit-finance.html 200
 n=$(curl -s https://karentravel.ir/hotels | grep -c 'ks-inner' || true); echo "ks-inner on /hotels: $n (want ≥1)"; [ "$n" -ge 1 ] || ok=0
 docker compose ps "$SVC"
 echo; echo "HEAD now: $(git -C "$APP" rev-parse --short HEAD)   log: $LOG"
