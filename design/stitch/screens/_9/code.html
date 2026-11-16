@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="fa"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_stack" name="shell-type"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "on-primary-container": "#fffbff", "tertiary-fixed-dim": "#f8bc4f", "on-primary-fixed": "#3e0500", "tertiary": "#7b5500", "on-secondary": "#ffffff", "secondary": "#6f5674", "on-background": "#1e1b15", "on-error-container": "#93000a", "primary": "#ad2c12", "surface-tint": "#b02e15", "primary-fixed-dim": "#ffb4a4", "surface-container-low": "#faf3e9", "error": "#ba1a1a", "background": "#fff8f0", "on-primary-fixed-variant": "#8d1600", "surface-container-high": "#eee7dd", "surface-container": "#f4ede3", "surface-container-lowest": "#ffffff", "inverse-on-surface": "#f7f0e6", "secondary-fixed": "#f9d8fd", "primary-container": "#cf4429", "outline": "#8d706a", "tertiary-container": "#9a6c00", "on-primary": "#ffffff", "surface-dim": "#e0d9cf", "on-tertiary-fixed": "#271900", "on-secondary-fixed": "#28132e", "on-surface-variant": "#59413c", "primary-fixed": "#ffdad3", "surface-bright": "#fff8f0", "on-error": "#ffffff", "inverse-primary": "#ffb4a4", "surface": "#fff8f0", "on-tertiary": "#ffffff", "inverse-surface": "#33302a", "surface-container-highest": "#e8e2d8", "error-container": "#ffdad6", "on-tertiary-fixed-variant": "#5f4100", "surface-variant": "#e8e2d8", "on-surface": "#1e1b15", "secondary-container": "#f6d5fa", "tertiary-fixed": "#ffdeab", "on-tertiary-container": "#fffbff", "on-secondary-container": "#745a79", "outline-variant": "#e1bfb8", "on-secondary-fixed-variant": "#563e5c", "secondary-fixed-dim": "#dcbce0" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "space-xs": "0.375rem", "gutter-desktop": "1.5rem", "margin": "3.5rem", "space-md": "1.25rem", "space-lg": "1.75rem", "space-sm": "0.75rem", "margin-desktop": "3.5rem", "space-xl": "2.5rem", "gutter": "1.5rem" }, fontFamily: { "label-lg": ["Vazirmatn"], "headline-lg": ["Vazirmatn"], "headline-md": ["Vazirmatn"], "label-sm": ["Vazirmatn"], "label-md": ["Vazirmatn"], "body-lg": ["Vazirmatn"], "body-sm": ["Vazirmatn"], "title-md": ["Vazirmatn"], "headline-sm": ["Vazirmatn"], "title-lg": ["Vazirmatn"], "body-md": ["Vazirmatn"], "display": ["Vazirmatn"] }, fontSize: { "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0em", "fontWeight": "600" }], "headline-lg": ["36px", { "lineHeight": "52px", "letterSpacing": "-0.015em", "fontWeight": "800" }], "headline-md": ["28px", { "lineHeight": "42px", "letterSpacing": "-0.01em", "fontWeight": "700" }], "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0em", "fontWeight": "500" }], "label-md": ["12px", { "lineHeight": "18px", "letterSpacing": "0em", "fontWeight": "500" }], "body-lg": ["16px", { "lineHeight": "28px", "letterSpacing": "0em", "fontWeight": "400" }], "body-sm": ["12px", { "lineHeight": "20px", "letterSpacing": "0em", "fontWeight": "400" }], "title-md": ["16px", { "lineHeight": "26px", "letterSpacing": "0em", "fontWeight": "600" }], "headline-sm": ["22px", { "lineHeight": "34px", "letterSpacing": "0em", "fontWeight": "700" }], "title-lg": ["18px", { "lineHeight": "28px", "letterSpacing": "0em", "fontWeight": "600" }], "body-md": ["14px", { "lineHeight": "24px", "letterSpacing": "0em", "fontWeight": "400" }], "display": ["48px", { "lineHeight": "68px", "letterSpacing": "-0.02em", "fontWeight": "800" }] } } } }</script><style>@layer base{html,body{width:100vw;margin:0;padding:0;overflow-x:hidden;}body{overscroll-behavior-y:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface font-body-md text-on-surface antialiased flex flex-col min-h-screen"><header class="fixed top-0 inset-x-0 z-50 bg-surface/85 backdrop-blur-xl pt-safe shadow-[0_1px_12px_rgba(42,21,48,0.04)]"><div class="h-16 px-4 flex items-center justify-between"><div class="flex items-center gap-2"><button aria-label="بازگشت" class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface hover:bg-surface-container-high transition-colors active:scale-95" onclick="history.back()"><span class="material-symbols-outlined text-[24px]">arrow_forward_ios</span></button><h1 class="font-title-lg text-title-lg font-bold text-on-surface line-clamp-1">Flight Details</h1></div><div class="flex items-center gap-2"><a aria-label="پشتیبانی تلفنی" class="w-11 h-11 flex items-center justify-center rounded-full text-secondary hover:bg-surface-container-high transition-colors active:scale-95" href="tel:02191000000"><span class="material-symbols-outlined text-[22px]">call</span></a><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex-1 flex flex-col relative w-full pt-16 pb-safe bg-surface"><div class="flex flex-col w-full pb-28">
+<!-- Visual Hero / Gallery Swipe Showcase -->
+<section class="relative w-full overflow-hidden bg-surface-container">
+<div class="relative w-full aspect-[4/3] overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Luxurious facade of Shiraz Grand Hotel set dramatically against a rocky mountain backdrop in Shiraz Iran, soft warm sunset light, palm trees and terracotta architecture, Persian warm hospitality aesthetic, high resolution architectural photography" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDI6iSt-s7HpugRwQIPXWc1yK4ecdEXcNdtSa0ja2ED2qZbAbPMr6yZYMNZDjIFLCgDnD44aWjr1iTMLJU78yrzL295ozcnz9g-6qrOmc0McXxvQWJ4CE6-RWa__YoSJBcAr_u20sP5nvkQgmdCV4iaNjYD-50rFtfYAGOAp7yGOiTQRb17LDc_uPsy-9t5XyTmlFz8ZpPgmXPprfAJqGvtn71_2Jc6l4DwKlwnC4s"/>
+<div class="absolute inset-0 bg-gradient-to-t from-inverse-surface/80 via-inverse-surface/20 to-transparent"></div>
+<!-- Gallery Counter Pill -->
+<div class="absolute top-4 start-4 px-3 py-1 bg-inverse-surface/60 backdrop-blur-md rounded-full flex items-center gap-1.5 shadow-sm">
+<span class="material-symbols-outlined text-[16px] text-surface-container-lowest">photo_library</span>
+<span class="font-label-sm text-label-sm text-surface-container-lowest font-medium tracking-wide">۱/۲۸ عکس</span>
+</div>
+<!-- Quick Action Floating Badges -->
+<div class="absolute top-4 end-4 flex items-center gap-2">
+<button class="w-9 h-9 rounded-full bg-surface-container-lowest/80 backdrop-blur-md flex items-center justify-center text-on-surface shadow-md active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[18px]">favorite</span>
+</button>
+<button class="w-9 h-9 rounded-full bg-surface-container-lowest/80 backdrop-blur-md flex items-center justify-center text-on-surface shadow-md active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[18px]">share</span>
+</button>
+</div>
+<!-- Overlay Meta (Hotel Title, Rating & Location) -->
+<div class="absolute bottom-4 inset-x-4 flex flex-col gap-1 text-surface-container-lowest">
+<div class="flex items-center gap-2 mb-1">
+<div class="flex items-center gap-1 bg-tertiary-fixed text-on-tertiary-fixed px-2.5 py-0.5 rounded-full font-label-sm text-label-sm font-bold shadow-sm">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span>۴.۸</span>
+<span class="opacity-80 font-normal">| فوق‌العاده عالی</span>
+</div>
+<span class="font-label-sm text-label-sm text-surface-container-lowest/90 bg-inverse-surface/40 px-2 py-0.5 rounded-full">
+            (۳۴۲ دیدگاه)
+          </span>
+</div>
+<h2 class="font-headline-sm text-headline-sm text-surface-container-lowest font-extrabold leading-tight">
+          هتل ۵ ستاره بزرگ شیراز
+        </h2>
+<div class="flex items-center gap-1.5 text-surface-container-lowest/85 font-body-sm text-body-sm mt-0.5">
+<span class="material-symbols-outlined text-[16px] text-tertiary-fixed-dim">location_on</span>
+<span class="truncate">شیراز، میدان ابوالکلام، جنب دروازه قرآن</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Key Value Proposition Chips -->
+<section class="w-full px-4 pt-4 overflow-x-auto no-scrollbar">
+<div class="flex items-center gap-2.5 min-w-max pb-1">
+<div class="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-surface-container-high text-on-surface font-label-md text-label-md">
+<span class="material-symbols-outlined text-[18px] text-primary">verified</span>
+<span>۵ ستاره بین‌المللی</span>
+</div>
+<div class="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-surface-container-high text-on-surface font-label-md text-label-md">
+<span class="material-symbols-outlined text-[18px] text-tertiary">airport_shuttle</span>
+<span>ترانسفر رایگان</span>
+</div>
+<div class="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-surface-container-high text-on-surface font-label-md text-label-md">
+<span class="material-symbols-outlined text-[18px] text-primary">event_available</span>
+<span>کنسلی ۱۰۰٪ آنلاین</span>
+</div>
+<div class="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-surface-container-high text-on-surface font-label-md text-label-md">
+<span class="material-symbols-outlined text-[18px] text-secondary">pool</span>
+<span>استخر صخره‌ای</span>
+</div>
+</div>
+</section>
+<!-- Stay Schedule Summary Island -->
+<section class="w-full px-4 mt-4">
+<div class="w-full bg-surface-container-low rounded-xl p-4 flex items-center justify-between shadow-sm">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[20px]">calendar_month</span>
+</div>
+<div class="flex flex-col">
+<span class="font-title-md text-title-md text-on-surface font-bold">۲۴ تا ۲۷ خرداد (۳ شب)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">۲ بزرگسال • ۱ اتاق مسافرتی</span>
+</div>
+</div>
+<button class="px-3 py-1.5 rounded-full bg-surface-container-highest text-primary font-label-md text-label-md font-bold hover:bg-primary hover:text-on-primary transition-colors active:scale-95">
+        تغییر تاریخ
+      </button>
+</div>
+</section>
+<!-- Room Selection Section -->
+<section class="w-full px-4 mt-6 flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<h3 class="font-title-lg text-title-lg text-on-surface font-bold">انتخاب اتاق</h3>
+<span class="font-label-sm text-label-sm text-on-surface-variant">۳ گزینه موجود</span>
+</div>
+<!-- Room Card 1 (Selected State) -->
+<article class="w-full bg-surface-container-lowest rounded-2xl p-4 shadow-sm relative overflow-hidden">
+<div class="absolute top-0 start-0 w-1.5 h-full bg-primary"></div>
+<div class="w-full flex gap-3.5">
+<div class="w-28 h-28 rounded-xl overflow-hidden shrink-0 relative bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="Interior of a luxury hotel room in Shiraz Iran overlooking the city skyline, plush king size bed with crisp white linen, warm ambient side lamps, wooden accents, soft golden sunset glow" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDZeXuYR3zlukYP3an3Fz-nCVaP3W2lQAk8PtJ5PC39OQY2pyS82qRb3tN4VAeEBbvO6DMPAjS4N8eBxaLonINcHHQF2FgwO6KkCjaypw-PpF7k90dvGPcW99EiWl89uVYz-8VdbOfxBNR2WoaTm3vmVmFamvCuhkzHt3JhruuEVKedbowB7xcZpP6re11V6nnTQwAq2j7P3bk_9bdArb2IocpKlX-fIhADtYnp7Rg"/>
+<span class="absolute bottom-1 end-1 bg-inverse-surface/80 text-surface-container-lowest font-label-sm text-[10px] px-1.5 py-0.5 rounded">۳۵ متر</span>
+</div>
+<div class="flex-1 flex flex-col justify-between min-w-0">
+<div>
+<div class="flex items-start justify-between gap-1">
+<h4 class="font-title-md text-title-md text-on-surface font-bold truncate">اتاق ۲ تخته دبل لوکس</h4>
+<span class="material-symbols-outlined text-primary text-[20px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-1 mt-0.5">دید شهر (City View) • ۱ تخت دبل کینگ</p>
+</div>
+<div class="flex flex-wrap gap-1.5 mt-2">
+<span class="font-label-sm text-[10px] text-tertiary bg-tertiary-fixed/40 px-2 py-0.5 rounded-md flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">free_cancellation</span>
+              صبحانه سلف‌سرویس رایگان
+            </span>
+<span class="font-label-sm text-[10px] text-secondary bg-secondary-fixed/40 px-2 py-0.5 rounded-md flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">wifi</span>
+              وای‌فای نامحدود
+            </span>
+</div>
+</div>
+</div>
+<div class="w-full mt-4 pt-3 flex items-end justify-between bg-surface-container-low rounded-xl px-3 py-2.5">
+<div>
+<span class="font-body-sm text-body-sm text-on-surface-variant block">مجموع ۳ شب برای ۲ نفر:</span>
+<span class="font-headline-sm text-headline-sm text-primary font-bold">۸,۸۵۰,۰۰۰ <span class="font-label-md text-label-md font-normal text-on-surface">تومان</span></span>
+</div>
+<button class="bg-primary text-on-primary px-4 py-2 rounded-full font-label-md text-label-md font-bold shadow-sm flex items-center gap-1 active:scale-95 transition-transform">
+<span>انتخاب شد</span>
+<span class="material-symbols-outlined text-[16px]">done</span>
+</button>
+</div>
+</article>
+<!-- Room Card 2 -->
+<article class="w-full bg-surface-container-lowest rounded-2xl p-4 shadow-sm relative overflow-hidden">
+<div class="w-full flex gap-3.5">
+<div class="w-28 h-28 rounded-xl overflow-hidden shrink-0 relative bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="Deluxe twin hotel room interior with two pristine single beds, scenic views of rugged mountains through large windows, modern Persian luxury decor, bright daytime sunlight" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBrvyefxikoUQX2kEvhxxMhjm87rhIdKSTF_x24cFxd-39wFObyJDfeG1IBjAF-dxgLU7EdBQXUS4bJWfmV1_Y03LOJJWOe6QIyZAelWhowU2qUgjqPZD-RD6V05ikFRdLY4uJiqoBeg7rarZbeMpEg5bjvUTs-ffgN1TE3_AVFF7GZo0HHtTjeGNNHGw8IPdMGS2EIRMrDemz6SePP21s7biemdUkQod9uek28d04"/>
+<span class="absolute bottom-1 end-1 bg-inverse-surface/80 text-surface-container-lowest font-label-sm text-[10px] px-1.5 py-0.5 rounded">۳۵ متر</span>
+</div>
+<div class="flex-1 flex flex-col justify-between min-w-0">
+<div>
+<div class="flex items-start justify-between gap-1">
+<h4 class="font-title-md text-title-md text-on-surface font-bold truncate">اتاق ۲ تخته توئین</h4>
+<div class="w-5 h-5 rounded-full bg-surface-container-high flex items-center justify-center">
+<div class="w-2 h-2 rounded-full bg-outline-variant"></div>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-1 mt-0.5">دید کوهستان (Mountain View) • ۲ تخت یک‌نفره</p>
+</div>
+<div class="flex flex-wrap gap-1.5 mt-2">
+<span class="font-label-sm text-[10px] text-tertiary bg-tertiary-fixed/40 px-2 py-0.5 rounded-md flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">free_cancellation</span>
+              صبحانه رایگان
+            </span>
+</div>
+</div>
+</div>
+<div class="w-full mt-4 pt-3 flex items-end justify-between bg-surface-container-low rounded-xl px-3 py-2.5">
+<div>
+<span class="font-body-sm text-body-sm text-on-surface-variant block">هر شب:</span>
+<span class="font-title-lg text-title-lg text-on-surface font-bold">۲,۸۰۰,۰۰۰ <span class="font-label-md text-label-md font-normal text-on-surface-variant">تومان</span></span>
+</div>
+<button class="bg-surface-container-high text-on-surface px-4 py-2 rounded-full font-label-md text-label-md font-bold active:scale-95 transition-transform hover:bg-primary hover:text-on-primary">
+          انتخاب اتاق
+        </button>
+</div>
+</article>
+<!-- Room Card 3 -->
+<article class="w-full bg-surface-container-lowest rounded-2xl p-4 shadow-sm relative overflow-hidden">
+<div class="w-full flex gap-3.5">
+<div class="w-28 h-28 rounded-xl overflow-hidden shrink-0 relative bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="Expansive presidential royal suite in a luxury Iranian hotel with living room area, dining table, master bedroom connected, marble floors, sophisticated warm lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDHKAUZZdTYb7q96zwJTN8lVPbc9qQm9qYJ0x_WueudPZoAs9Axsp0Vcgf7JGM0iLzvR5LlyX2o4wpcrsxwlnjtRML8t-QfTesYgh5PH2W_7FqA6utqwjCCOyo33bQgB1qjwUI-bJ63JKgvbgnpYN1d1c6PhvJH8O0Qvzjq5yGjio7nil919mLOMuMa6ioykFg4oBU6FXGKmxuY_XiMeBLFPQLcl1eKwmE7STHSxBs"/>
+<span class="absolute bottom-1 end-1 bg-inverse-surface/80 text-surface-container-lowest font-label-sm text-[10px] px-1.5 py-0.5 rounded">۷۵ متر</span>
+</div>
+<div class="flex-1 flex flex-col justify-between min-w-0">
+<div>
+<div class="flex items-start justify-between gap-1">
+<h4 class="font-title-md text-title-md text-on-surface font-bold truncate">سوئیت رویال کانکت ۴ نفره</h4>
+<div class="w-5 h-5 rounded-full bg-surface-container-high flex items-center justify-center">
+<div class="w-2 h-2 rounded-full bg-outline-variant"></div>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-1 mt-0.5">۲ اتاق خواب متصل • ظرفیت ۴ بزرگسال</p>
+</div>
+<div class="flex flex-wrap gap-1.5 mt-2">
+<span class="font-label-sm text-[10px] text-tertiary bg-tertiary-fixed/40 px-2 py-0.5 rounded-md flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">stars</span>
+              پذیرایی VIP و صبحانه
+            </span>
+</div>
+</div>
+</div>
+<div class="w-full mt-4 pt-3 flex items-end justify-between bg-surface-container-low rounded-xl px-3 py-2.5">
+<div>
+<span class="font-body-sm text-body-sm text-on-surface-variant block">هر شب:</span>
+<span class="font-title-lg text-title-lg text-on-surface font-bold">۶,۲۰۰,۰۰۰ <span class="font-label-md text-label-md font-normal text-on-surface-variant">تومان</span></span>
+</div>
+<button class="bg-surface-container-high text-on-surface px-4 py-2 rounded-full font-label-md text-label-md font-bold active:scale-95 transition-transform hover:bg-primary hover:text-on-primary">
+          انتخاب اتاق
+        </button>
+</div>
+</article>
+</section>
+<!-- Facilities & Amenities Grid -->
+<section class="w-full px-4 mt-8">
+<div class="flex items-center justify-between mb-3">
+<h3 class="font-title-lg text-title-lg text-on-surface font-bold">امکانات ویژه هتل</h3>
+<span class="font-label-sm text-label-sm text-primary font-bold">همه امکانات (۴۲)</span>
+</div>
+<div class="grid grid-cols-3 gap-2.5">
+<div class="flex flex-col items-center justify-center p-3 rounded-2xl bg-surface-container-lowest shadow-sm text-center">
+<span class="material-symbols-outlined text-primary text-[26px] mb-1">pool</span>
+<span class="font-label-sm text-label-sm text-on-surface font-medium">مجموعه آبی و استخر</span>
+</div>
+<div class="flex flex-col items-center justify-center p-3 rounded-2xl bg-surface-container-lowest shadow-sm text-center">
+<span class="material-symbols-outlined text-primary text-[26px] mb-1">restaurant</span>
+<span class="font-label-sm text-label-sm text-on-surface font-medium">۴ رستوران مجلل</span>
+</div>
+<div class="flex flex-col items-center justify-center p-3 rounded-2xl bg-surface-container-lowest shadow-sm text-center">
+<span class="material-symbols-outlined text-primary text-[26px] mb-1">fitness_center</span>
+<span class="font-label-sm text-label-sm text-on-surface font-medium">باشگاه بدن‌سازی</span>
+</div>
+<div class="flex flex-col items-center justify-center p-3 rounded-2xl bg-surface-container-lowest shadow-sm text-center">
+<span class="material-symbols-outlined text-primary text-[26px] mb-1">local_parking</span>
+<span class="font-label-sm text-label-sm text-on-surface font-medium">پارکینگ اختصاصی</span>
+</div>
+<div class="flex flex-col items-center justify-center p-3 rounded-2xl bg-surface-container-lowest shadow-sm text-center">
+<span class="material-symbols-outlined text-primary text-[26px] mb-1">wifi</span>
+<span class="font-label-sm text-label-sm text-on-surface font-medium">اینترنت پرسرعت</span>
+</div>
+<div class="flex flex-col items-center justify-center p-3 rounded-2xl bg-surface-container-lowest shadow-sm text-center">
+<span class="material-symbols-outlined text-primary text-[26px] mb-1">airport_shuttle</span>
+<span class="font-label-sm text-label-sm text-on-surface font-medium">ترانسفر استقبال</span>
+</div>
+</div>
+</section>
+<!-- Hotel Policies & Check-in Rules -->
+<section class="w-full px-4 mt-8">
+<h3 class="font-title-lg text-title-lg text-on-surface font-bold mb-3">قوانین و ساعات اقامت</h3>
+<div class="w-full bg-surface-container-lowest rounded-2xl p-4 shadow-sm flex flex-col gap-3">
+<div class="flex items-center justify-between pb-3 bg-surface-container-low rounded-xl px-3 py-2.5">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[20px]">login</span>
+<span class="font-label-md text-label-md text-on-surface">ساعت تحویل (Check-in)</span>
+</div>
+<span class="font-title-md text-title-md text-primary font-bold">۱۴:۰۰</span>
+</div>
+<div class="flex items-center justify-between pb-3 bg-surface-container-low rounded-xl px-3 py-2.5">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[20px]">logout</span>
+<span class="font-label-md text-label-md text-on-surface">ساعت تخلیه (Check-out)</span>
+</div>
+<span class="font-title-md text-title-md text-on-surface font-bold">۱۲:۰۰</span>
+</div>
+<div class="flex items-start gap-2.5 mt-1">
+<span class="material-symbols-outlined text-tertiary text-[20px] shrink-0 mt-0.5">policy</span>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md font-bold text-on-surface">شرایط کنسلی آنلاین:</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+            کنسلی رزرو تا ۲۴ ساعت قبل از تاریخ ورود رایگان بوده و تمام وجه بدون جریمه مسترد می‌گردد.
+          </p>
+</div>
+</div>
+</div>
+</section>
+<!-- Location Map Snapshot & Proximity -->
+<section class="w-full px-4 mt-8">
+<h3 class="font-title-lg text-title-lg text-on-surface font-bold mb-3">موقعیت مکانی و دسترسی‌ها</h3>
+<div class="w-full bg-surface-container-lowest rounded-2xl overflow-hidden shadow-sm">
+<div class="w-full h-36 bg-cover bg-center relative" data-location="Shiraz Grand Hotel, Quran Gate, Shiraz, Fars Province, Iran" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuA7b10C97T5zKo3ZTbc8nnD5-2kyFGxAW1ZWXw7eoeSWD982xgzThV8qdRcXVBkcWjmlwFhnpOlXHwZvjV773tJy5nzqsoogZjlA2onhuAxiApPzL0kxWnQqad2Gqw_T_AtGnzj0Qun5X1ggOQBqjC1qNu9JrWi8_mwyz9YMA5V7W69aXdX21YY2SJoqNOEpqc82fCWvu2OEGro1--7Fk7rEFNzQZ2QaFFiIgNb34o')">
+<div class="absolute inset-0 bg-inverse-surface/10"></div>
+<div class="absolute top-1/2 start-1/2 -translate-x-1/2 -translate-y-1/2 px-3 py-1.5 rounded-full bg-primary text-on-primary font-label-sm text-label-sm font-bold shadow-lg flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">pin_drop</span>
+<span>دروازه قرآن شیراز</span>
+</div>
+</div>
+<div class="p-4 flex flex-col gap-2.5">
+<div class="flex items-center justify-between font-body-sm text-body-sm">
+<span class="flex items-center gap-1.5 text-on-surface">
+<span class="material-symbols-outlined text-[16px] text-tertiary">near_me</span>
+            فاصله تا دروازه قرآن
+          </span>
+<span class="font-bold text-on-surface">۱ دقیقه پیاده‌روی</span>
+</div>
+<div class="flex items-center justify-between font-body-sm text-body-sm">
+<span class="flex items-center gap-1.5 text-on-surface">
+<span class="material-symbols-outlined text-[16px] text-tertiary">near_me</span>
+            فاصله تا حافظیه و باغ جهان‌نما
+          </span>
+<span class="font-bold text-on-surface">۳ دقیقه با خودرو</span>
+</div>
+<div class="flex items-center justify-between font-body-sm text-body-sm">
+<span class="flex items-center gap-1.5 text-on-surface">
+<span class="material-symbols-outlined text-[16px] text-tertiary">flight</span>
+            فاصله تا فرودگاه شهید دستغیب
+          </span>
+<span class="font-bold text-on-surface">۲۰ دقیقه با خودرو</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Guest Reviews & Ratings -->
+<section class="w-full px-4 mt-8 mb-4">
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center gap-2">
+<h3 class="font-title-lg text-title-lg text-on-surface font-bold">دیدگاه مسافران</h3>
+<span class="font-label-sm text-label-sm text-on-tertiary-fixed bg-tertiary-fixed px-2 py-0.5 rounded-full font-bold">۴.۸ / ۵</span>
+</div>
+<span class="font-label-sm text-label-sm text-primary font-bold">مشاهده همه</span>
+</div>
+<!-- Review Snippet Card 1 -->
+<div class="w-full bg-surface-container-lowest rounded-2xl p-4 shadow-sm mb-3">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-secondary-fixed text-on-secondary-fixed font-title-md text-title-md flex items-center justify-center font-bold">
+            س
+          </div>
+<div>
+<span class="font-title-md text-title-md text-on-surface font-bold block">سحر کاظمی</span>
+<span class="font-label-sm text-[11px] text-on-surface-variant">اقامت در اردیبهشت ۱۴۰۳ • اتاق دبل</span>
+</div>
+</div>
+<div class="flex items-center text-tertiary">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+        چشم‌انداز هتل به کل شهر شیراز مخصوصاً در شب بی‌نظیر بود. صبحانه تنوع عالی داشت و برخورد کارکنان در اوج حرفه‌ای‌گری بود. استخر صخره‌ای را حتماً پیشنهاد می‌کنم.
+      </p>
+</div>
+<!-- Review Snippet Card 2 -->
+<div class="w-full bg-surface-container-lowest rounded-2xl p-4 shadow-sm">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-title-md text-title-md flex items-center justify-center font-bold">
+            م
+          </div>
+<div>
+<span class="font-title-md text-title-md text-on-surface font-bold block">مهدی رضوی</span>
+<span class="font-label-sm text-[11px] text-on-surface-variant">اقامت در فروردین ۱۴۰۳ • سوئیت رویال</span>
+</div>
+</div>
+<div class="flex items-center text-tertiary">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[16px]">star</span>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+        ترانسفر به موقع انجام شد. نزدیکی به دروازه قرآن برای پیاده‌روی صبحگاهی عالیه. نظافت اتاق‌ها درجه یک بود.
+      </p>
+</div>
+</section>
+<!-- Sticky Bottom Booking Bar -->
+<div class="fixed bottom-0 inset-x-0 z-40 bg-surface/95 backdrop-blur-xl shadow-[0_-4px_20px_rgba(42,21,48,0.08)] px-4 py-3 flex items-center justify-between max-w-full">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant">شروع قیمت هر شب از:</span>
+<div class="flex items-baseline gap-1">
+<span class="font-headline-sm text-headline-sm text-primary font-extrabold tracking-tight">۲,۹۵۰,۰۰۰</span>
+<span class="font-label-md text-label-md text-on-surface font-medium">تومان</span>
+</div>
+</div>
+<button class="bg-primary hover:bg-primary-container text-on-primary px-6 py-3.5 rounded-full font-label-lg text-label-lg font-bold shadow-lg shadow-primary/25 active:scale-95 transition-all flex items-center gap-2">
+<span>رزرو آنلاین اتاق</span>
+<span class="material-symbols-outlined text-[20px] rtl:rotate-180">arrow_forward</span>
+</button>
+</div>
+</div></main></body></html>

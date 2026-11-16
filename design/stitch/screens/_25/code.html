@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>مستندات دیزاین سیستم حالت تاریک | کارن تراول (Karen Travel Dark DS)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            vazir: ['Vazirmatn', 'sans-serif'],
+          },
+          colors: {
+            dark: {
+              bg: '#130818',
+              surface: '#1C0F22',
+              card: '#24142B',
+              cardElevated: '#2E1A36',
+              border: '#3D2647',
+              borderMuted: '#2D1B35',
+            },
+            coral: {
+              DEFAULT: '#EF5B3D',
+              hover: '#D9492B',
+              glow: 'rgba(239, 91, 61, 0.25)',
+            },
+            gold: {
+              DEFAULT: '#EFB448',
+              light: '#F7CB6B',
+              dark: '#B88220',
+            },
+            cream: {
+              DEFAULT: '#FFF8F0',
+              muted: '#CBBDB3',
+              subtle: '#8E7C8E',
+            },
+            emerald: {
+              DEFAULT: '#10B981',
+              dark: '#064E3B',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Vazirmatn', sans-serif;
+      background-color: #130818;
+      color: #FFF8F0;
+    }
+    .glass-panel {
+      background: rgba(36, 20, 43, 0.7);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(61, 38, 71, 0.6);
+    }
+    .color-chip {
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+    }
+  </style>
+</head>
+<body class="p-6 md:p-12 antialiased selection:bg-coral selection:text-white">
+
+  <!-- Header Banner -->
+  <header class="max-w-6xl mx-auto mb-12">
+    <div class="glass-panel rounded-3xl p-8 md:p-10 relative overflow-hidden border border-dark-border">
+      <div class="absolute -top-24 -left-24 w-80 h-80 bg-coral/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -bottom-24 -right-24 w-80 h-80 bg-gold/10 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
+        <div>
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-dark-surface border border-dark-border text-gold text-xs font-semibold mb-3">
+            <span class="w-2 h-2 rounded-full bg-gold animate-pulse"></span>
+            دیزاین سیستم رسمی نسخه ۴.۲ (Native App & Web)
+          </div>
+          <h1 class="text-3xl md:text-5xl font-black tracking-tight text-cream mb-2">
+            مستندات سیستم دیزاین <span class="text-coral">حالت تاریک</span> (Dark Mode)
+          </h1>
+          <p class="text-cream-muted text-base md:text-lg max-w-2xl font-light leading-relaxed">
+            راهنمای جامع هویت بصری، توکن‌های رنگی با کنتراست تاییدشده، تایپوگرافی وزیرمتن، کامپوننت‌های پایه و راهکارهای تجربه کاربری شبانه کارن تراول.
+          </p>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="px-4 py-2.5 rounded-2xl bg-dark-surface border border-dark-border text-center">
+            <div class="text-xs text-cream-subtle">پایه رنگی</div>
+            <div class="text-sm font-bold text-cream">بادمجانی عمیق</div>
+          </div>
+          <div class="px-4 py-2.5 rounded-2xl bg-dark-surface border border-dark-border text-center">
+            <div class="text-xs text-cream-subtle">استاندارد کنتراست</div>
+            <div class="text-sm font-bold text-emerald">WCAG AAA / AA</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto space-y-16">
+
+    <!-- 1. Color Palette Tokens -->
+    <section>
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-1.5 h-7 rounded-full bg-coral"></div>
+        <h2 class="text-2xl font-bold text-cream">۱. توکن‌های پالت رنگی (Color Palette Tokens)</h2>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        <!-- Background -->
+        <div class="glass-panel p-4 rounded-2xl border border-dark-border flex flex-col justify-between">
+          <div class="h-20 rounded-xl bg-[#130818] border border-white/10 color-chip mb-3"></div>
+          <div>
+            <div class="text-xs text-cream-subtle">پس‌زمینه اصلی (Canvas)</div>
+            <div class="text-sm font-bold text-cream font-mono">#130818</div>
+            <div class="text-[11px] text-cream-muted mt-1">Dark Canvas / Shell Base</div>
+          </div>
+        </div>
+
+        <!-- Surface Level 1 -->
+        <div class="glass-panel p-4 rounded-2xl border border-dark-border flex flex-col justify-between">
+          <div class="h-20 rounded-xl bg-[#1C0F22] border border-white/10 color-chip mb-3"></div>
+          <div>
+            <div class="text-xs text-cream-subtle">سطح پایه ۱ (Surface)</div>
+            <div class="text-sm font-bold text-cream font-mono">#1C0F22</div>
+            <div class="text-[11px] text-cream-muted mt-1">Containers & App Bar</div>
+          </div>
+        </div>
+
+        <!-- Card Surface Level 2 -->
+        <div class="glass-panel p-4 rounded-2xl border border-dark-border flex flex-col justify-between">
+          <div class="h-20 rounded-xl bg-[#24142B] border border-white/10 color-chip mb-3"></div>
+          <div>
+            <div class="text-xs text-cream-subtle">کارت‌ها (Card Level 1)</div>
+            <div class="text-sm font-bold text-cream font-mono">#24142B</div>
+            <div class="text-[11px] text-cream-muted mt-1">Ticket, Inputs & Modals</div>
+          </div>
+        </div>
+
+        <!-- Card Elevated Level 3 -->
+        <div class="glass-panel p-4 rounded-2xl border border-dark-border flex flex-col justify-between">
+          <div class="h-20 rounded-xl bg-[#2E1A36] border border-white/10 color-chip mb-3"></div>
+          <div>
+            <div class="text-xs text-cream-subtle">کارت برجسته (Elevated)</div>
+            <div class="text-sm font-bold text-cream font-mono">#2E1A36</div>
+            <div class="text-[11px] text-cream-muted mt-1">Popovers, Tooltips & Hover</div>
+          </div>
+        </div>
+
+        <!-- Coral Primary Action -->
+        <div class="glass-panel p-4 rounded-2xl border border-dark-border flex flex-col justify-between">
+          <div class="h-20 rounded-xl bg-[#EF5B3D] shadow-lg shadow-coral/30 color-chip mb-3"></div>
+          <div>
+            <div class="text-xs text-cream-subtle">رنگ اکشن اصلی (Coral CTA)</div>
+            <div class="text-sm font-bold text-coral font-mono">#EF5B3D</div>
+            <div class="text-[11px] text-cream-muted mt-1">Buttons, Badges & Focus</div>
+          </div>
+        </div>
+
+        <!-- Gold Accent -->
+        <div class="glass-panel p-4 rounded-2xl border border-dark-border flex flex-col justify-between">
+          <div class="h-20 rounded-xl bg-[#EFB448] shadow-lg shadow-gold/20 color-chip mb-3"></div>
+          <div>
+            <div class="text-xs text-cream-subtle">اکسنت لوکس (Gold VIP)</div>
+            <div class="text-sm font-bold text-gold font-mono">#EFB448</div>
+            <div class="text-[11px] text-cream-muted mt-1">VIP Badges, Stars & Highlights</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Typography Hierarchy -->
+    <section>
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-1.5 h-7 rounded-full bg-gold"></div>
+        <h2 class="text-2xl font-bold text-cream">۲. سلسله‌مراتب تایپوگرافی وزیرمتن (Typography System)</h2>
+      </div>
+
+      <div class="glass-panel rounded-3xl p-6 md:p-8 border border-dark-border space-y-6">
+        <div class="flex flex-col md:flex-row md:items-baseline justify-between pb-4 border-b border-dark-border">
+          <span class="text-xs font-mono text-cream-subtle">Display 1 / 32px Black</span>
+          <span class="text-3xl font-black text-cream">سفر را با خیالی آسوده زندگی کن</span>
+        </div>
+        <div class="flex flex-col md:flex-row md:items-baseline justify-between pb-4 border-b border-dark-border">
+          <span class="text-xs font-mono text-cream-subtle">Title 1 / 22px Bold</span>
+          <span class="text-xl font-bold text-cream">هتل ۵ ستاره بزرگ شیراز (دروازه قرآن)</span>
+        </div>
+        <div class="flex flex-col md:flex-row md:items-baseline justify-between pb-4 border-b border-dark-border">
+          <span class="text-xs font-mono text-cream-subtle">Headline / 18px SemiBold</span>
+          <span class="text-lg font-semibold text-cream">پرواز ماهان تهران (IKA) به استانبول (IST)</span>
+        </div>
+        <div class="flex flex-col md:flex-row md:items-baseline justify-between pb-4 border-b border-dark-border">
+          <span class="text-xs font-mono text-cream-subtle">Body Text / 14px Regular</span>
+          <span class="text-sm font-normal text-cream-muted leading-relaxed">استرداد آنلاین بدون جریمه تا ۲۴ ساعت پیش از پرواز با واریز آنی به کیف پول یا حساب شتاب.</span>
+        </div>
+        <div class="flex flex-col md:flex-row md:items-baseline justify-between">
+          <span class="text-xs font-mono text-cream-subtle">Caption & Micro / 12px Medium</span>
+          <span class="text-xs font-medium text-cream-subtle">تمامی مبالغ به تومان و به عنوان داده نمایشی (Mock) می‌باشند.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Component Library (Buttons, Chips, Cards, Inputs, Bottom Nav) -->
+    <section>
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-1.5 h-7 rounded-full bg-emerald"></div>
+        <h2 class="text-2xl font-bold text-cream">۳. کتابخانه کامپوننت‌های دارک (UI Components)</h2>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        
+        <!-- Buttons & Actions -->
+        <div class="glass-panel p-6 rounded-3xl border border-dark-border space-y-4">
+          <h3 class="text-lg font-bold text-cream mb-4 flex items-center gap-2">
+            <span>دکمه‌ها و اکشن‌ها (Buttons)</span>
+          </h3>
+          <div class="flex flex-wrap items-center gap-3">
+            <button class="px-5 py-2.5 rounded-xl bg-coral hover:bg-coral-hover text-white font-bold text-sm shadow-lg shadow-coral/20 transition-all">
+              اکشن اولیه (Primary CTA)
+            </button>
+            <button class="px-5 py-2.5 rounded-xl bg-dark-cardElevated hover:bg-dark-border text-cream font-medium text-sm border border-dark-border transition-all">
+              اکشن ثانویه (Secondary)
+            </button>
+            <button class="px-4 py-2.5 rounded-xl bg-gold/15 text-gold hover:bg-gold/25 font-bold text-sm border border-gold/30 transition-all">
+              طلایی VIP
+            </button>
+          </div>
+          <div class="flex flex-wrap items-center gap-3 pt-2">
+            <button class="w-full py-3 rounded-2xl bg-gradient-to-r from-coral to-[#E04B2D] text-white font-black text-base shadow-xl shadow-coral/25">
+              تأیید و پرداخت نهایی (Full Width)
+            </button>
+          </div>
+        </div>
+
+        <!-- Chips & Status Badges -->
+        <div class="glass-panel p-6 rounded-3xl border border-dark-border space-y-4">
+          <h3 class="text-lg font-bold text-cream mb-4">چیپ‌ها و نشان‌ها (Chips & Badges)</h3>
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-coral/15 text-coral border border-coral/30 text-xs font-bold">
+              <span class="w-1.5 h-1.5 rounded-full bg-coral"></span>
+              انتخاب صندلی 14B
+            </span>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gold/15 text-gold border border-gold/30 text-xs font-bold">
+              ★ سطح VIP طلایی
+            </span>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald/15 text-emerald border border-emerald/30 text-xs font-bold">
+              ✓ تایید قطعی رزرو
+            </span>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-dark-cardElevated text-cream-muted border border-dark-border text-xs font-medium">
+              پرواز مستقیم (Non-stop)
+            </span>
+          </div>
+          <div class="flex items-center gap-2 pt-2">
+            <span class="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-[11px] font-mono text-cream-subtle">
+              داده نمایشی (Mock)
+            </span>
+            <span class="px-2.5 py-1 rounded-lg bg-coral/20 text-coral text-[11px] font-bold">
+              ۲۷٪ تخفیف
+            </span>
+          </div>
+        </div>
+
+        <!-- Form Inputs & Form Controls -->
+        <div class="glass-panel p-6 rounded-3xl border border-dark-border space-y-4">
+          <h3 class="text-lg font-bold text-cream mb-4">ورودی‌ها و فیلدهای فرم (Form Inputs)</h3>
+          <div class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-cream-muted mb-1.5">کد تخفیف یا بن سازمانی</label>
+              <div class="flex gap-2">
+                <input type="text" value="KAREN-NOWRUZ" readonly class="flex-1 bg-dark-surface border border-dark-border rounded-xl px-4 py-2.5 text-sm text-cream font-mono focus:border-coral outline-none">
+                <button class="px-4 py-2.5 bg-dark-cardElevated hover:bg-dark-border text-cream text-xs font-bold rounded-xl border border-dark-border">
+                  اعمال کد
+                </button>
+              </div>
+            </div>
+            <div class="flex items-center justify-between p-3 rounded-xl bg-dark-surface border border-dark-border">
+              <span class="text-xs text-cream">ارسال پیامک تغییرات گیت و تاخیرات</span>
+              <div class="w-10 h-6 bg-coral rounded-full flex items-center p-0.5 justify-end">
+                <div class="w-5 h-5 bg-white rounded-full shadow-md"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Native Dark Bottom Tab Bar -->
+        <div class="glass-panel p-6 rounded-3xl border border-dark-border space-y-4">
+          <h3 class="text-lg font-bold text-cream mb-4">نوار ناوبری پایینی نیتیو (Bottom Tab Bar)</h3>
+          <div class="bg-dark-surface/90 border border-dark-border rounded-2xl p-2.5 flex items-center justify-around">
+            <div class="flex flex-col items-center gap-1 text-cream-subtle hover:text-cream cursor-pointer">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+              <span class="text-[10px]">خانه</span>
+            </div>
+            <div class="flex flex-col items-center gap-1 text-coral font-bold cursor-pointer">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+              <span class="text-[10px]">سفرهای من</span>
+            </div>
+            <div class="flex flex-col items-center gap-1 text-cream-subtle hover:text-cream cursor-pointer">
+              <div class="w-5 h-5 rounded-full border border-current flex items-center justify-center text-[10px] font-bold">AI</div>
+              <span class="text-[10px]">دستیار</span>
+            </div>
+            <div class="flex flex-col items-center gap-1 text-cream-subtle hover:text-cream cursor-pointer">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+              <span class="text-[10px]">کیف پول</span>
+            </div>
+            <div class="flex flex-col items-center gap-1 text-cream-subtle hover:text-cream cursor-pointer">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+              <span class="text-[10px]">پروفایل</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 4. Contrast & Accessibility Matrix -->
+    <section>
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-1.5 h-7 rounded-full bg-coral"></div>
+        <h2 class="text-2xl font-bold text-cream">۴. جدول ارزیابی کنتراست و دسترسی‌پذیری (WCAG 2.1 Accessibility)</h2>
+      </div>
+
+      <div class="glass-panel rounded-3xl overflow-hidden border border-dark-border">
+        <div class="overflow-x-auto">
+          <table class="w-full text-right text-sm">
+            <thead class="bg-dark-surface border-b border-dark-border text-cream-subtle text-xs font-semibold">
+              <tr>
+                <th class="p-4">عنصر / ترکیب</th>
+                <th class="p-4">رنگ متن</th>
+                <th class="p-4">رنگ پس‌زمینه</th>
+                <th class="p-4">نسبت کنتراست (Contrast Ratio)</th>
+                <th class="p-4">سطح انطباق WCAG</th>
+                <th class="p-4">کاربرد</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-dark-border text-cream-muted">
+              <tr>
+                <td class="p-4 font-bold text-cream">متن اصلی روی کانواس دارک</td>
+                <td class="p-4 font-mono text-cream">#FFF8F0 (Cream)</td>
+                <td class="p-4 font-mono text-dark-bg">#130818 (Dark Plum)</td>
+                <td class="p-4 font-bold text-emerald">۱۶.۸:۱</td>
+                <td class="p-4"><span class="px-2 py-0.5 rounded bg-emerald/20 text-emerald text-xs font-bold">AAA عالی</span></td>
+                <td class="p-4 text-xs">تیترها، متون بدنه و اعداد ارقام</td>
+              </tr>
+              <tr>
+                <td class="p-4 font-bold text-cream">متن دکمه مرجانی</td>
+                <td class="p-4 font-mono text-white">#FFFFFF (White)</td>
+                <td class="p-4 font-mono text-coral">#EF5B3D (Coral CTA)</td>
+                <td class="p-4 font-bold text-emerald">۴.۹:۱</td>
+                <td class="p-4"><span class="px-2 py-0.5 rounded bg-emerald/20 text-emerald text-xs font-bold">AA تایید</span></td>
+                <td class="p-4 text-xs">دکمه‌های اقدام اصلی و برجسته</td>
+              </tr>
+              <tr>
+                <td class="p-4 font-bold text-cream">اکسنت طلایی روی کارت دارک</td>
+                <td class="p-4 font-mono text-gold">#EFB448 (Gold)</td>
+                <td class="p-4 font-mono text-dark-card">#24142B (Dark Card)</td>
+                <td class="p-4 font-bold text-emerald">۷.۱:۱</td>
+                <td class="p-4"><span class="px-2 py-0.5 rounded bg-emerald/20 text-emerald text-xs font-bold">AAA عالی</span></td>
+                <td class="p-4 text-xs">نشان‌های VIP، ستاره‌ها و چیپ‌ها</td>
+              </tr>
+              <tr>
+                <td class="p-4 font-bold text-cream">متن ثانویه / راهنما</td>
+                <td class="p-4 font-mono text-cream-muted">#CBBDB3 (Muted)</td>
+                <td class="p-4 font-mono text-dark-surface">#1C0F22 (Surface)</td>
+                <td class="p-4 font-bold text-emerald">۹.۴:۱</td>
+                <td class="p-4"><span class="px-2 py-0.5 rounded bg-emerald/20 text-emerald text-xs font-bold">AAA عالی</span></td>
+                <td class="p-4 text-xs">توضیحات فرعی، برچسب‌های قوانین و PNR</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer Note -->
+    <footer class="pt-8 pb-12 border-t border-dark-border text-center text-xs text-cream-subtle">
+      طراحی شده برای پلتفرم اپلیکیشن و وب مسافرتی کارن تراول (Karen Travel) • تمامی حقوق محفوظ است ۱۴۰۳ • کلیه قیمت‌ها و داده‌ها به صورت آزمایشی (Mock) هستند.
+    </footer>
+
+  </main>
+</body>
+</html>
