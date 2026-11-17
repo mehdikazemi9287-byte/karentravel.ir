@@ -24,6 +24,8 @@ const csp = [
 
 const nextConfig = {
   output: 'standalone',
+  compress: true,
+  images: { formats: ['image/avif', 'image/webp'] },
   async headers() {
     return [{
       source: '/:path*',

@@ -1,13 +1,34 @@
 import json
 import uuid
+import sys
+import pytest
 
-from sqlalchemy import select
+from sqlalchemy import select, create_engine
+from sqlalchemy.orm import sessionmaker
 
 from app.database import SessionLocal
 from app.main import User
 from app.operations import NotificationDeliveryAttempt, NotificationRecord, OutboxEvent
 from app.outbox_worker import process_batch
 from datetime import datetime, timedelta, timezone
+
+
+@pytest.fixture(autouse=True)
+def isolated_outbox_database(tmp_path, monkeypatch):
+    # These tests assert one event's retry schedule. Other suites create more
+    # than the worker's 50-row batch limit, so use a separate DB rather than
+    # assuming a new event is first in the shared queue or raising the limit.
+    from app import outbox_worker
+    from app.main import Base, seed
+    engine = create_engine(f"sqlite:///{tmp_path / 'outbox.sqlite'}")
+    factory = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    Base.metadata.create_all(engine)
+    with factory() as db:
+        seed(db)
+    monkeypatch.setattr(sys.modules[__name__], 'SessionLocal', factory)
+    monkeypatch.setattr(outbox_worker, 'SessionLocal', factory)
+    yield
+    engine.dispose()
 
 
 def _seed_user():
