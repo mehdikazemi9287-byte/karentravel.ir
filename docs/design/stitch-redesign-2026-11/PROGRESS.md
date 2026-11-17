@@ -175,3 +175,7 @@ Rollback: حذف پوشه docs/design/stitch-redesign-2026-11 یا عدم merge 
 - Local QA: صفحه اول، /hotels، /flights، /account، /manage-booking، /restaurants پیکسل‌به‌پیکسل بدون تغییر؛ فقط دکمه‌های /trips، /tours، /support.
 - PR #87 شامل هر دو commit است (`43e344b`، `35a5e34`).
 - باز: ادغام PR #87؛ `karenseir-worker-1` unhealthy (از قبل).
+
+## ۱۴۰۵/۰۸/۲۶ — اصلاح نام برند و کنترل صفحه اول
+- نام برند در همه صفحه‌های Stitch (۲۰ فایل، ۷۳ مورد) و فیگما (۲۸ متن) از «کارن‌سیر» به **«کارن تراول»** اصلاح شد؛ GitHub Pages به‌روز شد. (کارن‌سیر فقط نام داخلی مسیرها/مخزن می‌ماند.)
+- کنترل صفحه اول روی سرور (`deploy/compare-homepage.sh`): HTML رندرشده‌ی image قبل از بازطراحی و نسخه زنده مقایسه شد — `/`، `/hotels`، `/flights` متن و کلاس‌ها **یکسان**؛ تنها تفاوت `/services` کلاس `ks-inner` است (عمدی).
