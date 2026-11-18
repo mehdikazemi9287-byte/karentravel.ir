@@ -70,3 +70,15 @@
 .pn[data-area=customer] .pn-stat strong,.pn[data-area=customer] .pn-stat b{font-size:22px;font-weight:900;color:#2a1530}
 .pn[data-area=customer] .pn-btn{border-radius:999px}
 .pn[data-area=customer] .pn-nav a[aria-current=page]{background:#ef5b3d;color:#fff;border-radius:14px}
+
+/* ---------- Login / OTP (Stitch Desktop/14) — ApprovedShell pages ---------- */
+.approved-site.ks-inner>main:has(form .button.primary) .page-hero{text-align:center}
+.approved-site.ks-inner>main .container>form.filters{background:#fff;border:1px solid #f0e2d8;border-radius:28px;padding:24px;box-shadow:0 18px 45px rgba(42,21,48,.08)}
+.approved-site.ks-inner>main .container>form.filters input:not([type=checkbox]){border:1px solid #f0e2d8;border-radius:14px;background:#fffaf4;padding:12px 14px;font-size:16px;letter-spacing:.5px}
+.approved-site.ks-inner>main .container>form.filters input:not([type=checkbox]):focus{border-color:#ef5b3d;outline:none;box-shadow:0 0 0 3px rgba(239,91,61,.15)}
+.approved-site.ks-inner>main .container>form.filters .button.primary{background:#a8321d;color:#fff;border-radius:16px;padding:13px;font-weight:800}
+
+/* ---------- Manage booking & confirmation (Stitch Desktop/11-12) ---------- */
+.journey-page .booking-overview{box-shadow:0 1px 8px rgba(42,21,48,.05)}
+.journey-page .manage-actions :is(a,button){border-radius:18px}
+.journey-page .confirmation-card{background:#fff;border:1px solid #f0e2d8;border-radius:28px;box-shadow:0 18px 45px rgba(42,21,48,.08)}
