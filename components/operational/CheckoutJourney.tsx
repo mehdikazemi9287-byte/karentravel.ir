@@ -1,4 +1,5 @@
 'use client';
+import '../marketplace/stitch-pages-2026-11.css';
 import {HotelStaySummary,type HotelStaySelection} from './HotelStaySelection';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';

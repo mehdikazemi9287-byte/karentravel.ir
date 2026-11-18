@@ -1,4 +1,5 @@
 'use client';
+import '../marketplace/stitch-pages-2026-11.css';
 /* Master-data views. Everything rendered here is reference data (name, place, facilities, contact);
    price, availability and rooms come only from real supplier offers and are never shown from this catalog. */
 import Link from 'next/link';

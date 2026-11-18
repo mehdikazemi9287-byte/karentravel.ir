@@ -1,4 +1,5 @@
 'use client';
+import '../marketplace/stitch-pages-2026-11.css';
 /* Shared kit for the role panels: one shell, one way to load data, one set of states.
    A value that the backend does not return is shown as unavailable; nothing here invents a figure. */
 import Link from 'next/link';

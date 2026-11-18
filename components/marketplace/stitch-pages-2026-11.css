@@ -1,0 +1,72 @@
+/*
+  Karen Travel — Google Stitch 2026-11 design for: hotel/catalog lists (Desktop/05), hotel detail (Desktop/07),
+  checkout & payment (Desktop/09-10), customer dashboard (Desktop/04). Presentation only — no data, price or flow changes.
+  Homepage untouched (none of these classes exist there). Rollback: remove the imports of this file.
+*/
+
+/* ---------- Catalog lists: hotels, tours, places (Stitch hotel results) ---------- */
+.cat{--st-plum:#2a1530;--st-coral:#ef5b3d;--st-red:#a8321d;--st-line:#f0e2d8;--st-muted:#7f6d79;--st-cream:#fbf3e7}
+.cat .cat-head h1,.cat .cat-head h2{color:var(--st-plum);font-weight:800;letter-spacing:-.5px}
+.cat .cat-search input{border:1px solid var(--st-line);border-radius:999px;padding:10px 16px;background:#fff}
+.cat .cat-search .button,.cat .cat-search button{border-radius:999px}
+.cat .cat-filters{background:#fff;border:1px solid var(--st-line);border-radius:24px;padding:16px 18px;box-shadow:0 1px 8px rgba(42,21,48,.04)}
+.cat .cat-filters :is(select,input){border:1px solid var(--st-line);border-radius:14px;background:#fffaf4;padding:8px 12px}
+.cat .cat-chips :is(a,button,span){border-radius:999px;border:1px solid var(--st-line);background:#fff;color:var(--st-plum);padding:6px 14px;font-size:13px;font-weight:700}
+.cat .cat-chips :is(a,button)[aria-pressed=true],.cat .cat-chips :is(a,button)[aria-current]{background:var(--st-plum);color:#fff;border-color:var(--st-plum)}
+.cat .cat-grid{gap:20px}
+.cat .cat-card{border:1px solid var(--st-line);border-radius:24px;box-shadow:0 1px 6px rgba(42,21,48,.04);transition:box-shadow .2s,border-color .2s,transform .2s}
+.cat .cat-card:hover{border-color:#e9b9a9;box-shadow:0 18px 45px rgba(42,21,48,.10);transform:translateY(-2px)}
+.cat .cat-thumb{background:#f3e7dc;border-radius:20px;margin:8px 8px 0}
+.cat .cat-thumb img{border-radius:20px}
+.cat .cat-thumb-empty{background:linear-gradient(120deg,#2a1530,#5b2a4e);color:#fff;border-radius:20px}
+.cat .cat-card-body{padding:14px 16px 18px}
+.cat .cat-card-body h3,.cat .cat-h3{color:var(--st-plum);font-weight:800}
+.cat .cat-stars{color:#e3a21a}
+.cat .cat-tag,.cat .cat-detail-tag{background:#f5eee4;color:var(--st-plum);border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700}
+.cat .cat-price{color:var(--st-red);font-weight:900}
+.cat .cat-meta{color:var(--st-muted)}
+.cat .cat-pager :is(a,button,span){border-radius:999px;min-width:36px;height:36px;display:inline-grid;place-items:center;border:1px solid var(--st-line);background:#fff;color:var(--st-plum)}
+.cat .cat-pager [aria-current]{background:var(--st-red);border-color:var(--st-red);color:#fff}
+.cat .button.primary{background:var(--st-red);border-radius:999px;color:#fff}
+.cat .button.secondary{border-radius:999px;background:#fffaf4;border-color:var(--st-line);color:var(--st-plum)}
+
+/* ---------- Hotel detail (Stitch Desktop/07) ---------- */
+.cat-detail{--st-plum:#2a1530;--st-coral:#ef5b3d;--st-red:#a8321d;--st-line:#f0e2d8;--st-muted:#7f6d79}
+.cat-detail .cat-crumbs{font-size:13px;color:var(--st-muted)}
+.cat-detail .cat-crumbs a{color:var(--st-muted)}
+.cat-detail .cat-detail-head{background:#fff;border:1px solid var(--st-line);border-radius:28px;padding:22px 26px;box-shadow:0 1px 8px rgba(42,21,48,.05)}
+.cat-detail .cat-detail-head h1{color:var(--st-plum);font-weight:900;letter-spacing:-1px}
+.cat-detail .cat-where{color:var(--st-muted)}
+.cat-detail .cat-gallery{display:grid;grid-template-columns:2fr 1fr 1fr;grid-auto-rows:180px;gap:10px;border-radius:28px;overflow:hidden}
+.cat-detail .cat-gallery>:first-child{grid-row:span 2}
+.cat-detail .cat-gallery img{width:100%;height:100%;object-fit:cover}
+.cat-detail .cat-detail-grid{gap:24px}
+.cat-detail .cat-detail-grid>*{min-width:0}
+.cat-detail :is(.cat-amen,.cat-attrib,.cat-access,.cat-rooms,.cat-inquiry,.cat-dl){background:#fff;border:1px solid var(--st-line);border-radius:24px;padding:18px 20px}
+.cat-detail .cat-amen :is(li,span){background:#f5eee4;border-radius:999px;padding:5px 12px;font-size:12px;color:var(--st-plum)}
+.cat-detail .cat-rooms>*{border-radius:20px}
+.cat-detail .cat-room-img{border-radius:18px;overflow:hidden}
+.cat-detail .cat-inquiry{position:sticky;top:96px;box-shadow:0 18px 45px rgba(42,21,48,.08)}
+.cat-detail .cat-price{color:var(--st-red);font-size:24px;font-weight:900}
+.cat-detail .cat-noimage{background:linear-gradient(120deg,#2a1530,#5b2a4e);color:#fff;border-radius:24px}
+.cat-detail .button.primary{background:var(--st-red);color:#fff;border-radius:16px;width:100%;justify-content:center;padding:12px 18px;font-weight:800}
+.cat-detail .button.secondary{border-radius:16px;background:#fffaf4;border-color:var(--st-line);color:var(--st-plum)}
+@media(max-width:900px){.cat-detail .cat-gallery{grid-template-columns:1fr 1fr;grid-auto-rows:130px}.cat-detail .cat-inquiry{position:static}}
+
+/* ---------- Checkout & payment (Stitch Desktop/09-10) ---------- */
+.journey-page .customer-page{--st-plum:#2a1530;--st-red:#a8321d;--st-line:#f0e2d8;--st-muted:#7f6d79}
+.journey-page .customer-page .panel{background:#fff;border:1px solid var(--st-line);border-radius:24px;padding:20px 22px;box-shadow:0 1px 8px rgba(42,21,48,.04)}
+.journey-page .customer-page .panel h2,.journey-page .customer-page .panel h3{color:var(--st-plum);font-weight:800}
+.journey-page .customer-page :is(input,select,textarea){border:1px solid var(--st-line);border-radius:14px;background:#fffaf4;padding:10px 14px}
+.journey-page .customer-page :is(input,select,textarea):focus{border-color:#ef5b3d;outline:none;box-shadow:0 0 0 3px rgba(239,91,61,.15)}
+.journey-page .customer-page .customer-actions{display:flex;gap:10px;flex-wrap:wrap}
+.journey-page .customer-page .customer-actions .button.primary{background:var(--st-red);color:#fff;border-radius:16px;padding:12px 22px;font-weight:800}
+.journey-page .customer-page .customer-actions .button.secondary{border-radius:16px}
+
+/* ---------- Customer dashboard (Stitch Desktop/04) ---------- */
+.pn[data-area=customer] .pn-head h1{font-weight:900;letter-spacing:-.5px}
+.pn[data-area=customer] .pn-card{border-radius:24px;box-shadow:0 1px 8px rgba(42,21,48,.04)}
+.pn[data-area=customer] .pn-stat{border-radius:20px;background:#fff}
+.pn[data-area=customer] .pn-stat strong,.pn[data-area=customer] .pn-stat b{font-size:22px;font-weight:900;color:#2a1530}
+.pn[data-area=customer] .pn-btn{border-radius:999px}
+.pn[data-area=customer] .pn-nav a[aria-current=page]{background:#ef5b3d;color:#fff;border-radius:14px}
