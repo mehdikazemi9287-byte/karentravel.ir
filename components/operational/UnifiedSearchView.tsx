@@ -1,4 +1,5 @@
 'use client';
+import './search-results-2026-11.css';
 import {trainPartyIssue} from '../../lib/train-party';
 import {flightPartyIssue} from '../../lib/flight-party';
 import {rentalRangeError} from '../../lib/rental-search';
