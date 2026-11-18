@@ -210,3 +210,28 @@ Rollback: حذف پوشه docs/design/stitch-redesign-2026-11 یا عدم merge 
 - اسکریپت `deploy/https-container.sh` (nginx داخل کانتینر، Let's Encrypt webroot، بلوک TLS، ریدایرکت فقط برای دامنه، تمدید خودکار) + `https-container-rollback.sh`.
 - اجرا روی سرور: DNS هر دو دامنه به 188.121.123.218 درست است، مسیر ACME محلی 200 است، فایروال آروان 80/443 را برای همه باز دارد؛ اما **Let's Encrypt از خارج به پورت 80 سرور نمی‌رسد** (Timeout during connect) — محدودیت ورودی بین‌المللی. هیچ تغییری در nginx/‎.env اعمال نشد (شکست قبل از مرحله ۴). فقط بسته certbot نصب و حساب LE ثبت شد.
 - راه‌های جایگزین: (۱) CDN آروان با SSL رایگان — تغییر NS دامنه در طلاهاست به آروان؛ (۲) چالش DNS (رکورد TXT در طلاهاست، تمدید دستی هر ۹۰ روز)؛ (۳) گواهی خریداری‌شده (طلاهاست/مرجع داخلی) با `CERT_FULLCHAIN`/`CERT_KEY`.
+
+## KARENSEIR CHECKPOINT — HTTPS via ArvanCloud CDN (1405/08/27 · 2026-11-18)
+
+**Status: HTTPS live for users in Iran.** `https://karentravel.ir` and `https://www.karentravel.ir` serve through the Arvan CDN.
+
+What was changed (Arvan panel, domain karentravel.ir):
+1. SSL/TLS → origin servers: protocol to origin = **HTTP** (origin nginx has no TLS; edge→origin on port 80).
+2. DNS: cloud proxy **ON** for both A records (`@`, `www` → 188.121.123.218).
+3. SSL/TLS → edge servers: **HTTPS enabled** with Arvan-managed Let's Encrypt cert (karentravel.ir + *.karentravel.ir, auto-renewed by Arvan).
+4. Caching: left at default (with QueryString; Arvan caches static assets only, HTML/API are not cached).
+
+Verification (check-host.net, 8 Iranian nodes Tehran/Qom/Shiraz/Isfahan):
+- `https://karentravel.ir/` → 200 on all 8
+- `https://www.karentravel.ir/hotels` → 200 on all 8
+- `https://karentravel.ir/api/health` → 200 on all 8
+- Nodes outside Iran: timeout/504 — **same as before** (the origin was already unreachable from abroad; that is also why Let's Encrypt HTTP-01 on the server failed).
+
+Note: a first attempt showed 504 because the test browser exits outside Iran; the proxy was briefly reverted (~10 min), then re-enabled after the Iranian-node test.
+
+Not done yet (needs server console):
+- `.env`: `PUBLIC_WEB_URL=https://karentravel.ir`, add `https://karentravel.ir,https://www.karentravel.ir` to `CORS_ORIGINS`, then `docker compose up -d --no-deps api`. Required before payment returns (VandaPay).
+- Then enable **«پیش‌فرض‌شدن HTTPS»** (HTTP→HTTPS redirect) in Arvan edge settings.
+- Server console tty is stuck on a `docker compose exec … tail /dev/stdout` (needs one Ctrl+C typed by a human in the Arvan console). Site unaffected.
+
+Rollback: Arvan DNS → turn cloud OFF for `@` and `www` (direct HTTP to origin returns, TTL 2 min). Optionally disable HTTPS on edge.
