@@ -184,3 +184,4 @@ Rollback: حذف پوشه docs/design/stitch-redesign-2026-11 یا عدم merge 
 - `/search/results` به طراحی Desktop/02 و Mobile/02 استیچ درآمد: کارت خلاصه، فیلتر چسبان، کارت پرواز (نشان ایرلاین، ساعت درشت، خط مسیر، برچسب توقف)، دکمه قرمز تمام‌عرض.
 - فقط ظاهر؛ داده، قیمت (فقط پس از ورود) و منطق رزرو بدون تغییر. QA با API نمایشی محلی (Mock): `qa/impl/flight-results-*-mock.png`.
 - بعدی: نتایج هتل، جزئیات هتل، پرداخت، داشبورد.
+- **مستقر شد (2026-11-18 08:48 UTC):** server HEAD `3b25575`، `karenseir-web-1` healthy؛ `/`، `/search/results`، `/services`، `/flights`، `/hotels` همه 200 (بررسی مستقیم روی کانتینر). PR #87 هم به‌روز شد.
