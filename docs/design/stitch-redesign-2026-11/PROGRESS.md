@@ -187,3 +187,9 @@ Rollback: حذف پوشه docs/design/stitch-redesign-2026-11 یا عدم merge 
 - **مستقر شد (2026-11-18 08:48 UTC):** server HEAD `3b25575`، `karenseir-web-1` healthy؛ `/`، `/search/results`، `/services`، `/flights`، `/hotels` همه 200 (بررسی مستقیم روی کانتینر). PR #87 هم به‌روز شد.
 - **patch 0005:** فهرست هتل/کاتالوگ، جزئیات هتل، پرداخت و داشبورد مشتری به طراحی استیچ (فقط ظاهر). QA: `qa/impl/hotels-stitch.png`، `qa/impl/account-checkout-stitch.png`.
 - **patch 0006:** صفحه ورود/OTP به شکل کارت استیچ، مدیریت رزرو و تأیید رزرو. QA: `qa/impl/login-stitch.png`.
+
+## KARENSEIR CHECKPOINT — طراحی استیچ روی صفحات سایت (2026-11-18 09:30 UTC)
+- مستقر: patchهای 0004 (نتایج جست‌وجو)، 0005 (فهرست هتل/کاتالوگ، جزئیات هتل، پرداخت، داشبورد)، 0006 (ورود/OTP، مدیریت و تأیید رزرو). Server HEAD `c89c77d`، web healthy.
+- Verify روی کانتینر: `/`، `/login`، `/hotels`، `/search/results`، `/account`، `/services`، `/flights` = 200. (`/manage-booking` بدون شناسه از قبل 404 است؛ مسیر واقعی `/manage-booking/[id]`.)
+- نگاشت صفحات Stitch دسکتاپ → سایت: 02 و 08 → `/search/results`؛ 05 → `/hotels`؛ 03 و 07 → جزئیات کاتالوگ (`.cat-detail`)؛ 04 → `/account`؛ 09 و 10 → `/checkout/[id]`؛ 11 و 12 → مدیریت/تأیید رزرو؛ 06 و 13 → مقایسه و دستیار (لایه ADR-023)؛ 14 → `/login`. صفحه اول (01) طبق دستور دست‌نخورده. صفحات موبایل وب با قواعد واکنش‌گرا. صفحات «اپ» و «تبلت» مربوط به اپلیکیشن/پنل B2B هستند و در سایت جایی ندارند.
+- باز: دیدن ظاهر زنده با داده واقعی توسط مالک؛ ادغام PR #87.
