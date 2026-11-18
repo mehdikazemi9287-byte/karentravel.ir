@@ -97,6 +97,16 @@ else
   CODE=1
 fi
 
+P7=0007-stitch-hotel-results-layout.patch
+if grep -q "Hotel results layout = Stitch Desktop/05" components/marketplace/stitch-pages-2026-11.css 2>/dev/null; then
+  echo "0007 already applied — skip"
+else
+  curl -fsSL --retry 3 -m 120 -o "$TMP/$P7" "$RAW/deploy/patches/$P7"
+  git apply --check "$TMP/$P7"
+  git -c user.name="KarenSeir Deploy" -c user.email="deploy@karentravel.ir" am "$TMP/$P7"
+  CODE=1
+fi
+
 step "4) design gallery + docs (everything from Stitch/Figma round 1–4)"
 # Not served from Next public/: production CSP (script-src 'self', X-Frame-Options DENY) blocks the
 # Tailwind CDN and the gallery iframes. Public preview stays on GitHub Pages; the server keeps the full set in docs/.
