@@ -24,9 +24,11 @@ API سمت سرور (redirect به صفحهٔ پرداخت میزبانی‌شد
 آدرس وب‌هوک برای ثبت در پنل پذیرندهٔ ونداپی: `https://<api-domain>/payments/vandapay/webhook`.
 
 ## آزمون
-`cd backend && pytest tests/test_vandapay.py` — ۱۵ آزمون با MOCK؛ کل مجموعه: ۲۲۶ موفق، ۶ skip، ۳ شکست قدیمی و نامرتبط در `test_outbox_worker.py` (پیش از این تغییر هم بود).
+`cd backend && pytest tests/test_vandapay.py tests/test_vandapay_hardening.py` — ۱۵ + ۱۴ آزمون با MOCK (ADR-022: استرداد، لغو intent، تأیید سازمان، رزرو کاملاً اعتباری، انحصار منبع)؛ کل مجموعه: ۲۲۶ موفق، ۶ skip، ۳ شکست قدیمی و نامرتبط در `test_outbox_worker.py` (پیش از این تغییر هم بود).
 
 ## باقی‌مانده (پیش از روشن کردن)
 - قرارداد PSP و نظر حقوقی (D15)؛ استقرار سرور/دامنهٔ ونداپی؛ پذیرش KarenSeir/تاژبان به‌عنوان پذیرنده و کلید `sk_test_`.
-- آزمون سرتاسری با sandbox واقعی ونداپی؛ استرداد خودکار از طریق ونداپی (فعلاً رویداد استرداد فقط ثبت و بررسی دستی).
+- آزمون سرتاسری با sandbox واقعی ونداپی (استرداد/لغو/تأیید سازمان فقط با MOCK آزموده شده‌اند — ADR-022).
+- ادغام VP-01 (`expires_in_seconds`) در ونداپی؛ تا آن زمان `VANDAPAY_INTENT_EXPIRES_IN_SECONDS` را خالی بگذارید.
+- K8 (`reverse_capture` اعتبار داخلی در استرداد پس از صدور)؛ منبع موبایل تأییدشده برای `customer_phone`.
 - تصمیم مالک دربارهٔ redirect به صفحهٔ ونداپی یا پرداخت جاسازی‌شده (`docs/integration-plans/karenseir.md` در مخزن ونداپی).

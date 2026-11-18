@@ -954,7 +954,21 @@ def transition_reservation(db: Session, reservation: Reservation, target: str, a
         settle_reservation_funding(db, reservation, "capture")
     elif target in {"cancelled", "failed", "expired"}:
         settle_reservation_funding(db, reservation, "release")
+        request_external_payment_void(db, reservation)
     return reservation
+
+
+def request_external_payment_void(db: Session, reservation: Reservation) -> int:
+    """The booking hold was released (cancelled/failed/expired): every still-open VandaPay intent of it must be
+    cancelled at VandaPay too, so the customer cannot pay for a booking that no longer exists (ADR-022 K2).
+    No network here (this module is DB-only): the intent is marked ``cancel_pending`` + an outbox event, and
+    ``main.vandapay_sweep`` (outbox worker loop) performs the idempotent cancel. A payment that VandaPay
+    completes anyway (race) is recorded as a late capture and refunded in full — never issued."""
+    rows = db.scalars(select(PaymentIntent).where(PaymentIntent.tenant_id == reservation.tenant_id, PaymentIntent.reservation_id == reservation.id, PaymentIntent.provider_key == "vandapay", PaymentIntent.status == "initiated").with_for_update()).all()
+    for intent in rows:
+        intent.status = "cancel_pending"
+        db.add(OutboxEvent(tenant_id=reservation.tenant_id, aggregate_type="payment", aggregate_id=intent.id, event_type="payment.vandapay.cancel_requested", payload_json=json.dumps({"intent": intent.provider_authority, "reservation_status": reservation.status}), idempotency_key=f"vandapay-cancel:{intent.id}"))
+    return len(rows)
 
 
 def post_ledger(db: Session, *, tenant_id: int, wallet_id: Optional[str] = None, credit_account_id: Optional[str] = None, command_id: str, entry_type: str, amount: int, reservation_id: Optional[str] = None, reversal_of_id: Optional[str] = None) -> FinancialLedgerEntry:

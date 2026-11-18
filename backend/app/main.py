@@ -934,7 +934,7 @@ def create_service_request(reservation_id: str, data: ServiceRequestIn, user: Us
         payment = db.scalar(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.tenant_id == user.tenant_id, operational_models.PaymentIntent.reservation_id == reservation.id, operational_models.PaymentIntent.status == "captured").with_for_update())
         if payment is None: raise HTTPException(status_code=409, detail="پرداخت captureشده برای استرداد موجود نیست")
         amount = int(quote["refundable_amount"])
-        pending = db.scalar(select(func.coalesce(func.sum(operational_models.RefundRecord.amount), 0)).where(operational_models.RefundRecord.tenant_id == user.tenant_id, operational_models.RefundRecord.payment_intent_id == payment.id, operational_models.RefundRecord.status == "requested")) or 0
+        pending = db.scalar(select(func.coalesce(func.sum(operational_models.RefundRecord.amount), 0)).where(operational_models.RefundRecord.tenant_id == user.tenant_id, operational_models.RefundRecord.payment_intent_id == payment.id, operational_models.RefundRecord.status.in_(REFUND_OPEN_STATUSES))) or 0
         if amount <= 0 or amount > payment.captured_amount - payment.refunded_amount - int(pending): raise HTTPException(status_code=409, detail="مبلغ معتبر قابل استرداد موجود نیست")
         refund = operational_models.RefundRecord(tenant_id=user.tenant_id, payment_intent_id=payment.id, command_id=idempotency_key, amount=amount)
         db.add(refund); db.flush(); refund_id = refund.id
@@ -1155,6 +1155,10 @@ async def payment_callback(provider_key: str, request: Request, x_payment_signat
 
 @app.post("/payments/{payment_id}/refunds", status_code=status.HTTP_202_ACCEPTED)
 def request_refund(payment_id: str, data: RefundIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    """Customer refund request. For a VandaPay-paid booking the provider refund is executed automatically ONLY when
+    the supplier has already made the cancellation final (reservation ``cancelled``) and the amount is within the
+    verified booking-time policy quote; anything else waits for finance (``POST /finance/refunds/{id}/execute``).
+    A customer can therefore never pull money back for a booking that is still valid."""
     intent = db.scalar(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.id == payment_id, operational_models.PaymentIntent.tenant_id == user.tenant_id, operational_models.PaymentIntent.user_id == user.id).with_for_update())
     if intent is None:
         raise HTTPException(status_code=404, detail="پرداخت در این حساب وجود ندارد")
@@ -1162,23 +1166,74 @@ def request_refund(payment_id: str, data: RefundIn, user: User = Depends(current
     if existing:
         if existing.payment_intent_id != intent.id or existing.amount != data.amount:
             raise HTTPException(status_code=409, detail="کلید تکرار برای درخواست دیگری استفاده شده است")
-        return {"id": existing.id, "status": existing.status, "amount": existing.amount}
-    pending_refunds = db.scalar(select(func.coalesce(func.sum(operational_models.RefundRecord.amount), 0)).where(operational_models.RefundRecord.tenant_id == user.tenant_id, operational_models.RefundRecord.payment_intent_id == intent.id, operational_models.RefundRecord.status == "requested")) or 0
+        if existing.status == "processing" and not existing.provider_reference:  # retry after a transient provider error
+            client, _ = _vandapay_client()
+            if client is not None and intent.provider_key == "vandapay":
+                _vandapay_drive_refund(db, tenant_id=user.tenant_id, intent=intent, refund=existing, client=client); db.commit()
+        return _refund_output(existing, intent)
+    pending_refunds = db.scalar(select(func.coalesce(func.sum(operational_models.RefundRecord.amount), 0)).where(operational_models.RefundRecord.tenant_id == user.tenant_id, operational_models.RefundRecord.payment_intent_id == intent.id, operational_models.RefundRecord.status.in_(REFUND_OPEN_STATUSES))) or 0
     if intent.status != "captured" or data.amount > intent.captured_amount - intent.refunded_amount - int(pending_refunds):
         raise HTTPException(status_code=409, detail="مبلغ قابل استرداد کافی نیست")
     refund = operational_models.RefundRecord(tenant_id=user.tenant_id, payment_intent_id=intent.id, command_id=data.command_id, amount=data.amount)
     db.add(refund); db.flush()
     db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="refund", aggregate_id=refund.id, event_type="refund.requested", payload_json=json.dumps({"refund_id": refund.id, "payment_intent_id": intent.id, "amount": refund.amount}), correlation_id=str(uuid.uuid4()), idempotency_key=data.command_id))
+    client, _ = _vandapay_client()
+    if client is not None and intent.provider_key == "vandapay":
+        reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == intent.reservation_id, operational_models.Reservation.tenant_id == user.tenant_id))
+        quote = _verified_cancellation_quote(reservation) if reservation is not None else None
+        already = int(intent.refunded_amount) + int(pending_refunds)
+        if reservation is not None and reservation.status == "cancelled" and quote and already + refund.amount <= int(quote["refundable_amount"]):
+            refund.status = "processing"
+            db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="refund", aggregate_id=refund.id, event_type="refund.vandapay.authorised", payload_json=json.dumps({"refund_id": refund.id, "basis": "reservation_cancelled_within_verified_policy", "policy_source": quote["policy_source"]}), correlation_id=str(uuid.uuid4()), idempotency_key=f"vandapay-refund-auth:{refund.id}"))
+            db.commit()  # the authorised refund is durable BEFORE any money moves (crash-safe; the sweep retries it)
+            _vandapay_drive_refund(db, tenant_id=user.tenant_id, intent=intent, refund=refund, client=client)
     db.commit()
     record_business_event("refund", "requested")
-    return {"id": refund.id, "status": refund.status, "amount": refund.amount}
+    return _refund_output(refund, intent)
 
 
-# --- VandaPay («پرداخت با ونداپی») — additional fail-closed payment provider (ADR-021) ---------------
+def _refund_output(refund, intent) -> dict:
+    out = {"id": refund.id, "status": refund.status, "amount": refund.amount}
+    if intent.provider_key == "vandapay":
+        out["provider"] = "vandapay"
+        if refund.status == "requested":
+            out["message"] = "درخواست استرداد ثبت شد و پس از بررسی مالی/تأیید لغو توسط تأمین‌کننده اجرا می‌شود."
+        elif refund.status == "manual_review":
+            out["message"] = "استرداد نیاز به بررسی دستی (انتقال بانکی) دارد."
+    return out
+
+
+@app.post("/finance/refunds/{refund_id}/execute", status_code=status.HTTP_202_ACCEPTED)
+def execute_refund(refund_id: str, user: User = Depends(require_permission("refund:manage")), db: Session = Depends(get_db)) -> dict:
+    """Finance authorises and executes a recorded refund at its provider (VandaPay). Idempotent: re-calling retries
+    with the same provider Idempotency-Key and never refunds twice."""
+    client, _ = _vandapay_client()
+    refund = db.scalar(select(operational_models.RefundRecord).where(operational_models.RefundRecord.id == refund_id, operational_models.RefundRecord.tenant_id == user.tenant_id).with_for_update())
+    if refund is None:
+        raise HTTPException(status_code=404, detail="درخواست استرداد در این tenant وجود ندارد")
+    intent = db.scalar(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.id == refund.payment_intent_id, operational_models.PaymentIntent.tenant_id == user.tenant_id).with_for_update())
+    if intent is None or intent.provider_key != "vandapay" or client is None:
+        raise HTTPException(status_code=409, detail="اجرای خودکار استرداد برای این پرداخت فعال نیست")
+    if refund.status == "requested":
+        if intent.status != "captured" or intent.refunded_amount + refund.amount > intent.captured_amount:
+            raise HTTPException(status_code=409, detail="مبلغ قابل استرداد کافی نیست")
+        refund.status = "processing"
+        db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="refund", aggregate_id=refund.id, event_type="refund.vandapay.authorised", payload_json=json.dumps({"refund_id": refund.id, "basis": "finance", "actor_id": user.id}), correlation_id=str(uuid.uuid4()), idempotency_key=f"vandapay-refund-auth:{refund.id}"))
+        db.commit()
+    if refund.status == "processing" and not refund.provider_reference:
+        _vandapay_drive_refund(db, tenant_id=user.tenant_id, intent=intent, refund=refund, client=client)
+        db.commit()
+    return _refund_output(refund, intent)
+
+
+# --- VandaPay («پرداخت با ونداپی») — additional fail-closed payment provider (ADR-021, ADR-022) --------
 # Flag OFF by default (VANDAPAY_ENABLED). Disabled => every endpoint below answers 404 and
 # /payments/methods does not list it. Money is recorded only after a server-to-server re-read of the
 # VandaPay intent (status succeeded + exact rial amount + IRR + key mode + our metadata).
 VANDAPAY_TRANSPORT = None  # tests inject a MOCK transport here; production uses HTTPS urllib
+REFUND_OPEN_STATUSES = ("requested", "processing", "manual_review")  # count against the refundable remainder
+RESERVATION_RELEASED_STATUSES = frozenset({"cancelled", "failed", "expired"})
+_vp_log = logging.getLogger("karenseir.vandapay")
 
 
 def _vandapay_client():
@@ -1188,6 +1243,163 @@ def _vandapay_client():
     if config is None or not return_url.startswith("https://"):
         return None, None
     return vp.VandaPayClient(config, transport=VANDAPAY_TRANSPORT), return_url
+
+
+def _federated_credit_organization_ids() -> frozenset:
+    """Organizations whose credit PROGRAM is owned by VandaPay's ledger (federated model, ADR-022): KarenSeir must
+    never reserve their credit internally — it is spent only on the VandaPay checkout. Default empty = every
+    internal CreditAccount is owned by KarenSeir's own ledger. Interim env config (no migration) until a
+    credit_accounts.owning_ledger column is introduced."""
+    raw = os.getenv("VANDAPAY_FEDERATED_CREDIT_ORGANIZATION_IDS", "") or ""
+    return frozenset(part.strip() for part in raw.split(",") if part.strip())
+
+
+def _internal_ledger_funding(db: Session, *, tenant_id: int, reservation_id: str) -> dict:
+    """Net wallet / organization-credit amount still committed to this reservation in KarenSeir's own ledger."""
+    rows = db.scalars(select(operational_models.FinancialLedgerEntry).where(operational_models.FinancialLedgerEntry.tenant_id == tenant_id, operational_models.FinancialLedgerEntry.reservation_id == reservation_id)).all()
+    out = {"wallet": 0, "organization_credit": 0}
+    for row in rows:
+        key = "wallet" if row.wallet_id else "organization_credit"
+        if row.entry_type == "reserve": out[key] += row.amount
+        elif row.entry_type in {"release", "reverse_capture"}: out[key] -= row.amount
+    out["total"] = out["wallet"] + out["organization_credit"]
+    return out
+
+
+def _verified_customer_phone(user: User) -> Optional[str]:
+    """Only a mobile the user actually authenticated with (OTP login identifier) is sent; never guessed or typed."""
+    from . import vandapay as vp
+    return vp.normalize_ir_mobile(user.email) if user is not None else None
+
+
+def _vandapay_line_items(db: Session, *, tenant_id: int, reservation: "operational_models.Reservation", amount: int, category: str) -> Optional[list]:
+    """One line per booking item when it can be stated exactly. The intent amount may be only the card part
+    (after wallet / internal credit), so lines are sent only for a single-item booking (line = whole amount);
+    a multi-item booking has no authoritative per-item split of the remainder -> no lines (never invented)."""
+    items = db.scalars(select(operational_models.BookingItem).where(operational_models.BookingItem.tenant_id == tenant_id, operational_models.BookingItem.reservation_id == reservation.id)).all()
+    if len(items) != 1:
+        return None
+    try:
+        snap = json.loads(items[0].snapshot_json or "{}")
+        units = int(json.loads(reservation.price_snapshot_json or "{}").get("units", 1)) or 1
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return None
+    line = {"sku": str(snap.get("offer_id") or reservation.id)[:64], "category": category, "amount": int(amount), "quantity": max(1, min(units, 10000))}
+    if snap.get("title"):
+        line["name"] = str(snap["title"])[:200]
+    return [line]
+
+
+def _vandapay_trip_event(db: Session, *, tenant_id: int, intent, key: str, event_type: str, title: str, message: str, severity: str = "info") -> None:
+    _record_payment_trip_event(db, tenant_id=tenant_id, intent=intent, event_key=key, event_type=event_type, title=title, message=message, severity=severity)
+
+
+def _apply_vandapay_refund_success(db: Session, *, tenant_id: int, intent, refund, provider_refund_id: Optional[str]) -> bool:
+    """Record a refund VandaPay reports as succeeded (API-verified). Idempotent. False if it would over-refund."""
+    from . import vandapay as vp
+    if refund.status == "succeeded":
+        return True
+    if intent.refunded_amount + refund.amount > intent.captured_amount:
+        _vp_log.error("vandapay refund %s would exceed capture of %s: manual review", provider_refund_id, intent.id)
+        refund.status = "manual_review"
+        return False
+    refund.status = "succeeded"
+    refund.provider_reference = (provider_refund_id or refund.provider_reference or "")[:160] or None
+    intent.refunded_amount += refund.amount
+    intent.status = "refunded" if intent.refunded_amount == intent.captured_amount else "captured"
+    event_id = f"vandapay:refund:{refund.provider_reference or refund.id}"
+    if not db.scalar(select(operational_models.PaymentEvent).where(operational_models.PaymentEvent.provider_key == vp.PROVIDER_KEY, operational_models.PaymentEvent.provider_event_id == event_id)):
+        db.add(operational_models.PaymentEvent(tenant_id=tenant_id, payment_intent_id=intent.id, provider_key=vp.PROVIDER_KEY, provider_event_id=event_id, event_type="refund_succeeded", payload_hash=_secure_hash(f"{refund.id}:{refund.amount}:{refund.provider_reference}")))
+    db.add(operational_models.OutboxEvent(tenant_id=tenant_id, aggregate_type="refund", aggregate_id=refund.id, event_type="refund.vandapay.succeeded", payload_json=json.dumps({"refund_id": refund.id, "provider_refund_id": refund.provider_reference, "amount": refund.amount}), correlation_id=str(uuid.uuid4()), idempotency_key=event_id))
+    _vandapay_trip_event(db, tenant_id=tenant_id, intent=intent, key=f"payment-refund_succeeded:{event_id}", event_type="payment.refund_succeeded", title="استرداد انجام شد", message=f"مبلغ {refund.amount:,} {intent.currency} از طریق ونداپی بازگردانده شد.")
+    record_business_event("refund", "succeeded")
+    return True
+
+
+def _vandapay_refund_to_manual(db: Session, *, tenant_id: int, intent, refund, code: str) -> None:
+    refund.status = "manual_review"
+    db.add(operational_models.OutboxEvent(tenant_id=tenant_id, aggregate_type="refund", aggregate_id=refund.id, event_type="refund.vandapay.manual_review", payload_json=json.dumps({"refund_id": refund.id, "payment_intent_id": intent.id, "amount": refund.amount, "code": code}), correlation_id=str(uuid.uuid4()), idempotency_key=f"vandapay-refund-manual:{refund.id}"))
+    _vp_log.warning("vandapay refund %s needs manual bank transfer / review: %s", refund.id, code)
+
+
+def _vandapay_drive_refund(db: Session, *, tenant_id: int, intent, refund, client) -> str:
+    """Execute an AUTHORISED refund (status ``processing``) at VandaPay. Same deterministic Idempotency-Key on every
+    try, so a retry after a timeout can never refund twice. Returns succeeded|pending|manual_review|retry."""
+    from . import vandapay as vp
+    if refund.status != "processing":
+        return refund.status
+    if intent.provider_key != vp.PROVIDER_KEY or not intent.provider_authority:
+        return "manual_review"
+    try:
+        res = client.refund(intent.provider_authority, amount_rial=int(refund.amount), idempotency_key=f"karenseir-{tenant_id}-refund-{refund.id}", reason=f"KarenSeir refund {refund.id}")
+    except vp.VandaPayError as exc:
+        if exc.transient or exc.code == "refund_in_progress":
+            return "retry"
+        _vandapay_refund_to_manual(db, tenant_id=tenant_id, intent=intent, refund=refund, code=exc.code if exc.code in vp.MANUAL_REFUND_CODES else f"rejected:{exc.code}")
+        return "manual_review"
+    refund.provider_reference = str(res["id"])[:160]
+    if res.get("status") == "succeeded":
+        return "succeeded" if _apply_vandapay_refund_success(db, tenant_id=tenant_id, intent=intent, refund=refund, provider_refund_id=refund.provider_reference) else "manual_review"
+    if res.get("status") == "failed":
+        refund.status = "failed"
+        return "failed"
+    return "pending"  # 202 at the PSP: refund.succeeded webhook (or the sweep's re-read) completes it
+
+
+def _vandapay_reconcile_refunds(db: Session, *, tenant_id: int, intent, live: dict) -> dict:
+    """Apply the refund states of the server-fetched intent to OUR processing refunds (event data never trusted)."""
+    from . import vandapay as vp
+    counts = {"succeeded": 0, "failed": 0, "pending": 0}
+    ours = db.scalars(select(operational_models.RefundRecord).where(operational_models.RefundRecord.tenant_id == tenant_id, operational_models.RefundRecord.payment_intent_id == intent.id, operational_models.RefundRecord.status == "processing").with_for_update()).all()
+    linked = {r.provider_reference for r in db.scalars(select(operational_models.RefundRecord).where(operational_models.RefundRecord.tenant_id == tenant_id, operational_models.RefundRecord.payment_intent_id == intent.id)).all() if r.provider_reference}
+    for refund in ours:
+        lr = vp.live_refund(live, refund.provider_reference) if refund.provider_reference else None
+        if lr is None and not refund.provider_reference:
+            candidates = [r for r in (live.get("refunds") or []) if isinstance(r, dict) and r.get("amount") == refund.amount and r.get("id") not in linked]
+            if len(candidates) == 1:  # unique match only; anything ambiguous stays processing for review
+                lr = candidates[0]; refund.provider_reference = str(lr["id"])[:160]; linked.add(refund.provider_reference)
+        if lr is None:
+            counts["pending"] += 1
+            continue
+        if lr.get("status") == "succeeded" and lr.get("amount") == refund.amount:
+            counts["succeeded" if _apply_vandapay_refund_success(db, tenant_id=tenant_id, intent=intent, refund=refund, provider_refund_id=str(lr["id"])) else "failed"] += 1
+        elif lr.get("status") == "failed":
+            refund.status = "failed"; counts["failed"] += 1
+            db.add(operational_models.OutboxEvent(tenant_id=tenant_id, aggregate_type="refund", aggregate_id=refund.id, event_type="refund.vandapay.failed", payload_json=json.dumps({"refund_id": refund.id, "failure_code": lr.get("failure_code")}), correlation_id=str(uuid.uuid4()), idempotency_key=f"vandapay-refund-failed:{refund.id}"))
+        else:
+            counts["pending"] += 1
+    unlinked_ours = any(r.status == "processing" and not r.provider_reference for r in ours)
+    if not unlinked_ours:  # a refund made outside KarenSeir (e.g. VandaPay merchant panel) is real money: record it
+        for lr in live.get("refunds") or []:
+            if not isinstance(lr, dict) or lr.get("status") != "succeeded" or not isinstance(lr.get("id"), str) or lr["id"] in linked or type(lr.get("amount")) is not int or lr["amount"] <= 0:
+                continue
+            command_id = f"vandapay-external-refund:{lr['id']}"[:120]
+            if db.scalar(select(operational_models.RefundRecord).where(operational_models.RefundRecord.tenant_id == tenant_id, operational_models.RefundRecord.command_id == command_id)):
+                continue
+            ext = operational_models.RefundRecord(tenant_id=tenant_id, payment_intent_id=intent.id, command_id=command_id, amount=lr["amount"], status="processing", provider_reference=lr["id"][:160])
+            db.add(ext); db.flush(); linked.add(lr["id"])
+            _vp_log.warning("vandapay refund %s made outside KarenSeir recorded for intent %s", lr["id"], intent.id)
+            counts["succeeded" if _apply_vandapay_refund_success(db, tenant_id=tenant_id, intent=intent, refund=ext, provider_refund_id=lr["id"]) else "failed"] += 1
+    return counts
+
+
+def _vandapay_late_capture(db: Session, *, tenant_id: int, intent, client, reason: str) -> str:
+    """VandaPay took the money for a booking whose hold was already released: record the capture (money really
+    moved), NEVER issue, and refund it in full automatically (customer got nothing)."""
+    from . import vandapay as vp
+    event_id = f"vandapay:{intent.provider_authority}:captured"
+    if not db.scalar(select(operational_models.PaymentEvent).where(operational_models.PaymentEvent.provider_key == vp.PROVIDER_KEY, operational_models.PaymentEvent.provider_event_id == event_id)):
+        intent.status = "captured"; intent.captured_amount = intent.amount; intent.provider_capture_reference = intent.provider_authority; intent.provider_reference = intent.provider_authority
+        db.add(operational_models.PaymentEvent(tenant_id=tenant_id, payment_intent_id=intent.id, provider_key=vp.PROVIDER_KEY, provider_event_id=event_id, event_type="captured_late", payload_hash=_secure_hash(f"{intent.provider_authority}:{intent.amount}:{client.config.mode}:late")))
+        db.add(operational_models.OutboxEvent(tenant_id=tenant_id, aggregate_type="payment", aggregate_id=intent.id, event_type="payment.vandapay.late_capture", payload_json=json.dumps({"intent": intent.provider_authority, "reason": reason}), correlation_id=str(uuid.uuid4()), idempotency_key=f"{event_id}:late"))
+        _vandapay_trip_event(db, tenant_id=tenant_id, intent=intent, key=f"payment-late-capture:{event_id}", event_type="payment.late_capture", title="پرداخت پس از لغو رزرو رسید", message="رزرو پیش از تکمیل پرداخت آزاد شده بود؛ مبلغ کامل به‌طور خودکار مسترد می‌شود.", severity="warning")
+    command_id = f"vandapay-late-capture:{intent.id}"
+    refund = db.scalar(select(operational_models.RefundRecord).where(operational_models.RefundRecord.tenant_id == tenant_id, operational_models.RefundRecord.command_id == command_id))
+    if refund is None:
+        refund = operational_models.RefundRecord(tenant_id=tenant_id, payment_intent_id=intent.id, command_id=command_id, amount=intent.captured_amount - intent.refunded_amount, status="processing")
+        db.add(refund); db.flush()
+    _vandapay_drive_refund(db, tenant_id=tenant_id, intent=intent, refund=refund, client=client)
+    return "late_capture_refund"
 
 
 def _vandapay_settle(db: Session, *, tenant_id: int, intent: "operational_models.PaymentIntent", client, live: Optional[dict] = None) -> tuple[str, str]:
@@ -1200,8 +1412,11 @@ def _vandapay_settle(db: Session, *, tenant_id: int, intent: "operational_models
     if intent.currency != "IRR":
         return "mismatch", "currency_mismatch"
     if outcome == "paid":
-        if intent.status == "captured" and intent.provider_capture_reference == intent.provider_authority:
+        if intent.status in {"captured", "refunded"} and intent.provider_capture_reference == intent.provider_authority:
             return "duplicate", "already_captured"
+        reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == intent.reservation_id, operational_models.Reservation.tenant_id == tenant_id))
+        if intent.status == "cancel_pending" or (intent.status == "initiated" and reservation is not None and reservation.status in RESERVATION_RELEASED_STATUSES):
+            return _vandapay_late_capture(db, tenant_id=tenant_id, intent=intent, client=client, reason=reason), "hold_released_before_payment"
         if intent.status != "initiated":
             return "mismatch", f"local_status_{intent.status}"
         event_id = f"vandapay:{intent.provider_authority}:captured"
@@ -1214,14 +1429,95 @@ def _vandapay_settle(db: Session, *, tenant_id: int, intent: "operational_models
         record_business_event("payment", "captured")
         return "captured", reason
     if outcome == "failed":
-        if intent.status == "initiated":
+        if intent.status in {"initiated", "cancel_pending"}:
             intent.status = "failed"
             db.add(operational_models.OutboxEvent(tenant_id=tenant_id, aggregate_type="payment", aggregate_id=intent.id, event_type="payment.vandapay.failed", payload_json=json.dumps({"reason": reason}), correlation_id=str(uuid.uuid4()), idempotency_key=f"vandapay:{intent.provider_authority}:failed"))
             _record_payment_trip_event(db, tenant_id=tenant_id, intent=intent, event_key=f"payment-failed:vandapay:{intent.provider_authority}", event_type="payment.failed", title="پرداخت ناموفق بود", message="پرداخت با ونداپی انجام نشد.", severity="warning")
         return "failed", reason
     if outcome == "mismatch":
-        logging.getLogger("karenseir.vandapay").error("vandapay intent %s rejected: %s", intent.provider_authority, reason)
-    return outcome, reason  # pending (incl. unknown) changes nothing
+        _vp_log.error("vandapay intent %s rejected: %s", intent.provider_authority, reason)
+    return outcome, reason  # pending (incl. unknown / requires_org_approval) changes no money state
+
+
+def _vandapay_record_org_approval(db: Session, *, tenant_id: int, intent) -> None:
+    """Policy (ADR-022): «در انتظار تأیید سازمان» is PENDING, never paid. The supplier hold is NOT extended or
+    released because of it; KarenSeir never issues while pending. If the supplier hold lapses first the booking is
+    released -> the VandaPay intent is cancelled (VandaPay withdraws the org request and releases its holds); a
+    capture that still slips through is a late capture -> full automatic refund, never issued."""
+    from . import vandapay as vp
+    _vandapay_trip_event(db, tenant_id=tenant_id, intent=intent, key=f"payment-org-approval:vandapay:{intent.provider_authority}", event_type="payment.pending_org_approval", title="در انتظار تأیید سازمان", message=f"پرداخت با اعتبار سازمانی نیاز به تأیید سازمان دارد (حداکثر {vp.ORG_APPROVAL_MAX_HOURS} ساعت). تا تأیید، رزرو صادر نمی‌شود و اگر مهلت نگه‌داری تأمین‌کننده زودتر تمام شود، رزرو آزاد و پرداخت لغو می‌شود.", severity="warning")
+
+
+def _vandapay_cancel_open_intent(db: Session, *, tenant_id: int, intent, client) -> str:
+    """Cancel a ``cancel_pending`` intent at VandaPay (idempotent). Returns failed|late_capture_refund|retry|pending."""
+    from . import vandapay as vp
+    if intent.status != "cancel_pending":
+        return intent.status
+    try:
+        res = client.cancel(intent.provider_authority, idempotency_key=f"karenseir-{tenant_id}-{intent.id}-cancel")
+        live = client.retrieve(intent.provider_authority) if res.get("status") not in vp.FAILED_STATUSES else res
+    except vp.VandaPayError as exc:
+        if exc.transient:
+            return "retry"
+        try:  # e.g. 409 invalid_state: it is no longer cancellable -> the server state decides
+            live = client.retrieve(intent.provider_authority)
+        except vp.VandaPayError:
+            return "retry"
+    if not isinstance(live.get("metadata"), dict):  # cancel response may omit metadata: re-read the truth
+        try:
+            live = client.retrieve(intent.provider_authority)
+        except vp.VandaPayError:
+            return "retry"
+    outcome, _reason = _vandapay_settle(db, tenant_id=tenant_id, intent=intent, client=client, live=live)
+    if outcome == "failed":
+        db.add(operational_models.OutboxEvent(tenant_id=tenant_id, aggregate_type="payment", aggregate_id=intent.id, event_type="payment.vandapay.canceled", payload_json=json.dumps({"intent": intent.provider_authority}), correlation_id=str(uuid.uuid4()), idempotency_key=f"vandapay-canceled:{intent.id}"))
+    return outcome
+
+
+def vandapay_drive_pending(db: Session, *, tenant_id: int, client=None) -> dict:
+    """One tenant's VandaPay housekeeping: cancel released holds' intents and (re)drive authorised refunds.
+    Idempotent; safe to run every worker loop. No-op while the flag is off."""
+    client = client or _vandapay_client()[0]
+    stats = {"cancel": 0, "refund": 0}
+    if client is None:
+        return stats
+    from . import vandapay as vp
+    set_tenant_context(db, tenant_id)
+    for intent in db.scalars(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.tenant_id == tenant_id, operational_models.PaymentIntent.provider_key == vp.PROVIDER_KEY, operational_models.PaymentIntent.status == "cancel_pending").with_for_update().limit(50)).all():
+        _vandapay_cancel_open_intent(db, tenant_id=tenant_id, intent=intent, client=client); stats["cancel"] += 1
+    refunds = db.scalars(select(operational_models.RefundRecord).where(operational_models.RefundRecord.tenant_id == tenant_id, operational_models.RefundRecord.status == "processing").with_for_update().limit(50)).all()
+    for refund in refunds:
+        intent = db.scalar(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.id == refund.payment_intent_id, operational_models.PaymentIntent.tenant_id == tenant_id, operational_models.PaymentIntent.provider_key == vp.PROVIDER_KEY).with_for_update())
+        if intent is None:
+            continue
+        if refund.provider_reference:  # already accepted by VandaPay (pending at PSP): re-read instead of re-posting
+            try:
+                _vandapay_reconcile_refunds(db, tenant_id=tenant_id, intent=intent, live=client.retrieve(intent.provider_authority))
+            except vp.VandaPayError:
+                continue
+        else:
+            _vandapay_drive_refund(db, tenant_id=tenant_id, intent=intent, refund=refund, client=client)
+        stats["refund"] += 1
+    db.commit()
+    return stats
+
+
+def vandapay_sweep() -> dict:
+    """Called from the outbox worker loop. Flag off -> returns immediately without touching the database."""
+    client, _ = _vandapay_client()
+    if client is None:
+        return {"enabled": False}
+    totals = {"enabled": True, "cancel": 0, "refund": 0}
+    with SessionLocal() as db:
+        tenant_ids = list(db.scalars(select(Tenant.id)).all())
+    for tid in tenant_ids:
+        try:
+            with SessionLocal() as db:
+                stats = vandapay_drive_pending(db, tenant_id=tid, client=client)
+            totals["cancel"] += stats["cancel"]; totals["refund"] += stats["refund"]
+        except Exception:  # one tenant's failure never stops the others or the worker
+            _vp_log.exception("vandapay_sweep_failed tenant=%s", tid)
+    return totals
 
 
 @app.get("/payments/methods")
@@ -1247,20 +1543,42 @@ def initiate_vandapay_payment(payment_id: str, user: User = Depends(current_user
         return {"id": intent.id, "status": intent.status}
     if intent.amount <= 0 or intent.currency != "IRR":
         raise HTTPException(status_code=409, detail="مبلغ معتبر برای پرداخت موجود نیست")
+    reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == intent.reservation_id, operational_models.Reservation.tenant_id == user.tenant_id))
+    if reservation is None or reservation.status in RESERVATION_RELEASED_STATUSES:
+        raise HTTPException(status_code=409, detail="رزرو دیگر قابل پرداخت نیست")
+    # Exclusive source selection (ADR-022): VandaPay is asked for exactly the part NOT already committed in
+    # KarenSeir's own wallet / organization-credit ledger — never the same rial from two ledgers.
+    try:
+        total = int(json.loads(reservation.price_snapshot_json).get("total_amount", 0))
+    except (TypeError, ValueError, json.JSONDecodeError):
+        total = 0
+    internal = _internal_ledger_funding(db, tenant_id=user.tenant_id, reservation_id=reservation.id)
+    if total <= 0 or intent.amount + internal["total"] != total:
+        _vp_log.error("vandapay initiate refused for %s: intent %s + internal %s != total %s", intent.id, intent.amount, internal["total"], total)
+        raise HTTPException(status_code=409, detail="مبلغ این پرداخت با منابع اعتباری ثبت‌شده هم‌پوشانی دارد؛ پرداخت از دو منبع برای یک مبلغ مجاز نیست")
     attempt = 1 + int(db.scalar(select(func.count()).select_from(operational_models.OutboxEvent).where(operational_models.OutboxEvent.tenant_id == user.tenant_id, operational_models.OutboxEvent.aggregate_id == intent.id, operational_models.OutboxEvent.event_type == "payment.vandapay.initiated")) or 0)
     state = jwt.encode({"iss": JWT_ISSUER, "aud": "karenseir-vandapay-return", "tenant_id": user.tenant_id, "payment_intent_id": intent.id, "user_id": user.id, "exp": datetime.now(timezone.utc) + timedelta(hours=2), "iat": datetime.now(timezone.utc), "jti": str(uuid.uuid4())}, JWT_SECRET, algorithm="HS256")
     sep = "&" if "?" in return_base else "?"
     idem = f"karenseir-{user.tenant_id}-{intent.id}-attempt-{attempt}"
+    category = vp.category_for_service(reservation.service_type)
+    metadata = {"source": "karenseir", "tenant_id": str(user.tenant_id), "payment_intent_id": intent.id, "reservation_id": reservation.id, "service_type": str(reservation.service_type)[:48], "internal_funding_amount": str(internal["total"])}
     try:
-        res = client.create_intent(amount_rial=int(intent.amount), order_ref=f"KS-{intent.reservation_id}"[:64], return_url=f"{return_base}{sep}state={state}", metadata={"source": "karenseir", "tenant_id": str(user.tenant_id), "payment_intent_id": intent.id}, idempotency_key=idem, category="travel")
+        res = client.create_intent(amount_rial=int(intent.amount), order_ref=f"KS-{intent.reservation_id}"[:64], return_url=f"{return_base}{sep}state={state}", metadata=metadata, idempotency_key=idem, category=category,
+                                   description=f"KarenSeir {reservation.booking_reference or reservation.id}", customer_phone=_verified_customer_phone(user),
+                                   items=_vandapay_line_items(db, tenant_id=user.tenant_id, reservation=reservation, amount=int(intent.amount), category=category),
+                                   expires_in_seconds=vp.intent_expiry_from_env(os.environ))
     except vp.VandaPayError:
-        logging.getLogger("karenseir.vandapay").exception("vandapay_initiate_failed")
+        _vp_log.exception("vandapay_initiate_failed")
         record_business_event("provider", "payment_unavailable")
         raise HTTPException(status_code=503, detail="درگاه ونداپی در دسترس نیست")
     intent.status = "initiated"; intent.provider_key = vp.PROVIDER_KEY; intent.provider_authority = str(res["id"])[:160]; intent.provider_reference = intent.provider_authority
-    db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="payment", aggregate_id=intent.id, event_type="payment.vandapay.initiated", payload_json=json.dumps({"intent": intent.provider_authority, "mode": client.config.mode}), correlation_id=str(uuid.uuid4()), idempotency_key=idem))
+    db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="payment", aggregate_id=intent.id, event_type="payment.vandapay.initiated", payload_json=json.dumps({"intent": intent.provider_authority, "mode": client.config.mode, "category": category}), correlation_id=str(uuid.uuid4()), idempotency_key=idem))
     db.commit(); record_business_event("payment", "initiated")
     return {"id": intent.id, "status": intent.status, "provider": vp.PROVIDER_KEY, "redirect_url": res["checkout_url"], "mode": client.config.mode, "test_mode_label": vp.TEST_MODE_LABEL if client.config.is_test else None}
+
+
+_PENDING_MESSAGE = "پرداخت در حال بررسی است؛ نتیجه پس از تأیید ونداپی ثبت می‌شود."
+_ORG_APPROVAL_MESSAGE = "پرداخت در انتظار تأیید سازمان است (حداکثر ۴۸ ساعت). تا تأیید، رزرو صادر نمی‌شود."
 
 
 @app.get("/payments/vandapay/return")
@@ -1281,16 +1599,22 @@ def vandapay_return(state_token: str = Query(alias="state", min_length=20), db: 
         raise HTTPException(status_code=404, detail="درخواست پرداخت وجود ندارد")
     try:
         outcome, reason = _vandapay_settle(db, tenant_id=tenant_id, intent=intent, client=client)
+        if outcome == "pending" and reason == f"status_{vp.ORG_APPROVAL_STATUS}":
+            _vandapay_record_org_approval(db, tenant_id=tenant_id, intent=intent)
     except vp.VandaPayError:
         db.rollback()
-        return {"status": "pending", "payment_status": "pending_review", "message": "پرداخت در حال بررسی است؛ نتیجه پس از تأیید ونداپی ثبت می‌شود."}
+        return {"status": "pending", "payment_status": "pending_review", "message": _PENDING_MESSAGE}
     db.commit()
     if outcome in {"captured", "duplicate"}:
         return {"status": outcome, "payment_status": intent.status}
+    if outcome == "late_capture_refund":
+        return {"status": "refund_pending", "payment_status": intent.status, "message": "رزرو پیش از تکمیل پرداخت آزاد شده بود؛ مبلغ به‌طور کامل مسترد می‌شود."}
     if outcome == "failed":
         return {"status": "failed", "payment_status": intent.status, "message": "پرداخت انجام نشد."}
     if outcome == "pending":
-        return {"status": "pending", "payment_status": "pending_review", "message": "پرداخت در حال بررسی است؛ نتیجه پس از تأیید ونداپی ثبت می‌شود."}
+        if reason == f"status_{vp.ORG_APPROVAL_STATUS}":
+            return {"status": "pending", "payment_status": "pending_org_approval", "message": _ORG_APPROVAL_MESSAGE}
+        return {"status": "pending", "payment_status": "pending_review", "message": _PENDING_MESSAGE}
     raise HTTPException(status_code=409, detail="پرداخت ونداپی با سفارش تطابق ندارد")
 
 
@@ -1304,7 +1628,7 @@ async def vandapay_webhook(request: Request, db: Session = Depends(get_db)) -> J
     try:
         event = vp.parse_event(raw, request.headers.get(vp.SIGNATURE_HEADER), client.config.webhook_secret)
     except vp.WebhookSignatureError as exc:
-        logging.getLogger("karenseir.vandapay").warning("vandapay webhook rejected: %s", exc.reason)
+        _vp_log.warning("vandapay webhook rejected: %s", exc.reason)
         return JSONResponse(status_code=400, content={"error": {"code": "invalid_signature", "reason": exc.reason}})
     event_id = event.get("id"); etype = str(event.get("type") or "")
     if not isinstance(event_id, str) or not event_id:
@@ -1328,14 +1652,27 @@ async def vandapay_webhook(request: Request, db: Session = Depends(get_db)) -> J
     if intent is None:
         return JSONResponse(status_code=200, content={"received": True, "outcome": "unknown_intent"})
     if etype.startswith("refund."):
-        logging.getLogger("karenseir.vandapay").warning("vandapay refund event %s for intent %s: manual review", event_id, vp_intent_id)
-        outcome = "refund_logged"
+        if live.get("id") != intent.provider_authority or live.get("mode") != client.config.mode:
+            return JSONResponse(status_code=200, content={"received": True, "outcome": "mismatch"})
+        counts = _vandapay_reconcile_refunds(db, tenant_id=tenant_id, intent=intent, live=live)
+        data = event.get("data") if isinstance(event.get("data"), dict) else {}
+        claimed = vp.live_refund(live, str(data.get("id") or ""))
+        if etype == "refund.succeeded" and (claimed is None or claimed.get("status") != "succeeded"):
+            db.rollback()  # the API does not (yet) confirm it -> let VandaPay retry
+            return JSONResponse(status_code=503, content={"error": {"code": "not_final_yet"}})
+        known = db.scalar(select(operational_models.RefundRecord).where(operational_models.RefundRecord.tenant_id == tenant_id, operational_models.RefundRecord.payment_intent_id == intent.id, operational_models.RefundRecord.provider_reference == str(data.get("id") or "")))
+        if known is None:
+            _vp_log.warning("vandapay refund event %s (refund %s) has no KarenSeir refund record: manual review", event_id, data.get("id"))
+        outcome = "refund_applied" if counts["succeeded"] else ("refund_failed" if counts["failed"] else ("refund_unmatched" if known is None else "refund_recorded"))
     else:
-        outcome, _reason = _vandapay_settle(db, tenant_id=tenant_id, intent=intent, client=client, live=live)
-        if outcome == "pending" and etype == "payment_intent.succeeded":
+        outcome, reason = _vandapay_settle(db, tenant_id=tenant_id, intent=intent, client=client, live=live)
+        if outcome == "pending" and reason == f"status_{vp.ORG_APPROVAL_STATUS}":
+            _vandapay_record_org_approval(db, tenant_id=tenant_id, intent=intent)
+            outcome = "pending_org_approval"
+        elif outcome == "pending" and etype == "payment_intent.succeeded":
             db.rollback()
             return JSONResponse(status_code=503, content={"error": {"code": "not_final_yet"}})
-        if outcome == "pending":
+        elif outcome == "pending":
             db.rollback()
             return JSONResponse(status_code=200, content={"received": True, "outcome": "pending"})
     db.add(operational_models.PaymentEvent(tenant_id=tenant_id, payment_intent_id=intent.id, provider_key=vp.PROVIDER_KEY, provider_event_id=f"evt:{event_id}", event_type=f"webhook.{outcome}"[:48], payload_hash=hashlib.sha256(raw).hexdigest()))
@@ -2016,6 +2353,32 @@ def orchestrate_booking(data: OrchestrationBookingIn, user: User = Depends(curre
     return response
 
 
+def _internal_credit_only_funding(db: Session, *, tenant_id: int, reservation) -> Optional[dict]:
+    """A booking may be issued without a card capture only when KarenSeir's OWN ledger (wallet + organization
+    credit) holds 100% of the price for it, the server-authoritative checkout recorded payable_amount == 0, and no
+    external payment (VandaPay or other) exists for it — so the same order is never funded from two ledgers."""
+    try:
+        total = int(json.loads(reservation.price_snapshot_json).get("total_amount", 0))
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return None
+    if total <= 0:
+        return None
+    open_payment = db.scalar(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.tenant_id == tenant_id, operational_models.PaymentIntent.reservation_id == reservation.id, operational_models.PaymentIntent.status != "failed"))
+    if open_payment is not None:
+        return None
+    checkout = db.scalar(select(operational_models.CheckoutSession).where(operational_models.CheckoutSession.tenant_id == tenant_id, operational_models.CheckoutSession.reservation_id == reservation.id, operational_models.CheckoutSession.stage == "awaiting_fulfillment", operational_models.CheckoutSession.payment_intent_id.is_(None)).order_by(operational_models.CheckoutSession.created_at.desc()))
+    if checkout is None:
+        return None
+    try:
+        funding = json.loads(checkout.state_json).get("funding") or {}
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return None
+    ledger = _internal_ledger_funding(db, tenant_id=tenant_id, reservation_id=reservation.id)
+    if int(funding.get("payable_amount", -1)) != 0 or int(funding.get("wallet_amount", 0)) + int(funding.get("credit_amount", 0)) != total or ledger["total"] != total:
+        return None
+    return {"funding_source": "internal_ledger", "checkout_id": checkout.id, "total_amount": total, "wallet_amount": ledger["wallet"], "organization_credit_amount": ledger["organization_credit"]}
+
+
 @app.post("/reservations/{reservation_id}/fulfill")
 def fulfill_reservation(reservation_id: str, data: FulfillmentIn, user: User = Depends(require_permission("reservation:fulfill")), db: Session = Depends(get_db)) -> dict:
     reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == reservation_id, operational_models.Reservation.tenant_id == user.tenant_id).with_for_update())
@@ -2026,8 +2389,11 @@ def fulfill_reservation(reservation_id: str, data: FulfillmentIn, user: User = D
         existing_ticket = db.scalar(select(operational_models.Ticket).where(operational_models.Ticket.tenant_id == user.tenant_id, operational_models.Ticket.reservation_id == reservation.id, operational_models.Ticket.qr_token.isnot(None)))
         return {"reservation": _reservation_output(reservation), "voucher": {"id": existing_voucher.id, "status": existing_voucher.status, "revision": existing_voucher.revision}, "admission_ticket": ({"id": existing_ticket.id, "status": existing_ticket.status, "qr_token": existing_ticket.qr_token} if existing_ticket else None)}
     payment = db.scalar(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.tenant_id == user.tenant_id, operational_models.PaymentIntent.reservation_id == reservation.id, operational_models.PaymentIntent.status == "captured"))
+    internal_funding = None
     if payment is None or payment.captured_amount <= 0:
-        raise HTTPException(status_code=409, detail="پرداخت captureشده برای رزرو موجود نیست")
+        internal_funding = _internal_credit_only_funding(db, tenant_id=user.tenant_id, reservation=reservation)
+        if internal_funding is None:
+            raise HTTPException(status_code=409, detail="پرداخت captureشده یا تأمین کامل از اعتبار داخلی برای رزرو موجود نیست")
     item = db.scalar(select(operational_models.BookingItem).where(operational_models.BookingItem.tenant_id == user.tenant_id, operational_models.BookingItem.reservation_id == reservation.id))
     item_snapshot = json.loads(item.snapshot_json) if item else {}
     if item_snapshot.get("fulfillment_mode") == "provider":
@@ -2056,6 +2422,8 @@ def fulfill_reservation(reservation_id: str, data: FulfillmentIn, user: User = D
         db.add(admission_ticket); db.flush()
         db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="ticket", aggregate_id=admission_ticket.id, event_type="admission_ticket.issued", payload_json=json.dumps({"reservation_id": reservation.id, "ticket_id": admission_ticket.id}), correlation_id=str(uuid.uuid4()), idempotency_key=f"{data.command_id}:ticket"))
     db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="voucher", aggregate_id=voucher.id, event_type="voucher.issued", payload_json=json.dumps({"reservation_id": reservation.id, "voucher_id": voucher.id}), correlation_id=str(uuid.uuid4()), idempotency_key=data.command_id))
+    if internal_funding is not None:  # auditable record of WHY this booking was issued without a card capture
+        db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="reservation", aggregate_id=reservation.id, event_type="reservation.funded_by_internal_ledger", payload_json=json.dumps({**internal_funding, "actor_id": user.id}, sort_keys=True), correlation_id=str(uuid.uuid4()), idempotency_key=f"{data.command_id}:internal-funding"[:120]))
     invoice = _issue_invoice_for_reservation(db, reservation=reservation, tenant_id=user.tenant_id, actor_user_id=user.id, command_id=f"auto-invoice:{data.command_id}"[:120])
     db.commit(); record_business_event("booking", "issued")
     return {"reservation": _reservation_output(reservation), "voucher": {"id": voucher.id, "status": voucher.status, "revision": voucher.revision}, "invoice": _invoice_output(invoice) if invoice else None, "admission_ticket": ({"id": admission_ticket.id, "status": admission_ticket.status, "qr_token": admission_ticket.qr_token} if admission_ticket else None)}
@@ -2586,7 +2954,7 @@ def finance_reconciliation(user: User = Depends(require_permission("ledger:read"
     for payment in payments:
         related = refund_groups.get(payment.id, [])
         succeeded = sum(item.amount for item in related if item.status == "succeeded")
-        pending = sum(item.amount for item in related if item.status == "requested")
+        pending = sum(item.amount for item in related if item.status in REFUND_OPEN_STATUSES)
         issues = []
         if succeeded != payment.refunded_amount:
             issues.append("refund_total_mismatch")
@@ -3122,6 +3490,7 @@ def advance_checkout(checkout_id: str, step: str, data: CheckoutStepIn, user: Us
             organization_ids = [a.organization_id for a in db.scalars(select(operational_models.EmployeeAssignment).where(operational_models.EmployeeAssignment.tenant_id == user.tenant_id, operational_models.EmployeeAssignment.user_id == user.id)).all()]
             credit_account = db.scalar(select(operational_models.CreditAccount).where(operational_models.CreditAccount.tenant_id == user.tenant_id, operational_models.CreditAccount.organization_id.in_(organization_ids), operational_models.CreditAccount.currency == "IRR").with_for_update()) if organization_ids else None
             if credit_account is None: raise HTTPException(status_code=409, detail="حساب اعتبار سازمانی مشخص و معتبر برای این حساب وجود ندارد")
+            if credit_account.organization_id in _federated_credit_organization_ids(): raise HTTPException(status_code=409, detail="اعتبار این سازمان در ونداپی نگه‌داری می‌شود و فقط در صفحهٔ پرداخت ونداپی خرج می‌شود")
             try: operational_models.apply_organization_credit_command(db, tenant_id=user.tenant_id, credit_account_id=credit_account.id, command_id=f"checkout:{row.id}:credit:{data.command_id}"[:80], entry_type="reserve", amount=data.credit_amount, reservation_id=reservation.id)
             except ValueError as exc: raise HTTPException(status_code=409, detail="سقف اعتبار سازمانی کافی نیست") from exc
         state["funding"] = {"wallet_amount": data.wallet_amount, "credit_amount": data.credit_amount, "payable_amount": total - data.wallet_amount - data.credit_amount}; row.stage = "funding"

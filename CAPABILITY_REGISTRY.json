@@ -212,10 +212,10 @@
     },
     "payment_vandapay": {
       "status": "READY_BLOCKED_EXTERNAL",
-      "reason": "VandaPay («پرداخت با ونداپی») provider built and tested with a labelled MOCK API: server-side intent with Idempotency-Key, redirect to VandaPay hosted checkout, signed-state browser return and HMAC-signed webhook that both re-read the intent server-to-server (status succeeded + exact rial amount + IRR + key mode + our metadata); unknown/pending never captured. Feature flag VANDAPAY_ENABLED is OFF by default: /payments/methods hides it and its endpoints answer 404.",
-      "blocker": "Owner decision D15: VandaPay PSP contract + legal opinion; VandaPay server/domain + merchant keys (sk_test_/sk_live_) and webhook secret not provisioned",
-      "last_verified_at": "2026-11-12",
-      "evidence": "branch feat/vandapay-gateway; backend/tests/test_vandapay.py (15 tests, MOCK); docs/adr/ADR-021-vandapay-payment-provider.md"
+      "reason": "VandaPay («پرداخت با ونداپی») provider built and tested with a labelled MOCK API: server-side intent with Idempotency-Key, redirect to VandaPay hosted checkout, signed-state browser return and HMAC-signed webhook that both re-read the intent server-to-server (status succeeded + exact rial amount + IRR + key mode + our metadata); unknown/pending never captured. Feature flag VANDAPAY_ENABLED is OFF by default: /payments/methods hides it and its endpoints answer 404. ADR-022 (2026-11-18, MOCK-tested only): refunds executed through the VandaPay refund API (idempotent key per refund; auto only for supplier-cancelled bookings within the verified policy quote, otherwise finance-authorised via POST /finance/refunds/{id}/execute; 202 pending -> refund.* webhook re-read; partial-card -> manual_review), open intents cancelled when the booking hold is released (late capture -> full automatic refund, never issued), requires_org_approval shown as pending (never issued, max 48h), explicit per-product category + single-item line items, customer_phone only from a verified mobile login identifier (none today), optional expires_in_seconds (upstream VP-01 not merged; default unchanged), exclusive funding source (VandaPay amount + internal ledger == total) and federated org-credit programs. Credit-only (100% internal org credit/wallet) bookings are now issuable without a card capture (independent of the flag).",
+      "blocker": "Owner decision D15: VandaPay PSP contract + legal opinion; VandaPay server/domain + merchant keys (sk_test_/sk_live_) and webhook secret not provisioned; no real VandaPay sandbox run yet; VP-01 expiry param not merged upstream",
+      "last_verified_at": "2026-11-18",
+      "evidence": "branch feat/vandapay-adapter-hardening; backend/tests/test_vandapay.py (15) + backend/tests/test_vandapay_hardening.py (14), MOCK only; docs/adr/ADR-021, docs/adr/ADR-022-federated-org-credit-and-vandapay-hardening.md"
     }
   }
 }

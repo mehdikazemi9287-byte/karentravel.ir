@@ -8,7 +8,13 @@ Merchant API (VandaPay repo: docs/phase1/API.md, backend/openapi.yaml, integrati
   POST /payment_intents            Idempotency-Key; {amount (integer rial), order_ref, return_url, metadata}
                                    -> {id, status, amount, currency, mode, checkout_url, ...}
   GET  /payment_intents/{id}       server-to-server truth (scoped to the key's mode)
-  POST /payment_intents/{id}/cancel
+  POST /payment_intents/{id}/cancel     (created / requires_confirmation / requires_org_approval)
+  POST /payment_intents/{id}/refunds    Idempotency-Key; {amount, reason?} -> refund {id, status succeeded|pending, ...}
+                                        201 succeeded · 202 pending at the PSP (wait for ``refund.succeeded``)
+                                        422 partial_refund_unsupported / split_refund_manual_review -> manual bank transfer
+  Optional create fields used here: customer_phone (Iranian mobile), category (taxonomy code, e.g. travel.flight),
+  items [{sku, category, amount, name, quantity}] (sum == amount), expires_in_seconds (proposed upstream VP-01 —
+  only sent when VANDAPAY_INTENT_EXPIRES_IN_SECONDS is set; default = VandaPay's own 30 min TTL).
   Webhook header ``VandaPay-Signature: t=<unix>,v1=<hex>``;
   v1 = hex(HMAC_SHA256(webhook_secret, t + "." + raw_body)); 300 s tolerance; any v1 may match (rotation).
 
@@ -50,7 +56,51 @@ WEBHOOK_TOLERANCE_SECONDS = 300
 
 PAID_STATUSES = frozenset({"succeeded", "partially_refunded", "refunded"})
 FAILED_STATUSES = frozenset({"failed", "expired", "canceled"})
-CANCELLABLE_STATUSES = frozenset({"created", "requires_confirmation"})
+CANCELLABLE_STATUSES = frozenset({"created", "requires_confirmation", "requires_org_approval"})
+ORG_APPROVAL_STATUS = "requires_org_approval"
+ORG_APPROVAL_MAX_HOURS = 48  # VandaPay ORG_APPROVAL_TTL_HOURS default; after it the request expires and holds are released
+
+# KarenSeir service_type -> VandaPay taxonomy code (vandapay/backend/app/util.py CATEGORY_FA). Explicit on purpose:
+# anything not listed stays the generic "travel" (the value sent before this mapping existed).
+CATEGORY_BY_SERVICE = {
+    "flight": "travel.flight",
+    "hotel": "travel.hotel", "accommodation": "travel.hotel", "vacation_rental": "travel.hotel",
+    "tour": "travel.tour", "package": "travel.tour",
+    "train": "travel.train",
+    "bus": "travel.bus", "tourist_transportation": "travel.bus",
+}
+DEFAULT_CATEGORY = "travel"
+
+# VP-01 bounds (proposed upstream): 5 minutes .. 72 hours.
+EXPIRES_MIN_SECONDS, EXPIRES_MAX_SECONDS = 300, 72 * 3600
+
+
+def category_for_service(service_type: Optional[str]) -> str:
+    return CATEGORY_BY_SERVICE.get(str(service_type or "").strip().lower(), DEFAULT_CATEGORY)
+
+
+_MOBILE_RE = re.compile(r"^(?:\+98|0098|98|0)?(9\d{9})$")
+
+
+def normalize_ir_mobile(value: Optional[str]) -> Optional[str]:
+    """``09xxxxxxxxx`` for a valid Iranian mobile, else ``None`` (never guessed)."""
+    if not value or not isinstance(value, str):
+        return None
+    digits = re.sub(r"[\s\-()]", "", value.strip()).translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789"))
+    m = _MOBILE_RE.match(digits)
+    return f"0{m.group(1)}" if m else None
+
+
+def intent_expiry_from_env(environ: Mapping[str, str] = os.environ) -> Optional[int]:
+    """``VANDAPAY_INTENT_EXPIRES_IN_SECONDS`` (optional). Unset/invalid/out of bounds -> ``None`` = do not send the
+    field, i.e. VandaPay's default TTL (current behaviour)."""
+    raw = str(environ.get("VANDAPAY_INTENT_EXPIRES_IN_SECONDS", "") or "").strip()
+    if not raw:
+        return None
+    if not raw.isdigit() or not EXPIRES_MIN_SECONDS <= int(raw) <= EXPIRES_MAX_SECONDS:
+        log.error("VANDAPAY_INTENT_EXPIRES_IN_SECONDS ignored: must be an integer %s..%s", EXPIRES_MIN_SECONDS, EXPIRES_MAX_SECONDS)
+        return None
+    return int(raw)
 
 # transport(method, url, headers, body_bytes_or_None, timeout) -> (http_status, parsed_json_dict)
 Transport = Callable[[str, str, dict, Optional[bytes], float], "tuple[int, dict]"]
@@ -164,7 +214,9 @@ class VandaPayClient:
         raise VandaPayError(str(err.get("message") or f"vandapay HTTP {status}"), code=str(err.get("code") or f"http_{status}"), status=status)
 
     def create_intent(self, *, amount_rial: int, order_ref: str, return_url: str, metadata: dict,
-                      idempotency_key: str, description: str = "", category: str = "") -> dict:
+                      idempotency_key: str, description: str = "", category: str = "",
+                      customer_phone: Optional[str] = None, items: Optional[list] = None,
+                      expires_in_seconds: Optional[int] = None) -> dict:
         if type(amount_rial) is not int or amount_rial <= 0:
             raise VandaPayError("amount must be a positive integer rial", code="invalid_amount")
         if not return_url.startswith("https://"):
@@ -174,6 +226,15 @@ class VandaPayClient:
             body["description"] = description[:200]
         if category:
             body["category"] = category
+        phone = normalize_ir_mobile(customer_phone) if customer_phone else None
+        if phone:
+            body["customer_phone"] = phone
+        if items:
+            if sum(int(i.get("amount", 0)) for i in items) != amount_rial:
+                raise VandaPayError("items must sum to the intent amount", code="items_sum_mismatch")
+            body["items"] = items
+        if expires_in_seconds is not None:
+            body["expires_in_seconds"] = int(expires_in_seconds)
         res = self._request("POST", "/payment_intents", body, idempotency_key=idempotency_key)
         intent_id, url = res.get("id"), res.get("checkout_url")
         if not isinstance(intent_id, str) or not intent_id or not isinstance(url, str) or not url.startswith("https://"):
@@ -184,13 +245,43 @@ class VandaPayClient:
             raise VandaPayError("vandapay intent amount/currency differs from the order", code="amount_mismatch")
         return res
 
-    def retrieve(self, intent_id: str) -> dict:
+    @staticmethod
+    def _check_id(intent_id: str) -> str:
         if not intent_id or not isinstance(intent_id, str) or not re.fullmatch(r"[A-Za-z0-9_\-]{3,120}", intent_id):
             raise VandaPayError("invalid intent id", code="invalid_intent_id")
-        return self._request("GET", f"/payment_intents/{urllib.parse.quote(intent_id, safe='')}")
+        return urllib.parse.quote(intent_id, safe="")
+
+    def retrieve(self, intent_id: str) -> dict:
+        return self._request("GET", f"/payment_intents/{self._check_id(intent_id)}")
 
     def cancel(self, intent_id: str, *, idempotency_key: str) -> dict:
-        return self._request("POST", f"/payment_intents/{urllib.parse.quote(intent_id, safe='')}/cancel", {}, idempotency_key=idempotency_key)
+        return self._request("POST", f"/payment_intents/{self._check_id(intent_id)}/cancel", {}, idempotency_key=idempotency_key)
+
+    def refund(self, intent_id: str, *, amount_rial: int, idempotency_key: str, reason: str = "") -> dict:
+        """Full or partial refund. Same Idempotency-Key -> same refund (safe to retry after a transient error).
+        Returns the refund object; ``status`` is ``succeeded`` or ``pending`` (wait for ``refund.succeeded``)."""
+        if type(amount_rial) is not int or amount_rial <= 0:
+            raise VandaPayError("refund amount must be a positive integer rial", code="invalid_amount")
+        if not idempotency_key:
+            raise VandaPayError("refund needs an Idempotency-Key", code="missing_idempotency_key")
+        body: dict[str, Any] = {"amount": amount_rial}
+        if reason:
+            body["reason"] = reason[:500]
+        res = self._request("POST", f"/payment_intents/{self._check_id(intent_id)}/refunds", body, idempotency_key=idempotency_key)
+        if not isinstance(res.get("id"), str) or not res.get("id") or res.get("amount") != amount_rial:
+            raise VandaPayError("vandapay refund response does not match the request", code="bad_response")
+        return res
+
+
+MANUAL_REFUND_CODES = frozenset({"partial_refund_unsupported", "split_refund_manual_review"})
+
+
+def live_refund(live_intent: Mapping[str, Any], refund_id: str) -> Optional[dict]:
+    """The refund ``refund_id`` as listed by the server-fetched intent (``GET /payment_intents/{id}`` -> refunds)."""
+    for r in live_intent.get("refunds") or []:
+        if isinstance(r, dict) and r.get("id") == refund_id:
+            return r
+    return None
 
 
 def evaluate_intent(intent: Mapping[str, Any], *, expected_id: str, expected_amount_rial: int, mode: str,
