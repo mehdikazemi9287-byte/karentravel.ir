@@ -27,8 +27,9 @@ if [ -n "$ST" ]; then
   git -c user.name="KarenSeir Deploy" -c user.email="deploy@karentravel.ir" commit -qam "server: snapshot of uncommitted live edits before redesign-2026-11 deploy"
 fi
 SVC=""
+SERVICES=$(cd "$ROOT" && docker compose config --services 2>/dev/null || true)
 for s in web frontend; do
-  if (cd "$ROOT" && docker compose config --services 2>/dev/null | grep -qx "$s"); then SVC=$s; break; fi
+  if printf '%s\n' "$SERVICES" | grep -qx "$s"; then SVC=$s; break; fi
 done
 [ -n "$SVC" ] || { echo "BLOCKED: no web/frontend service in $ROOT compose"; (cd "$ROOT" && docker compose config --services); exit 2; }
 echo "frontend service: $SVC"
