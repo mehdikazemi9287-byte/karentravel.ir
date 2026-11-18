@@ -235,3 +235,19 @@ Not done yet (needs server console):
 - Server console tty is stuck on a `docker compose exec … tail /dev/stdout` (needs one Ctrl+C typed by a human in the Arvan console). Site unaffected.
 
 Rollback: Arvan DNS → turn cloud OFF for `@` and `www` (direct HTTP to origin returns, TTL 2 min). Optionally disable HTTPS on edge.
+
+## KARENSEIR CHECKPOINT — Round 5: flight results to Stitch Desktop/02 (2026-11-18)
+
+User feedback: «طراحی صفحه‌ها عوض نشده». Compared live /search/results (flight) with Stitch 02 rendered locally (Tailwind compiled offline): the summary bar, sort, filters and card did not match.
+
+Changed (production code branch `feat/inner-redesign-on-production` → commit 7f29e33, patch `deploy/patches/0010-flight-results-stitch-card.patch`):
+- Summary chip row (route · date · passengers/cabin · trip type) + «تغییر جست‌وجو», replacing the generic hero for flights.
+- Date strip moved above results; result count «N پرواز X به Y یافت شد»; sort as pill tabs (پیشنهاد کارن / ارزان‌ترین / سریع‌ترین / بهترین).
+- Filters: stops as checkboxes, departure-time tiles (صبح/عصر/شب/بامداد, real client-side filter on `departure_time`), airlines as checkbox list with counts.
+- New flight card: badges row, carrier logo tile + big departure/arrival clocks + duration/stops line, price/CTA column, footer (baggage, party, «جزئیات پرواز و قوانین بار»).
+- No data invented: unknown values show «—»; prices still only for signed-in users; Mock badge kept.
+- Homepage untouched (no homepage files in the diff).
+
+QA: `qa/impl/r5-flight-results-desktop.png`, `r5-flight-results-mobile.png`, reference `r5-stitch-02-reference.png`. `tsc` clean, `next build --webpack` OK.
+
+Deploy: pending — server console is stuck (needs one Ctrl+C by a human), then `REDESIGN deploy` with the new script (0010 applied idempotently). Rollback: `deploy/redesign-2026-11-rollback.sh` or `git revert` of the 0010 commit on the server.
