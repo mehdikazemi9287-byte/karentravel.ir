@@ -107,6 +107,16 @@ else
   CODE=1
 fi
 
+P8=0008-fix-hotel-fallback-width.patch
+if grep -q "results-content>:has(form)" components/operational/search-results-2026-11.css 2>/dev/null; then
+  echo "0008 already applied — skip"
+else
+  curl -fsSL --retry 3 -m 120 -o "$TMP/$P8" "$RAW/deploy/patches/$P8"
+  git apply --check "$TMP/$P8"
+  git -c user.name="KarenSeir Deploy" -c user.email="deploy@karentravel.ir" am "$TMP/$P8"
+  CODE=1
+fi
+
 step "4) design gallery + docs (everything from Stitch/Figma round 1–4)"
 # Not served from Next public/: production CSP (script-src 'self', X-Frame-Options DENY) blocks the
 # Tailwind CDN and the gallery iframes. Public preview stays on GitHub Pages; the server keeps the full set in docs/.
