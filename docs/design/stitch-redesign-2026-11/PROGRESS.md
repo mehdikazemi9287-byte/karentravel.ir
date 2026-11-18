@@ -186,3 +186,4 @@ Rollback: حذف پوشه docs/design/stitch-redesign-2026-11 یا عدم merge 
 - بعدی: نتایج هتل، جزئیات هتل، پرداخت، داشبورد.
 - **مستقر شد (2026-11-18 08:48 UTC):** server HEAD `3b25575`، `karenseir-web-1` healthy؛ `/`، `/search/results`، `/services`، `/flights`، `/hotels` همه 200 (بررسی مستقیم روی کانتینر). PR #87 هم به‌روز شد.
 - **patch 0005:** فهرست هتل/کاتالوگ، جزئیات هتل، پرداخت و داشبورد مشتری به طراحی استیچ (فقط ظاهر). QA: `qa/impl/hotels-stitch.png`، `qa/impl/account-checkout-stitch.png`.
+- **patch 0006:** صفحه ورود/OTP به شکل کارت استیچ، مدیریت رزرو و تأیید رزرو. QA: `qa/impl/login-stitch.png`.
