@@ -1,4 +1,5 @@
 'use client';
+import {JalaliDateInput} from '../forms/JalaliDateInput';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {HotelStayEditor,initialHotelRooms,hotelSelectionIssue} from './HotelStaySelection';
@@ -138,8 +139,8 @@ export function CombinedFlightHotel() {
         <input type="number" min={1} max={9} value={passengers} className="mt-2 block w-32 rounded-xl border p-2"
           onChange={e => { setPassengers(Math.max(1, Math.min(9, Number(e.target.value) || 1))); setQuote(null); }} /></label>
       <label>تعداد اتاق<input type="number" min={1} max={9} value={roomCount} onChange={e=>setRoomCount(Math.max(1,Math.min(9,Number(e.target.value)||1)))}/></label>
-      <label>ورود هتل<input type="date" value={arrival} onChange={e=>{setArrival(e.target.value);setQuote(null)}}/></label>
-      <label>خروج هتل<input type="date" value={departure} onChange={e=>{setDeparture(e.target.value);setQuote(null)}}/></label>
+      <label>ورود هتل<JalaliDateInput  value={arrival} onChange={e=>{setArrival(e.target.value);setQuote(null)}}/></label>
+      <label>خروج هتل<JalaliDateInput  value={departure} onChange={e=>{setDeparture(e.target.value);setQuote(null)}}/></label>
       <HotelStayEditor stay={stay} rate={hotel?.attributes?.hotel_rate} disabled={busy} onChange={value=>{setRooms(value);setQuote(null)}}/>
       {stayIssue&&<p role="alert">{stayIssue}</p>}
       <p>این ترکیب فعلاً نرخ بزرگسال را می‌پذیرد؛ برای کودک یا نوزاد، خدمات را جداگانه و با نرخ تأییدشده انتخاب کنید.</p>

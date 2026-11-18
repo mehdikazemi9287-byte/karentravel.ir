@@ -111,3 +111,8 @@
 .search-results-page:not(.embedded) .results-layout.no-offers .results-content>:has(form){max-width:760px;margin-inline:auto}
 .search-results-page:not(.embedded) .results-content :is(input:not([type=checkbox]):not([type=radio]),select,textarea){border:1px solid var(--sr-line);border-radius:14px;background:#fffaf4;padding:10px 12px;width:100%}
 .search-results-page:not(.embedded) .results-content label:not(:has(input[type=checkbox])){display:flex;flex-direction:column;gap:6px;font-weight:700;font-size:13px}
+/* inside the site shell (header present): drop the duplicate brand breadcrumb, tidy sort toolbar */
+.journey-page .search-results-page .results-breadcrumb{display:none}
+.journey-page .search-results-page{padding-top:8px}
+.search-results-page:not(.embedded) .results-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.search-results-page:not(.embedded) .results-toolbar label{display:flex;flex-direction:row;align-items:center;gap:8px;font-size:13px;font-weight:700}

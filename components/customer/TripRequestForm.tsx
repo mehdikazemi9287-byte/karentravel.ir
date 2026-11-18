@@ -1,4 +1,5 @@
 'use client';
+import {JalaliDateInput} from '../forms/JalaliDateInput';
 /* "Request a trip" — goes to the sales desk as a web_form case. The visitor only gets a receipt; the desk calls back. */
 import {useState, type FormEvent} from 'react';
 import {useAuth} from '../../lib/api/auth-context';
@@ -31,7 +32,7 @@ export function TripRequestForm({compact = false, initial, title = 'درخواس
       <label>نام و نام خانوادگی<input required minLength={2} maxLength={160} value={v.customer_name} onChange={set('customer_name')} autoComplete="name"/></label>
       <label>شماره‌ی موبایل<input required inputMode="tel" dir="ltr" placeholder="09xxxxxxxxx" value={v.mobile} onChange={set('mobile')} autoComplete="tel"/></label>
       <label>سفر موردنظر<input required minLength={2} maxLength={240} placeholder="مثلاً مشهد ۳ شب" value={v.trip} onChange={set('trip')}/></label>
-      <label>تاریخ تقریبی<input type="date" dir="ltr" value={v.travel_date} onChange={set('travel_date')}/></label>
+      <label>تاریخ تقریبی<JalaliDateInput value={v.travel_date} onChange={set('travel_date')}/></label>
       <label>تعداد مسافر<input type="number" min={1} max={100} value={v.travellers} onChange={set('travellers')}/></label>
       <label style={{flexBasis: '100%'}}>توضیحات<input maxLength={1000} value={v.description} onChange={set('description')}/></label>
       <label aria-hidden="true" style={{position: 'absolute', left: '-10000px', width: 1, height: 1, overflow: 'hidden'}}>وب‌سایت<input tabIndex={-1} autoComplete="off" value={v.website} onChange={set('website')}/></label>

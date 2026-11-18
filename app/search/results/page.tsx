@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { UnifiedSearchView } from '../../../components/operational/UnifiedSearchView';
+import { JourneyShell } from '../../../components/journey/JourneyShell';
 
 export const metadata:Metadata={title:'جست‌وجوی یکپارچه سفر',description:'جست‌وجو و مقایسه پیشنهادهای سفر با وضعیت تازگی و قیمت نهایی.',robots:{index:false,follow:false},alternates:{canonical:'/search/results'}};
 function SearchResultsFallback(){
@@ -11,4 +12,4 @@ function SearchResultsFallback(){
   </main>;
 }
 
-export default function SearchResultsPage(){return <Suspense fallback={<SearchResultsFallback/>}><UnifiedSearchView/></Suspense>}
+export default function SearchResultsPage(){return <JourneyShell><Suspense fallback={<SearchResultsFallback/>}><UnifiedSearchView/></Suspense></JourneyShell>}
