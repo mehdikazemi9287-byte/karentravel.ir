@@ -77,6 +77,16 @@ else
   CODE=1
 fi
 
+P5=0005-stitch-catalog-detail-checkout-dashboard.patch
+if grep -q "stitch-pages-2026-11.css" components/catalog/CatalogViews.tsx 2>/dev/null; then
+  echo "0005 already applied — skip"
+else
+  curl -fsSL --retry 3 -m 120 -o "$TMP/$P5" "$RAW/deploy/patches/$P5"
+  git apply --check "$TMP/$P5"
+  git -c user.name="KarenSeir Deploy" -c user.email="deploy@karentravel.ir" am "$TMP/$P5"
+  CODE=1
+fi
+
 step "4) design gallery + docs (everything from Stitch/Figma round 1–4)"
 # Not served from Next public/: production CSP (script-src 'self', X-Frame-Options DENY) blocks the
 # Tailwind CDN and the gallery iframes. Public preview stays on GitHub Pages; the server keeps the full set in docs/.
