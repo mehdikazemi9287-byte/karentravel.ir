@@ -82,3 +82,43 @@
 .journey-page .booking-overview{box-shadow:0 1px 8px rgba(42,21,48,.05)}
 .journey-page .manage-actions :is(a,button){border-radius:18px}
 .journey-page .confirmation-card{background:#fff;border:1px solid #f0e2d8;border-radius:28px;box-shadow:0 18px 45px rgba(42,21,48,.08)}
+
+/* ---------- Hotel results layout = Stitch Desktop/05 (sidebar filters + horizontal hotel cards) ---------- */
+@media(min-width:1000px){
+  .stay-marketplace .cat{display:grid;grid-template-columns:300px minmax(0,1fr);grid-template-areas:"head head" "chips chips" "filters meta" "filters grid" "filters pager" "attrib attrib";column-gap:28px;align-items:start}
+  .stay-marketplace .cat>.cat-head{grid-area:head}
+  .stay-marketplace .cat>.cat-chips{grid-area:chips}
+  .stay-marketplace .cat>.cat-filters{grid-area:filters;position:sticky;top:96px;display:flex;flex-direction:column;gap:14px}
+  .stay-marketplace .cat>.cat-filters>*{width:100%}
+  .stay-marketplace .cat>.cat-filters :is(label,fieldset){display:flex;flex-direction:column;gap:6px}
+  .stay-marketplace .cat>.cat-meta{grid-area:meta}
+  .stay-marketplace .cat>.cat-grid{grid-area:grid;display:flex;flex-direction:column;gap:18px}
+  .stay-marketplace .cat>.cat-pager{grid-area:pager}
+  .stay-marketplace .cat>.cat-attrib{grid-area:attrib}
+  .stay-marketplace .cat .cat-card{display:grid;grid-template-columns:300px minmax(0,1fr);min-height:230px;padding:10px;gap:0;text-decoration:none}
+  .stay-marketplace .cat .cat-thumb{margin:0;height:100%;min-height:210px;border-radius:20px;overflow:hidden}
+  .stay-marketplace .cat .cat-thumb img{width:100%;height:100%;object-fit:cover}
+  .stay-marketplace .cat .cat-card-body{display:flex;flex-direction:column;gap:8px;padding:12px 22px 10px}
+  .stay-marketplace .cat .cat-card-body h3{font-size:21px;margin:2px 0}
+  .stay-marketplace .cat .cat-card-top{display:flex;gap:10px;align-items:center}
+  .stay-marketplace .cat .cat-amen{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0}
+  .stay-marketplace .cat .cat-amen li{background:#f5eee4;border:0;border-radius:999px;padding:4px 12px;font-size:12px}
+  .stay-marketplace .cat .cat-price{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px dashed #f0e2d8;padding-top:12px;font-size:14px}
+  .stay-marketplace .cat .cat-price::after{content:"مشاهده اتاق‌ها و رزرو ←";background:#a8321d;color:#fff;border-radius:14px;padding:10px 18px;font-size:13px;font-weight:800;white-space:nowrap}
+  .stay-marketplace .cat .cat-card:hover .cat-price::after{background:#8f2716}
+}
+@media(min-width:1000px){
+  .stay-marketplace .cat{direction:rtl}
+  .stay-marketplace .cat .cat-thumb{width:300px;max-width:300px;min-width:0;aspect-ratio:auto;position:relative}
+  .stay-marketplace .cat .cat-thumb img{position:absolute;inset:0}
+  .stay-marketplace .cat .cat-card-body{min-width:0}
+  .stay-marketplace .cat>.cat-filters{gap:4px}
+  .stay-marketplace .cat>.cat-filters>*{flex:0 0 auto}
+  .stay-marketplace .cat>.cat-filters fieldset{flex-direction:row;flex-wrap:wrap;gap:6px;border:0;padding:0;margin:0}
+  .stay-marketplace .cat>.cat-filters fieldset legend{width:100%;font-weight:800;margin-bottom:6px}
+  .stay-marketplace .cat>.cat-filters fieldset label{flex-direction:row;align-items:center;gap:6px;flex:0 0 auto;border:1px solid #f0e2d8;border-radius:999px;padding:5px 12px;font-size:12px;background:#fff}
+}
+/* hotel detail: price box & image frame in Stitch palette (was light blue) */
+.cat-detail .cat-inquiry .cat-price{background:#fbe9c6;color:#a8321d;border-radius:18px;padding:14px 16px}
+.cat-detail .cat-thumb{background:#f3e7dc;border-radius:28px;overflow:hidden}
+.cat-detail .cat-inquiry .button.primary,.cat-detail .cat-inquiry a.primary{background:#a8321d;color:#fff}
