@@ -1,0 +1,5 @@
+#!/bin/bash
+# read-only: --check of the new deploy script against the unify branch
+curl -fsSL https://raw.githubusercontent.com/mehdikazemi9287-byte/karentravel.ir/refs/heads/unify/main-2026-11-19/deploy/karenseir-deploy-server.sh -o /root/deploy.sh || exit 1
+clear
+BRANCH=unify/main-2026-11-19 bash /root/deploy.sh --check 2>&1 | tail -22
