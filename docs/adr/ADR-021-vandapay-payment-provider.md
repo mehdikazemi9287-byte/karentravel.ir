@@ -2,6 +2,8 @@
 
 وضعیت: پذیرفته‌شده برای پیاده‌سازی مستقل از credential — ۱۴۰۵/۰۸/۲۱ (۲۰۲۶-۱۱-۱۲)
 
+> **یادداشت 2026-11-19:** روی `main` با [ADR-029](ADR-029-federated-org-credit-and-vandapay-hardening.md) ادغام شد: پرچم `VANDAPAY_MODE` (به‌جای `VANDAPAY_ENABLED`)، `VANDAPAY_BASE_URL` (به‌جای `VANDAPAY_API_BASE`)، شروع پرداخت فقط از `POST /payments/{id}/initiate`، aud state `karenseir-vandapay-callback`، و ونداپی درگاه اصلی (ADR-024) است نه روش اضافه کنار ZarinPal.
+
 ## زمینه
 تصمیم‌های مالک در مخزن ونداپی (`docs/DECISIONS.md`): D13 — ونداپی یکی از درگاه‌های همهٔ سایت‌های گروه؛ D14 — ونداپی سرور و دامنهٔ خودش را دارد (آدرس API فقط پیکربندی است)؛ D15 — اتصال‌ها اکنون ساخته و آزمون می‌شوند ولی تا قرارداد PSP و نظر حقوقی **خاموش** می‌مانند.
 ونداپی شرکت ثالث از دید KarenSeir است (پذیرنده = KarenSeir)؛ هیچ کد، DB یا UI از 60Online یا مخزن ونداپی import نمی‌شود — فقط قرارداد HTTP عمومی آن.
@@ -14,7 +16,7 @@
 - بازگشت مرورگر فقط state امضاشده (JWT، aud `karenseir-vandapay-return`) را می‌پذیرد؛ پارامترهای دیگر مثل `status` نادیده گرفته می‌شوند.
 - وب‌هوک: HMAC-SHA256 روی بدنهٔ خام، تحمل ۳۰۰ ثانیه، چند `v1`؛ سپس intent از API ونداپی بازخوانی و tenant/intent از metadata **پاسخ API** (نه رویداد) خوانده می‌شود؛ حذف تکراری با `payment_events(provider_key='vandapay', provider_event_id='evt:…')`.
 - Capture فقط وقتی: status=`succeeded` + مبلغ دقیق ریالی + `IRR` + mode کلید + metadata ما + بدون استرداد. `unknown`/`processing`/هر وضعیت ناشناخته = «در حال بررسی»، هیچ تغییری. رویداد `succeeded` که API هنوز تأیید نکرده ⇒ 503 تا ونداپی دوباره بفرستد.
-- ~~رویدادهای استرداد فقط ثبت و برای بررسی دستی لاگ می‌شوند~~ — **اصلاح‌شده با ADR-022** (استرداد، لغو intent، تأیید سازمان، اعتبار فدرال).
+- ~~رویدادهای استرداد فقط ثبت و برای بررسی دستی لاگ می‌شوند~~ — **اصلاح‌شده با ADR-022 (روی main: ADR-029)** (استرداد، لغو intent، تأیید سازمان، اعتبار فدرال).
 - بدون migration: از ستون‌های موجود `provider_key`، `provider_authority`، `provider_capture_reference` استفاده می‌شود.
 
 ## پذیرش
