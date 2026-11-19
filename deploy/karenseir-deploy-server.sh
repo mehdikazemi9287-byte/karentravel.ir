@@ -125,6 +125,8 @@ main() {
   fi
   say "migration head after: $(docker compose run --rm -T ${MIG_ENV[@]+"${MIG_ENV[@]}"} api alembic current 2>/dev/null | awk 'NF{print $1}' | tail -1)"
   docker compose up -d $SERVICES
+  # recreated containers can get new IPs; nginx keeps the old upstream addresses until it reloads
+  docker exec karenseir-nginx-1 nginx -s reload 2>/dev/null && say "nginx reloaded" || say "WARN: nginx reload failed"
 
   say "== 6/6 health"
   if ! health; then say "HEALTH FAILED"; rollback; exit 1; fi
