@@ -582,6 +582,40 @@ function HotelRowStitch({h}: {h: Hotel}) {
   </article>;
 }
 
+/* Flight landing after the pattern of Iranian booking sites (Alibaba, MrBilit) + Stitch home cards:
+   popular routes with city photos (open the real search; no prices), airline logo strip, perks, FAQ.
+   The full airline/airport directories stay available below, collapsed. */
+const FLIGHT_ROUTES: [string, string][] = [['تهران', 'مشهد'], ['تهران', 'کیش'], ['تهران', 'شیراز'], ['تهران', 'اصفهان'], ['تهران', 'تبریز'], ['تهران', 'اهواز'], ['تهران', 'بندرعباس'], ['تهران', 'قشم'], ['تهران', 'استانبول'], ['تهران', 'دبی'], ['تهران', 'نجف'], ['تهران', 'تفلیس']];
+const FLIGHT_FAQ: [string, string][] = [
+  ['چند ساعت قبل از پرواز در فرودگاه باشم؟', 'برای پروازهای داخلی دست‌کم دو ساعت و برای پروازهای خارجی دست‌کم سه ساعت پیش از پرواز در فرودگاه باشید؛ پذیرش معمولاً نیم ساعت (داخلی) تا یک ساعت (خارجی) پیش از پرواز بسته می‌شود.'],
+  ['بار مجاز من چقدر است؟', 'بار مجاز را ایرلاین و نوع نرخ تعیین می‌کند و پیش از پرداخت، کنار هر پرواز نمایش داده می‌شود.'],
+  ['استرداد بلیت هواپیما چطور انجام می‌شود؟', 'درخواست استرداد را از «سفرهای من» ثبت کنید؛ مبلغ جریمه طبق قوانین همان نرخ و فاصله تا زمان پرواز محاسبه و پیش از تأیید به شما نمایش داده می‌شود.'],
+  ['قیمت بلیت کودک و نوزاد چگونه است؟', 'نرخ کودک (۲ تا ۱۲ سال) و نوزاد (زیر ۲ سال) را ایرلاین تعیین می‌کند و هنگام انتخاب پرواز جدا از بزرگسال نمایش داده می‌شود.'],
+  ['پرواز چارتری با سیستمی چه فرقی دارد؟', 'بلیت سیستمی مستقیم از ایرلاین صادر می‌شود و قوانین استرداد ایرلاین را دارد؛ بلیت چارتری را کارگزار با قوانین خودش می‌فروشد. نوع هر بلیت در نتایج جست‌وجو مشخص است.'],
+  ['بلیت را بعد از خرید کجا ببینم؟', 'بلیت الکترونیکی در «سفرهای من» و پیامک ارسالی در دسترس است؛ برای پذیرش کارت شناسایی یا گذرنامهٔ معتبر همراه داشته باشید.'],
+];
+export function FlightLanding() {
+  const places = useCatalog<{items: Place[]}>('/catalog/places?kind=city&with_image=true&limit=500');
+  const airlines = useCatalog<{items: Airline[]}>('/catalog/airlines?country=IR');
+  const LOCAL: Record<string, string> = {شیراز: '/images/figma/tile-shiraz.jpeg', اصفهان: '/images/approved-figma/imgTileIsfahan.jpg', یزد: '/images/figma/hero-yazd.jpeg'};
+  const img = (city: string) => LOCAL[city] ?? places.data?.items.find(x => x.name === city || x.name_fa === city)?.image_url ?? null;
+  const [depart, setDepart] = useState('');
+  useEffect(() => { const d = new Date(Date.now() + 86400000); setDepart(d.toISOString().slice(0, 10)); }, []); // eslint-disable-line react-hooks/set-state-in-effect -- date exists only on the client (avoid hydration mismatch)
+  const href = (o: string, d: string) => `/search/results?${new URLSearchParams({vertical: 'flight', origin: o, destination: d, adults: '1', trip_type: 'one_way', ...(depart ? {depart} : {})})}`;
+  return <>
+    <section className="tl-sec" aria-labelledby="fl-routes"><h2 id="fl-routes">مسیرهای پرطرفدار</h2><p className="fl-sub">روی هر مسیر بزن تا پروازهای فردای آن را ببینی؛ تاریخ را در صفحهٔ نتایج عوض کن.</p>
+      <div className="tl-routes fl-routes">{FLIGHT_ROUTES.map(([o, d]) => <a key={o + d} href={href(o, d)} className="tl-route"><Thumb src={img(d)} credit={null} alt={d} label={d}/><span>{o} <i aria-hidden="true">←</i> {d}</span></a>)}</div></section>
+    {airlines.data && airlines.data.items.length > 0 && <section className="tl-sec" aria-labelledby="fl-air"><h2 id="fl-air">ایرلاین‌های داخلی</h2>
+      <ul className="fl-airlines">{airlines.data.items.map(a => <li key={a.id} title={a.name}><AirlineLogo a={a}/><span>{faName(a.name)}</span></li>)}</ul></section>}
+    <section className="tl-sec tl-perks" aria-label="مزایای خرید">
+      {[['مقایسهٔ پروازها کنار هم', 'ساعت، ایرلاین، بار مجاز و قوانین استرداد پروازها را در یک صفحه مقایسه کن.'], ['قوانین هر نرخ پیش از خرید', 'بار، کلاس و شرایط استرداد هر بلیت پیش از پرداخت نمایش داده می‌شود.'], ['پیگیری در سفرهای من', 'وضعیت پرداخت، صدور و استرداد بلیت را در حساب خودت ببین.'], ['پشتیبانی کارشناس', 'پیش و پس از خرید، کارشناس کارن تراول پاسخگوست.']]
+        .map(([t, d]) => <article key={t}><b>{t}</b><p>{d}</p></article>)}
+    </section>
+    <section className="tl-sec" aria-labelledby="fl-faq"><h2 id="fl-faq">پرسش‌های پرتکرار خرید بلیت هواپیما</h2>
+      <div className="tl-faq">{FLIGHT_FAQ.map(([q, a]) => <details key={q}><summary>{q}</summary><p>{a}</p></details>)}</div></section>
+  </>;
+}
+
 /* Train landing after the common pattern of Iranian booking sites (Alibaba, MrBilit): quick routes with city photos,
    what the customer gets, rail companies, and short answers to common questions. No station dump, no prices. */
 const TRAIN_CITIES = ['مشهد', 'اصفهان', 'تبریز', 'شیراز', 'یزد', 'اهواز', 'کرمان', 'رشت', 'بندرعباس', 'گرگان'];

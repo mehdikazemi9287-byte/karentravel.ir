@@ -268,3 +268,20 @@ input.ks-otp:focus{outline:none;border-color:#cf4429;box-shadow:0 0 0 3px rgba(2
 .hd-call{display:flex;gap:8px;align-items:center;justify-content:center;padding:12px;border-radius:16px;border:1px solid #f0e2d8;color:#2a1530;text-decoration:none;font-weight:700;font-size:14px}
 @media(max-width:1000px){.hd-grid{grid-template-columns:1fr}.hd-book{position:static}.hd-room{grid-template-columns:120px minmax(0,1fr)}.hd-room-cta{grid-column:1/-1;border:0;padding:0}}
 @media(max-width:700px){.hd-gallery{grid-template-columns:1fr 1fr;grid-template-rows:220px 120px}.hd-gallery figure.lead{grid-column:1/3;grid-row:auto}.hd-gallery figure:nth-child(n+4){display:none}.hd-gallery.all figure{display:block}.hd-rules{grid-template-columns:1fr}.hd-tabs{top:60px}}
+
+/* ---------- Flight landing (/flights) ---------- */
+.fl-page{display:flex;flex-direction:column;gap:26px}
+.fl-hero{display:flex;flex-direction:column;gap:10px;padding:34px 28px 26px;border-radius:34px;background:linear-gradient(135deg,rgba(42,21,48,.92),rgba(111,86,116,.86)),url(/images/home/hero-yazd.png) center/cover;color:#fff}
+.fl-hero h1{margin:0;font-size:clamp(28px,3.4vw,42px);font-weight:900;color:#fff}
+.fl-hero>p{margin:0 0 6px;opacity:.88;max-width:640px;line-height:1.9}
+.fl-kicker{align-self:flex-start;padding:6px 14px;border-radius:999px;background:rgba(255,255,255,.16);font-weight:800;font-size:13px;color:#ffd79d}
+.fl-hero .home-search,.fl-hero form{color:#1e1b15}
+.fl-sub{margin:-6px 0 12px;color:#6f5674;font-size:14px}
+.fl-routes .tl-route span i{font-style:normal;opacity:.7;margin:0 4px}
+.fl-airlines{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.fl-airlines li{display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 8px;border-radius:18px;background:#fff;border:1px solid #f0e2d8;text-align:center;font-size:13px;font-weight:700;color:#2a1530}
+.fl-airlines .cat-logo{width:56px;height:56px}
+.fl-dir{border:1px solid #f0e2d8;border-radius:22px;background:#fff;padding:0 18px}
+.fl-dir>summary{cursor:pointer;padding:16px 0;font-weight:800;color:#2a1530}
+.fl-dir[open]>summary{border-bottom:1px solid #f4ede3;margin-bottom:12px}
+.cat-head p,.tl-sec p{unicode-bidi:plaintext}

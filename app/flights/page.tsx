@@ -1,6 +1,20 @@
 import {Suspense} from 'react';
-import Link from 'next/link';
 import {JourneyShell} from '../../components/journey/JourneyShell';
 import {HomeSearchExperience} from '../../components/search/HomeSearchExperience';
-import {AirlineDirectory, AirportDirectory} from '../../components/catalog/CatalogViews';
-export default function Page(){return <JourneyShell><main className="journey-main flight-entry"><h1>خرید بلیط هواپیما</h1><p>مبدأ، مقصد و تاریخ سفر را انتخاب کن تا پروازهای موجود را ببینی.</p><Suspense fallback={<p>در حال آماده‌سازی جست‌وجوی پرواز…</p>}><HomeSearchExperience/></Suspense><section className="flight-entry-steps"><article><b>پشتیبانی کارشناس</b><p>پیش و پس از خرید، کارشناس پشتیبانی همراه توست. <Link href="/support">تماس با پشتیبانی</Link></p></article><article><b>قوانین هر نرخ پیش از خرید</b><p>بار، کلاس و شرایط استرداد هر بلیت پیش از پرداخت نمایش داده می‌شود.</p></article><article><b>پیگیری در حساب من</b><p>وضعیت پرداخت و صدور بلیت را در <Link href="/trips">سفرهای من</Link> ببین.</p></article></section><AirlineDirectory/><AirportDirectory/></main></JourneyShell>}
+import {AirlineDirectory, AirportDirectory, FlightLanding} from '../../components/catalog/CatalogViews';
+
+// Flight landing: hero + search, popular routes, airline strip, perks, FAQ. The full airline/airport
+// directories (reference data) stay reachable but collapsed, instead of filling the page.
+export default function Page() {
+  return <JourneyShell><main className="journey-main flight-entry fl-page">
+    <section className="fl-hero" aria-labelledby="fl-title">
+      <span className="fl-kicker">پرواز داخلی و خارجی</span>
+      <h1 id="fl-title">خرید بلیط هواپیما</h1>
+      <p>مبدأ، مقصد و تاریخ سفر را انتخاب کن تا پروازهای موجود را با ساعت، بار مجاز و قوانین استرداد ببینی.</p>
+      <Suspense fallback={<p>در حال آماده‌سازی جست‌وجوی پرواز…</p>}><HomeSearchExperience/></Suspense>
+    </section>
+    <FlightLanding/>
+    <details className="fl-dir"><summary>فهرست کامل ایرلاین‌ها</summary><AirlineDirectory/></details>
+    <details className="fl-dir"><summary>فهرست فرودگاه‌ها</summary><AirportDirectory/></details>
+  </main></JourneyShell>;
+}
