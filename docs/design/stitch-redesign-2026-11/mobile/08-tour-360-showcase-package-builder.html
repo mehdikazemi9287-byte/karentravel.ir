@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="fa"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_stack" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "surface-container-high": "#eee7dd", "secondary-container": "#f6d5fa", "on-tertiary": "#ffffff", "on-secondary-fixed": "#28132e", "secondary-fixed": "#f9d8fd", "secondary": "#6f5674", "on-tertiary-container": "#fffbff", "on-background": "#1e1b15", "error": "#ba1a1a", "on-surface": "#1e1b15", "surface-bright": "#fff8f0", "tertiary-fixed-dim": "#f8bc4f", "on-tertiary-fixed-variant": "#5f4100", "on-primary-container": "#fffbff", "surface": "#fff8f0", "background": "#fff8f0", "primary-container": "#cf4429", "primary-fixed-dim": "#ffb4a4", "surface-container": "#f4ede3", "surface-container-lowest": "#ffffff", "surface-tint": "#b02e15", "inverse-surface": "#33302a", "surface-dim": "#e0d9cf", "secondary-fixed-dim": "#dcbce0", "on-primary-fixed": "#3e0500", "on-error": "#ffffff", "on-tertiary-fixed": "#271900", "on-surface-variant": "#59413c", "tertiary-fixed": "#ffdeab", "error-container": "#ffdad6", "outline": "#8d706a", "on-primary": "#ffffff", "on-secondary-container": "#745a79", "inverse-on-surface": "#f7f0e6", "tertiary-container": "#9a6c00", "tertiary": "#7b5500", "primary": "#ad2c12", "surface-container-highest": "#e8e2d8", "surface-variant": "#e8e2d8", "inverse-primary": "#ffb4a4", "on-primary-fixed-variant": "#8d1600", "outline-variant": "#e1bfb8", "on-error-container": "#93000a", "on-secondary-fixed-variant": "#563e5c", "surface-container-low": "#faf3e9", "on-secondary": "#ffffff", "primary-fixed": "#ffdad3" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "space-lg": "1.75rem", "gutter-desktop": "1.5rem", "space-md": "1.25rem", "margin": "3.5rem", "gutter": "1.5rem", "space-xl": "2.5rem", "space-sm": "0.75rem", "space-xs": "0.375rem", "margin-desktop": "3.5rem" }, "fontFamily": { "headline-md": ["Vazirmatn"], "body-lg": ["Vazirmatn"], "title-lg": ["Vazirmatn"], "headline-sm": ["Vazirmatn"], "label-md": ["Vazirmatn"], "display": ["Vazirmatn"], "body-sm": ["Vazirmatn"], "label-lg": ["Vazirmatn"], "body-md": ["Vazirmatn"], "headline-lg": ["Vazirmatn"], "label-sm": ["Vazirmatn"], "title-md": ["Vazirmatn"] }, "fontSize": { "headline-md": ["28px", { "lineHeight": "42px", "letterSpacing": "-0.01em", "fontWeight": "700" }], "body-lg": ["16px", { "lineHeight": "28px", "letterSpacing": "0em", "fontWeight": "400" }], "title-lg": ["18px", { "lineHeight": "28px", "letterSpacing": "0em", "fontWeight": "600" }], "headline-sm": ["22px", { "lineHeight": "34px", "letterSpacing": "0em", "fontWeight": "700" }], "label-md": ["12px", { "lineHeight": "18px", "letterSpacing": "0em", "fontWeight": "500" }], "display": ["48px", { "lineHeight": "68px", "letterSpacing": "-0.02em", "fontWeight": "800" }], "body-sm": ["12px", { "lineHeight": "20px", "letterSpacing": "0em", "fontWeight": "400" }], "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0em", "fontWeight": "600" }], "body-md": ["14px", { "lineHeight": "24px", "letterSpacing": "0em", "fontWeight": "400" }], "headline-lg": ["36px", { "lineHeight": "52px", "letterSpacing": "-0.015em", "fontWeight": "800" }], "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0em", "fontWeight": "500" }], "title-md": ["16px", { "lineHeight": "26px", "letterSpacing": "0em", "fontWeight": "600" }] } } } };</script><style>@layer base{html,body{width:100vw;margin:0;padding:0;background-color:#fff8f0;}body{overscroll-behavior:none;font-family:'Vazirmatn',sans-serif;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style></head><body class="bg-surface text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 px-gutter flex items-center justify-between"><div class="flex items-center gap-space-sm"><button aria-label="بازگشت" class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface hover:bg-surface-container active:scale-95 transition-all" onclick="history.back()"><span class="material-symbols-outlined rtl:rotate-180">arrow_back</span></button><h1 class="text-title-lg font-title-lg text-on-surface font-bold truncate max-w-[200px]">Tour 360 Showcase</h1></div><div class="flex items-center gap-space-xs"><button aria-label="اشتراک‌گذاری" class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container transition-colors"><span class="material-symbols-outlined">share</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex-1 flex flex-col relative w-full pt-16 bg-surface pb-safe"><div class="flex flex-col w-full pb-32">
+<!-- Interactive 360 Showcase Hero -->
+<section class="relative w-full h-[420px] overflow-hidden select-none bg-surface-container-high" id="panorama-container">
+<div class="absolute inset-0 w-[140%] -right-[20%] h-full bg-cover bg-center transition-transform duration-100 ease-out" data-alt="Ultra panoramic warm golden 360 sunset view of the historical Yazd desert rooftops with majestic windcatchers, mudbrick architecture, and the endless rolling golden sand dunes of Bafq desert in Iran. Rich warm terracotta, sunlit cream plaster, deep desert plum sky accents, high editorial luxury travel photography." id="pano-bg" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBl-YTYbvNVEJdGmvr-Y0n6UfWZFCQuKf3h9JORRp5WkUaQMufSBC2o5fHTizkJRXvrK8lwQuGVGDsP0aoWk3Z_DJ_NPWckW97HZU7bU3QpSuSfB8zPIeHy3DUR4NbwqGF9zqq3_80qk7llWfheVle_-hSxLHelzyEOWEoFCCXdHcUaLDE6p6Uqy1IC_XBs-ANBop6QYOxGOiQjSb9jSz3tI4QoTCXiW8OPRaM_AVM')">
+<!-- Ambient Gradient Scrims -->
+<div class="absolute inset-0 bg-gradient-to-t from-inverse-surface/80 via-transparent to-inverse-surface/30"></div>
+</div>
+<!-- 360 Overlay Controls & Status -->
+<div class="absolute top-4 inset-x-4 flex items-center justify-between z-10 pointer-events-none">
+<div class="flex items-center gap-space-xs bg-surface/90 backdrop-blur-md px-3 py-1.5 rounded-full shadow-md pointer-events-auto">
+<span class="material-symbols-outlined text-primary text-[18px] animate-pulse">360</span>
+<span class="text-label-md font-label-md text-on-surface font-bold">نمای تعاملی ۳۶۰°</span>
+</div>
+<div class="flex items-center gap-space-xs pointer-events-auto">
+<button class="w-9 h-9 rounded-full bg-surface/90 backdrop-blur-md text-on-surface flex items-center justify-center shadow-md active:scale-90 transition-transform" id="gyro-toggle">
+<span class="material-symbols-outlined text-[20px]">screen_rotation</span>
+</button>
+<button class="w-9 h-9 rounded-full bg-surface/90 backdrop-blur-md text-on-surface flex items-center justify-center shadow-md active:scale-90 transition-transform" id="camera-switch">
+<span class="material-symbols-outlined text-[20px]">photo_camera</span>
+</button>
+</div>
+</div>
+<!-- Hotspots across 360 landscape -->
+<div class="absolute inset-0 pointer-events-none" id="hotspots-layer">
+<!-- Hotspot 1: Windcatchers -->
+<button class="absolute top-[42%] right-[22%] pointer-events-auto group flex items-center gap-1.5 -translate-x-1/2 -translate-y-1/2" onclick="selectHotspot('بادگیرهای اصیل هتل داد', 'اقامت در بنای تاریخی با بادگیرهای خنک‌کننده دوران قاجار')">
+<span class="relative flex h-8 w-8 items-center justify-center">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-fixed opacity-75"></span>
+<span class="relative inline-flex rounded-full h-7 w-7 bg-primary text-on-primary items-center justify-center shadow-lg">
+<span class="material-symbols-outlined text-[16px]">roofing</span>
+</span>
+</span>
+<span class="bg-surface/95 backdrop-blur-sm text-on-surface text-label-sm font-label-sm px-2.5 py-1 rounded-full shadow-md font-bold whitespace-nowrap">بادگیر هتل داد</span>
+</button>
+<!-- Hotspot 2: Bafq Golden Dunes -->
+<button class="absolute top-[58%] right-[68%] pointer-events-auto group flex items-center gap-1.5 -translate-x-1/2 -translate-y-1/2" onclick="selectHotspot('سافاری رمل‌های طلایی بافق', 'تجربه هیجان‌انگیز گشت‌وگذار بر بلندای شن‌های روان و چای آتشی')">
+<span class="relative flex h-8 w-8 items-center justify-center">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-tertiary-fixed opacity-75"></span>
+<span class="relative inline-flex rounded-full h-7 w-7 bg-tertiary text-on-tertiary items-center justify-center shadow-lg">
+<span class="material-symbols-outlined text-[16px]">waves</span>
+</span>
+</span>
+<span class="bg-surface/95 backdrop-blur-sm text-on-surface text-label-sm font-label-sm px-2.5 py-1 rounded-full shadow-md font-bold whitespace-nowrap">رمل‌های بافق</span>
+</button>
+<!-- Hotspot 3: Zarch Qanat -->
+<button class="absolute top-[35%] right-[85%] pointer-events-auto group flex items-center gap-1.5 -translate-x-1/2 -translate-y-1/2" onclick="selectHotspot('قنات کهن زارچ', 'مهندسی ۳۰۰۰ ساله طولانی‌ترین سیستم آبرسانی زیرزمینی جهان')">
+<span class="relative flex h-8 w-8 items-center justify-center">
+<span class="relative inline-flex rounded-full h-7 w-7 bg-secondary text-on-secondary items-center justify-center shadow-lg">
+<span class="material-symbols-outlined text-[16px]">water_drop</span>
+</span>
+</span>
+<span class="bg-surface/95 backdrop-blur-sm text-on-surface text-label-sm font-label-sm px-2.5 py-1 rounded-full shadow-md font-bold whitespace-nowrap">قنات زارچ</span>
+</button>
+</div>
+<!-- Drag Instructions / Interactive Cue -->
+<div class="absolute bottom-4 inset-x-4 flex justify-between items-end pointer-events-none">
+<div class="bg-surface/85 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-2 shadow-sm pointer-events-auto">
+<span class="material-symbols-outlined text-primary text-[18px]">swipe</span>
+<span class="text-label-sm font-label-sm text-on-surface">برای چرخش ۳۶۰ درجه به طرفین بکشید</span>
+</div>
+<div class="bg-surface-container-high/90 text-on-surface px-2.5 py-1 rounded-full text-label-sm font-label-sm">
+        زاویه: <span class="font-bold" id="angle-display">۰°</span>
+</div>
+</div>
+</section>
+<!-- Hotspot Popover Toast (Dynamic) -->
+<div class="mx-4 -mt-3 mb-2 hidden bg-surface-container-lowest p-3 rounded-xl shadow-lg flex items-center justify-between transition-all" id="hotspot-modal">
+<div class="flex items-center gap-2.5">
+<div class="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-[20px]">explore</span>
+</div>
+<div>
+<h4 class="text-label-lg font-label-lg font-bold text-on-surface" id="hotspot-title"></h4>
+<p class="text-body-sm font-body-sm text-on-surface-variant line-clamp-1" id="hotspot-desc"></p>
+</div>
+</div>
+<button class="w-7 h-7 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant" onclick="closeHotspotModal()">
+<span class="material-symbols-outlined text-[16px]">close</span>
+</button>
+</div>
+<!-- Tour Overview Badge & Title -->
+<section class="px-4 pt-4 pb-2">
+<div class="flex items-center gap-2 mb-1.5">
+<span class="px-2.5 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed text-label-sm font-label-sm font-bold">پکیج سفارشی VIP</span>
+<span class="px-2.5 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed text-label-sm font-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">star</span>
+        ۴.۹ (۴۲ مسافر)
+      </span>
+<span class="text-on-surface-variant text-label-sm font-label-sm ms-auto">۵ روز و ۴ شب</span>
+</div>
+<h2 class="text-headline-sm font-headline-sm text-on-surface font-extrabold leading-snug">
+      افسون کویر و خشت کهن: یزد، میبد و بافق
+    </h2>
+<p class="text-body-md font-body-md text-on-surface-variant mt-1 leading-relaxed">
+      سفری آرام و عمیق به ژرفای کویر مرکزی، همنشینی با ستاره‌شناسان، پیمایش سافاری رمل‌ها و اقامت اختصاصی در کاروانسراهای قاجاری.
+    </p>
+</section>
+<!-- Audio Guide Floating Mini Player -->
+<section class="px-4 py-2">
+<div class="bg-surface-container-low rounded-xl p-3.5 shadow-sm flex flex-col gap-2.5">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<div class="relative">
+<div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-on-primary shadow-sm">
+<span class="material-symbols-outlined text-[22px]">headphones</span>
+</div>
+<span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-tertiary rounded-full flex items-center justify-center text-[8px] text-on-tertiary font-bold">✓</span>
+</div>
+<div>
+<div class="text-label-md font-label-md font-bold text-on-surface flex items-center gap-1.5">
+<span>روایت صوتی روزشمار</span>
+<span class="bg-secondary-container text-on-secondary-container text-label-sm px-1.5 py-0.2 rounded-full">استاد کاشانی</span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant">راز شب‌های پرستاره بافق و بادگیرهای خاموش</p>
+</div>
+</div>
+<button class="w-10 h-10 rounded-full bg-primary text-on-primary flex items-center justify-center active:scale-95 transition-all shadow-md" id="play-btn" onclick="toggleAudio()">
+<span class="material-symbols-outlined text-[24px]" id="play-icon">play_arrow</span>
+</button>
+</div>
+<!-- Audio Progress Bar & Quick Navigation -->
+<div class="flex items-center gap-2 pt-1">
+<span class="text-label-sm font-label-sm text-on-surface-variant tabular-nums" id="audio-current">۰۱:۴۵</span>
+<div class="flex-1 h-1.5 bg-surface-container-high rounded-full overflow-hidden relative">
+<div class="h-full bg-primary rounded-full transition-all duration-300 w-[38%]" id="audio-bar"></div>
+</div>
+<span class="text-label-sm font-label-sm text-on-surface-variant tabular-nums">۰۴:۳۰</span>
+<div class="flex items-center gap-1 ms-1">
+<button class="text-on-surface-variant hover:text-on-surface active:scale-90 p-0.5" onclick="skipAudio(-10)">
+<span class="material-symbols-outlined text-[18px]">replay_10</span>
+</button>
+<button class="text-on-surface-variant hover:text-on-surface active:scale-90 p-0.5" onclick="skipAudio(10)">
+<span class="material-symbols-outlined text-[18px]">forward_10</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- 5-Day Horizontal Itinerary Tabs -->
+<section class="mt-4">
+<div class="px-4 flex items-center justify-between mb-2">
+<h3 class="text-title-md font-title-md text-on-surface font-bold">برنامه گشت ۵ روزه</h3>
+<span class="text-label-md font-label-md text-primary font-bold cursor-pointer">نقشه کامل مسیر</span>
+</div>
+<!-- Day Pills Selector -->
+<div class="flex items-center gap-2 px-4 overflow-x-auto no-scrollbar py-1">
+<button class="day-tab flex-shrink-0 px-4 py-2 rounded-full bg-inverse-surface text-inverse-on-surface text-label-md font-label-md font-bold shadow-sm transition-all" id="tab-day-1" onclick="selectDay(1)">
+        روز ۱: ورود به یزد
+      </button>
+<button class="day-tab flex-shrink-0 px-4 py-2 rounded-full bg-surface-container text-on-surface-variant text-label-md font-label-md font-semibold transition-all" id="tab-day-2" onclick="selectDay(2)">
+        روز ۲: راز قنات و خشت
+      </button>
+<button class="day-tab flex-shrink-0 px-4 py-2 rounded-full bg-surface-container text-on-surface-variant text-label-md font-label-md font-semibold transition-all" id="tab-day-3" onclick="selectDay(3)">
+        روز ۳: رمل‌های طلایی بافق
+      </button>
+<button class="day-tab flex-shrink-0 px-4 py-2 rounded-full bg-surface-container text-on-surface-variant text-label-md font-label-md font-semibold transition-all" id="tab-day-4" onclick="selectDay(4)">
+        روز ۴: کهندژ و زیلو میبد
+      </button>
+<button class="day-tab flex-shrink-0 px-4 py-2 rounded-full bg-surface-container text-on-surface-variant text-label-md font-label-md font-semibold transition-all" id="tab-day-5" onclick="selectDay(5)">
+        روز ۵: بدرقه با عطر شیرینی
+      </button>
+</div>
+<!-- Horizontal Swipeable Experience Cards Container -->
+<div class="flex gap-3 px-4 mt-3 overflow-x-auto no-scrollbar snap-x snap-mandatory">
+<!-- Activity Card 1 -->
+<div class="snap-start flex-shrink-0 w-[260px] bg-surface-container-low rounded-xl overflow-hidden shadow-sm flex flex-col">
+<div class="relative h-32 w-full">
+<img class="w-full h-full object-cover" data-alt="Intricate courtyard of Dad Hotel Yazd with turquoise central pool, glowing night lanterns, traditional arches, and desert clay brick aesthetics." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDUNbejBeu0CTxfmABgzHUu2LgXFPez7o-sWvI5wI0zRKxFEiJ5IXcbkoesV3h4GFKFYhqbJgh2NlBn2ZsGg2aVkE17Yr9S3h8V3kKsMQNt_OQE7CG3GVLENAfpD6fUC3xst1ONc6rhw4D0gIjQTnD-9-Gd21CC8KVKFuIs3J1_5-jS2cZazA6u2HFygoHqvk0USLARfKBV-1Hka3I9NVsUZhmuCiWU2Fedbddp5Pw"/>
+<span class="absolute top-2 right-2 bg-surface/90 backdrop-blur-md px-2 py-0.5 rounded-full text-label-sm font-label-sm font-bold text-on-surface">۰۹:۳۰ صبح</span>
+</div>
+<div class="p-3 flex-1 flex flex-col justify-between">
+<div>
+<h4 class="text-title-md font-title-md font-bold text-on-surface">پذیرش تشریفاتی و استقرار</h4>
+<p class="text-body-sm font-body-sm text-on-surface-variant mt-1">خوش‌آمدگویی در هتل بوتیک سنتی با شربت بیدمشک و گز خوانسار</p>
+</div>
+<div class="flex items-center gap-1.5 mt-2.5 text-secondary text-label-sm font-label-sm">
+<span class="material-symbols-outlined text-[16px]">hotel</span>
+<span>اقامتگاه تاریخی داد</span>
+</div>
+</div>
+</div>
+<!-- Activity Card 2 -->
+<div class="snap-start flex-shrink-0 w-[260px] bg-surface-container-low rounded-xl overflow-hidden shadow-sm flex flex-col">
+<div class="relative h-32 w-full">
+<img class="w-full h-full object-cover" data-alt="Traditional Persian desert sunset with camel caravan silhouettes against rolling golden dunes and violet twilight sky in Bafq, Iran." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBuZw3MMOYt-MBzYGrsvpD5DFn7zmJGBhm9kYuq3cFLSYKuBoVZWsUAoP_lSfabJDelYc15axF-V007KbMFIs0b1B8sYmjdeJOeVfuq0f6f0OamarSKlpup_iA8ELL0nYbbnQXgEvxwRXMtIVq3y___q60dDo0xov9YDT1aNSmxeqkIfyU5t9UtqmmCymaN3h1SZorJfuShbpaajC1WVcAmRf8ZFEZGmC3FJNWyTh8"/>
+<span class="absolute top-2 right-2 bg-surface/90 backdrop-blur-md px-2 py-0.5 rounded-full text-label-sm font-label-sm font-bold text-on-surface">۱۶:۰۰ عصر</span>
+</div>
+<div class="p-3 flex-1 flex flex-col justify-between">
+<div>
+<h4 class="text-title-md font-title-md font-bold text-on-surface">کارگاه قنات‌گردی زارچ</h4>
+<p class="text-body-sm font-body-sm text-on-surface-variant mt-1">فرود به دالان‌های خنک قنات با همراهی پیر مقنی بازنشسته و نورپردازی اختصاصی</p>
+</div>
+<div class="flex items-center gap-1.5 mt-2.5 text-secondary text-label-sm font-label-sm">
+<span class="material-symbols-outlined text-[16px]">hiking</span>
+<span>مسیر هموار شده و ایمن</span>
+</div>
+</div>
+</div>
+<!-- Activity Card 3 -->
+<div class="snap-start flex-shrink-0 w-[260px] bg-surface-container-low rounded-xl overflow-hidden shadow-sm flex flex-col">
+<div class="relative h-32 w-full">
+<img class="w-full h-full object-cover" data-alt="Luxury desert camp dining setup at night with warm bonfire, persian carpets laid on sand, glowing starry night sky over Yazd desert." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB2VLpACH2IUTvcMH-_Pkj4IGmCbCayORdhQnB2uYSTf_nnUP_98XaQ0XHHhYvm7tFfVsdyBogKZQLUyFo6gvVZxJ00MdYVS2hi08XdNJHhgyAc1cAMQO3nHWCHmSOPyHCivUgiKzxRiHVNohTwkNfhb9QHd452CFWeNeBXPQKGQmAPwRz6xlKEv4ljtr7KgKeg1KSf72opeke94tbD1jaWS64g3g9vd9GjfMJglHI"/>
+<span class="absolute top-2 right-2 bg-surface/90 backdrop-blur-md px-2 py-0.5 rounded-full text-label-sm font-label-sm font-bold text-on-surface">۲۰:۳۰ شب</span>
+</div>
+<div class="p-3 flex-1 flex flex-col justify-between">
+<div>
+<h4 class="text-title-md font-title-md font-bold text-on-surface">ضیافت شام در کمپ رمل‌ها</h4>
+<p class="text-body-sm font-body-sm text-on-surface-variant mt-1">سرو خوراک‌های بومی فسنجان یزدی و قیمه نخود با نوای دلنشین سه‌تار</p>
+</div>
+<div class="flex items-center gap-1.5 mt-2.5 text-secondary text-label-sm font-label-sm">
+<span class="material-symbols-outlined text-[16px]">restaurant</span>
+<span>امکان سفارش منوی گیاهی</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Lifestyle & Tour Customizer Module -->
+<section class="px-4 mt-6">
+<div class="flex items-center justify-between mb-3">
+<div>
+<h3 class="text-title-md font-title-md text-on-surface font-bold">سفارشی‌سازی خدمات اختصاصی</h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant">برنامه را متناسب با نیازها و آسایش خود شخصی‌سازی کنید</p>
+</div>
+<span class="material-symbols-outlined text-primary text-[24px]">tune</span>
+</div>
+<div class="bg-surface-container-low p-4 rounded-xl flex flex-col gap-4 shadow-sm">
+<!-- Dietary Preferences Toggle Chips -->
+<div>
+<label class="text-label-md font-label-md text-on-surface font-bold mb-2 block">رژیم و ترجیحات غذایی:</label>
+<div class="flex flex-wrap gap-2">
+<button class="diet-chip px-3 py-1.5 rounded-full text-label-sm font-label-sm bg-inverse-surface text-inverse-on-surface font-medium transition-all" onclick="toggleChip(this, 0)">
+            منوی محلی سنتی
+          </button>
+<button class="diet-chip px-3 py-1.5 rounded-full text-label-sm font-label-sm bg-surface-container text-on-surface-variant font-medium transition-all" onclick="toggleChip(this, 450000)">
+            وگان / کامپلیت گیاهی (+۴۵۰,۰۰۰ ت)
+          </button>
+<button class="diet-chip px-3 py-1.5 rounded-full text-label-sm font-label-sm bg-surface-container text-on-surface-variant font-medium transition-all" onclick="toggleChip(this, 600000)">
+            بدون گلوتن (سلیاک) (+۶۰۰,۰۰۰ ت)
+          </button>
+</div>
+</div>
+<!-- Mobility & Accessibility Support -->
+<div>
+<label class="text-label-md font-label-md text-on-surface font-bold mb-2 block">پایش توان جسمی و حرکتی:</label>
+<div class="flex items-center justify-between p-3 bg-surface rounded-xl">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]">accessible</span>
+</div>
+<div>
+<span class="text-label-md font-label-md text-on-surface font-bold block">مسیرهای هموار و بدون پله</span>
+<span class="text-body-sm font-body-sm text-on-surface-variant">تسهیل ورود به ابنیه و همراهی رمپ اختصاصی</span>
+</div>
+</div>
+<input class="w-5 h-5 accent-primary cursor-pointer rounded" id="mobility-toggle" onchange="updateCustomizer()" type="checkbox"/>
+</div>
+</div>
+<!-- Vehicle Upgrade -->
+<div>
+<label class="text-label-md font-label-md text-on-surface font-bold mb-2 block">ترابری و حمل‌ونقل سفر:</label>
+<div class="grid grid-cols-2 gap-2">
+<button class="veh-btn p-3 rounded-xl bg-inverse-surface text-inverse-on-surface text-right transition-all" id="veh-vip" onclick="selectVehicle('vip', 2800000)">
+<div class="flex items-center justify-between">
+<span class="material-symbols-outlined text-[20px]">directions_bus</span>
+<span class="text-label-sm font-bold bg-primary text-on-primary px-1.5 py-0.5 rounded-full">پیش‌فرض VIP</span>
+</div>
+<div class="mt-2 text-label-md font-bold">ون تشریفاتی لوکس هیوندای H350</div>
+<div class="text-label-sm opacity-80 mt-0.5">صندلی خلبانی با ماساژور</div>
+</button>
+<button class="veh-btn p-3 rounded-xl bg-surface text-on-surface text-right transition-all" id="veh-suv" onclick="selectVehicle('suv', 4500000)">
+<div class="flex items-center justify-between">
+<span class="material-symbols-outlined text-[20px]">directions_car</span>
+<span class="text-label-sm font-bold text-on-surface-variant">+۱,۷۰۰,۰۰۰ ت</span>
+</div>
+<div class="mt-2 text-label-md font-bold">خودروی آفرود اختصاصی لندکروزر</div>
+<div class="text-label-sm text-on-surface-variant mt-0.5">همراه راننده مجرب کویر</div>
+</button>
+</div>
+</div>
+<!-- Boutique Hotel Upgrade -->
+<div>
+<label class="text-label-md font-label-md text-on-surface font-bold mb-2 block">انتخاب اتاق در هتل بوتیک:</label>
+<div class="flex items-center justify-between p-3 bg-surface rounded-xl">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-full bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]">bed</span>
+</div>
+<div>
+<span class="text-label-md font-label-md text-on-surface font-bold block">ارتقا به شاه‌نشین اختصاصی</span>
+<span class="text-body-sm font-body-sm text-on-surface-variant">اتاق گچ‌بری قاجاری با ایوان مشرف به حوض</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-label-sm font-label-sm text-primary font-bold">+۱,۲۰۰,۰۰۰ ت</span>
+<input class="w-5 h-5 accent-primary cursor-pointer rounded" id="room-upgrade" onchange="updateCustomizer()" type="checkbox"/>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Bill Summary Breakdown Card -->
+<section class="px-4 mt-6">
+<div class="bg-surface-container-high/60 p-4 rounded-xl flex flex-col gap-2.5">
+<div class="flex items-center justify-between">
+<span class="text-title-md font-title-md font-bold text-on-surface">خلاصه بهای پکیج اختصاصی</span>
+<span class="text-label-sm font-label-sm text-secondary font-bold">محاسبه برخط</span>
+</div>
+<div class="flex items-center justify-between text-body-sm font-body-sm text-on-surface-variant pt-1">
+<span>پایه تور ۵ روزه (برای هر نفر):</span>
+<span class="font-bold text-on-surface tabular-nums">۱۴,۸۰۰,۰۰۰ تومان</span>
+</div>
+<div class="flex items-center justify-between text-body-sm font-body-sm text-on-surface-variant">
+<span>سفارشی‌سازی سبک زندگی و خدمات:</span>
+<span class="font-bold text-on-surface tabular-nums" id="addon-price">+۰ تومان</span>
+</div>
+<div class="flex items-center justify-between text-body-sm font-body-sm text-on-surface-variant">
+<span>بیمه انفرادی کویرنوردی و مجوزها:</span>
+<span class="font-bold text-tertiary tabular-nums">رایگان (هدیه کارن)</span>
+</div>
+<div class="h-px bg-outline-variant/30 my-1"></div>
+<div class="flex items-center justify-between">
+<span class="text-label-lg font-label-lg font-bold text-on-surface">مجموع برای ۱ همسفر:</span>
+<span class="text-title-lg font-title-lg font-extrabold text-primary tabular-nums" id="bill-total">۱۴,۸۰۰,۰۰۰ تومان</span>
+</div>
+</div>
+</section>
+<!-- Guarantees & Host Profile Snapshot -->
+<section class="px-4 mt-6 flex items-center gap-3">
+<div class="w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="Warm portrait of a seasoned Persian desert safari guide smiling warmly with a traditional scarf and desert dust background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAKVzy5c6iWb0shKM5HwDm2Ut_LqQhGeclB8IgLb6ENTeE2YrZHRpiJYDLnKuvXpWkM4qzwLobpszCwsYPYmd_cC3X2gujWZtn8qmT_jSO5rCs7g3sMQlWla4gtUcOu3VGxcgkO-Pgw05eYFIJSJIdUenVnwk5ZcuZ0bcta88yhiNP3_P27jR0I8se_FNERcPvx92IE6h_IPm09nUpVUR3iEIifChZJmcnkGQWH0KI"/>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-1.5">
+<h4 class="text-label-lg font-label-lg font-bold text-on-surface truncate">راهنمای ارشد: سهراب نایینی</h4>
+<span class="material-symbols-outlined text-[16px] text-tertiary">verified</span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant truncate">دارای گواهینامه اکوتوریسم کلوت و ستاره‌شناسی یزد</p>
+</div>
+</section>
+<!-- Sticky Bottom Reservation & Sharing Bar -->
+<div class="fixed bottom-0 inset-x-0 z-40 bg-surface/95 backdrop-blur-xl p-4 shadow-[0_-4px_24px_rgba(42,21,48,0.08)] flex items-center justify-between gap-3">
+<!-- Final Price Display -->
+<div class="flex flex-col min-w-0">
+<span class="text-label-sm font-label-sm text-on-surface-variant">مبلغ نهایی قابل پرداخت:</span>
+<div class="flex items-baseline gap-1">
+<span class="text-headline-sm font-headline-sm font-extrabold text-primary tabular-nums" id="sticky-total">۱۴,۸۰۰,۰۰۰</span>
+<span class="text-label-sm font-label-sm text-on-surface">تومان</span>
+</div>
+</div>
+<!-- Actions -->
+<div class="flex items-center gap-2">
+<button aria-label="اشتراک‌گذاری تور" class="w-11 h-11 rounded-full bg-surface-container text-on-surface flex items-center justify-center active:scale-95 transition-transform flex-shrink-0" onclick="shareTrip()">
+<span class="material-symbols-outlined text-[20px]">share</span>
+</button>
+<button class="h-11 px-6 rounded-full bg-primary-container text-on-primary-container text-label-lg font-label-lg font-bold flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all" onclick="bookInstantly()">
+<span>رزرو آنی و قفل سهمیه</span>
+<span class="material-symbols-outlined text-[18px]">lock</span>
+</button>
+</div>
+</div>
+</div>
+<script>
+  // 360 Panorama Drag Micro-Interaction
+  const container = document.getElementById('panorama-container');
+  const panoBg = document.getElementById('pano-bg');
+  const angleDisplay = document.getElementById('angle-display');
+  let isDragging = false;
+  let startX = 0;
+  let currentOffset = -20; // in percent
+
+  if (container && panoBg) {
+    const handleTouchStart = (e) => {
+      isDragging = true;
+      startX = e.touches ? e.touches[0].clientX : e.clientX;
+    };
+
+    const handleTouchMove = (e) => {
+      if (!isDragging) return;
+      const x = e.touches ? e.touches[0].clientX : e.clientX;
+      const deltaX = (x - startX) * 0.15;
+      let newOffset = currentOffset + deltaX;
+      if (newOffset > 0) newOffset = 0;
+      if (newOffset < -40) newOffset = -40;
+      panoBg.style.right = newOffset + '%';
+      
+      const calculatedAngle = Math.round(Math.abs(newOffset / 40) * 360);
+      if (angleDisplay) {
+        angleDisplay.textContent = calculatedAngle.toLocaleString('fa-IR') + '°';
+      }
+    };
+
+    const handleTouchEnd = (e) => {
+      if (!isDragging) return;
+      isDragging = false;
+      const computedRight = parseFloat(panoBg.style.right || '-20');
+      currentOffset = isNaN(computedRight) ? -20 : computedRight;
+    };
+
+    container.addEventListener('touchstart', handleTouchStart, { passive: true });
+    container.addEventListener('touchmove', handleTouchMove, { passive: true });
+    container.addEventListener('touchend', handleTouchEnd);
+    container.addEventListener('mousedown', handleTouchStart);
+    window.addEventListener('mousemove', handleTouchMove);
+    window.addEventListener('mouseup', handleTouchEnd);
+  }
+
+  // Camera & Gyro Toggles
+  const gyroBtn = document.getElementById('gyro-toggle');
+  let gyroActive = false;
+  if (gyroBtn) {
+    gyroBtn.addEventListener('click', () => {
+      gyroActive = !gyroActive;
+      gyroBtn.classList.toggle('bg-primary', gyroActive);
+      gyroBtn.classList.toggle('text-on-primary', gyroActive);
+    });
+  }
+
+  const cameraBtn = document.getElementById('camera-switch');
+  if (cameraBtn) {
+    cameraBtn.addEventListener('click', () => {
+      currentOffset = currentOffset <= -20 ? 0 : -35;
+      panoBg.style.right = currentOffset + '%';
+      const calculatedAngle = Math.round(Math.abs(currentOffset / 40) * 360);
+      if (angleDisplay) {
+        angleDisplay.textContent = calculatedAngle.toLocaleString('fa-IR') + '°';
+      }
+    });
+  }
+
+  // Hotspot Popover Handler
+  function selectHotspot(title, desc) {
+    const modal = document.getElementById('hotspot-modal');
+    const titleEl = document.getElementById('hotspot-title');
+    const descEl = document.getElementById('hotspot-desc');
+    if (modal && titleEl && descEl) {
+      titleEl.textContent = title;
+      descEl.textContent = desc;
+      modal.classList.remove('hidden');
+    }
+  }
+
+  function closeHotspotModal() {
+    const modal = document.getElementById('hotspot-modal');
+    if (modal) modal.classList.add('hidden');
+  }
+
+  // Audio Mini Player Logic
+  let isPlaying = false;
+  let audioTimer = null;
+  let currentSeconds = 105; // 01:45
+  const totalSeconds = 270; // 04:30
+
+  function formatTime(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    const formattedM = (m < 10 ? '۰' : '') + m.toLocaleString('fa-IR');
+    const formattedS = (s < 10 ? '۰' : '') + s.toLocaleString('fa-IR');
+    return formattedM + ':' + formattedS;
+  }
+
+  function toggleAudio() {
+    isPlaying = !isPlaying;
+    const icon = document.getElementById('play-icon');
+    if (icon) {
+      icon.textContent = isPlaying ? 'pause' : 'play_arrow';
+    }
+    if (isPlaying) {
+      audioTimer = setInterval(() => {
+        if (currentSeconds < totalSeconds) {
+          currentSeconds++;
+          const curEl = document.getElementById('audio-current');
+          const barEl = document.getElementById('audio-bar');
+          if (curEl) curEl.textContent = formatTime(currentSeconds);
+          if (barEl) barEl.style.width = ((currentSeconds / totalSeconds) * 100) + '%';
+        } else {
+          toggleAudio();
+        }
+      }, 1000);
+    } else {
+      clearInterval(audioTimer);
+    }
+  }
+
+  function skipAudio(delta) {
+    currentSeconds = Math.max(0, Math.min(totalSeconds, currentSeconds + delta));
+    const curEl = document.getElementById('audio-current');
+    const barEl = document.getElementById('audio-bar');
+    if (curEl) curEl.textContent = formatTime(currentSeconds);
+    if (barEl) barEl.style.width = ((currentSeconds / totalSeconds) * 100) + '%';
+  }
+
+  // Itinerary Day Selector
+  function selectDay(dayNum) {
+    document.querySelectorAll('.day-tab').forEach((tab, index) => {
+      if (index === dayNum - 1) {
+        tab.className = 'day-tab flex-shrink-0 px-4 py-2 rounded-full bg-inverse-surface text-inverse-on-surface text-label-md font-label-md font-bold shadow-sm transition-all';
+      } else {
+        tab.className = 'day-tab flex-shrink-0 px-4 py-2 rounded-full bg-surface-container text-on-surface-variant text-label-md font-label-md font-semibold transition-all';
+      }
+    });
+  }
+
+  // Pricing & Customization State
+  const BASE_PRICE = 14800000;
+  let dietaryExtra = 0;
+  let vehicleExtra = 0;
+  let roomExtra = 0;
+
+  function toggleChip(button, cost) {
+    document.querySelectorAll('.diet-chip').forEach(btn => {
+      btn.className = 'diet-chip px-3 py-1.5 rounded-full text-label-sm font-label-sm bg-surface-container text-on-surface-variant font-medium transition-all';
+    });
+    button.className = 'diet-chip px-3 py-1.5 rounded-full text-label-sm font-label-sm bg-inverse-surface text-inverse-on-surface font-medium transition-all';
+    dietaryExtra = cost;
+    updateCustomizer();
+  }
+
+  function selectVehicle(type, cost) {
+    const btnVip = document.getElementById('veh-vip');
+    const btnSuv = document.getElementById('veh-suv');
+    if (type === 'vip') {
+      vehicleExtra = 0;
+      if (btnVip) btnVip.className = 'veh-btn p-3 rounded-xl bg-inverse-surface text-inverse-on-surface text-right transition-all';
+      if (btnSuv) btnSuv.className = 'veh-btn p-3 rounded-xl bg-surface text-on-surface text-right transition-all';
+    } else {
+      vehicleExtra = 1700000;
+      if (btnSuv) btnSuv.className = 'veh-btn p-3 rounded-xl bg-inverse-surface text-inverse-on-surface text-right transition-all';
+      if (btnVip) btnVip.className = 'veh-btn p-3 rounded-xl bg-surface text-on-surface text-right transition-all';
+    }
+    updateCustomizer();
+  }
+
+  function updateCustomizer() {
+    const roomCheckbox = document.getElementById('room-upgrade');
+    roomExtra = (roomCheckbox && roomCheckbox.checked) ? 1200000 : 0;
+
+    const totalAddons = dietaryExtra + vehicleExtra + roomExtra;
+    const finalTotal = BASE_PRICE + totalAddons;
+
+    const addonPriceEl = document.getElementById('addon-price');
+    const billTotalEl = document.getElementById('bill-total');
+    const stickyTotalEl = document.getElementById('sticky-total');
+
+    if (addonPriceEl) addonPriceEl.textContent = '+' + totalAddons.toLocaleString('fa-IR') + ' تومان';
+    if (billTotalEl) billTotalEl.textContent = finalTotal.toLocaleString('fa-IR') + ' تومان';
+    if (stickyTotalEl) stickyTotalEl.textContent = finalTotal.toLocaleString('fa-IR');
+  }
+
+  function shareTrip() {
+    if (navigator.share) {
+      navigator.share({
+        title: 'تور اختصاصی یزد و کویر بافق | کارن تراول',
+        text: 'نگاهی به این پکیج لوکس ۳۶۰ درجه و سفارشی‌سازی شده کویر یزد بینداز!',
+        url: window.location.href,
+      }).catch(() => {});
+    } else {
+      alert('لینک تور اختصاصی کپی شد.');
+    }
+  }
+
+  function bookInstantly() {
+    alert('سهمیه اختصاصی شما برای ۳۰ دقیقه آینده رزرو و قفل گردید.');
+  }
+</script></main></body></html>

@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="fa"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;font-family:'Vazirmatn',sans-serif;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "surface-container-high": "#eee7dd", "secondary-container": "#f6d5fa", "on-tertiary": "#ffffff", "on-secondary-fixed": "#28132e", "secondary-fixed": "#f9d8fd", "secondary": "#6f5674", "on-tertiary-container": "#fffbff", "on-background": "#1e1b15", "error": "#ba1a1a", "on-surface": "#1e1b15", "surface-bright": "#fff8f0", "tertiary-fixed-dim": "#f8bc4f", "on-tertiary-fixed-variant": "#5f4100", "on-primary-container": "#fffbff", "surface": "#fff8f0", "background": "#fff8f0", "primary-container": "#cf4429", "primary-fixed-dim": "#ffb4a4", "surface-container": "#f4ede3", "surface-container-lowest": "#ffffff", "surface-tint": "#b02e15", "inverse-surface": "#33302a", "surface-dim": "#e0d9cf", "secondary-fixed-dim": "#dcbce0", "on-primary-fixed": "#3e0500", "on-error": "#ffffff", "on-tertiary-fixed": "#271900", "on-surface-variant": "#59413c", "tertiary-fixed": "#ffdeab", "error-container": "#ffdad6", "outline": "#8d706a", "on-primary": "#ffffff", "on-secondary-container": "#745a79", "inverse-on-surface": "#f7f0e6", "tertiary-container": "#9a6c00", "tertiary": "#7b5500", "primary": "#ad2c12", "surface-container-highest": "#e8e2d8", "surface-variant": "#e8e2d8", "inverse-primary": "#ffb4a4", "on-primary-fixed-variant": "#8d1600", "outline-variant": "#e1bfb8", "on-error-container": "#93000a", "on-secondary-fixed-variant": "#563e5c", "surface-container-low": "#faf3e9", "on-secondary": "#ffffff", "primary-fixed": "#ffdad3" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "space-lg": "1.75rem", "gutter-desktop": "1.5rem", "space-md": "1.25rem", "margin": "3.5rem", "gutter": "1.5rem", "space-xl": "2.5rem", "space-sm": "0.75rem", "space-xs": "0.375rem", "margin-desktop": "3.5rem" }, "fontFamily": { "headline-md": ["Vazirmatn"], "body-lg": ["Vazirmatn"], "title-lg": ["Vazirmatn"], "headline-sm": ["Vazirmatn"], "label-md": ["Vazirmatn"], "display": ["Vazirmatn"], "body-sm": ["Vazirmatn"], "label-lg": ["Vazirmatn"], "body-md": ["Vazirmatn"], "headline-lg": ["Vazirmatn"], "label-sm": ["Vazirmatn"], "title-md": ["Vazirmatn"] }, "fontSize": { "headline-md": ["28px", { "lineHeight": "42px", "letterSpacing": "-0.01em", "fontWeight": "700" }], "body-lg": ["16px", { "lineHeight": "28px", "letterSpacing": "0em", "fontWeight": "400" }], "title-lg": ["18px", { "lineHeight": "28px", "letterSpacing": "0em", "fontWeight": "600" }], "headline-sm": ["22px", { "lineHeight": "34px", "letterSpacing": "0em", "fontWeight": "700" }], "label-md": ["12px", { "lineHeight": "18px", "letterSpacing": "0em", "fontWeight": "500" }], "display": ["48px", { "lineHeight": "68px", "letterSpacing": "-0.02em", "fontWeight": "800" }], "body-sm": ["12px", { "lineHeight": "20px", "letterSpacing": "0em", "fontWeight": "400" }], "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0em", "fontWeight": "600" }], "body-md": ["14px", { "lineHeight": "24px", "letterSpacing": "0em", "fontWeight": "400" }], "headline-lg": ["36px", { "lineHeight": "52px", "letterSpacing": "-0.015em", "fontWeight": "800" }], "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0em", "fontWeight": "500" }], "title-md": ["16px", { "lineHeight": "26px", "letterSpacing": "0em", "fontWeight": "600" }] } } } };</script></head><body class="bg-surface font-body-md text-on-surface antialiased selection:bg-primary-fixed selection:text-on-primary-fixed"><aside class="fixed right-0 top-0 h-full w-72 bg-surface-container-low z-50 flex flex-col justify-between py-6 shadow-[0_1px_8px_rgba(42,21,48,0.04)]"><div class="flex flex-col"><div class="px-6 mb-8 flex items-center justify-between"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-on-primary shadow-sm"><span class="material-symbols-outlined text-[22px]">explore</span></div><div class="flex flex-col"><span class="font-headline-sm text-title-lg font-bold text-on-surface tracking-tight">کارن تراول</span><span class="font-label-sm text-label-sm text-secondary">پنل میزبانان و تأمین‌کنندگان</span></div></div></div><nav class="flex flex-col gap-1.5 px-4" data-active-classes="bg-primary-container text-on-primary-container font-semibold shadow-sm"><a class="flex items-center gap-3.5 px-4 py-3 rounded-full text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-body-md text-body-md" data-path="overview" href="#"><span class="material-symbols-outlined text-[22px]">space_dashboard</span><span>پیشخوان مدیریت</span></a><a aria-current="page" class="flex items-center gap-3.5 px-4 py-3 rounded-full transition-colors bg-primary-container text-on-primary-container font-semibold shadow-sm" data-path="experiences" href="#"><span class="material-symbols-outlined text-[22px]">local_activity</span><span>تجربه‌ها و کارگاه‌ها</span></a><a class="flex items-center gap-3.5 px-4 py-3 rounded-full text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-body-md text-body-md" data-path="calendar-schedule" href="#"><span class="material-symbols-outlined text-[22px]">calendar_month</span><span>تقویم برگزاری و ظرفیت</span></a><a class="flex items-center gap-3.5 px-4 py-3 rounded-full text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-body-md text-body-md" data-path="reservations" href="#"><span class="material-symbols-outlined text-[22px]">confirmation_number</span><span>رزروها و مسافران</span></a><a class="flex items-center gap-3.5 px-4 py-3 rounded-full text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-body-md text-body-md" data-path="reviews" href="#"><span class="material-symbols-outlined text-[22px]">rate_review</span><span>دیدگاه‌ها و امتیازها</span></a><a class="flex items-center gap-3.5 px-4 py-3 rounded-full text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-body-md text-body-md" data-path="financial" href="#"><span class="material-symbols-outlined text-[22px]">account_balance_wallet</span><span>تسویه‌حساب و امور مالی</span></a></nav></div><div class="px-4 flex flex-col gap-2"><div class="bg-surface-container rounded-2xl p-4 flex flex-col gap-2"><div class="flex items-center justify-between"><span class="font-label-md text-label-md text-on-surface font-semibold">وضعیت میزبانی</span><span class="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm">سفیر بومی</span></div><p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">امتیاز میزبانی شما: ۴.۹ از ۵</p></div><a class="flex items-center gap-3.5 px-4 py-2.5 rounded-full text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-body-md text-body-md" data-path="settings" href="#"><span class="material-symbols-outlined text-[22px]">settings</span><span>تنظیمات نمایه اقامتگاه</span></a></div></aside><div class="pr-72"><header class="fixed top-0 right-72 left-0 h-16 bg-surface/85 backdrop-blur-xl z-40 px-gutter-desktop flex items-center justify-between shadow-[0_1px_8px_rgba(42,21,48,0.04)]"><div class="flex items-center gap-4"><div class="flex items-center gap-2 bg-surface-container-low px-4 py-2 rounded-full"><span class="material-symbols-outlined text-secondary text-[20px]">search</span><input class="bg-transparent border-none outline-none font-body-sm text-body-sm text-on-surface placeholder:text-on-surface-variant w-72" placeholder="جستجو در تجارب، کد رزرو یا گردشگر..." type="text"/></div></div><div class="flex items-center gap-3"><button class="flex items-center gap-2 bg-primary text-on-primary px-5 py-2 rounded-full font-label-lg text-label-lg shadow-sm hover:opacity-95 transition-all" type="button"><span class="material-symbols-outlined text-[18px]">add</span><span>تعریف رویداد جدید</span></button><button class="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors" type="button"><span class="material-symbols-outlined text-[20px]">notifications</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></header><main class="relative pt-16 bg-surface min-h-screen px-gutter-desktop py-space-lg"><div class="flex flex-col w-full gap-space-xl">
+<!-- Top Welcome & Host Credential Banner -->
+<div class="relative overflow-hidden rounded-[28px] bg-surface-container p-space-lg shadow-sm">
+<div class="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-space-md">
+<div class="flex items-center gap-space-md">
+<div class="relative w-20 h-20 rounded-full overflow-hidden shrink-0 shadow-md">
+<img class="w-full h-full object-cover" data-alt="Portrait of an esteemed elderly Iranian artisan host wearing traditional Yazdi attire with warm smile in an authentic mudbrick courtyard studio in Fahadan Yazd, illuminated by warm morning sun, editorial travel photography." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDzpX2gkJuZF7IiCLlbltTXj7xaNry0ZcKqwgCNPnWgUl09hBixlHIIj6hsvCaPx_3oQigvRWlaL_KVGT4vS4HlEncexcsZ8b_YGHU0fSImLJtZlGJknXSnv8RdTBVk9ZRZVz_-U2wO1u21XulhEYUn6X0S58qmZum0RdlJakEqra3qIbXMGO5ohy3nwbpvM9DirzPF72gQvEH3ofN7RMLU9i3LwfGhZ2snIX64MQs"/>
+<div class="absolute bottom-0 right-0 w-6 h-6 bg-tertiary-container rounded-full flex items-center justify-center text-on-tertiary-container shadow-sm">
+<span class="material-symbols-outlined text-[14px]">verified</span>
+</div>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<span class="font-headline-sm text-headline-sm text-on-surface">استاد هدایت فهادانی</span>
+<span class="px-2.5 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm">میزبان برتر استان یزد</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">تأمین‌کننده رسمی مسترکلاس‌های میراث ناملموس • کارن تراول کد شناسه: KRN-88410</p>
+<div class="flex items-center gap-3 mt-2">
+<div class="flex items-center gap-1 text-tertiary">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">stars</span>
+<span class="font-label-md text-label-md font-bold">گواهینامه اصالت وزارت میراث فرهنگی و گردشگری</span>
+</div>
+<span class="text-outline-variant">•</span>
+<span class="font-label-md text-label-md text-secondary">انقضای تاییدیه فنی: دی‌ماه ۱۴۰۳</span>
+</div>
+</div>
+</div>
+<div class="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
+<button class="flex items-center gap-2 bg-surface-container-lowest text-on-surface px-5 py-2.5 rounded-full shadow-sm hover:bg-surface-container-high transition-colors font-label-lg text-label-lg" type="button">
+<span class="material-symbols-outlined text-[18px]">qr_code_scanner</span>
+<span>اسکن بلیط گردشگر</span>
+</button>
+<button class="flex items-center gap-2 bg-primary text-on-primary px-6 py-2.5 rounded-full shadow-md hover:bg-primary-container transition-all font-label-lg text-label-lg" onclick="document.getElementById('quick-add-modal').classList.remove('hidden')" type="button">
+<span class="material-symbols-outlined text-[18px]">add_circle</span>
+<span>ثبت کارگاه بومی جدید</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Host KPI Cards Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-gutter">
+<!-- Card 1: Revenue -->
+<div class="bg-surface-container-lowest rounded-[24px] p-space-md shadow-sm flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface-variant">درآمد ناخالص آبان‌ماه</span>
+<div class="flex items-baseline gap-1.5 mt-2">
+<span class="font-headline-md text-headline-md font-bold text-on-surface">۸۴,۶۵۰,۰۰۰</span>
+<span class="font-label-md text-label-md text-secondary">تومان</span>
+</div>
+</div>
+<div class="w-12 h-12 rounded-2xl bg-surface-container-low flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[26px]">account_balance_wallet</span>
+</div>
+</div>
+<div class="mt-4 pt-3 flex items-center justify-between">
+<span class="inline-flex items-center gap-1 font-label-sm text-label-sm text-primary">
+<span class="material-symbols-outlined text-[14px]">trending_up</span>
+          ۲۲٪ افزایش نسبت به مهر
+        </span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">تسویه‌شده: ۹۴٪</span>
+</div>
+</div>
+<!-- Card 2: Booked Caravans -->
+<div class="bg-surface-container-lowest rounded-[24px] p-space-md shadow-sm flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface-variant">کاروان‌ها و رزروهای قطعی</span>
+<div class="flex items-baseline gap-1.5 mt-2">
+<span class="font-headline-md text-headline-md font-bold text-on-surface">۳۸</span>
+<span class="font-label-md text-label-md text-secondary">گروه مستقل</span>
+</div>
+</div>
+<div class="w-12 h-12 rounded-2xl bg-surface-container-low flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[26px]">groups</span>
+</div>
+</div>
+<div class="mt-4 pt-3 flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant">مجموع مسافران: ۳۱۲ نفر</span>
+<span class="font-label-sm text-label-sm text-tertiary font-bold">۸ تور بین‌المللی</span>
+</div>
+</div>
+<!-- Card 3: NPS & Reviews -->
+<div class="bg-surface-container-lowest rounded-[24px] p-space-md shadow-sm flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface-variant">شاخص رضایت مسافران (NPS)</span>
+<div class="flex items-baseline gap-2 mt-2">
+<span class="font-headline-md text-headline-md font-bold text-on-surface">۴.۹</span>
+<span class="font-label-md text-label-md text-on-surface-variant">از ۵</span>
+<span class="material-symbols-outlined text-tertiary-fixed-dim text-[20px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+</div>
+<div class="w-12 h-12 rounded-2xl bg-surface-container-low flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-[26px]">sentiment_very_satisfied</span>
+</div>
+</div>
+<div class="mt-4 pt-3 flex items-center justify-between">
+<div class="w-32 bg-surface-container h-2 rounded-full overflow-hidden">
+<div class="bg-tertiary-container h-full w-[96%] rounded-full"></div>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">۱۴۲ نظر ثبت‌شده</span>
+</div>
+</div>
+<!-- Card 4: Quality & Certified Status -->
+<div class="bg-surface-container-lowest rounded-[24px] p-space-md shadow-sm flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface-variant">تضمین کیفیت و ایمنی بهداشت</span>
+<div class="flex items-center gap-2 mt-2">
+<span class="font-title-lg text-title-lg text-on-surface font-bold">سطح الف طلایی</span>
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface font-label-sm text-label-sm">Grade A+</span>
+</div>
+</div>
+<div class="w-12 h-12 rounded-2xl bg-secondary-container flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined text-[26px]">workspace_premium</span>
+</div>
+</div>
+<div class="mt-4 pt-3 flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-secondary">پوشش کامل بیمه حوادث کارن</span>
+<span class="material-symbols-outlined text-primary text-[18px]">verified_user</span>
+</div>
+</div>
+</div>
+<!-- Main Split Layout: Workshops Catalog & Timeline -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-gutter">
+<!-- Workshops Catalog Section (8 Columns) -->
+<div class="xl:col-span-8 flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="w-3 h-8 rounded-full bg-primary inline-block"></span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">کارگاه‌ها و مسترکلاس‌های فعال میزبان</h2>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-4 py-1.5 rounded-full bg-surface-container-highest text-on-surface font-label-sm text-label-sm font-semibold" type="button">همه (۴ فعال)</button>
+<button class="px-4 py-1.5 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container font-label-sm text-label-sm" type="button">تکمیل ظرفیت</button>
+<button class="px-4 py-1.5 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container font-label-sm text-label-sm" type="button">در انتظار تایید</button>
+</div>
+</div>
+<!-- Workshop Card 1: Ghotab Yazd -->
+<div class="bg-surface-container-lowest rounded-[24px] p-space-md shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row gap-space-md">
+<div class="md:w-56 h-48 md:h-auto rounded-2xl overflow-hidden shrink-0 relative">
+<img class="w-full h-full object-cover" data-alt="Traditional Persian confectionary workshop in Yazd showing hands skillfully pinching authentic Ghotab pastry filled with almond cardamom and dusted with powdered sugar, warm bakery oven glow in antique Persian kitchen." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCtFusCm4jEo6lLEVTqRlR-CIP1TNv_ht3244VZZBWqCG6uNzcUv26B1ihVtWhqsFb0OLvKEyFeZgFmRe_TDArEsv5I7zp_wrtPf7qDhy2AuT8bOnmQUHCyN6DkOauKQBbYoi5Sv723fX_u2unOd2cHiKf540nEFntEVsnRbzf4lNZUR693vo5ffs5ZDcR4E81kMgeCLW_ZxzdDHfBCLOuaEeSD_HfX8C_Lqoil8OE"/>
+<span class="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-surface-container-lowest/90 backdrop-blur-md text-primary font-label-sm text-label-sm font-bold flex items-center gap-1 shadow-sm">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> تایید فنی کارن
+          </span>
+</div>
+<div class="flex-1 flex flex-col justify-between">
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-secondary">کد تجربه: EXP-YZD-104</span>
+<div class="flex items-center gap-1 text-tertiary">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-label-md text-label-md font-bold">۴.۹۵</span>
+<span class="text-on-surface-variant font-label-sm text-label-sm">(۷۸ نظر)</span>
+</div>
+</div>
+<h3 class="font-title-lg text-title-lg font-bold text-on-surface">کارگاه سنتی پخت شیرینی و قطاب حاج خلیفه علی رهبر</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2">آموزش گام‌به‌گام خمیرگیری با هل و گلاب، پیچیدن دست‌پیچ قطاب اصیل یزدی و پخت در تنور مسی همراه با پک سوغات ویژه برای هر گردشگر.</p>
+</div>
+<div class="grid grid-cols-3 gap-2 py-3 bg-surface-container-low/60 rounded-xl px-3 my-2">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant">ظرفیت کل کارگاه</span>
+<span class="font-title-md text-title-md text-on-surface font-semibold">۱۵ مسافر</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant">باقی‌مانده فردا</span>
+<span class="font-title-md text-title-md text-primary font-bold">۲ جای خالی</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant">سهمیه کارن هر نفر</span>
+<span class="font-title-md text-title-md text-on-surface font-semibold">۶۵۰,۰۰۰ ت</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-1">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-secondary">schedule</span>
+<span class="font-label-md text-label-md text-on-surface-variant">هر روز • دو سانس: ۱۰ الی ۱۲:۳۰ و ۱۶ الی ۱۸:۳۰</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-3.5 py-1.5 rounded-full bg-surface-container-high text-on-surface font-label-sm text-label-sm hover:bg-surface-container-highest transition-colors" type="button">تغییر ظرفیت</button>
+<button class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-on-surface" type="button">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Workshop Card 2: Termeh Weaving -->
+<div class="bg-surface-container-lowest rounded-[24px] p-space-md shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row gap-space-md">
+<div class="md:w-56 h-48 md:h-auto rounded-2xl overflow-hidden shrink-0 relative">
+<img class="w-full h-full object-cover" data-alt="Traditional master weaver at a wooden loom weaving authentic Persian Daraei and Termeh silk fabrics with intricate paisley patterns in an ancient Yazd workshop, soft shadows and vibrant natural vegetable dyes." src="https://lh3.googleusercontent.com/aida-public/AB6AXuChYXlB7CKREzwClChV3EihNyGbyOHPlH21ReB9e_a6eBu9CW-8Hnk9KeuhZm77KKanZQurBu7r6o-oBzWoIZ_swJOYKYS83KR_TXjVbI90yYHWBVND6KhisSCyjAZKNt4QB_KyxLbtWRJJ7SrdUk-OXT8EhK4Hi62FoYpC3xJmC1Q1TddX0Hhxxb6wYTzf-PLFH23TWCEC-_8IqM2gK1EgkWerYl4hFnoxosKsyZQ"/>
+<span class="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-surface-container-lowest/90 backdrop-blur-md text-primary font-label-sm text-label-sm font-bold flex items-center gap-1 shadow-sm">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> تایید فنی کارن
+          </span>
+</div>
+<div class="flex-1 flex flex-col justify-between">
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-secondary">کد تجربه: EXP-YZD-209</span>
+<div class="flex items-center gap-1 text-tertiary">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-label-md text-label-md font-bold">۴.۸۸</span>
+<span class="text-on-surface-variant font-label-sm text-label-sm">(۵۳ نظر)</span>
+</div>
+</div>
+<h3 class="font-title-lg text-title-lg font-bold text-on-surface">کارگاه زنده بافت دارایی و ترمه سنتی فهادان</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2">تجربه کار با دستگاه چوبی بافندگی با قدمت ۲۰۰ ساله، آموزش گره‌زنی رنگرزی گیاهی ابریشم و بافت یک نمونه دست‌بافت شخصی مسافر.</p>
+</div>
+<div class="grid grid-cols-3 gap-2 py-3 bg-surface-container-low/60 rounded-xl px-3 my-2">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant">ظرفیت کارگاه</span>
+<span class="font-title-md text-title-md text-on-surface font-semibold">۸ مسافر (VIP)</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant">باقی‌مانده ۲ روز آینده</span>
+<span class="font-title-md text-title-md text-tertiary-container font-bold">تکمیل ظرفیت</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant">سهمیه کارن هر نفر</span>
+<span class="font-title-md text-title-md text-on-surface font-semibold">۱,۲۰۰,۰۰۰ ت</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-1">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-secondary">schedule</span>
+<span class="font-label-md text-label-md text-on-surface-variant">روزهای زوج • ساعت ۹ الی ۱۳</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-3.5 py-1.5 rounded-full bg-surface-container-high text-on-surface font-label-sm text-label-sm hover:bg-surface-container-highest transition-colors" type="button">مدیریت سانس‌ها</button>
+<button class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-on-surface" type="button">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Workshop Card 3: Desert Stargazing Bafq -->
+<div class="bg-surface-container-lowest rounded-[24px] p-space-md shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row gap-space-md">
+<div class="md:w-56 h-48 md:h-auto rounded-2xl overflow-hidden shrink-0 relative">
+<img class="w-full h-full object-cover" data-alt="Astrophotography in Bafq desert Iran at midnight showing a large professional Celestron telescope under a brilliant Milky Way galaxy arch, warm bonfire in foreground, silhouettes of travelers." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBpLrpZaP7KaW2xK_4Hu7Sp0g_C8Jc7wFFTMKKBbqyLWfAJGv2_sUwUQ2GfYmndo094DEWAh7XV9jVloPVos0bvCbnANwZtQFK3teI4idhnBfsdZKVwwUrffLeYhVTqWjQLJfQjm2CHZ9xnlwtKzqS0bm7cXx7H6tJIw4Y9O85dvABkoJ3Sumck_N2m3OzopfDmDjpFeiX0AFNiIbSmiyzvQdeamOgtPNnzV0Dp6H8"/>
+<span class="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-secondary text-on-secondary font-label-sm text-label-sm font-bold flex items-center gap-1 shadow-sm">
+<span class="material-symbols-outlined text-[14px]">nightlight</span> شب‌نشینی کویری
+          </span>
+</div>
+<div class="flex-1 flex flex-col justify-between">
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-secondary">کد تجربه: EXP-BFQ-310</span>
+<div class="flex items-center gap-1 text-tertiary">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-label-md text-label-md font-bold">۵.۰</span>
+<span class="text-on-surface-variant font-label-sm text-label-sm">(۹۱ نظر)</span>
+</div>
+</div>
+<h3 class="font-title-lg text-title-lg font-bold text-on-surface">شب‌نشینی رصد آسمان کویر و عکاسی نجومی بافق</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2">استفاده از تلسکوپ سلسترون ۱۱ اینچ، رصد حلقه‌های زحل و سحابی جبار، آموزش عکاسی لانگ‌اکسپوژر با دوربین همراه با چای آتشی و دمنوش آویشن.</p>
+</div>
+<div class="grid grid-cols-3 gap-2 py-3 bg-surface-container-low/60 rounded-xl px-3 my-2">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant">ظرفیت کاروان</span>
+<span class="font-title-md text-title-md text-on-surface font-semibold">۲۰ مسافر</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant">ظرفیت پنجشنبه</span>
+<span class="font-title-md text-title-md text-primary font-bold">۵ جای خالی</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant">سهمیه کارن هر نفر</span>
+<span class="font-title-md text-title-md text-on-surface font-semibold">۹۸۰,۰۰۰ ت</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-1">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-secondary">schedule</span>
+<span class="font-label-md text-label-md text-on-surface-variant">پنجشنبه و جمعه هر هفته • ساعت ۱۹ الی ۲۴</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-3.5 py-1.5 rounded-full bg-surface-container-high text-on-surface font-label-sm text-label-sm hover:bg-surface-container-highest transition-colors" type="button">مدیریت سانس‌ها</button>
+<button class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-on-surface" type="button">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Workshop Card 4: Pottery Meybod -->
+<div class="bg-surface-container-lowest rounded-[24px] p-space-md shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row gap-space-md">
+<div class="md:w-56 h-48 md:h-auto rounded-2xl overflow-hidden shrink-0 relative">
+<img class="w-full h-full object-cover" data-alt="Traditional pottery craftsman shaping wet clay vase on an ancient foot-driven kick wheel inside Meybod historical caravanserai in Iran, sunlight pouring through adobe arched portico." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCrHgl-gqSgcHP3ZR-58JGv1BPCq554BYZdE0pyTbALzkL5sMyssp7Grp92-2sZIHUoB3rBakQx9EMUh4yhie8q-H6h3okZ-hfeDvxZVkYA9wbSoLeKewFVbTJBX_DTmTXLW97NUoMjR-oz32-GwZmVaKOifDXt3kXXQ8ywVFyJRiW32wT_Ag7PzjmWbxSuZBNBeo38TFVLtXOachu8Isd33JMIcQhbUqNR7LlT2K0"/>
+<span class="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-surface-container-lowest/90 backdrop-blur-md text-primary font-label-sm text-label-sm font-bold flex items-center gap-1 shadow-sm">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> تایید فنی کارن
+          </span>
+</div>
+<div class="flex-1 flex flex-col justify-between">
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-secondary">کد تجربه: EXP-MYB-408</span>
+<div class="flex items-center gap-1 text-tertiary">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-label-md text-label-md font-bold">۴.۹۱</span>
+<span class="text-on-surface-variant font-label-sm text-label-sm">(۴۴ نظر)</span>
+</div>
+</div>
+<h3 class="font-title-lg text-title-lg font-bold text-on-surface">مسترکلاس ساخت کوزه و سفالگری در کاروانسرای تاریخی میبد</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2">فرم‌دهی با چرخ پایی باستانی، نقاشی خورشیدخانم و مرغک میبدی با لعاب طبیعی کبالت، پخت در کوره خشتی و ارسال سازه نهایی به آدرس اقامتگاه گردشگر.</p>
+</div>
+<div class="grid grid-cols-3 gap-2 py-3 bg-surface-container-low/60 rounded-xl px-3 my-2">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant">ظرفیت کارگاه</span>
+<span class="font-title-md text-title-md text-on-surface font-semibold">۱۲ مسافر</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant">باقی‌مانده فردا</span>
+<span class="font-title-md text-title-md text-primary font-bold">۴ جای خالی</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant">سهمیه کارن هر نفر</span>
+<span class="font-title-md text-title-md text-on-surface font-semibold">۵۲۰,۰۰۰ ت</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-1">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-secondary">schedule</span>
+<span class="font-label-md text-label-md text-on-surface-variant">شنبه تا چهارشنبه • ساعت ۱۵ الی ۱۸</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-3.5 py-1.5 rounded-full bg-surface-container-high text-on-surface font-label-sm text-label-sm hover:bg-surface-container-highest transition-colors" type="button">مدیریت سانس‌ها</button>
+<button class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-on-surface" type="button">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Sidebar Area: Live Upcoming Bookings & Special Needs (4 Columns) -->
+<div class="xl:col-span-4 flex flex-col gap-space-md">
+<!-- Upcoming Booking Timeline Card -->
+<div class="bg-surface-container-lowest rounded-[28px] p-space-md shadow-sm flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[22px]">calendar_today</span>
+<h3 class="font-title-lg text-title-lg font-bold text-on-surface">ورود کاروان‌های امروز و فردا</h3>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed font-label-sm text-label-sm font-semibold">۳ کاروان زنده</span>
+</div>
+<!-- Timeline Items -->
+<div class="flex flex-col gap-space-md relative pr-3 before:absolute before:right-[21px] before:top-3 before:bottom-3 before:w-[2px] before:bg-surface-container">
+<!-- Item 1: In 45 mins -->
+<div class="relative flex items-start gap-3">
+<div class="w-5 h-5 rounded-full bg-primary flex items-center justify-center text-on-primary ring-4 ring-surface-container-lowest z-10 shrink-0">
+<span class="material-symbols-outlined text-[12px]">directions_bus</span>
+</div>
+<div class="flex-1 bg-surface-container-low p-3.5 rounded-2xl flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<span class="font-label-lg text-label-lg font-bold text-on-surface">کاروان تور اصفهان-یزد</span>
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm">امروز ۱۰:۰۰</span>
+</div>
+<span class="font-body-sm text-body-sm text-secondary">کارگاه پخت قطاب • ۱۲ نفر گردشگر</span>
+<!-- Special Traveler Needs Alert -->
+<div class="bg-surface-container-highest/80 rounded-xl p-2.5 flex items-start gap-2">
+<span class="material-symbols-outlined text-primary text-[18px] shrink-0 mt-0.5">notification_important</span>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm font-bold text-on-surface">نیازمندی‌های خاص مسافران:</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">۲ نفر رژیم بدون گلوتن (سلیاک) • ۱ نفر سالمند نیازمند صندلی پایه‌دار در کارگاه</p>
+</div>
+</div>
+<div class="flex items-center justify-between text-secondary font-label-sm text-label-sm pt-1">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[15px]">badge</span>
+                  راهنمای تور: سهراب کیانی
+                </span>
+<button class="text-primary hover:underline font-semibold flex items-center gap-0.5" type="button">
+                  تماس مستقیم
+                  <span class="material-symbols-outlined text-[14px]">call</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Item 2: Evening Tour -->
+<div class="relative flex items-start gap-3">
+<div class="w-5 h-5 rounded-full bg-secondary flex items-center justify-center text-on-secondary ring-4 ring-surface-container-lowest z-10 shrink-0">
+<span class="material-symbols-outlined text-[12px]">directions_bus</span>
+</div>
+<div class="flex-1 bg-surface-container-low p-3.5 rounded-2xl flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<span class="font-label-lg text-label-lg font-bold text-on-surface">گروه مستقل خانوادگی فکور</span>
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm">امروز ۱۶:۳۰</span>
+</div>
+<span class="font-body-sm text-body-sm text-secondary">بافت دارایی فهادان • ۴ نفر</span>
+<div class="flex items-center gap-2 text-on-surface-variant font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px] text-tertiary">minor_crash</span>
+<span>هماهنگی پارکینگ ون اختصاصی در ورودی گذر یوزدار</span>
+</div>
+</div>
+</div>
+<!-- Item 3: Tomorrow Night -->
+<div class="relative flex items-start gap-3">
+<div class="w-5 h-5 rounded-full bg-tertiary flex items-center justify-center text-on-tertiary ring-4 ring-surface-container-lowest z-10 shrink-0">
+<span class="material-symbols-outlined text-[12px]">star</span>
+</div>
+<div class="flex-1 bg-surface-container-low p-3.5 rounded-2xl flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<span class="font-label-lg text-label-lg font-bold text-on-surface">انجمن عکاسان تهران (VIP)</span>
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm">فردا ۱۹:۰۰</span>
+</div>
+<span class="font-body-sm text-body-sm text-secondary">رصد بافق • ۱۵ عکاس حرفه‌ای</span>
+<div class="bg-surface-container-highest/80 rounded-xl p-2 flex items-center gap-2 font-label-sm text-label-sm text-on-surface">
+<span class="material-symbols-outlined text-secondary text-[16px]">power</span>
+<span>تامین ژنراتور شارژ باتری دوربین‌ها درخواست شده است.</span>
+</div>
+</div>
+</div>
+</div>
+<button class="w-full py-2.5 rounded-xl bg-surface-container text-on-surface font-label-md text-label-md font-semibold hover:bg-surface-container-high transition-colors flex items-center justify-center gap-1.5" type="button">
+<span>مشاهده تقویم کامل ماهانه</span>
+<span class="material-symbols-outlined text-[16px]">arrow_left</span>
+</button>
+</div>
+<!-- Quick Interactive Ticket Validation Widget -->
+<div class="bg-surface-container rounded-[28px] p-space-md shadow-sm flex flex-col gap-3">
+<div class="flex items-center gap-2 text-on-surface">
+<span class="material-symbols-outlined text-primary text-[20px]">pin</span>
+<span class="font-title-md text-title-md font-bold">تایید سریع بلیط کاغذی یا پیامکی</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">کد ۶ رقمی درج‌شده روی ووچر کارن تراول را وارد نمایید تا تسویه خودکار انجام شود:</p>
+<div class="flex items-center gap-2">
+<input class="bg-surface-container-lowest border-0 rounded-xl px-4 py-2.5 font-headline-sm text-headline-sm text-center tracking-widest text-on-surface outline-none focus:ring-2 focus:ring-primary w-full" maxlength="6" placeholder="مثال: ۴۸۸۲۱۵" type="text"/>
+<button class="bg-primary text-on-primary px-5 py-2.5 rounded-xl font-label-md text-label-md font-bold shrink-0 hover:bg-primary-container transition-all" type="button">تایید</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Financial Settlement & Instant Payout Section -->
+<div class="bg-surface-container-lowest rounded-[28px] p-space-lg shadow-sm flex flex-col gap-space-md">
+<div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-space-sm">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-2xl bg-secondary-container flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined text-[24px]">payments</span>
+</div>
+<div class="flex flex-col">
+<h2 class="font-headline-sm text-headline-sm font-bold text-on-surface">سامانه تسویه مالی آنی و کیف پول میزبان</h2>
+<span class="font-body-sm text-body-sm text-secondary">واریز خودکار به شماره شبا: IR54-0120-0000-0000-4821-9902 (بانک ملت بنام هدایت فهادانی)</span>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex items-center gap-2 bg-surface-container-low px-4 py-2 rounded-full font-label-md text-label-md text-on-surface hover:bg-surface-container transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">receipt_long</span>
+<span>دریافت فاکتور رسمی فصلی</span>
+</button>
+<button class="flex items-center gap-2 bg-primary text-on-primary px-5 py-2 rounded-full font-label-md text-label-md hover:bg-primary-container transition-all shadow-sm" type="button">
+<span class="material-symbols-outlined text-[18px]">bolt</span>
+<span>درخواست تسویه آنی موجودی</span>
+</button>
+</div>
+</div>
+<!-- Settlement Table -->
+<div class="overflow-x-auto">
+<table class="w-full text-right border-collapse">
+<thead>
+<tr class="border-b border-surface-container-high text-on-surface-variant font-label-md text-label-md">
+<th class="py-3 px-4">شناسه واریز / تراکنش</th>
+<th class="py-3 px-4">عنوان رویداد و کارگاه</th>
+<th class="py-3 px-4">تعداد مسافر</th>
+<th class="py-3 px-4">تاریخ برگزاری</th>
+<th class="py-3 px-4">مبلغ سهم میزبان</th>
+<th class="py-3 px-4">وضعیت انتقال بانکی پایا</th>
+<th class="py-3 px-4 text-center">سند الکترونیک</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container-low font-body-md text-body-md text-on-surface">
+<tr class="hover:bg-surface-container-low/40 transition-colors">
+<td class="py-4 px-4 font-label-md text-label-md text-secondary">TRX-994120</td>
+<td class="py-4 px-4 font-semibold">پخت شیرینی و قطاب حاج خلیفه (سانس صبح)</td>
+<td class="py-4 px-4">۱۵ گردشگر</td>
+<td class="py-4 px-4">امروز - ۸ آبان ۱۴۰۳</td>
+<td class="py-4 px-4 font-bold text-on-surface">۹,۷۵۰,۰۰۰ تومان</td>
+<td class="py-4 px-4">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+                واریز آنی انجام شد
+              </span>
+</td>
+<td class="py-4 px-4 text-center">
+<button class="text-secondary hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-[20px]">download</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/40 transition-colors">
+<td class="py-4 px-4 font-label-md text-label-md text-secondary">TRX-994088</td>
+<td class="py-4 px-4 font-semibold">شب‌نشینی رصد آسمان کویر و عکاسی نجومی بافق</td>
+<td class="py-4 px-4">۱۸ گردشگر</td>
+<td class="py-4 px-4">۶ آبان ۱۴۰۳</td>
+<td class="py-4 px-4 font-bold text-on-surface">۱۷,۶۴۰,۰۰۰ تومان</td>
+<td class="py-4 px-4">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-high text-on-surface font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px]">check</span>
+                تسویه‌شده با پایا
+              </span>
+</td>
+<td class="py-4 px-4 text-center">
+<button class="text-secondary hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-[20px]">download</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/40 transition-colors">
+<td class="py-4 px-4 font-label-md text-label-md text-secondary">TRX-993841</td>
+<td class="py-4 px-4 font-semibold">مسترکلاس ساخت سفال کاروانسرای میبد</td>
+<td class="py-4 px-4">۱۰ گردشگر</td>
+<td class="py-4 px-4">۴ آبان ۱۴۰۳</td>
+<td class="py-4 px-4 font-bold text-on-surface">۵,۲۰۰,۰۰۰ تومان</td>
+<td class="py-4 px-4">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-high text-on-surface font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px]">check</span>
+                تسویه‌شده با پایا
+              </span>
+</td>
+<td class="py-4 px-4 text-center">
+<button class="text-secondary hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-[20px]">download</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Modal / Drawer Form: Quick Add New Workshop (Hidden by default, can be toggled) -->
+<div class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-on-background/40 backdrop-blur-sm" id="quick-add-modal">
+<div class="bg-surface-container-lowest rounded-[32px] p-space-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col gap-space-md">
+<div class="flex items-center justify-between border-b border-surface-container pb-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined text-[22px]">add_task</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm font-bold text-on-surface">ثبت تجربه و کارگاه گردشگری بومی جدید</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">اطلاعات کارگاه جهت بررسی کارشناس تضمین کیفیت کارن تراول ارسال می‌شود.</p>
+</div>
+</div>
+<button class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-on-surface" onclick="document.getElementById('quick-add-modal').classList.add('hidden')" type="button">
+<span class="material-symbols-outlined text-[22px]">close</span>
+</button>
+</div>
+<!-- Form Grid -->
+<form class="grid grid-cols-1 md:grid-cols-2 gap-space-md">
+<div class="flex flex-col gap-1.5 md:col-span-2">
+<label class="font-label-lg text-label-lg text-on-surface font-semibold">عنوان کامل تجربه یا کارگاه</label>
+<input class="w-full bg-surface-container-low px-4 py-3 rounded-2xl border-none outline-none focus:ring-2 focus:ring-primary text-on-surface font-body-md text-body-md" placeholder="مثلاً: کارگاه سنتی حلواسازی و پخت باقلوا در خانه تاریخی لاری‌ها" type="text"/>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="font-label-lg text-label-lg text-on-surface font-semibold">مکان برگزاری و نشانی محلی</label>
+<div class="flex items-center gap-2 bg-surface-container-low px-4 py-3 rounded-2xl">
+<span class="material-symbols-outlined text-secondary text-[20px]">location_on</span>
+<input class="w-full bg-transparent border-none outline-none text-on-surface font-body-md text-body-md" placeholder="یزد، خیابان مسجد جامع، بن‌بست فهادان..." type="text"/>
+</div>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="font-label-lg text-label-lg text-on-surface font-semibold">دسته‌بندی میراث فرهنگی</label>
+<select class="w-full bg-surface-container-low px-4 py-3 rounded-2xl border-none outline-none focus:ring-2 focus:ring-primary text-on-surface font-body-md text-body-md">
+<option>خوراک و شیرینی‌پزی اصیل بومی</option>
+<option>صنایع‌دستی، نساجی و سفالگری</option>
+<option>طبیعت‌گردی، رصد نجومی و کویرنوردی</option>
+<option>موسیقی مقامی و آیین‌های بومی</option>
+</select>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="font-label-lg text-label-lg text-on-surface font-semibold">حداکثر ظرفیت پذیرش در هر سانس (نفر)</label>
+<input class="w-full bg-surface-container-low px-4 py-3 rounded-2xl border-none outline-none focus:ring-2 focus:ring-primary text-on-surface font-body-md text-body-md" type="number" value="12"/>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="font-label-lg text-label-lg text-on-surface font-semibold">قیمت پیشنهادی هر گردشگر (تومان)</label>
+<input class="w-full bg-surface-container-low px-4 py-3 rounded-2xl border-none outline-none focus:ring-2 focus:ring-primary text-on-surface font-body-md text-body-md" placeholder="۵۵۰,۰۰۰" type="text"/>
+</div>
+<!-- Hygiene & Safety Checkboxes -->
+<div class="flex flex-col gap-2 md:col-span-2 bg-surface-container-low p-space-md rounded-2xl">
+<span class="font-label-lg text-label-lg font-bold text-on-surface">استانداردهای بهداشتی، دسترسی و ایمنی کاروان</span>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+<label class="flex items-center gap-2 cursor-pointer font-body-sm text-body-sm text-on-surface">
+<input checked="" class="rounded text-primary focus:ring-primary w-4 h-4" type="checkbox"/>
+<span>پوشش جعبه کمک‌های اولیه و کپسول آتش‌نشانی فعال</span>
+</label>
+<label class="flex items-center gap-2 cursor-pointer font-body-sm text-body-sm text-on-surface">
+<input checked="" class="rounded text-primary focus:ring-primary w-4 h-4" type="checkbox"/>
+<span>امکان ارائه ماسک، دستکش و مواد ضدعفونی در کارگاه</span>
+</label>
+<label class="flex items-center gap-2 cursor-pointer font-body-sm text-body-sm text-on-surface">
+<input class="rounded text-primary focus:ring-primary w-4 h-4" type="checkbox"/>
+<span>مناسب‌سازی کامل برای افراد دارای معلولیت جسمی و ویلچر</span>
+</label>
+<label class="flex items-center gap-2 cursor-pointer font-body-sm text-body-sm text-on-surface">
+<input checked="" class="rounded text-primary focus:ring-primary w-4 h-4" type="checkbox"/>
+<span>آمادگی پذیرایی با محصولات گیاهی و بدون گلوتن</span>
+</label>
+</div>
+</div>
+<!-- Photo Upload Zone -->
+<div class="flex flex-col gap-1.5 md:col-span-2">
+<label class="font-label-lg text-label-lg text-on-surface font-semibold">تصاویر کارگاه با کیفیت بالا (حداقل ۳ تصویر از زوایای واقعی کارگاه)</label>
+<div class="rounded-2xl border-2 border-dashed border-outline-variant bg-surface-container-low p-6 flex flex-col items-center justify-center text-center gap-2 cursor-pointer hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-[36px] text-primary">add_photo_alternate</span>
+<span class="font-label-lg text-label-lg font-bold text-on-surface">تصاویر را اینجا بکشید یا انتخاب کنید</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">فرمت‌های مجاز: JPG و PNG حداکثر حجم ۱۰ مگابایت</span>
+</div>
+</div>
+<div class="flex items-center justify-end gap-3 md:col-span-2 pt-4 border-t border-surface-container">
+<button class="px-6 py-2.5 rounded-full bg-surface-container text-on-surface font-label-lg text-label-lg hover:bg-surface-container-high transition-colors" onclick="document.getElementById('quick-add-modal').classList.add('hidden')" type="button">انصراف</button>
+<button class="px-8 py-2.5 rounded-full bg-primary text-on-primary font-label-lg text-label-lg hover:bg-primary-container transition-all shadow-md font-bold" onclick="document.getElementById('quick-add-modal').classList.add('hidden')" type="button">ارسال جهت تایید مدیر فنی کارن</button>
+</div>
+</form>
+</div>
+</div>
+</div></main></div></body></html>

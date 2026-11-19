@@ -16,6 +16,8 @@
 | دسکتاپ | [`desktop/12-booking-confirmed.html`](./desktop/12-booking-confirmed.html) | تأیید رزرو و صدور بلیت |
 | دسکتاپ | [`desktop/13-ai-assistant.html`](./desktop/13-ai-assistant.html) | دستیار هوشمند سفر |
 | دسکتاپ | [`desktop/14-login-otp.html`](./desktop/14-login-otp.html) | ورود با رمز یکبارمصرف |
+| دسکتاپ | [`desktop/15-route-simulator-flight-transfer.html`](./desktop/15-route-simulator-flight-transfer.html) | شبیه‌ساز سه‌بعدی مسیر پرواز و ترانسفر تور (دور ۶) |
+| دسکتاپ | [`desktop/16-local-experience-host-portal.html`](./desktop/16-local-experience-host-portal.html) | پورتال تأمین‌کنندگان تجربیات بومی و کارگاه‌ها (دور ۶) |
 | وب موبایل | [`mobile/01-home.html`](./mobile/01-home.html) | صفحه اول موبایل |
 | وب موبایل | [`mobile/02-flight-results.html`](./mobile/02-flight-results.html) | نتایج پرواز |
 | وب موبایل | [`mobile/03-hotel-results.html`](./mobile/03-hotel-results.html) | نتایج هتل |
@@ -23,6 +25,7 @@
 | وب موبایل | [`mobile/05-checkout-payment.html`](./mobile/05-checkout-payment.html) | تکمیل اطلاعات و پرداخت |
 | وب موبایل | [`mobile/06-ai-assistant.html`](./mobile/06-ai-assistant.html) | دستیار هوشمند |
 | وب موبایل | [`mobile/07-manage-booking.html`](./mobile/07-manage-booking.html) | مدیریت رزرو |
+| وب موبایل | [`mobile/08-tour-360-showcase-package-builder.html`](./mobile/08-tour-360-showcase-package-builder.html) | شوکیس ۳۶۰ درجه و پکیج‌ساز تور (دور ۶) |
 | اپلیکیشن | [`app/01-splash-onboarding.html`](./app/01-splash-onboarding.html) | اسپلش و آنبوردینگ |
 | اپلیکیشن | [`app/02-home.html`](./app/02-home.html) | خانه اپ |
 | اپلیکیشن | [`app/03-boarding-pass.html`](./app/03-boarding-pass.html) | بلیت الکترونیک |

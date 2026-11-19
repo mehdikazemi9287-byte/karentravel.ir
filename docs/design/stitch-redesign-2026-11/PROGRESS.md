@@ -269,3 +269,13 @@ Deploy: pending — server console is stuck (needs one Ctrl+C by a human), then 
 - Tests: 7 new VandaPay tests + existing payment tests (20) green; full backend 593 passed, 2 failures pre-existing on base.
 - **Not deployed yet** (backend/api rebuild needed; inert without keys). Deploy together with the first `sk_test_` key.
 - Needed from owner/VandaPay: merchant account for Karen Travel (legal entity + SHEBA), `sk_test_` key + webhook secret, decision hosted vs embedded checkout, payment expiry vs supplier hold time.
+
+## KARENSEIR CHECKPOINT — Stitch round 6 to GitHub (2026-11-19)
+
+Owner prompt in Stitch: «عالیه انجام بده هرسه» → 3 new screens (tour ecosystem), exported via Stitch *Code to Clipboard* → GitHub editor, split and verified (byte length identical to clipboard):
+- `desktop/15-route-simulator-flight-transfer.html` — شبیه‌ساز سه‌بعدی مسیر پرواز و ترانسفر تور
+- `desktop/16-local-experience-host-portal.html` — پورتال تأمین‌کنندگان تجربیات بومی و کارگاه‌ها (درآمد میزبان، مسترکلاس‌ها، ورود کاروان‌ها، کیف پول تسویه آنی)
+- `mobile/08-tour-360-showcase-package-builder.html` — شوکیس ۳۶۰ درجه و پکیج‌ساز تور
+Gallery (`index.html`) and `SCREENS.md` updated; previews in `qa/round6/`. All numbers in these designs are Mock.
+Note: Stitch exports max 10 screens per export; the Stitch canvas holds more screens/variants than the 55 files in GitHub — a full sync (batches of 10, md5 de-dup) is a separate step if wanted.
+Next: Figma (same file R3FvzMWcCVLmgKviiY0lav), then implementation decisions (these are new features, not restyles — need backend: 360 media, package builder pricing, host portal/payout via VandaPay).
