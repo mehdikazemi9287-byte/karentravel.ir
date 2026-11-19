@@ -14,7 +14,7 @@
 - بازگشت مرورگر فقط state امضاشده (JWT، aud `karenseir-vandapay-return`) را می‌پذیرد؛ پارامترهای دیگر مثل `status` نادیده گرفته می‌شوند.
 - وب‌هوک: HMAC-SHA256 روی بدنهٔ خام، تحمل ۳۰۰ ثانیه، چند `v1`؛ سپس intent از API ونداپی بازخوانی و tenant/intent از metadata **پاسخ API** (نه رویداد) خوانده می‌شود؛ حذف تکراری با `payment_events(provider_key='vandapay', provider_event_id='evt:…')`.
 - Capture فقط وقتی: status=`succeeded` + مبلغ دقیق ریالی + `IRR` + mode کلید + metadata ما + بدون استرداد. `unknown`/`processing`/هر وضعیت ناشناخته = «در حال بررسی»، هیچ تغییری. رویداد `succeeded` که API هنوز تأیید نکرده ⇒ 503 تا ونداپی دوباره بفرستد.
-- رویدادهای استرداد فقط ثبت و برای بررسی دستی لاگ می‌شوند (استرداد خودکار در این فاز نیست).
+- ~~رویدادهای استرداد فقط ثبت و برای بررسی دستی لاگ می‌شوند~~ — **اصلاح‌شده با ADR-022** (استرداد، لغو intent، تأیید سازمان، اعتبار فدرال).
 - بدون migration: از ستون‌های موجود `provider_key`، `provider_authority`، `provider_capture_reference` استفاده می‌شود.
 
 ## پذیرش

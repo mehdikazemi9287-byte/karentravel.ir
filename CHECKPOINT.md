@@ -2,6 +2,16 @@
 
 
 
+### 2026-11-18 VandaPay adapter hardening + federated org credit (ADR-022) — branch `feat/vandapay-adapter-hardening`
+
+- Base `f6af234` (origin/main). No server access, no deploy, no migration, no production write.
+- Owner decision recorded: KarenSeir may issue its own org credit and optionally federate it to VandaPay; one owning ledger per credit program (ADR-022; interim env `VANDAPAY_FEDERATED_CREDIT_ORGANIZATION_IDS`).
+- Closed audit gaps K1 (refunds via VandaPay API + `refund.*` webhook re-read), K2 (intent cancel on hold release + late-capture full refund), K3 (`requires_org_approval` pending policy, never issued), K4/K5 (explicit category map, verified-mobile-only `customer_phone`, single-item line items), K6 (exclusive funding source guard at VandaPay initiate), K7 (credit-only booking issuable, audited by `reservation.funded_by_internal_ledger`), optional `expires_in_seconds` (VP-01, unmerged upstream; default unchanged).
+- Supervisor correction: customer refund endpoint auto-executes at VandaPay only for supplier-cancelled bookings within the verified policy quote; otherwise finance executes via `POST /finance/refunds/{id}/execute` (`refund:manage`).
+- Tests: `test_vandapay.py` 15 + `test_vandapay_hardening.py` 14 pass (MOCK). Full suite 240 passed, 6 skipped, 3 failed — the same 3 `test_outbox_worker.py` failures occur on unmodified `f6af234` in a full-suite run (order-dependent 50-event batch limit); they pass in isolation.
+- Production readiness: unchanged — `payment_vandapay` stays READY_BLOCKED_EXTERNAL (D15, no VandaPay sandbox run).
+- NEXT EXACT ACTION: owner review/merge of the PR; then real VandaPay sandbox run once keys exist; K8 (`reverse_capture` on refund after issue).
+
 ### 2026-08-23 booking → payment → financial journey: DEMO → REAL
 
 - Timestamp: `2026-08-23T18:30:00Z`; branch `main`; HEAD `1114634e0ff7c0edec824a91c752053a7b883b3a` → committed as `<see git log>`. Migration head: `20260823_19` (`financial_ledger_entries.wallet_id` nullable + `credit_account_id` FK+index), applied to production with full backup/verify evidence.

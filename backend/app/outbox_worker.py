@@ -109,6 +109,12 @@ def run() -> None:
     while True:
         count = process_batch()
         logger.info("outbox_batch", extra={"processed": count})
+        try:  # VandaPay housekeeping (cancel released holds' intents, drive authorised refunds); no-op while flag off
+            vp_stats = _main_models.vandapay_sweep()
+            if vp_stats.get("enabled"):
+                logger.info("vandapay_sweep", extra=vp_stats)
+        except Exception:
+            logger.exception("vandapay_sweep_failed")
         time.sleep(5 if count else 15)
 
 
