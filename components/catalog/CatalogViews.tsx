@@ -9,6 +9,7 @@ import {useEffect, useState, type ReactNode} from 'react';
 import {useAuth} from '../../lib/api/auth-context';
 import {ApiError, newId} from '../../lib/api/karenseir-client';
 import {StayBooking} from './StayBooking';
+import {supportPhone} from '../../lib/site-contact';
 
 type Brief = {id: string; name: string; name_en?: string | null} | null;
 type Hotel = {id: string; slug: string; name: string; name_fa: string | null; name_en: string | null; name_local: string | null; hotel_type: string; hotel_type_fa: string; stars: number | null; country_code: string;
@@ -169,38 +170,63 @@ function ExpandableGallery({figures, limit, label}: {figures: ReactNode[]; limit
 
 export function HotelDetail({slug}: {slug: string}) {
   const {data: h, loading, error} = useCatalog<Hotel>(`/catalog/hotels/${encodeURIComponent(slug)}`);
+  const [allPhotos, setAllPhotos] = useState(false);
   if (!h) return <main className="journey-main cat-detail"><Status loading={loading} error={false} empty>{error ? 'این هتل در فهرست مرجع پیدا نشد.' : undefined}</Status><Link className="button secondary" href="/hotels">بازگشت به هتل‌ها</Link></main>;
+  // Layout = Stitch screen _19 (design/stitch/screens/_19): title row, photo mosaic, section tabs, sticky booking box,
+  // room cards, amenity tiles, policy cards, location + distances. Only catalogue facts: no invented price, score or review.
   const where = [h.city?.name, h.region?.name !== h.city?.name ? h.region?.name : null, h.country?.name].filter(Boolean).join('، ');
-  const summary = `${h.hotel_type_fa}${h.stars ? ` ${fa(h.stars)} ستاره` : ''}${where ? ` در ${where}` : ''}`;
-  return <main className="journey-main cat-detail">
-    <nav className="cat-crumbs" aria-label="مسیر"><Link href="/hotels">هتل‌ها</Link>{h.country && <Link href={`/hotels?country=${h.country_code}`}>{h.country.name}</Link>}{h.city && <Link href={`/hotels?country=${h.country_code}&city=${h.city.id}`}>{h.city.name}</Link>}</nav>
-    <header className="cat-detail-head"><div><span className="cat-tag">{h.hotel_type_fa}</span><Stars value={h.stars}/></div><h1>{h.name}</h1>{h.stars && h.stars_status_fa ? <p className="cat-muted">درجه: {h.stars_status_fa}</p> : null}
-      {h.name_en && h.name_en !== h.name && <p className="cat-en" dir="ltr" lang="en">{h.name_en}</p>}{h.name_local && h.name_local !== h.name && <p className="cat-en">{h.name_local}</p>}<p className="cat-where">{summary}</p></header>
-    <div className="cat-detail-grid">
-      <div>
-        {h.images?.length ? <ExpandableGallery limit={12} figures={h.images.map((im, i) => <figure key={im.id} className={i === 0 ? 'lead' : ''}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={im.url} alt={im.caption || h.name} loading={i ? 'lazy' : 'eager'}/><figcaption>{im.caption ? `${im.caption} — ` : ''}<a href={im.source_url} target="_blank" rel="noreferrer">{im.author || 'منبع'}</a> · {im.license_url ? <a href={im.license_url} target="_blank" rel="noreferrer">{im.license}</a> : im.license}</figcaption></figure>)}/> : h.image_url ? <Thumb src={h.image_url} credit={h.image_credit} alt={h.name} label=""/> : <div className="cat-noimage">برای این اقامتگاه هنوز تصویر تأییدشده‌ای ثبت نشده است.</div>}
-        {h.description && <section><h2>دربارهٔ اقامتگاه</h2>{h.description.split('\n').map((line, i) => <p key={i}>{line}</p>)}</section>}
-        <section><h2>امکانات ثبت‌شده</h2>{h.amenities.length ? <ul className="cat-amen">{h.amenities.map(a => <li key={a.key}>{a.label}</li>)}</ul> : <p className="cat-muted">امکانات این اقامتگاه در منبع مرجع ثبت نشده است؛ هنگام استعلام اعلام می‌شود.</p>}</section>
-        {h.room_types?.length ? <section><h2>انواع اتاق</h2><ul className="cat-rooms">{h.room_types.map(r => <li key={r.id}>{r.image_url && /* eslint-disable-next-line @next/next/no-img-element */ <img className="cat-room-img" src={r.image_url} alt={r.name_fa} loading="lazy"/>}<strong>{r.name_fa}</strong>{r.name_en && <span dir="ltr" lang="en"> {r.name_en}</span>}<p>{[r.bed_type_fa, r.max_adults ? `${fa(r.max_adults)} بزرگسال` : null, r.max_children ? `${fa(r.max_children)} کودک` : null, r.size_m2 ? `${fa(r.size_m2)} متر مربع` : null, r.view_fa ? `منظره: ${r.view_fa}` : null].filter(Boolean).join(' · ')}</p>{r.description && <p>{r.description}</p>}{r.amenities.length > 0 && <ul className="cat-amen">{r.amenities.map(a => <li key={a.key}>{a.label}</li>)}</ul>}</li>)}</ul><p className="cat-muted">این فهرست توصیف انواع اتاق است و به معنی موجودی یا قیمت نیست.</p></section> : null}
-        <section><h2>ورود و خروج</h2><p className={h.checkin_time || h.checkout_time ? '' : 'cat-muted'}>{h.checkin_time || h.checkout_time ? <>ورود: {h.checkin_time ?? '—'} · خروج: {h.checkout_time ?? '—'}</> : 'ساعت ورود و خروج و قوانین اقامت هنگام استعلام از اقامتگاه تأیید می‌شود.'}</p>{h.policies?.length ? <dl className="cat-dl">{h.policies.map(p => <span key={p.key} style={{display: 'contents'}}><dt>{p.label}</dt><dd>{p.value_fa}</dd></span>)}</dl> : null}{h.rules_text && <p>{h.rules_text}</p>}</section>
-        {h.details && Object.keys(h.details).length > 0 && <section><h2>مشخصات اقامتگاه</h2><dl className="cat-dl">
-          {([['محدوده', h.details.district], ['تعداد اتاق', h.details.room_count], ['تعداد تخت', h.details.bed_count], ['سال ساخت', h.details.built_year_jalali], ['تعداد طبقه', h.details.floors], ['چشم‌انداز', h.details.hotel_view], ['وعدهٔ قابل ارائه', h.details.board_plans?.join('، ')]] as [string, string | undefined][]).filter(([, v]) => v).map(([k, v]) => <span key={k} style={{display: 'contents'}}><dt>{k}</dt><dd>{v}</dd></span>)}</dl>
-          {h.details.nearby?.length ? <><h3>فاصله تا مکان‌های مهم</h3><ul className="cat-access">{h.details.nearby.map((n, i) => <li key={i}>{n.place}{n.distance ? ` — ${n.distance}${n.unit === 'km' ? ' کیلومتر' : n.unit === 'm' ? ' متر' : n.unit ? ` ${n.unit}` : ''}` : ''}</li>)}</ul></> : null}
-          {h.details.restaurants?.length ? <><h3 className="cat-h3">رستوران و کافه</h3><ul className="cat-access">{h.details.restaurants.map((r, i) => <li key={i}>{r.name}{r.hours ? ` — ${r.hours}` : ''}</li>)}</ul></> : null}
-          {h.details.traffic && <p>{h.details.traffic}</p>}{h.details.review && h.details.review.split('\n').map((line, i) => <p key={i}>{line}</p>)}
-          {h.details.map_link && <p><a href={h.details.map_link} target="_blank" rel="noreferrer nofollow">جست‌وجوی این اقامتگاه روی نقشه</a> <span className="cat-muted">(مختصات دقیق در منبع ثبت نشده است)</span></p>}</section>}
-        <section><h2>موقعیت و تماس</h2><dl className="cat-dl">
-          {h.address && <><dt>نشانی</dt><dd>{h.address}</dd></>}
-          {h.latitude !== null && h.longitude !== null && <><dt>موقعیت</dt><dd><a href={osmLink(h.latitude, h.longitude)} target="_blank" rel="noreferrer">نمایش روی نقشه</a></dd></>}
-          {h.phone && <><dt>تلفن</dt><dd><a href={`tel:${h.phone.replace(/[^\d+]/g, '')}`} dir="ltr">{h.phone}</a></dd></>}
-          
-          {h.email && <><dt>ایمیل</dt><dd><a href={`mailto:${h.email}`} dir="ltr">{h.email}</a></dd></>}
-        </dl></section>
-        {(h.nearby_airports?.length || h.nearby_rail_stations?.length) ? <section><h2>دسترسی</h2><ul className="cat-access">{h.nearby_airports?.map(a => <li key={a.iata}>فرودگاه {a.name} <span dir="ltr">({a.iata})</span></li>)}{h.nearby_rail_stations?.map(s => <li key={s.id}>ایستگاه راه‌آهن {s.name}</li>)}</ul></section> : null}
+  const title = `${h.hotel_type_fa}${h.stars ? ` ${fa(h.stars)} ستاره` : ''} ${h.name}`;
+  const photos = h.images?.length ? h.images : h.image_url ? [{id: 0, url: h.image_url, caption: null, author: h.image_credit, license: '', license_url: null, source_url: ''}] : [];
+  const shown = allPhotos ? photos : photos.slice(0, 5);
+  const unit = (u: string | null) => u === 'km' ? ' کیلومتر' : u === 'm' ? ' متر' : u ? ` ${u}` : '';
+  const facts = h.details ? ([['محدوده', h.details.district], ['تعداد اتاق', h.details.room_count], ['تعداد تخت', h.details.bed_count], ['سال ساخت', h.details.built_year_jalali], ['تعداد طبقه', h.details.floors], ['چشم‌انداز', h.details.hotel_view], ['وعدهٔ قابل ارائه', h.details.board_plans?.join('، ')]] as [string, string | undefined][]).filter(([, v]) => v) : [];
+  const tabs: [string, string][] = [['hd-rooms', 'انتخاب اتاق‌ها'], ['hd-amen', 'امکانات و خدمات'], ['hd-rules', 'قوانین اقامت'], ['hd-loc', 'موقعیت و دسترسی']];
+  return <main className="journey-main cat-detail hd">
+    <nav className="cat-crumbs" aria-label="مسیر"><Link href="/">خانه</Link><Link href="/hotels">هتل‌ها</Link>{h.country && <Link href={`/hotels?country=${h.country_code}`}>{h.country.name}</Link>}{h.city && <Link href={`/hotels?country=${h.country_code}&city=${h.city.id}`}>{h.city.name}</Link>}</nav>
+    <header className="hd-head">
+      <div className="hd-title"><h1>{title}{h.name_en && h.name_en !== h.name && <small dir="ltr" lang="en"> [{h.name_en}]</small>}</h1><Stars value={h.stars}/></div>
+      <p className="hd-where"><span aria-hidden="true">⌖</span> {[h.address, where].filter(Boolean).join(' — ')}{h.nearby_airports?.[0] ? ` · نزدیک فرودگاه ${h.nearby_airports[0].name}` : ''}</p>
+      {h.stars && h.stars_status_fa ? <p className="cat-muted">درجه: {h.stars_status_fa}</p> : null}
+    </header>
+    {photos.length ? <section className={`hd-gallery n${Math.min(shown.length, 5)}${allPhotos ? ' all' : ''}`} aria-label="تصاویر اقامتگاه">
+      {shown.map((im, i) => <figure key={im.id || i} className={i === 0 ? 'lead' : ''}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={im.url} alt={im.caption || h.name} loading={i ? 'lazy' : 'eager'}/>
+        <figcaption>{im.caption ? `${im.caption} — ` : ''}{im.source_url ? <a href={im.source_url} target="_blank" rel="noreferrer">{im.author || 'منبع'}</a> : im.author}{im.license ? <> · {im.license_url ? <a href={im.license_url} target="_blank" rel="noreferrer">{im.license}</a> : im.license}</> : null}</figcaption>
+        {!allPhotos && i === 4 && photos.length > 5 && <button type="button" className="hd-more" onClick={() => setAllPhotos(true)}>مشاهدهٔ همهٔ {fa(photos.length)} تصویر</button>}</figure>)}
+    </section> : <div className="cat-noimage">برای این اقامتگاه هنوز تصویر تأییدشده‌ای ثبت نشده است.</div>}
+    <nav className="hd-tabs" aria-label="بخش‌های صفحه">{tabs.map(([id, l]) => <a key={id} href={`#${id}`}>{l}</a>)}</nav>
+    <div className="hd-grid">
+      <div className="hd-main">
+        {h.description && <section className="hd-card"><h2>دربارهٔ اقامتگاه</h2>{h.description.split('\n').map((line, i) => <p key={i}>{line}</p>)}</section>}
+        <section className="hd-card" id="hd-rooms"><h2><span aria-hidden="true">▤</span> اتاق‌ها</h2>
+          {h.room_types?.length ? <><div className="hd-rooms">{h.room_types.map(r => <article key={r.id} className="hd-room">
+            <div className="hd-room-img">{r.image_url ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={r.image_url} alt={r.name_fa} loading="lazy"/> : <span aria-hidden="true">🛏</span>}</div>
+            <div className="hd-room-body"><h3>{r.name_fa}{r.name_en && <small dir="ltr" lang="en"> ({r.name_en})</small>}</h3>
+              <ul className="hd-room-facts">{[r.bed_type_fa, r.max_adults ? `تا ${fa(r.max_adults)} بزرگسال` : null, r.max_children ? `${fa(r.max_children)} کودک` : null, r.size_m2 ? `${fa(r.size_m2)} متر مربع` : null, r.view_fa ? `منظره: ${r.view_fa}` : null].filter(Boolean).map((t, i) => <li key={i}>{t}</li>)}</ul>
+              {r.description && <p>{r.description}</p>}{r.amenities.length > 0 && <ul className="cat-amen">{r.amenities.map(a => <li key={a.key}>{a.label}</li>)}</ul>}</div>
+            <div className="hd-room-cta"><small>قیمت</small><b>پس از استعلام</b><a href="#hd-book">استعلام این اتاق</a></div>
+          </article>)}</div><p className="cat-muted">این فهرست توصیف انواع اتاق است و به معنی موجودی یا قیمت نیست.</p></>
+            : <p className="cat-muted">انواع اتاق این اقامتگاه هنوز در فهرست ثبت نشده است؛ کارشناس هنگام استعلام اتاق‌های موجود را اعلام می‌کند.</p>}
+        </section>
+        <section className="hd-card" id="hd-amen"><h2><span aria-hidden="true">✦</span> امکانات و خدمات اقامتگاه</h2>{h.amenities.length ? <ul className="hd-amen">{h.amenities.map(a => <li key={a.key}><span aria-hidden="true">✓</span>{a.label}</li>)}</ul> : <p className="cat-muted">امکانات این اقامتگاه در منبع مرجع ثبت نشده است؛ هنگام استعلام اعلام می‌شود.</p>}
+          {facts.length > 0 && <dl className="hd-facts">{facts.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>}</section>
+        <section className="hd-card" id="hd-rules"><h2><span aria-hidden="true">⚑</span> شرایط اقامت و مقررات</h2>
+          <div className="hd-rules"><div><h3>ساعات تحویل و تخلیه اتاق</h3><p>ورود (Check-in): <b>{h.checkin_time ?? 'هنگام استعلام'}</b></p><p>خروج (Check-out): <b>{h.checkout_time ?? 'هنگام استعلام'}</b></p></div>
+            <div><h3>قوانین ثبت‌شده</h3>{h.policies?.length ? <dl className="cat-dl">{h.policies.map(p => <span key={p.key} style={{display: 'contents'}}><dt>{p.label}</dt><dd>{p.value_fa}</dd></span>)}</dl> : <p className="cat-muted">قوانین اقامت هنگام استعلام از اقامتگاه تأیید می‌شود.</p>}{h.rules_text && <p>{h.rules_text}</p>}</div></div></section>
+        <section className="hd-card" id="hd-loc"><h2><span aria-hidden="true">⌖</span> موقعیت و فاصله تا جاهای دیدنی</h2>
+          <dl className="cat-dl">{h.address && <><dt>نشانی</dt><dd>{h.address}</dd></>}{h.latitude !== null && h.longitude !== null && <><dt>موقعیت</dt><dd><a href={osmLink(h.latitude, h.longitude)} target="_blank" rel="noreferrer">نمایش روی نقشه</a></dd></>}{h.phone && <><dt>تلفن</dt><dd><a href={`tel:${h.phone.replace(/[^\d+]/g, '')}`} dir="ltr">{h.phone}</a></dd></>}{h.email && <><dt>ایمیل</dt><dd><a href={`mailto:${h.email}`} dir="ltr">{h.email}</a></dd></>}</dl>
+          {(h.details?.nearby?.length || h.nearby_airports?.length || h.nearby_rail_stations?.length) ? <ul className="hd-near">
+            {h.details?.nearby?.map((n, i) => <li key={'n' + i}><b>{n.place}</b>{n.distance && <small>{n.distance}{unit(n.unit)}</small>}</li>)}
+            {h.nearby_airports?.map(a => <li key={a.iata}><b>فرودگاه {a.name}</b><small dir="ltr">{a.iata}</small></li>)}
+            {h.nearby_rail_stations?.map(st => <li key={st.id}><b>ایستگاه راه‌آهن {st.name}</b></li>)}</ul> : null}
+          {h.details?.restaurants?.length ? <><h3>رستوران و کافه</h3><ul className="cat-access">{h.details.restaurants.map((r, i) => <li key={i}>{r.name}{r.hours ? ` — ${r.hours}` : ''}</li>)}</ul></> : null}
+          {h.details?.traffic && <p>{h.details.traffic}</p>}{h.details?.review && h.details.review.split('\n').map((line, i) => <p key={i}>{line}</p>)}
+          {h.details?.map_link && <p><a href={h.details.map_link} target="_blank" rel="noreferrer nofollow">جست‌وجوی این اقامتگاه روی نقشه</a> <span className="cat-muted">(مختصات دقیق در منبع ثبت نشده است)</span></p>}
+        </section>
       </div>
-      <aside className="cat-inquiry"><h2>قیمت و رزرو</h2><StayBooking slug={h.slug}/><p className="cat-price">{h.price_note}</p><p>برای این اقامتگاه هنوز نرخ تأییدشده‌ای از تأمین‌کننده ثبت نشده است. تاریخ و تعداد مهمان را مشخص کنید یا از پشتیبانی استعلام بگیرید.</p>
+      <aside className="cat-inquiry hd-book" id="hd-book"><div className="hd-book-price"><small>قیمت هر شب</small><b>پس از انتخاب تاریخ و استعلام</b></div><StayBooking slug={h.slug}/><p className="cat-muted">برای این اقامتگاه هنوز نرخ تأییدشده‌ای از تأمین‌کننده ثبت نشده است. تاریخ و تعداد مهمان را مشخص کنید یا از پشتیبانی استعلام بگیرید.</p>
         <Link className="button primary" href={`/search/results?vertical=hotel&destination=${encodeURIComponent(h.city?.name ?? h.name)}`}>جست‌وجوی اقامت در {h.city?.name ?? 'این مقصد'}</Link>
-        <InquiryRequest subject={`استعلام اقامت: ${h.name}`} context={`درخواست استعلام نرخ و موجودی برای «${h.name}»${h.city ? ` در ${h.city.name}` : ''} (شناسهٔ فهرست: ${h.id}).`} reason={h.request?.reason ?? 'نرخ تأییدشده‌ای ثبت نشده است.'}/></aside>
+        <InquiryRequest subject={`استعلام اقامت: ${h.name}`} context={`درخواست استعلام نرخ و موجودی برای «${h.name}»${h.city ? ` در ${h.city.name}` : ''} (شناسهٔ فهرست: ${h.id}).`} reason={h.request?.reason ?? 'نرخ تأییدشده‌ای ثبت نشده است.'}/>
+        <a className="hd-call" href={supportPhone.href}><span aria-hidden="true">☎</span> مشاورهٔ رزرو هتل <b dir="ltr">{supportPhone.display}</b></a></aside>
     </div>
     {h.provenance && <p className="cat-attrib">منبع دادهٔ این صفحه: {h.provenance.source === 'openstreetmap' ? <a href={`https://www.openstreetmap.org/${h.provenance.source_ref}`} target="_blank" rel="noreferrer">OpenStreetMap</a> : h.provenance.source} — {h.provenance.license}{h.provenance.retrieved_on ? ` — دریافت: ${h.provenance.retrieved_on}` : ''}. این صفحه اطلاعات مرجع است و قیمت یا موجودی را نشان نمی‌دهد.</p>}
   </main>;
