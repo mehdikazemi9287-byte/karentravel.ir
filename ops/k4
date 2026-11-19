@@ -1,0 +1,14 @@
+#!/bin/bash
+cd /opt/karenseir/app || exit 1
+clear
+for p in / /blog /faq /festival /tours /login /hotels; do echo "$(curl -s -o /dev/null -w '%{http_code}' https://karentravel.ir$p) $p"; done
+echo "app/blog in HEAD: $(git ls-tree HEAD app/blog >/dev/null 2>&1 && git ls-tree HEAD app/ | grep -c blog)"
+echo "commits with 'blog' in any local ref: $(git log --all --oneline | grep -ci blog)"
+for b in production github-production; do echo "$b -> $(git log -1 --format='%h %cs %s' $b | cut -c1-110)"; done
+DBU=$(docker exec karenseir-db-1 printenv POSTGRES_USER); DBN=$(docker exec karenseir-db-1 printenv POSTGRES_DB)
+echo "db alembic: $(docker exec karenseir-db-1 psql -U $DBU -d $DBN -tAc 'select version_num from alembic_version' 2>&1 | tr '\n' ' ')"
+echo "code alembic heads (HEAD): $(git ls-tree --name-only HEAD backend/alembic/versions/ | sort | tail -2 | xargs -n1 basename | tr '\n' ' ')"
+echo "api image commit: $(docker inspect karenseir-api-1 --format '{{range .Config.Env}}{{println .}}{{end}}' | grep -E '^GIT_COMMIT|^BUILD' | tr '\n' ' ')"
+echo "web image commit: $(docker inspect karenseir-web-1 --format '{{range .Config.Env}}{{println .}}{{end}}' | grep -E '^GIT_COMMIT|^BUILD|^NEXT_PUBLIC_BUILD' | tr '\n' ' ')"
+ls /opt/karenseir | grep -iE 'release|deploy' | grep -v redesign | head
+ls -d /opt/karenseir/releases/* 2>/dev/null | tail -3
