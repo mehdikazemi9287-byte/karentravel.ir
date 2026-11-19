@@ -1585,7 +1585,8 @@ def initiate_payment(payment_id: str, user: User = Depends(current_user), db: Se
     attempt = operational_models.IdempotencyKey(tenant_id=user.tenant_id, scope="payment.initiate", key=intent.id, request_hash=_secure_hash(f"{intent.id}:{intent.amount}:{intent.currency}"), response_json='{"status":"initiation_pending"}')
     db.add(attempt); db.commit()  # Durable before network: timeout/crash must not trigger a second initiation.
     try:
-        callback_state = jwt.encode({"iss": JWT_ISSUER, "aud": "karenseir-zarinpal-callback", "tenant_id": user.tenant_id, "payment_intent_id": intent.id, "user_id": user.id, "amount": intent.amount, "exp": datetime.now(timezone.utc) + timedelta(minutes=30), "iat": datetime.now(timezone.utc), "jti": str(uuid.uuid4())}, JWT_SECRET, algorithm="HS256")
+        _provider = getattr(ADAPTERS["payment"], "provider", "zarinpal")
+        callback_state = jwt.encode({"iss": JWT_ISSUER, "aud": f"karenseir-{_provider}-callback", "tenant_id": user.tenant_id, "payment_intent_id": intent.id, "user_id": user.id, "amount": intent.amount, "exp": datetime.now(timezone.utc) + timedelta(minutes=30), "iat": datetime.now(timezone.utc), "jti": str(uuid.uuid4())}, JWT_SECRET, algorithm="HS256")
         result = ADAPTERS["payment"].execute("initiate", {"payment_intent_id": intent.id, "amount": intent.amount, "currency": intent.currency, "callback_state": callback_state}, ProviderContext(tenant_id=user.tenant_id, correlation_id=str(uuid.uuid4()), idempotency_key=intent.command_id))
     except Exception:
         logging.getLogger("karenseir.payment").warning("payment_provider_unavailable")
@@ -1599,6 +1600,7 @@ def initiate_payment(payment_id: str, user: User = Depends(current_user), db: Se
     if parsed.scheme != "https" or not parsed.hostname:
         raise HTTPException(status_code=502, detail="پاسخ درگاه پرداخت معتبر نیست")
     intent.status = "initiated"
+    intent.provider_key = getattr(ADAPTERS["payment"], "provider", "zarinpal")
     intent.provider_reference = str(result.get("reference", ""))[:160] or None
     intent.provider_authority = str(result.get("authority", result.get("reference", "")))[:160] or None
     response = {"id": intent.id, "status": intent.status, "redirect_url": redirect_url}
@@ -1677,6 +1679,81 @@ def zarinpal_callback(request: Request, state_token: str = Query(alias="state", 
     return result
 
 
+def _verify_vandapay(db: Session, *, tenant_id: int, payment_id: str, user_id: int | None = None, authority: str | None = None) -> dict:
+    """Server-side verification against VandaPay (GET intent). Captures only on status == succeeded with same amount/order_ref."""
+    set_tenant_context(db, tenant_id)
+    query = select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.id == payment_id, operational_models.PaymentIntent.tenant_id == tenant_id)
+    if user_id is not None: query = query.where(operational_models.PaymentIntent.user_id == user_id)
+    intent = db.scalar(query.with_for_update())
+    if intent is None: raise HTTPException(status_code=404, detail="Payment Intent در tenant معتبر وجود ندارد")
+    if intent.provider_key != "vandapay" or not intent.provider_authority: raise HTTPException(status_code=409, detail="این پرداخت از طریق ونداپی آغاز نشده است")
+    if authority is not None and authority != intent.provider_authority: raise HTTPException(status_code=409, detail="شناسهٔ ونداپی با Payment Intent تطابق ندارد")
+    if intent.status == "captured" and intent.provider_capture_reference: return {"status": "duplicate", "payment_status": "captured", "ref_id": intent.provider_capture_reference}
+    if intent.status not in {"initiated", "failed"}: raise HTTPException(status_code=409, detail="Payment Intent قابل verify نیست")
+    from .providers import ADAPTERS, ProviderContext
+    result = ADAPTERS["payment"].execute("verify", {"payment_intent_id": intent.id, "amount": intent.amount, "currency": intent.currency, "authority": intent.provider_authority}, ProviderContext(tenant_id=tenant_id, correlation_id=str(uuid.uuid4()), idempotency_key=f"vandapay-verify:{intent.provider_authority}"))
+    if result.get("status") == "pending": return {"status": "pending", "payment_status": intent.status}
+    if result.get("status") == "failed" and result.get("reason") == "payment_failed":
+        if intent.status == "initiated":
+            intent.status = "failed"; db.add(operational_models.OutboxEvent(tenant_id=tenant_id, aggregate_type="payment", aggregate_id=intent.id, event_type="payment.vandapay.failed", payload_json=json.dumps({"remote_status": result.get("remote_status")}), correlation_id=str(uuid.uuid4()), idempotency_key=f"vandapay-failed:{intent.provider_authority}"))
+            _record_payment_trip_event(db, tenant_id=tenant_id, intent=intent, event_key=f"payment-failed:{intent.provider_authority}", event_type="payment.failed", title="پرداخت ناموفق بود", message="پرداخت رزرو در ونداپی لغو یا ناموفق شد.", severity="warning")
+            db.commit()
+        return {"status": "cancelled", "payment_status": intent.status}
+    if not result.get("ok") or result.get("authority") != intent.provider_authority or int(result.get("amount", 0)) != intent.amount: raise HTTPException(status_code=502, detail="تأیید server-side ونداپی ناموفق بود")
+    ref_id = str(result.get("ref_id", ""))[:160]
+    event_id = f"vandapay:{ref_id}"
+    prior = db.scalar(select(operational_models.PaymentEvent).where(operational_models.PaymentEvent.provider_key == "vandapay", operational_models.PaymentEvent.provider_event_id == event_id))
+    if prior:
+        if prior.payment_intent_id != intent.id or prior.tenant_id != tenant_id: raise HTTPException(status_code=409, detail="مرجع درگاه قبلاً به پرداخت دیگری متصل شده است")
+        return {"status": "duplicate", "payment_status": intent.status, "ref_id": ref_id}
+    intent.status = "captured"; intent.captured_amount = intent.amount; intent.provider_capture_reference = ref_id; intent.provider_reference = ref_id
+    from .commerce import record_payment as _record_payment
+    _buyer = db.get(User, intent.user_id); _res = db.get(operational_models.Reservation, intent.reservation_id)
+    _record_payment(db, tenant_id=tenant_id, intent=intent, buyer_name=_buyer.name if _buyer else None, booking_reference=_res.booking_reference if _res else None)
+    db.add(operational_models.PaymentEvent(tenant_id=tenant_id, payment_intent_id=intent.id, provider_key="vandapay", provider_event_id=event_id, event_type="captured", payload_hash=_secure_hash(f"{ref_id}:{intent.amount}")))
+    db.add(operational_models.OutboxEvent(tenant_id=tenant_id, aggregate_type="payment", aggregate_id=intent.id, event_type="payment.vandapay.captured", payload_json=json.dumps({"vandapay_intent": ref_id}), correlation_id=str(uuid.uuid4()), idempotency_key=event_id))
+    _record_payment_trip_event(db, tenant_id=tenant_id, intent=intent, event_key=f"payment-captured:{event_id}", event_type="payment.captured", title="پرداخت با موفقیت انجام شد", message=f"مبلغ {intent.amount:,} {intent.currency} از طریق ونداپی پرداخت شد.")
+    db.commit(); record_business_event("payment", "captured"); return {"status": "accepted", "payment_status": "captured", "ref_id": ref_id}
+
+
+@app.get("/payments/vandapay/return", response_model=None)
+def vandapay_return(request: Request, state_token: str = Query(alias="state", min_length=20), db: Session = Depends(get_db)):
+    # The browser return never decides success: we re-read the intent from VandaPay server-side.
+    try:
+        claims = jwt.decode(state_token, JWT_SECRET, algorithms=["HS256"], audience="karenseir-vandapay-callback", issuer=JWT_ISSUER, options={"require": ["exp", "iat", "jti", "tenant_id", "payment_intent_id", "user_id", "amount"]})
+        payment_id = str(uuid.UUID(str(claims["payment_intent_id"]))); tenant_id = int(claims["tenant_id"]); user_id = int(claims["user_id"])
+    except (jwt.InvalidTokenError, KeyError, ValueError, TypeError):
+        raise HTTPException(status_code=401, detail="state پرداخت نامعتبر یا منقضی است")
+    origin = _payment_return_origin(); wants_page = "text/html" in request.headers.get("accept", "")
+    try: result = _verify_vandapay(db, tenant_id=tenant_id, payment_id=payment_id, user_id=user_id)
+    except HTTPException:
+        db.rollback()
+        if wants_page and origin: return RedirectResponse(f"{origin}/payments/{payment_id}", status_code=303, headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"})
+        raise
+    if wants_page and origin: return RedirectResponse(f"{origin}/payments/{payment_id}", status_code=303, headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"})
+    return result
+
+
+@app.post("/payments/vandapay/webhook")
+async def vandapay_webhook(request: Request, db: Session = Depends(get_db)) -> dict:
+    from .providers import vandapay_webhook_event
+    secret = read_secret("VANDAPAY_WEBHOOK_SECRET") if os.getenv("VANDAPAY_MODE", "disabled") != "disabled" else ""
+    if not secret: raise HTTPException(status_code=503, detail="وب‌هوک ونداپی پیکربندی نشده است")
+    raw = await request.body()
+    try: event = vandapay_webhook_event(raw, request.headers.get("VandaPay-Signature"), secret)
+    except ValueError: raise HTTPException(status_code=400, detail="امضای وب‌هوک ونداپی نامعتبر است")
+    data = event.get("data") or {}; meta = data.get("metadata") or {}
+    try: tenant_id = int(meta["tenant_id"]); payment_id = str(uuid.UUID(str(meta["karenseir_payment_intent_id"])))
+    except (KeyError, ValueError, TypeError): return {"status": "ignored"}
+    # The signed event is only a trigger: the outcome is re-read from VandaPay inside _verify_vandapay.
+    try: result = _verify_vandapay(db, tenant_id=tenant_id, payment_id=payment_id, authority=str(data.get("id", "")))
+    except HTTPException as exc:
+        db.rollback()
+        if exc.status_code in {404, 409}: return {"status": "ignored"}
+        raise
+    return {"status": "received", "payment_status": result.get("payment_status")}
+
+
 @app.get("/payments/{payment_id}")
 def customer_payment_status(payment_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
     intent = db.scalar(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.id == payment_id, operational_models.PaymentIntent.tenant_id == user.tenant_id, operational_models.PaymentIntent.user_id == user.id))
@@ -1696,6 +1773,9 @@ def recover_payment_verification(payment_id: str, user: User = Depends(current_u
     if intent.status == "captured": return customer_payment_status(payment_id, user, db)
     if intent.status not in {"initiated", "failed"} or not intent.provider_authority: raise HTTPException(status_code=409, detail="این پرداخت در انتظار تأیید درگاه نیست")
     # Reconciliation checks the known authority and amount; it never initiates a charge.
+    if intent.provider_key == "vandapay":
+        _verify_vandapay(db, tenant_id=user.tenant_id, payment_id=intent.id, user_id=user.id)
+        return customer_payment_status(payment_id, user, db)
     now = datetime.now(timezone.utc)
     state = jwt.encode({"iss": JWT_ISSUER, "aud": "karenseir-zarinpal-callback", "tenant_id": user.tenant_id, "payment_intent_id": intent.id, "user_id": user.id, "amount": intent.amount, "exp": now+timedelta(minutes=5), "iat": now, "jti": str(uuid.uuid4())}, JWT_SECRET, algorithm="HS256")
     _verify_zarinpal_callback(state, intent.provider_authority, "OK", db)
