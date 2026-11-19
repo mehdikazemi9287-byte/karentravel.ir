@@ -17,7 +17,10 @@ code(){ curl -s -o /dev/null -m 15 -w '%{http_code}' "$@" 2>/dev/null || echo 00
 for p in / /flights /hotels /trains /tours /login /blog; do
   c=$(code -H 'Host: karentravel.ir' "http://127.0.0.1$p"); [ "$c" = 200 ] || [ "$c" = 301 ] || [ "$c" = 308 ] || alert "http $p -> $c"
 done
-c=$(code -k --resolve karentravel.ir:443:127.0.0.1 https://karentravel.ir/); [ "$c" = 200 ] || alert "https / -> $c"
+# Origin is HTTP-only (ArvanCloud CDN terminates TLS and connects to port 80); check HTTPS only if nginx serves 443.
+if docker exec karenseir-nginx-1 sh -c "grep -qE '^[[:space:]]*listen[[:space:]]+443' /etc/nginx/conf.d/*.conf" 2>/dev/null; then
+  c=$(code -k --resolve karentravel.ir:443:127.0.0.1 https://karentravel.ir/); [ "$c" = 200 ] || alert "https / -> $c"
+fi
 c=$(code -H 'Host: karentravel.ir' http://127.0.0.1/api/health); [ "$c" = 200 ] || alert "api health -> $c"
 HOME_HTML=$(curl -s -m 15 -H 'Host: karentravel.ir' http://127.0.0.1/ 2>/dev/null); case "$HOME_HTML" in *'کارن تراول'*) ;; *) alert "brand text missing on homepage";; esac
 
