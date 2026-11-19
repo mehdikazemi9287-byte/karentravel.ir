@@ -585,7 +585,7 @@ function HotelRowStitch({h}: {h: Hotel}) {
 /* Flight landing after the pattern of Iranian booking sites (Alibaba, MrBilit) + Stitch home cards:
    popular routes with city photos (open the real search; no prices), airline logo strip, perks, FAQ.
    The full airline/airport directories stay available below, collapsed. */
-const FLIGHT_ROUTES: [string, string][] = [['تهران', 'مشهد'], ['تهران', 'کیش'], ['تهران', 'شیراز'], ['تهران', 'اصفهان'], ['تهران', 'تبریز'], ['تهران', 'اهواز'], ['تهران', 'بندرعباس'], ['تهران', 'قشم'], ['تهران', 'استانبول'], ['تهران', 'دبی'], ['تهران', 'نجف'], ['تهران', 'تفلیس']];
+const FLIGHT_ROUTES: [string, string][] = [['تهران', 'مشهد'], ['تهران', 'کیش'], ['تهران', 'شیراز'], ['تهران', 'اصفهان'], ['تهران', 'استانبول'], ['تهران', 'دبی'], ['تهران', 'نجف'], ['تهران', 'تفلیس'], ['تهران', 'یزد'], ['تهران', 'تبریز'], ['تهران', 'اهواز'], ['تهران', 'بندرعباس'], ['تهران', 'قشم'], ['تهران', 'رشت']];
 const FLIGHT_FAQ: [string, string][] = [
   ['چند ساعت قبل از پرواز در فرودگاه باشم؟', 'برای پروازهای داخلی دست‌کم دو ساعت و برای پروازهای خارجی دست‌کم سه ساعت پیش از پرواز در فرودگاه باشید؛ پذیرش معمولاً نیم ساعت (داخلی) تا یک ساعت (خارجی) پیش از پرواز بسته می‌شود.'],
   ['بار مجاز من چقدر است؟', 'بار مجاز را ایرلاین و نوع نرخ تعیین می‌کند و پیش از پرداخت، کنار هر پرواز نمایش داده می‌شود.'],
@@ -604,7 +604,7 @@ export function FlightLanding() {
   const href = (o: string, d: string) => `/search/results?${new URLSearchParams({vertical: 'flight', origin: o, destination: d, adults: '1', trip_type: 'one_way', ...(depart ? {depart} : {})})}`;
   return <>
     <section className="tl-sec" aria-labelledby="fl-routes"><h2 id="fl-routes">مسیرهای پرطرفدار</h2><p className="fl-sub">روی هر مسیر بزن تا پروازهای فردای آن را ببینی؛ تاریخ را در صفحهٔ نتایج عوض کن.</p>
-      <div className="tl-routes fl-routes">{FLIGHT_ROUTES.map(([o, d]) => <a key={o + d} href={href(o, d)} className="tl-route"><Thumb src={img(d)} credit={null} alt={d} label={d}/><span>{o} <i aria-hidden="true">←</i> {d}</span></a>)}</div></section>
+      <div className="tl-routes fl-routes">{(places.data ? FLIGHT_ROUTES.filter(([, d]) => img(d)) : FLIGHT_ROUTES).slice(0, 10).map(([o, d]) => <a key={o + d} href={href(o, d)} className="tl-route"><Thumb src={img(d)} credit={null} alt={d} label={d}/><span>{o} <i aria-hidden="true">←</i> {d}</span></a>)}</div></section>
     {airlines.data && airlines.data.items.length > 0 && <section className="tl-sec" aria-labelledby="fl-air"><h2 id="fl-air">ایرلاین‌های داخلی</h2>
       <ul className="fl-airlines">{airlines.data.items.map(a => <li key={a.id} title={a.name}><AirlineLogo a={a}/><span>{faName(a.name)}</span></li>)}</ul></section>}
     <section className="tl-sec tl-perks" aria-label="مزایای خرید">
