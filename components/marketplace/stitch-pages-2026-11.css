@@ -140,3 +140,54 @@
 /* ---------- Missing photos: Stitch-style illustrated placeholder instead of a flat plum block ---------- */
 .cat-thumb.cat-thumb-empty,.cat-detail .cat-noimage{background:radial-gradient(circle at 20% 20%,rgba(239,91,61,.55),transparent 45%),radial-gradient(circle at 85% 80%,rgba(239,180,72,.45),transparent 40%),linear-gradient(135deg,#2a1530 0%,#5b2a4e 60%,#7a3550 100%)!important;color:#fff;position:relative;overflow:hidden}
 .cat-thumb.cat-thumb-empty::after,.cat-detail .cat-noimage::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(255,255,255,.05) 0 2px,transparent 2px 14px);pointer-events:none}
+
+/* ---------- Login = Stitch screen _17 (full layout: brand panel + form card) ---------- */
+.ks-login{padding:32px 16px 72px;display:flex;justify-content:center}
+.ks-login-card{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);width:min(1180px,100%);min-height:620px;border-radius:40px;overflow:hidden;background:#fff;box-shadow:0 30px 70px rgba(42,21,48,.14)}
+.ks-login-form{order:1;padding:44px 56px;display:flex;flex-direction:column;gap:14px;color:#1e1b15}
+.ks-login-brand{order:2;position:relative;display:flex;flex-direction:column;justify-content:space-between;gap:28px;padding:40px;color:#fff;background:linear-gradient(180deg,rgba(111,86,116,.82),rgba(42,21,48,.96)),url(/images/home/hero-yazd.png) center/cover}
+.ks-login-chip{display:inline-flex;padding:10px 18px;border-radius:999px;background:rgba(255,255,255,.18);backdrop-filter:blur(6px);font-weight:700;font-size:14px}
+.ks-login-brand-copy{display:flex;flex-direction:column;gap:12px}
+.ks-login-rule{width:56px;height:4px;border-radius:4px;background:#ffd79d}
+.ks-login-kicker{color:#ffd79d;font-weight:800;font-size:15px}
+.ks-login-brand h2{margin:0;font-size:clamp(24px,2.6vw,36px);line-height:1.6;font-weight:900}
+.ks-login-brand p{margin:0;opacity:.85;line-height:1.9}
+.ks-login-perks{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.ks-login-perks li{display:flex;flex-direction:column;gap:4px;padding:16px;border-radius:22px;background:rgba(255,255,255,.12);backdrop-filter:blur(6px)}
+.ks-login-perks span{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;background:#fff;color:#ad2c12;font-size:18px;margin-bottom:6px}
+.ks-login-perks b{font-size:15px}.ks-login-perks small{opacity:.8;font-size:12.5px}
+.ks-login-head{display:flex;align-items:center;gap:12px}
+.ks-login-logo{display:grid;place-items:center;width:52px;height:52px;border-radius:16px;background:#ad2c12;color:#fff;font-size:22px;box-shadow:0 10px 22px rgba(173,44,18,.25)}
+.ks-login-head strong{display:block;font-size:20px;font-weight:900}.ks-login-head small{color:#6f5674}
+.ks-login-form h1{margin:18px 0 0;font-size:32px;font-weight:900}
+.ks-login-lead{margin:0;color:#5d4a52;line-height:1.9}
+.ks-login-fields{display:flex;flex-direction:column;gap:14px;margin-top:6px}
+.ks-login-check{display:flex;align-items:center;gap:8px;font-size:14px;color:#6f5674}
+.ks-field{display:flex;flex-direction:column;gap:8px;font-weight:800}
+.ks-field>span{display:flex;justify-content:space-between;align-items:baseline}.ks-field small{font-weight:400;color:#8d706a;font-size:12.5px}
+.ks-field input,.ks-phone{width:100%;border:1px solid #eee7dd;border-radius:18px;background:#faf3e9;padding:14px 16px;font-size:17px;font-family:inherit}
+.ks-phone{display:flex;align-items:center;gap:10px;padding:8px 10px;direction:ltr}
+.ks-phone input{border:0;background:transparent;padding:6px;flex:1;font-size:18px;letter-spacing:1px;outline:none}
+.ks-phone-cc{padding:8px 12px;border-radius:12px;background:#fff;font-weight:800}
+.ks-field input:focus,.ks-phone:focus-within{outline:none;border-color:#cf4429;box-shadow:0 0 0 3px rgba(207,68,41,.15)}
+.ks-otp-head{display:flex;justify-content:space-between;align-items:center;font-weight:800}
+input.ks-otp{width:100%;text-align:center;font-size:30px;font-weight:800;letter-spacing:.9em;padding:14px 0 14px .9em;border-radius:18px;border:1px solid #eee7dd;background:repeating-linear-gradient(90deg,#faf3e9 0 calc(100%/6 - 8px),#fff 0 calc(100%/6))}
+input.ks-otp:focus{outline:none;border-color:#cf4429;box-shadow:0 0 0 3px rgba(207,68,41,.15)}
+.ks-link{background:none;border:0;padding:0;color:#ad2c12;font-weight:700;cursor:pointer;font-family:inherit;font-size:14px;text-align:start}
+.ks-resend{color:#8d706a}
+.ks-login-terms{margin:4px 0 0;font-size:13px;color:#6f5674}.ks-login-terms a{color:#1e1b15;font-weight:700}
+.ks-login-submit{display:flex;justify-content:center;align-items:center;gap:10px;min-height:60px;border:0;border-radius:999px;background:#ad2c12;color:#fff;font-size:18px;font-weight:900;font-family:inherit;cursor:pointer;box-shadow:0 14px 28px rgba(173,44,18,.28)}
+.ks-login-submit:disabled{opacity:.6;cursor:wait}
+.ks-login-status{margin:0;font-size:14px;color:#5d4a52}
+.ks-login-alt{display:flex;justify-content:center;padding:14px;border-radius:20px;background:#faf3e9}.ks-login-alt a{font-weight:800;color:#6f5674}
+.ks-login-foot{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:auto;font-size:13px;color:#6f5674}.ks-login-foot a{color:#1e1b15;text-decoration:none}
+.ks-login-help summary{cursor:pointer;font-size:13px;color:#8d706a}
+@media(max-width:900px){
+  .ks-login{padding:12px 10px 48px}
+  .ks-login-card{grid-template-columns:1fr;border-radius:28px;min-height:0}
+  .ks-login-form{padding:28px 20px}
+  .ks-login-brand{padding:26px 20px}
+  .ks-login-perks{grid-template-columns:1fr}
+  .ks-login-brand h2{font-size:22px}
+  .ks-login-perks{display:none}
+}

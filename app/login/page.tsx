@@ -9,6 +9,7 @@ import { ContactOptions } from '../../components/customer/CustomerHelp';
 import { roleHome } from '../../lib/role-navigation';
 import { Shell } from '../page';
 import { MOBILE_VALIDITY, OTP_VALIDITY, persianValidity } from '../../lib/form-validity';
+import { supportPhone } from '../../lib/site-contact';
 
 // Phase 6: only a same-origin, in-app path (starting with a single "/") is
 // ever honored as a post-login destination -- an absolute or protocol-
@@ -90,30 +91,57 @@ function LoginPageInner() {
       else setMessage(useRecovery ? 'کد بازیابی درست نیست یا قبلاً استفاده شده است.' : 'کد برنامه درست نیست؛ ساعت گوشی را بررسی کنید.');
     } finally {setBusy(false)}
   }
+  const step = mfaTicket ? 'mfa' : challengeId ? 'otp' : 'phone';
+  // Stitch 2026-11 screen _17 (design/stitch/screens/_17): two-column card — brand panel + form.
+  // Content is factual only: no invented traveller counts, ratings or guarantees.
   return <Shell>
-    <div className="page-hero">
-      <span className="eyebrow">ورود / ثبت‌نام</span>
-      <h1>با کد یک‌بارمصرف وارد شوید.</h1>
-      <p>برای ورود به کد پیامکی نیاز دارید. اگر دریافت پیامک ممکن نشد، راه تماس با پشتیبانی در همین صفحه است.</p>
-    </div>
-    <div className="container" style={{ paddingBottom: 70, display: 'grid', gap: 12, maxWidth: 480 }}>
-      <form onSubmit={requestCode} className="filters" style={{ display: 'grid', gap: 10 }}>
-        <label><input type="checkbox" checked={organizationLogin} onChange={e => { setOrganizationLogin(e.target.checked); setChallengeId(''); }} /> ورود سازمانی</label>
-        {organizationLogin && <label>سازمان<input value={organizationSlug} onChange={e => { setOrganizationSlug(e.target.value); setChallengeId(''); }} required {...persianValidity({missing:'نام کاربری سازمان را وارد کنید.'})} autoComplete="organization" aria-label="سازمان" style={{ display: 'block', width: '100%', marginTop: 4, padding: 10, borderRadius: 8, border: '1px solid var(--line)' }} /></label>}
-        <label>{organizationLogin?"شماره همراه یا شناسه ورود":"شماره همراه"}<input value={identifier} onChange={e => setIdentifier(e.target.value.replace(/[۰-۹]/g,c=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(c))).replace(/[٠-٩]/g,c=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(c))))} required inputMode={organizationLogin?"text":"tel"} pattern={organizationLogin?undefined:"09[0-9]{9}"} {...persianValidity(organizationLogin?{missing:'شماره همراه یا شناسه ورود را وارد کنید.'}:MOBILE_VALIDITY)} autoComplete="username" aria-label="شماره همراه یا شناسه ورود" style={{ display: 'block', width: '100%', marginTop: 4, padding: 10, borderRadius: 8, border: '1px solid var(--line)' }} /></label>
-        <button className="button primary" type="submit" disabled={busy}>دریافت کد ورود</button>
-      </form>
-      {mfaTicket && <form onSubmit={verifySecondStep} className="filters" style={{ display: 'grid', gap: 10 }} aria-label="ورود دومرحله‌ای">
-        <label>{useRecovery ? 'کد بازیابی (مثل ABCD-EF23)' : 'کد شش‌رقمی برنامه‌ی Authenticator'}<input value={mfaCode} onChange={e => setMfaCode(useRecovery ? e.target.value : e.target.value.replace(/[۰-۹]/g, c => String("۰۱۲۳۴۵۶۷۸۹".indexOf(c))).replace(/[٠-٩]/g, c => String("٠١٢٣٤٥٦٧٨٩".indexOf(c))))} inputMode={useRecovery ? 'text' : 'numeric'} pattern={useRecovery ? undefined : '[0-9]{6}'} {...persianValidity(useRecovery?{missing:'کد بازیابی را وارد کنید.'}:{missing:'کد شش‌رقمی برنامه را وارد کنید.',pattern:'کد برنامه باید ۶ رقم باشد.'})} maxLength={useRecovery ? 12 : 6} autoComplete="one-time-code" required aria-label={useRecovery ? 'کد بازیابی' : 'کد برنامه'} dir="ltr" style={{ display: 'block', width: '100%', marginTop: 4, padding: 10, borderRadius: 8, border: '1px solid var(--line)' }} /></label>
-        <button className="button primary" type="submit" disabled={busy}>تأیید و ورود</button>
-        <button className="button secondary" type="button" onClick={() => { setUseRecovery(!useRecovery); setMfaCode(''); }}>{useRecovery ? 'استفاده از کد برنامه' : 'گوشی در دسترس نیست؟ کد بازیابی'}</button>
-      </form>}
-      {challengeId && !mfaTicket && <form onSubmit={verifyCode} className="filters" style={{ display: 'grid', gap: 10 }}>
-        <label>کد شش‌رقمی<input value={otp} onChange={e => setOtp(e.target.value.replace(/[۰-۹]/g, c => String("۰۱۲۳۴۵۶۷۸۹".indexOf(c))).replace(/[٠-٩]/g, c => String("٠١٢٣٤٥٦٧٨٩".indexOf(c))))} inputMode="numeric" pattern="[0-9]{6}" {...persianValidity(OTP_VALIDITY)} maxLength={6} autoComplete="one-time-code" required aria-label="کد شش‌رقمی" style={{ display: 'block', width: '100%', marginTop: 4, padding: 10, borderRadius: 8, border: '1px solid var(--line)' }} /></label>
-        <button className="button primary" type="submit" disabled={busy}>تأیید و ورود</button>
-      </form>}
-      <p role="status">{message}</p><p>اگر کد ورود به دستتان نرسید، برای راهنمایی تماس بگیرید.</p><ContactOptions/>
-      <Link href={redirectTarget ? `/register?redirect=${encodeURIComponent(redirectTarget)}` : '/register'}>حساب ندارید؟ ثبت‌نام کنید</Link>
-    </div>
+    <section className="ks-login" aria-labelledby="ks-login-title">
+      <div className="ks-login-card">
+        <aside className="ks-login-brand">
+          <div className="ks-login-brand-top"><span className="ks-login-chip">یزد، شهر بادگیرها</span></div>
+          <div className="ks-login-brand-copy">
+            <span className="ks-login-rule" aria-hidden="true"/>
+            <span className="ks-login-kicker">کارن تراول</span>
+            <h2>«سفرت را یک‌جا برنامه‌ریزی کن؛ پرواز، هتل، تور و قطار»</h2>
+            <p>با یک حساب، خریدها، بلیت‌ها و درخواست‌های سفرت را در «حساب من» پیگیری کن.</p>
+          </div>
+          <ul className="ks-login-perks">
+            <li><span aria-hidden="true">☎</span><b>پشتیبانی کارشناس</b><small>پیش و پس از خرید</small></li>
+            <li><span aria-hidden="true">✓</span><b>قوانین هر نرخ</b><small>پیش از پرداخت دیده می‌شود</small></li>
+            <li><span aria-hidden="true">⌂</span><b>پیگیری در حساب من</b><small>وضعیت پرداخت و صدور</small></li>
+          </ul>
+        </aside>
+        <div className="ks-login-form">
+          <header className="ks-login-head">
+            <span className="ks-login-logo" aria-hidden="true">✈</span>
+            <div><strong>کارن تراول</strong><small>ورود امن با کد یک‌بارمصرف</small></div>
+          </header>
+          <h1 id="ks-login-title">ورود یا ثبت‌نام</h1>
+          <p className="ks-login-lead">{step==='phone' ? 'برای رزرو و پیگیری بلیت‌ها، شماره همراه خود را وارد کنید. کد تأیید با پیامک فرستاده می‌شود.' : step==='otp' ? 'کد شش‌رقمی پیامک‌شده را وارد کنید.' : 'ورود دومرحله‌ای حساب شما فعال است.'}</p>
+          {step!=='mfa' && <form onSubmit={challengeId ? verifyCode : requestCode} className="ks-login-fields">
+            <label className="ks-login-check"><input type="checkbox" checked={organizationLogin} onChange={e => { setOrganizationLogin(e.target.checked); setChallengeId(''); }} /> ورود شرکتی و سازمانی</label>
+            {organizationLogin && <label className="ks-field"><span>سازمان</span><input value={organizationSlug} onChange={e => { setOrganizationSlug(e.target.value); setChallengeId(''); }} required {...persianValidity({missing:'نام کاربری سازمان را وارد کنید.'})} autoComplete="organization" aria-label="سازمان"/></label>}
+            <label className="ks-field"><span>{organizationLogin?"شماره همراه یا شناسه ورود":"شماره موبایل"}{!organizationLogin && <small>مثال: ۰۹۱۲۳۴۵۶۷۸۹</small>}</span>
+              <span className="ks-phone">{!organizationLogin && <span className="ks-phone-cc" dir="ltr">+98</span>}<input value={identifier} readOnly={!!challengeId} onChange={e => setIdentifier(e.target.value.replace(/[۰-۹]/g, c => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(c))).replace(/[٠-٩]/g, c => String('٠١٢٣٤٥٦٧٨٩'.indexOf(c))))} required inputMode={organizationLogin?"text":"tel"} pattern={organizationLogin?undefined:"09[0-9]{9}"} {...persianValidity(organizationLogin?{missing:'شماره همراه یا شناسه ورود را وارد کنید.'}:MOBILE_VALIDITY)} autoComplete="username" aria-label="شماره همراه یا شناسه ورود" dir="ltr"/></span></label>
+            {challengeId && <>
+              <div className="ks-otp-head"><span>کد تأیید پیامک‌شده</span><button type="button" className="ks-link" onClick={() => { setChallengeId(''); setOtp(''); }}>ویرایش شماره</button></div>
+              <input className="ks-otp" value={otp} onChange={e => setOtp(e.target.value.replace(/[۰-۹]/g, c => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(c))).replace(/[٠-٩]/g, c => String('٠١٢٣٤٥٦٧٨٩'.indexOf(c))))} inputMode="numeric" pattern="[0-9]{6}" {...persianValidity(OTP_VALIDITY)} maxLength={6} autoComplete="one-time-code" required aria-label="کد شش‌رقمی" dir="ltr" autoFocus/>
+              <button type="button" className="ks-link ks-resend" disabled={busy} onClick={e => void requestCode(e as unknown as FormEvent)}>ارسال دوباره پیامک</button>
+            </>}
+            <p className="ks-login-terms">ورود شما به معنای پذیرش <Link href="/terms">قوانین و مقررات</Link> و <Link href="/privacy">حریم خصوصی</Link> کارن تراول است.</p>
+            <button className="ks-login-submit" type="submit" disabled={busy}>{challengeId ? 'تأیید و ورود' : 'دریافت رمز یک‌بارمصرف'} <span aria-hidden="true">←</span></button>
+          </form>}
+          {step==='mfa' && <form onSubmit={verifySecondStep} className="ks-login-fields" aria-label="ورود دومرحله‌ای">
+            <label className="ks-field"><span>{useRecovery ? 'کد بازیابی (مثل ABCD-EF23)' : 'کد شش‌رقمی برنامه‌ی Authenticator'}</span><input className={useRecovery ? undefined : 'ks-otp'} value={mfaCode} onChange={e => setMfaCode(useRecovery ? e.target.value : e.target.value.replace(/[۰-۹]/g, c => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(c))).replace(/[٠-٩]/g, c => String('٠١٢٣٤٥٦٧٨٩'.indexOf(c))))} inputMode={useRecovery ? 'text' : 'numeric'} pattern={useRecovery ? undefined : '[0-9]{6}'} {...persianValidity(useRecovery?{missing:'کد بازیابی را وارد کنید.'}:{missing:'کد شش‌رقمی برنامه را وارد کنید.',pattern:'کد برنامه باید ۶ رقم باشد.'})} maxLength={useRecovery ? 12 : 6} autoComplete="one-time-code" required aria-label={useRecovery ? 'کد بازیابی' : 'کد برنامه'} dir="ltr"/></label>
+            <button className="ks-login-submit" type="submit" disabled={busy}>تأیید و ورود <span aria-hidden="true">←</span></button>
+            <button className="ks-link" type="button" onClick={() => { setUseRecovery(!useRecovery); setMfaCode(''); }}>{useRecovery ? 'استفاده از کد برنامه' : 'گوشی در دسترس نیست؟ کد بازیابی'}</button>
+          </form>}
+          <p role="status" className="ks-login-status">{message}</p>
+          <div className="ks-login-alt"><Link href={redirectTarget ? `/register?redirect=${encodeURIComponent(redirectTarget)}` : '/register'}>حساب ندارید؟ ثبت‌نام کنید</Link></div>
+          <footer className="ks-login-foot"><a href={supportPhone.href}><span aria-hidden="true">☎</span> پشتیبانی <b dir="ltr">{supportPhone.display}</b></a><span>اگر پیامک نرسید، تماس بگیرید.</span></footer>
+          <details className="ks-login-help"><summary>راه‌های دیگر تماس</summary><ContactOptions/></details>
+        </div>
+      </div>
+    </section>
   </Shell>;
 }
