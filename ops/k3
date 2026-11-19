@@ -1,0 +1,6 @@
+#!/bin/bash
+cd /opt/karenseir/app || exit 1
+B=7f29e33
+{ echo "SUMMARY $(git diff --shortstat $B HEAD)"; git log --oneline -14 | cat;
+  git diff -U1 $B HEAD -- DEPLOYED_FROM app assistant-service backend components lib public package.json Dockerfile next.config.mjs; } > /root/p.txt
+clear; echo "p.txt lines: $(wc -l < /root/p.txt)"
