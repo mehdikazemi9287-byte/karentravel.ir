@@ -152,7 +152,7 @@ test('professional Homepage search interactions reach usable results', async ({ 
   await page.screenshot({ path: `${artifactDir}/search-ux/comparison.png`, fullPage: true, animations: 'disabled' });
   await page.goto(resultsUrl);
   await expect(page.getByRole('heading', { name: /پرواز تهران شیراز/ }).first()).toBeVisible();
-  await page.getByRole('button', { name: 'ویرایش جست‌وجو' }).click();
+  await page.getByRole('button', { name: /^(تغییر|ویرایش) جست‌وجو$/ }).first().click(); // flight results: Stitch header button «تغییر جست‌وجو»
   await expect(page.getByLabel('ویرایش مقصد')).toBeVisible();
 
   await page.setViewportSize({ width: 390, height: 844 });
