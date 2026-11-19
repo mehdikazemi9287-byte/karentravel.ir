@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="fa"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100..900&display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"surface-container-lowest":"#ffffff","on-tertiary-fixed-variant":"#5f4100","surface-container":"#f4ede3","on-secondary-fixed":"#28132e","surface-tint":"#b02e15","on-primary":"#ffffff","tertiary-fixed":"#ffdeab","primary-container":"#cf4429","on-primary-container":"#fffbff","on-tertiary":"#ffffff","on-error":"#ffffff","outline":"#8d706a","error":"#ba1a1a","on-primary-fixed":"#3e0500","secondary-fixed-dim":"#dcbce0","primary":"#ad2c12","secondary-fixed":"#f9d8fd","on-secondary-container":"#745a79","secondary":"#6f5674","on-surface-variant":"#59413c","tertiary":"#7b5500","surface":"#fff8f0","surface-container-low":"#faf3e9","on-secondary":"#ffffff","on-background":"#1e1b15","tertiary-fixed-dim":"#f8bc4f","outline-variant":"#e1bfb8","on-secondary-fixed-variant":"#563e5c","on-error-container":"#93000a","inverse-on-surface":"#f7f0e6","primary-fixed":"#ffdad3","secondary-container":"#f6d5fa","surface-dim":"#e0d9cf","inverse-primary":"#ffb4a4","tertiary-container":"#9a6c00","on-tertiary-fixed":"#271900","background":"#fff8f0","surface-variant":"#e8e2d8","primary-fixed-dim":"#ffb4a4","surface-container-high":"#eee7dd","on-surface":"#1e1b15","surface-bright":"#fff8f0","on-primary-fixed-variant":"#8d1600","error-container":"#ffdad6","on-tertiary-container":"#fffbff","surface-container-highest":"#e8e2d8","inverse-surface":"#33302a"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"space-xl":"2.5rem","space-lg":"1.75rem","space-xs":"0.375rem","space-md":"1.25rem","gutter":"1.5rem","gutter-desktop":"1.5rem","margin":"3.5rem","space-sm":"0.75rem","margin-desktop":"3.5rem"},"fontFamily":{"body-lg":["Vazirmatn"],"headline-md":["Vazirmatn"],"display":["Vazirmatn"],"body-md":["Vazirmatn"],"label-md":["Vazirmatn"],"headline-lg":["Vazirmatn"],"title-lg":["Vazirmatn"],"body-sm":["Vazirmatn"],"label-lg":["Vazirmatn"],"label-sm":["Vazirmatn"],"headline-sm":["Vazirmatn"],"title-md":["Vazirmatn"]},"fontSize":{"body-lg":["16px",{"lineHeight":"28px","letterSpacing":"0em","fontWeight":"400"}],"headline-md":["28px",{"lineHeight":"42px","letterSpacing":"-0.01em","fontWeight":"700"}],"display":["48px",{"lineHeight":"68px","letterSpacing":"-0.02em","fontWeight":"800"}],"body-md":["14px",{"lineHeight":"24px","letterSpacing":"0em","fontWeight":"400"}],"label-md":["12px",{"lineHeight":"18px","letterSpacing":"0em","fontWeight":"500"}],"headline-lg":["36px",{"lineHeight":"52px","letterSpacing":"-0.015em","fontWeight":"800"}],"title-lg":["18px",{"lineHeight":"28px","letterSpacing":"0em","fontWeight":"600"}],"body-sm":["12px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"400"}],"label-lg":["14px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"600"}],"label-sm":["11px",{"lineHeight":"16px","letterSpacing":"0em","fontWeight":"500"}],"headline-sm":["22px",{"lineHeight":"34px","letterSpacing":"0em","fontWeight":"700"}],"title-md":["16px",{"lineHeight":"26px","letterSpacing":"0em","fontWeight":"600"}]}}}}</script></head><body class="bg-surface font-body-md text-on-surface antialiased"><aside class="fixed right-0 top-0 h-full w-72 bg-surface-container-low z-50 flex flex-col pt-6 pb-6 shadow-[0_1px_16px_rgba(42,21,48,0.06)]"><div class="px-6 mb-8 flex items-center justify-between"><a class="flex items-center gap-3" data-path="home" href="#"><span class="flex items-center justify-center w-9 h-9 rounded-xl bg-primary text-on-primary font-headline-sm font-bold">ک</span><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-on-surface font-extrabold leading-none">کارن تراول</span><span class="font-label-sm text-label-sm text-on-surface-variant">پنل مدیریت کاربری</span></div></a></div><nav class="flex-1 px-4 space-y-1.5 overflow-y-auto" data-active-classes="bg-primary-container text-on-primary-container font-bold rounded-2xl shadow-sm"><a aria-current="page" class="flex items-center gap-3 px-4 py-3 transition-all bg-primary-container text-on-primary-container font-bold rounded-2xl shadow-sm" data-path="user-panel" href="#"><span class="material-symbols-outlined">account_circle</span><span>نمای کلی حساب</span></a><a class="flex items-center gap-3 px-4 py-3 rounded-2xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-title-md text-title-md" data-path="my-bookings" href="#"><span class="material-symbols-outlined">airplane_ticket</span><span>سفارش‌ها و بلیط‌ها</span></a><a class="flex items-center gap-3 px-4 py-3 rounded-2xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-title-md text-title-md" data-path="passengers" href="#"><span class="material-symbols-outlined">groups</span><span>لیست مسافران</span></a><a class="flex items-center gap-3 px-4 py-3 rounded-2xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-title-md text-title-md" data-path="wallet" href="#"><span class="material-symbols-outlined">account_balance_wallet</span><span>کیف پول و تراکنش‌ها</span></a><a class="flex items-center gap-3 px-4 py-3 rounded-2xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-title-md text-title-md" data-path="refund-requests" href="#"><span class="material-symbols-outlined">assignment_return</span><span>درخواست‌های استرداد</span></a><a class="flex items-center gap-3 px-4 py-3 rounded-2xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-title-md text-title-md" data-path="travel-club" href="#"><span class="material-symbols-outlined">workspace_premium</span><span>باشگاه مسافران کارن</span></a><a class="flex items-center gap-3 px-4 py-3 rounded-2xl text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-title-md text-title-md" data-path="user-settings" href="#"><span class="material-symbols-outlined">settings</span><span>تنظیمات و امنیت</span></a></nav><div class="px-4 pt-4 border-t border-outline-variant/30"><a class="flex items-center gap-3 px-4 py-2.5 rounded-2xl text-error hover:bg-error-container/20 transition-all font-title-md text-title-md" data-path="login" href="#"><span class="material-symbols-outlined">logout</span><span>خروج از حساب</span></a></div></aside><div class="pr-72"><header class="fixed top-0 right-72 left-0 h-16 bg-surface/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(42,21,48,0.04)] z-40 flex items-center justify-between px-gutter-desktop"><div class="flex items-center gap-4"><div class="flex items-center gap-2 px-3 py-1.5 bg-surface-container-low rounded-full"><span class="material-symbols-outlined text-secondary text-base">support_agent</span><span class="font-label-md text-label-md font-bold text-on-surface dir-ltr">۰۲۱-۸۸۹۹۰۰۲۲</span></div><a class="flex items-center gap-1 font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" data-path="home" href="#"><span class="material-symbols-outlined text-base">arrow_forward</span><span>بازگشت به سایت</span></a></div><div class="flex items-center gap-4"><button class="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-full transition-colors" type="button"><span class="material-symbols-outlined">notifications</span></button><div class="flex items-center gap-3 pr-2 py-1 bg-surface-container-low rounded-full"><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida/ALJJyrDXrBjr30hMVXSgIumz49DKjA_sCqRR1qOCI4JJ55fTE-YmR1rk8B6gJJMFTwoswL69iQv8uYxecYfzgcZIdwTcVJolnrNMT_WNHeppNDHay6X5UBBNLXN4qWWFZTa9h957O04bKvFblXCMNJ5uPx2bLoIl07_-GjzFElmEBB9guN6DCtPlGYxeK1BoKYDW7eqHCOUi0WzdglgoiwE9kV5E9OBcaSGLant2J2FC_jw"/><div class="flex flex-col items-start pl-3"><span class="font-label-md text-label-md font-bold text-on-surface">کیان احمدی</span><span class="font-label-sm text-label-sm text-tertiary font-medium">کاربر VIP</span></div></div></div></header><main class="relative pt-16 bg-surface min-h-screen px-gutter-desktop py-space-lg"><div class="flex flex-col w-full gap-8 pb-12">
+<!-- Top Welcome & VIP Tier Banner -->
+<section class="relative overflow-hidden rounded-[28px] bg-gradient-to-l from-surface-container via-surface-container-low to-surface-container-lowest p-8 shadow-sm">
+<div class="absolute -left-12 -top-12 w-64 h-64 rounded-full bg-secondary-fixed/30 blur-3xl pointer-events-none"></div>
+<div class="absolute right-1/3 -bottom-16 w-80 h-80 rounded-full bg-primary-fixed/20 blur-3xl pointer-events-none"></div>
+<div class="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-3">
+<span class="inline-flex items-center justify-center p-2 rounded-2xl bg-tertiary text-on-tertiary shadow-sm">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">workspace_premium</span>
+</span>
+<span class="px-3.5 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-md text-label-md font-bold tracking-wide">
+            کاربر طلایی (سطح VIP) • ۳٬۸۵۰ امتیاز باشگاه مسافران
+          </span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface font-extrabold tracking-tight">
+          سلام کیان عزیز، به باشگاه مسافران کارن خوش آمدید
+        </h1>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-2xl leading-relaxed">
+          تمامی رزروها، بلیت‌های الکترونیک، تراکنش‌های کیف پول و امتیازات تخفیف ویژه شما به صورت لحظه‌ای در این پنل قابل دسترسی است.
+        </p>
+</div>
+<!-- Quick Action / VIP Club Button -->
+<div class="flex items-center gap-3 shrink-0">
+<a class="px-6 py-3.5 rounded-full bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-lg text-label-lg flex items-center gap-2 transition-all shadow-sm" data-path="travel-club" href="#">
+<span class="material-symbols-outlined text-xl text-tertiary">loyalty</span>
+<span>مشاهده جوایز باشگاه</span>
+</a>
+<a class="px-7 py-3.5 rounded-full bg-primary hover:bg-primary-container text-on-primary font-label-lg text-label-lg flex items-center gap-2 shadow-md hover:shadow-lg transition-all" data-path="new-booking" href="#">
+<span class="material-symbols-outlined text-xl">add_circle</span>
+<span>رزرو سفر جدید</span>
+</a>
+</div>
+</div>
+</section>
+<!-- 4 Fast Stat Metric Cards -->
+<section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+<!-- Stat 1: Active Wallet -->
+<div class="rounded-[24px] bg-surface-container-lowest p-6 shadow-sm flex flex-col justify-between relative overflow-hidden group hover:shadow-md transition-all">
+<div class="flex items-center justify-between mb-4">
+<span class="font-label-lg text-label-lg text-on-surface-variant font-medium">موجودی کیف پول</span>
+<div class="w-12 h-12 rounded-2xl bg-secondary-container/40 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+</div>
+</div>
+<div>
+<div class="flex items-baseline gap-2">
+<span class="font-headline-md text-headline-md text-on-surface font-extrabold">۴٬۲۵۰٬۰۰۰</span>
+<span class="font-label-md text-label-md text-on-surface-variant">تومان</span>
+</div>
+<div class="mt-4 pt-3 flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-tertiary flex items-center gap-1 font-semibold">
+<span class="material-symbols-outlined text-sm">bolt</span>
+            آماده پرداخت سریع
+          </span>
+<button class="px-3.5 py-1.5 rounded-full bg-primary-fixed hover:bg-primary-fixed-dim text-on-primary-fixed-variant font-label-md text-label-md font-bold transition-colors" type="button">
+            + افزایش موجودی
+          </button>
+</div>
+</div>
+</div>
+<!-- Stat 2: Completed Trips -->
+<div class="rounded-[24px] bg-surface-container-lowest p-6 shadow-sm flex flex-col justify-between relative overflow-hidden group hover:shadow-md transition-all">
+<div class="flex items-center justify-between mb-4">
+<span class="font-label-lg text-label-lg text-on-surface-variant font-medium">سفرهای انجام شده</span>
+<div class="w-12 h-12 rounded-2xl bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-2xl">luggage</span>
+</div>
+</div>
+<div>
+<div class="flex items-baseline gap-2">
+<span class="font-headline-md text-headline-md text-on-surface font-extrabold">۱۲</span>
+<span class="font-label-md text-label-md text-on-surface-variant">سفر پروازی و تور</span>
+</div>
+<div class="mt-4 pt-3 flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-sm text-secondary">verified</span>
+            ۸ داخلی • ۴ خارجی
+          </span>
+<span class="font-label-sm text-label-sm text-secondary font-bold">۱۰۰٪ رضایت</span>
+</div>
+</div>
+</div>
+<!-- Stat 3: Upcoming Active Tickets -->
+<div class="rounded-[24px] bg-surface-container-lowest p-6 shadow-sm flex flex-col justify-between relative overflow-hidden group hover:shadow-md transition-all">
+<div class="flex items-center justify-between mb-4">
+<span class="font-label-lg text-label-lg text-on-surface-variant font-medium">بلیت‌های فعال آینده</span>
+<div class="w-12 h-12 rounded-2xl bg-tertiary-fixed/50 flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">flight_takeoff</span>
+</div>
+</div>
+<div>
+<div class="flex items-baseline gap-2">
+<span class="font-headline-md text-headline-md text-on-surface font-extrabold">۱</span>
+<span class="font-label-md text-label-md text-on-surface-variant">بلیت بین‌المللی آماده</span>
+</div>
+<div class="mt-4 pt-3 flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-primary font-bold flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-primary animate-ping"></span>
+            تهران به استانبول
+          </span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">جمعه ۲۵ خرداد</span>
+</div>
+</div>
+</div>
+<!-- Stat 4: Refund Requests -->
+<div class="rounded-[24px] bg-surface-container-lowest p-6 shadow-sm flex flex-col justify-between relative overflow-hidden group hover:shadow-md transition-all">
+<div class="flex items-center justify-between mb-4">
+<span class="font-label-lg text-label-lg text-on-surface-variant font-medium">درخواست‌های استرداد</span>
+<div class="w-12 h-12 rounded-2xl bg-surface-container-high flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined text-2xl">published_with_changes</span>
+</div>
+</div>
+<div>
+<div class="flex items-baseline gap-2">
+<span class="font-headline-md text-headline-md text-on-surface font-extrabold">۰</span>
+<span class="font-label-md text-label-md text-on-surface-variant">درخواست باز و در جریان</span>
+</div>
+<div class="mt-4 pt-3 flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant">آخرین استرداد: ۱۵ دی ۱۴۰۲</span>
+<span class="font-label-sm text-label-sm px-2.5 py-0.5 rounded-full bg-surface-container text-on-surface-variant font-semibold">تکمیل شده</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Active Upcoming Trip Card (Hero Ticket Display) -->
+<section class="flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-3.5 h-3.5 rounded-full bg-primary animate-pulse"></div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-extrabold">
+          سفر پیش روی شما (پرواز بین‌المللی فعال)
+        </h2>
+</div>
+<div class="flex items-center gap-2 px-4 py-1.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-label-md text-label-md font-bold shadow-sm">
+<span class="material-symbols-outlined text-lg">schedule</span>
+<span>۳ روز و ۱۴ ساعت تا پرواز</span>
+</div>
+</div>
+<!-- Ticket Container -->
+<div class="relative bg-surface-container-lowest rounded-[28px] shadow-md overflow-hidden">
+<!-- Top Ticket Header Strip -->
+<div class="bg-surface-container-high/60 px-8 py-4 flex flex-wrap items-center justify-between gap-4">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-xl bg-surface-container-lowest flex items-center justify-center font-bold text-primary shadow-sm text-title-md">
+            W5
+          </div>
+<div>
+<div class="flex items-center gap-2">
+<span class="font-title-md text-title-md font-bold text-on-surface">هواپیمایی ماهان</span>
+<span class="px-2 py-0.5 rounded-md bg-surface-container text-on-surface-variant font-label-sm text-label-sm">پرواز شماره W5-112</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">ایرباس A340-600 • کلاس اکونومی سیستمی</span>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex flex-col items-start">
+<span class="font-label-sm text-label-sm text-on-surface-variant">کد پیگیری رزرو (PNR)</span>
+<span class="font-title-md text-title-md font-extrabold text-on-surface tracking-wider font-mono">KRN-982410</span>
+</div>
+<span class="px-3 py-1 rounded-full bg-primary-fixed text-on-primary-fixed-variant font-label-md text-label-md font-bold">
+            تایید قطعی و صدور نهایی
+          </span>
+</div>
+</div>
+<!-- Main Ticket Body: Departure / Arrival Visual Flow -->
+<div class="p-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+<!-- Flight Path (Right 8 Cols) -->
+<div class="lg:col-span-8 flex flex-col md:flex-row items-center justify-between gap-6">
+<!-- Origin -->
+<div class="flex flex-col items-start min-w-[150px]">
+<span class="font-display text-display font-extrabold text-on-surface leading-none">۰۸:۳۰</span>
+<span class="font-title-lg text-title-lg font-bold text-on-surface mt-1">تهران (IKA)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">فرودگاه بین‌المللی امام خمینی</span>
+<span class="font-label-sm text-label-sm text-secondary font-bold mt-1">ترمینال شماره ۱</span>
+<span class="font-label-md text-label-md text-on-surface-variant mt-0.5">جمعه ۲۵ خرداد ۱۴۰۳</span>
+</div>
+<!-- Mid Route Graphic -->
+<div class="flex-1 w-full flex flex-col items-center px-4">
+<span class="font-label-sm text-label-sm text-on-surface-variant font-semibold mb-2">مدت زمان ۳ ساعت و ۳۰ دقیقه (مستقیم)</span>
+<div class="relative w-full flex items-center justify-center">
+<div class="w-full h-1 bg-surface-container-high rounded-full"></div>
+<div class="absolute w-2.5 h-2.5 rounded-full bg-primary right-0"></div>
+<div class="absolute w-2.5 h-2.5 rounded-full bg-secondary left-0"></div>
+<div class="absolute w-8 h-8 rounded-full bg-surface-container-low shadow-sm flex items-center justify-center text-primary transform rotate-180">
+<span class="material-symbols-outlined text-lg">flight</span>
+</div>
+</div>
+<div class="flex items-center gap-2 mt-2">
+<span class="material-symbols-outlined text-sm text-tertiary">luggage</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">۳۰ کیلوگرم بار مجاز برای هر مسافر</span>
+</div>
+</div>
+<!-- Destination -->
+<div class="flex flex-col items-start md:items-end min-w-[150px]">
+<span class="font-display text-display font-extrabold text-on-surface leading-none">۱۱:۰۰</span>
+<span class="font-title-lg text-title-lg font-bold text-on-surface mt-1">استانبول (IST)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">فرودگاه جدید استانبول</span>
+<span class="font-label-sm text-label-sm text-secondary font-bold mt-1">ترمینال پروازهای ورودی</span>
+<span class="font-label-md text-label-md text-on-surface-variant mt-0.5">به وقت محلی ترکیه</span>
+</div>
+</div>
+<!-- Ticket Seat & Gate Meta (Left 4 Cols) -->
+<div class="lg:col-span-4 bg-surface-container-low rounded-2xl p-5 flex flex-col justify-between gap-4">
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container-lowest p-3 rounded-xl shadow-xs">
+<span class="font-label-sm text-label-sm text-on-surface-variant block">شماره صندلی</span>
+<span class="font-title-lg text-title-lg font-extrabold text-primary font-mono">14B</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant block">کنار راهرو (تایید شده)</span>
+</div>
+<div class="bg-surface-container-lowest p-3 rounded-xl shadow-xs">
+<span class="font-label-sm text-label-sm text-on-surface-variant block">شروع پذیرش مسافر</span>
+<span class="font-title-lg text-title-lg font-extrabold text-on-surface">۰۵:۳۰ صبح</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant block">۳ ساعت قبل پرواز</span>
+</div>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant">
+<span class="font-label-md text-label-md flex items-center gap-1.5">
+<span class="material-symbols-outlined text-base text-tertiary">badge</span>
+              مسافر: کیان احمدی
+            </span>
+<span class="font-label-sm text-label-sm font-mono">PASSPORT: V***9812</span>
+</div>
+</div>
+</div>
+<!-- Quick Action Buttons Strip -->
+<div class="bg-surface-container-low/50 px-8 py-4 flex flex-wrap items-center justify-between gap-4">
+<div class="flex flex-wrap items-center gap-3">
+<button class="px-5 py-2.5 rounded-full bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md font-bold flex items-center gap-2 shadow-sm transition-all" type="button">
+<span class="material-symbols-outlined text-lg">download</span>
+<span>دریافت فایل PDF بلیت و واچر</span>
+</button>
+<button class="px-4 py-2.5 rounded-full bg-surface-container-lowest hover:bg-surface-container text-on-surface font-label-md text-label-md font-semibold flex items-center gap-2 shadow-xs transition-colors" type="button">
+<span class="material-symbols-outlined text-lg text-secondary">airline_seat_recline_extra</span>
+<span>انتخاب یا تغییر صندلی</span>
+</button>
+<button class="px-4 py-2.5 rounded-full bg-surface-container-lowest hover:bg-surface-container text-on-surface font-label-md text-label-md font-semibold flex items-center gap-2 shadow-xs transition-colors" type="button">
+<span class="material-symbols-outlined text-lg text-secondary">luggage</span>
+<span>خرید بار اضافه آنلاین</span>
+</button>
+</div>
+<div>
+<button class="px-4 py-2.5 rounded-full text-error hover:bg-error-container/30 font-label-md text-label-md font-semibold flex items-center gap-1.5 transition-colors" type="button">
+<span class="material-symbols-outlined text-lg">cancel_schedule_send</span>
+<span>درخواست کنسلی یا استرداد آنلاین</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Split Section: Travel History Table (8 cols) + Passenger List & Promo (4 cols) -->
+<section class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+<!-- Travel History Panel (8 Cols) -->
+<div class="lg:col-span-8 bg-surface-container-lowest rounded-[28px] p-7 shadow-sm flex flex-col gap-6">
+<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+<div>
+<h3 class="font-headline-sm text-headline-sm font-extrabold text-on-surface">
+            تاریخچه آخرین خریدهای سفر
+          </h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
+            سوابق سفارش‌ها، فاکتورها و وضعیت بلیت‌ها و هتل‌های رزرو شده
+          </p>
+</div>
+<!-- Filter Pills Tabs -->
+<div class="flex items-center gap-1 p-1 bg-surface-container rounded-full">
+<button class="px-4 py-1.5 rounded-full bg-secondary text-on-secondary font-label-md text-label-md font-bold shadow-xs" type="button">
+            همه سفارش‌ها
+          </button>
+<button class="px-3.5 py-1.5 rounded-full text-on-surface-variant hover:text-on-surface font-label-md text-label-md transition-colors" type="button">
+            پروازها
+          </button>
+<button class="px-3.5 py-1.5 rounded-full text-on-surface-variant hover:text-on-surface font-label-md text-label-md transition-colors" type="button">
+            هتل‌ها
+          </button>
+<button class="px-3.5 py-1.5 rounded-full text-on-surface-variant hover:text-on-surface font-label-md text-label-md transition-colors" type="button">
+            تورها
+          </button>
+</div>
+</div>
+<!-- Booking History List -->
+<div class="flex flex-col gap-3.5">
+<!-- Row 1: Kish Toranj Tour -->
+<div class="p-5 rounded-2xl bg-surface-container-low hover:bg-surface-container transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+<div class="flex items-start gap-4">
+<div class="w-12 h-12 rounded-2xl bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center shrink-0 shadow-xs">
+<span class="material-symbols-outlined text-2xl">holiday_village</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<span class="font-title-md text-title-md font-bold text-on-surface">تور ۴ روزه جزیره کیش • هتل دریایی ترنج ۵ ستاره</span>
+<span class="px-2 py-0.5 rounded-md bg-secondary-fixed/50 text-on-secondary-fixed font-label-sm text-label-sm font-semibold">تور مسافرتی</span>
+</div>
+<div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-on-surface-variant font-body-sm text-body-sm">
+<span>تاریخ: ۲ تا ۵ اردیبهشت ۱۴۰۳</span>
+<span>•</span>
+<span>کد سفارش: KRN-TRN-773</span>
+<span>•</span>
+<span class="inline-flex items-center gap-1 font-semibold text-secondary">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+                  تکمیل شده (موفق)
+                </span>
+</div>
+</div>
+</div>
+<div class="flex sm:flex-col items-end justify-between w-full sm:w-auto gap-2 shrink-0">
+<div class="text-left sm:text-right">
+<span class="font-title-lg text-title-lg font-extrabold text-on-surface">۱۶٬۸۰۰٬۰۰۰</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant mr-1">تومان</span>
+</div>
+<a class="font-label-md text-label-md text-primary hover:text-primary-container font-bold flex items-center gap-1 transition-colors" href="#">
+<span class="material-symbols-outlined text-base">receipt_long</span>
+<span>مشاهده فاکتور رسمی</span>
+</a>
+</div>
+</div>
+<!-- Row 2: Mashhad Round Flight -->
+<div class="p-5 rounded-2xl bg-surface-container-low hover:bg-surface-container transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+<div class="flex items-start gap-4">
+<div class="w-12 h-12 rounded-2xl bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0 shadow-xs">
+<span class="material-symbols-outlined text-2xl">flight</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<span class="font-title-md text-title-md font-bold text-on-surface">پرواز رفت و برگشت مشهد (ایرلاین وارش)</span>
+<span class="px-2 py-0.5 rounded-md bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm font-semibold">پرواز داخلی</span>
+</div>
+<div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-on-surface-variant font-body-sm text-body-sm">
+<span>تاریخ: ۱۲ اسفند ۱۴۰۲</span>
+<span>•</span>
+<span>کد رزرو: VR-90142</span>
+<span>•</span>
+<span class="inline-flex items-center gap-1 font-semibold text-secondary">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+                  تکمیل شده
+                </span>
+</div>
+</div>
+</div>
+<div class="flex sm:flex-col items-end justify-between w-full sm:w-auto gap-2 shrink-0">
+<div class="text-left sm:text-right">
+<span class="font-title-lg text-title-lg font-extrabold text-on-surface">۳٬۴۰۰٬۰۰۰</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant mr-1">تومان</span>
+</div>
+<a class="font-label-md text-label-md text-primary hover:text-primary-container font-bold flex items-center gap-1 transition-colors" href="#">
+<span class="material-symbols-outlined text-base">download</span>
+<span>دانلود بلیت پرواز</span>
+</a>
+</div>
+</div>
+<!-- Row 3: Espinas Palace Hotel (Refunded) -->
+<div class="p-5 rounded-2xl bg-surface-container-low hover:bg-surface-container transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+<div class="flex items-start gap-4">
+<div class="w-12 h-12 rounded-2xl bg-error-container/50 text-error flex items-center justify-center shrink-0 shadow-xs">
+<span class="material-symbols-outlined text-2xl">hotel</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<span class="font-title-md text-title-md font-bold text-on-surface">هتل اسپیناس پالاس تهران (اتاق دوتخته جونیور)</span>
+<span class="px-2 py-0.5 rounded-md bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm font-semibold">هتل ۵ ستاره</span>
+</div>
+<div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-on-surface-variant font-body-sm text-body-sm">
+<span>تاریخ: ۱۵ دی ۱۴۰۲</span>
+<span>•</span>
+<span>شناسه: ESP-44109</span>
+<span>•</span>
+<span class="inline-flex items-center gap-1 font-semibold text-tertiary">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+                  استرداد شده (بازگشت به کیف پول)
+                </span>
+</div>
+</div>
+</div>
+<div class="flex sm:flex-col items-end justify-between w-full sm:w-auto gap-2 shrink-0">
+<div class="text-left sm:text-right">
+<span class="font-title-lg text-title-lg font-extrabold text-on-surface-variant line-through">۴٬۹۰۰٬۰۰۰</span>
+<span class="font-label-sm text-label-sm text-tertiary font-bold mr-1">عودت داده شد</span>
+</div>
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-on-surface font-semibold flex items-center gap-1 transition-colors" href="#">
+<span class="material-symbols-outlined text-base">info</span>
+<span>مشاهده جزییات جریمه و عودت</span>
+</a>
+</div>
+</div>
+</div>
+<!-- Bottom View All Link -->
+<div class="pt-2 flex justify-center">
+<a class="font-label-lg text-label-lg text-primary hover:text-primary-container font-bold flex items-center gap-1.5 transition-colors" data-path="my-bookings" href="#">
+<span>مشاهده کلیه سفارش‌های پیشین (۱۲ مورد)</span>
+<span class="material-symbols-outlined text-base">arrow_back</span>
+</a>
+</div>
+</div>
+<!-- Right Side: Saved Passengers & Club Promo (4 Cols) -->
+<div class="lg:col-span-4 flex flex-col gap-6">
+<!-- Passenger Shortcuts Card -->
+<div class="bg-surface-container-lowest rounded-[28px] p-6 shadow-sm flex flex-col gap-5">
+<div class="flex items-center justify-between">
+<div>
+<h3 class="font-title-lg text-title-lg font-bold text-on-surface">
+              مسافران ذخیره شده
+            </h3>
+<span class="font-label-sm text-label-sm text-on-surface-variant">
+              جهت صدور سریع بلیت بدون وارد کردن مجدد اطلاعات
+            </span>
+</div>
+<button class="p-2 rounded-full bg-surface-container-high hover:bg-surface-container-highest text-primary transition-colors" title="افزودن مسافر جدید" type="button">
+<span class="material-symbols-outlined text-xl">person_add</span>
+</button>
+</div>
+<div class="flex flex-col gap-3">
+<!-- Passenger 1: Kian Ahmadi -->
+<div class="p-3.5 rounded-2xl bg-surface-container-low flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary-fixed text-on-primary-fixed-variant font-bold flex items-center justify-center font-title-md">
+                ک
+              </div>
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="font-title-md text-title-md font-bold text-on-surface">کیان احمدی</span>
+<span class="px-2 py-0.2 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm">شما</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-mono">کدملی: ۰۰۱۴۹۹*** | پاسپورت معتبر</span>
+</div>
+</div>
+<button class="text-on-surface-variant hover:text-on-surface p-1.5 rounded-lg hover:bg-surface-container transition-colors" type="button">
+<span class="material-symbols-outlined text-lg">edit</span>
+</button>
+</div>
+<!-- Passenger 2: Sara Radmanesh -->
+<div class="p-3.5 rounded-2xl bg-surface-container-low flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-secondary-fixed text-on-secondary-fixed font-bold flex items-center justify-center font-title-md">
+                س
+              </div>
+<div class="flex flex-col">
+<span class="font-title-md text-title-md font-bold text-on-surface">سارا رادمنش</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-mono">کدملی: ۰۰۸۲۱۴*** | پاسپورت معتبر</span>
+</div>
+</div>
+<button class="text-on-surface-variant hover:text-on-surface p-1.5 rounded-lg hover:bg-surface-container transition-colors" type="button">
+<span class="material-symbols-outlined text-lg">edit</span>
+</button>
+</div>
+<!-- Passenger 3: Artin Ahmadi -->
+<div class="p-3.5 rounded-2xl bg-surface-container-low flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-bold flex items-center justify-center font-title-md">
+                آ
+              </div>
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="font-title-md text-title-md font-bold text-on-surface">آرتین احمدی</span>
+<span class="px-1.5 py-0.2 rounded-full bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm">کودک</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-mono">کدملی: ۰۴۱۸۹۹***</span>
+</div>
+</div>
+<button class="text-on-surface-variant hover:text-on-surface p-1.5 rounded-lg hover:bg-surface-container transition-colors" type="button">
+<span class="material-symbols-outlined text-lg">edit</span>
+</button>
+</div>
+</div>
+<button class="w-full py-2.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md font-bold flex items-center justify-center gap-2 transition-colors" type="button">
+<span class="material-symbols-outlined text-lg text-primary">add</span>
+<span>افزودن مسافر جدید به حساب</span>
+</button>
+</div>
+<!-- Exclusive VIP Promo Banner -->
+<div class="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-tertiary-container via-tertiary to-on-tertiary-fixed p-6 text-on-tertiary shadow-md flex flex-col justify-between">
+<div class="absolute -right-8 -bottom-8 w-40 h-40 bg-tertiary-fixed/20 rounded-full blur-2xl pointer-events-none"></div>
+<div class="flex items-center justify-between mb-4">
+<span class="px-3 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm font-extrabold flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">stars</span>
+            پیشنهاد اعضای طلایی
+          </span>
+<span class="font-label-sm text-label-sm text-tertiary-fixed-dim">مهلت: تا ۳۱ تیر</span>
+</div>
+<div class="mb-5">
+<h4 class="font-headline-sm text-headline-sm font-extrabold text-on-tertiary leading-snug">
+            ۱۰٪ تخفیف بدون سقف در رزرو تورهای تابستانی
+          </h4>
+<p class="font-body-sm text-body-sm text-on-tertiary-container/90 mt-2 leading-relaxed">
+            ویژه مقاصد آنتالیا، استانبول، دبی و گرجستان با پروازهای چارتر اختصاصی کارن تراول.
+          </p>
+</div>
+<div class="flex items-center justify-between bg-surface-container-lowest/15 backdrop-blur-md rounded-2xl p-3">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-tertiary-fixed">کد تخفیف اختصاصی:</span>
+<span class="font-title-lg text-title-lg font-mono font-extrabold tracking-widest text-on-tertiary">GOLD-SUMMER</span>
+</div>
+<button class="px-4 py-2 rounded-xl bg-tertiary-fixed text-on-tertiary-fixed hover:bg-tertiary-fixed-dim font-label-md text-label-md font-bold transition-all shadow-sm" onclick="navigator.clipboard.writeText('GOLD-SUMMER'); this.innerText='کپی شد!';" type="button">
+            کپی کد
+          </button>
+</div>
+</div>
+</div>
+</section>
+</div></main></div></body></html>
