@@ -184,9 +184,9 @@ test('travel commerce rental, tour, visa and cruise states are usable and honest
   await page.goto('/villas'); await expect(page.locator(`a[href^="/villas/${propertyId}"]`)).toBeVisible(); await page.screenshot({ path: `${artifactDir}/travel-commerce/villa-results.png`, fullPage: true, animations: 'disabled' });
   await page.locator(`a[href^="/villas/${propertyId}"]`).click(); await expect(page.getByRole('combobox', { name: 'واحد اقامت' })).toContainText('واحد دربست — ظرفیت ۶ نفر'); await page.screenshot({ path: `${artifactDir}/travel-commerce/villa-detail.png`, fullPage: true, animations: 'disabled' });
   await page.goto('/tours'); await expect(page.locator(`a[href^="/tours/${tourId}"]`)).toBeVisible(); await page.screenshot({ path: `${artifactDir}/travel-commerce/tour-results.png`, fullPage: true, animations: 'disabled' });
-  await page.locator(`a[href^="/tours/${tourId}"]`).click(); await expect(page.getByRole('combobox', { name: 'حرکت تور' })).toBeVisible(); await page.screenshot({ path: `${artifactDir}/travel-commerce/tour-detail.png`, fullPage: true, animations: 'disabled' });
+  await page.locator(`a[href^="/tours/${tourId}"]`).click(); await expect(page.getByRole('combobox', { name: 'حرکت تور', exact: true })).toBeVisible(); await page.screenshot({ path: `${artifactDir}/travel-commerce/tour-detail.png`, fullPage: true, animations: 'disabled' });
   // A tour quote needs a departure and a room type the organiser priced (base 15,000,000 + single surcharge 3,000,000).
-  await page.getByRole('combobox', { name: 'حرکت تور' }).selectOption({ index: 1 });
+  await page.getByRole('combobox', { name: 'حرکت تور', exact: true }).selectOption({ index: 1 });
   await page.getByRole('combobox', { name: 'نوع اتاق' }).selectOption({ label: 'یک‌نفره' });
   await page.getByRole('button', { name: 'استعلام مبلغ و ظرفیت' }).click();
   await expect(page.getByText('۱۸٬۰۰۰٬۰۰۰ ریال برای ۱ بزرگسال')).toBeVisible();

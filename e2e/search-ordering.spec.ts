@@ -12,7 +12,7 @@ test('an older search failure cannot overwrite the latest successful search', as
   await page.goto('/search/results?vertical=flight&destination=Mock');
   const delayed = await first;
   // Flight results sort by the flight-specific orderings (cheapest/best/fastest).
-  await page.getByLabel('مرتب‌سازی نتایج').selectOption('cheapest');
+  await page.getByRole('group', { name: 'مرتب‌سازی نتایج' }).getByRole('button', { name: 'ارزان‌ترین' }).click(); // flight results use Stitch sort pills
   // Zero results now offer the trip-request form instead of an empty-results heading.
   const zeroResults = page.getByRole('region', { name: 'ثبت درخواست سفر' });
   const failure = page.getByRole('alert').filter({ hasText: 'جست‌وجو فعلاً انجام نشد' });

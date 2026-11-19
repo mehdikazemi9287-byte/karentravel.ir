@@ -69,7 +69,7 @@
 .pn[data-area=customer] .pn-stat{border-radius:20px;background:#fff}
 .pn[data-area=customer] .pn-stat strong,.pn[data-area=customer] .pn-stat b{font-size:22px;font-weight:900;color:#2a1530}
 .pn[data-area=customer] .pn-btn{border-radius:999px}
-.pn[data-area=customer] .pn-nav a[aria-current=page]{background:#ef5b3d;color:#fff;border-radius:14px}
+.pn[data-area=customer] .pn-nav a[aria-current=page]{background:#ad2c12;color:#fff;border-radius:14px} /* #ef5b3d failed WCAG AA (3.36:1) */
 
 /* ---------- Login / OTP (Stitch Desktop/14) — ApprovedShell pages ---------- */
 .approved-site.ks-inner>main:has(form .button.primary) .page-hero{text-align:center}
