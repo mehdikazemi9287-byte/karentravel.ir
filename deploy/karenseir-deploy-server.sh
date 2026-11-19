@@ -88,6 +88,8 @@ main() {
   curl -fsS -m 5 -o /dev/null -H 'Host: karentravel.ir' http://127.0.0.1/ || die "site is not healthy before the release"
   if [ "$check" = 1 ]; then say "DEPLOY-CHECK-OK (nothing changed)"; return 0; fi
 
+  mkdir -p "$ROOT/monitor" && touch "$ROOT/monitor/deploying"   # minute monitor pauses during the release
+  trap 'rm -f "$ROOT/monitor/deploying"' EXIT
   say "== 2/6 database backup"
   "$ROOT/backup.sh"
 
@@ -134,6 +136,8 @@ main() {
   echo "$NEW $BRANCH release-$TS $(date -u +%FT%TZ)" > "$ROOT/DEPLOYED"
   say "live version: $(curl -fsS -m 5 -H 'Host: karentravel.ir' http://127.0.0.1/build_info.json 2>/dev/null || echo unavailable)"
   docker compose ps --format '{{.Name}}\t{{.Status}}'
+  # minute-by-minute watch (pages, https, api, containers, migration head, row counts never drop)
+  echo "* * * * * root bash $APP/deploy/karenseir-monitor.sh >/dev/null 2>&1" > /etc/cron.d/karenseir-monitor && chmod 644 /etc/cron.d/karenseir-monitor && say "monitor: /etc/cron.d/karenseir-monitor (status: $ROOT/monitor/status.json)"
   say "DEPLOY-OK: $BRANCH @ $NEW on branch release-$TS (previous $PREV_BRANCH @ $PREV, images tagged pre-$TS)"
   say "manual rollback: cd $APP && git checkout $PREV_BRANCH && for s in $SERVICES; do docker tag karenseir-\$s:pre-$TS karenseir-\$s:latest; done && cd $ROOT && docker compose up -d --no-build $SERVICES"
 }
