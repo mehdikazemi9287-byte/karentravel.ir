@@ -1,0 +1,11 @@
+#!/bin/bash
+# Read-only diagnosis (adds 'origin' remote + fetch only; working tree untouched)
+cd /opt/karenseir/app || exit 1
+git remote get-url origin >/dev/null 2>&1 || git remote add origin https://github.com/mehdikazemi9287-byte/karentravel.ir.git
+git fetch -q --depth=300 origin main feat/inner-redesign-on-production 2>&1 | tail -2
+echo "HEAD $(git rev-parse --short HEAD) tree $(git rev-parse --short 'HEAD^{tree}')"
+for r in origin/main origin/feat/inner-redesign-on-production; do
+  echo "== vs $r $(git rev-parse --short $r): $(git diff --shortstat $r HEAD)"
+done
+echo "== files differing from PR87 branch (server side shown)"
+git diff --stat=120 origin/feat/inner-redesign-on-production HEAD | head -45
