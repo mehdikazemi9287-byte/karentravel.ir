@@ -636,7 +636,7 @@ export function TrainLanding() {
   const href = (city: string) => `/trains?vertical=train&origin=${encodeURIComponent('تهران')}&destination=${encodeURIComponent(city)}`;
   return <>
     <section className="tl-sec" aria-labelledby="tl-routes"><h2 id="tl-routes">خرید بلیط قطار فوری</h2>
-      <div className="tl-routes">{TRAIN_CITIES.map(c => <a key={c} href={href(c)} className="tl-route"><Thumb src={img(c)} credit={null} alt={c} label={c}/><span>بلیط قطار {c}</span></a>)}</div></section>
+      <div className="tl-routes">{(places.data ? TRAIN_CITIES.filter(c => img(c)) : TRAIN_CITIES).map(c => <a key={c} href={href(c)} className="tl-route"><Thumb src={img(c)} credit={null} alt={c} label={c}/><span>بلیط قطار {c}</span></a>)}</div></section>
     <section className="tl-sec tl-perks" aria-label="مزایای خرید">
       {[['همه‌ی قطارها کنار هم', 'ساعت حرکت، نوع واگن و قیمت قطارهای شرکت‌های مختلف را در یک صفحه مقایسه کن.'], ['خرید ساده', 'انتخاب قطار، ثبت مسافران و پرداخت در چند قدم.'], ['استرداد از حساب کاربری', 'درخواست استرداد را از «سفرهای من» ثبت کن؛ جریمه پیش از تأیید نمایش داده می‌شود.'], ['پشتیبان سفر', 'از خرید تا پایان سفر، کارشناس پشتیبانی کنار توست.']]
         .map(([t, d]) => <article key={t}><b>{t}</b><p>{d}</p></article>)}
