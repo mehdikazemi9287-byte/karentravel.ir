@@ -49,9 +49,8 @@
 - `main` = تنها منبع. `deploy/karenseir-deploy-server.sh` دقیقاً `origin/main` را دیپلوی می‌کند و commit فقط-سروری ندارد. mirror پایتون در `pip.conf` است که در git نمی‌رود.
 - `AGENTS.md`: بخش «Release truth».
 
-## وضعیت پایان جلسه (2026-11-19، حدود 19:20 به وقت برلین)
-- `main` = `production` = `80adbb2`. PR #89 ادغام شد.
-- CI روی `6e70b96`: build، lint، tsc و ۸۵۲ تست backend سبز شدند. سه تست e2e به‌خاطر selectorهای قدیمی در صفحهٔ ورود و هدر نتایج پرواز شکست خوردند. اصلاحشان در `80adbb2` است و نتیجهٔ CI روی `main` هنوز باید دیده شود.
-- **انتشار:** بعد از تأیید مالک، دستور `bash deploy.sh` برای `80adbb2` در کنسول ابرآروان تایپ شد. همان لحظه اتصال افزونهٔ Chrome قطع شد، پس اجرا شدن دستور و نتیجه‌اش **تأیید نشده** است.
-- برای بررسی روی سرور: `cat /opt/karenseir/DEPLOYED` و `tail -30 /opt/karenseir/release-*.log | tail -30`. اگر `DEPLOYED` وجود ندارد، انتشار انجام نشده است. در این صورت اجرا کنید: `curl -s --location raw.githubusercontent.com/mehdikazemi9287-byte/karentravel.ir/main/deploy/karenseir-deploy-server.sh -o deploy.sh; bash deploy.sh`
-- **باقی‌مانده:** مقایسهٔ تصویری صفحه‌های زنده (ورود، نتایج هتل، نتایج پرواز، `/flights`) با PNGهای Stitch بعد از انتشار. صفحهٔ ورود با چیدمان کامل Stitch بازسازی شد. نتایج هتل و پرواز همان پیاده‌سازی PR #87 هستند و باید روی سایت زنده با `_35` و `_2` مقایسه شوند. همچنین انتقال VandaPay #88 از شاخهٔ `port/vandapay-hardening-88`، و ارتقای Next.js که build یک هشدار امنیتی برایش داد.
+## وضعیت پایان جلسه (2026-11-19، حدود 19:50 به وقت برلین): منتشر شد
+- `main` = `production` = `6a39d02` روی سرور، با `deploy/karenseir-deploy-server.sh` و از کنسول ابرآروان منتشر شد. مراحل: backup، build وب، API و worker، migration از `20261104_69` تا `20261111_76` بدون خطا، و health OK.
+- شواهد زنده: `/blog`، `/faq` و `/festival` جواب 200 می‌دهند (قبلاً 404). `/login` با طرح Stitch `_17` بالا آمد. `/flights` ۱۸ کارت ایرلاین دارد و هیچ لینک بیرونی ندارد. `/api/health` روی production جواب ok می‌دهد.
+- CI: build، lint، tsc و ۸۵۲ تست backend سبز. selectorهای e2e در `80adbb2` اصلاح شدند و نتیجهٔ CI روی `main` باید دوباره دیده شود.
+- **باقی‌مانده:** مقایسهٔ تصویری نتایج هتل (`_35`) و نتایج پرواز (`_2`) با داده‌های زنده و بازسازی هر جا که فاصله دارد. انتقال VandaPay #88 از `port/vandapay-hardening-88`. ارتقای Next.js (هشدار امنیتی build). `build_info.json` هنوز `unknown` است، چون compose سرور `GIT_COMMIT` را به build نمی‌دهد؛ تا اصلاح آن، مرجع `/opt/karenseir/DEPLOYED` است.
