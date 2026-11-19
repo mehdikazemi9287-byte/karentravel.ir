@@ -193,7 +193,7 @@ export function HotelDetail({slug}: {slug: string}) {
           {h.address && <><dt>نشانی</dt><dd>{h.address}</dd></>}
           {h.latitude !== null && h.longitude !== null && <><dt>موقعیت</dt><dd><a href={osmLink(h.latitude, h.longitude)} target="_blank" rel="noreferrer">نمایش روی نقشه</a></dd></>}
           {h.phone && <><dt>تلفن</dt><dd><a href={`tel:${h.phone.replace(/[^\d+]/g, '')}`} dir="ltr">{h.phone}</a></dd></>}
-          {h.website && <><dt>وب‌سایت</dt><dd><a href={h.website} target="_blank" rel="noreferrer nofollow" dir="ltr">{h.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}</a></dd></>}
+          
           {h.email && <><dt>ایمیل</dt><dd><a href={`mailto:${h.email}`} dir="ltr">{h.email}</a></dd></>}
         </dl></section>
         {(h.nearby_airports?.length || h.nearby_rail_stations?.length) ? <section><h2>دسترسی</h2><ul className="cat-access">{h.nearby_airports?.map(a => <li key={a.iata}>فرودگاه {a.name} <span dir="ltr">({a.iata})</span></li>)}{h.nearby_rail_stations?.map(s => <li key={s.id}>ایستگاه راه‌آهن {s.name}</li>)}</ul></section> : null}
@@ -265,8 +265,7 @@ export function AirlineDirectory() {
     {data && <div className="cat-grid cat-grid-ref">{data.items.map(a => <article className="cat-ref" key={a.id}>
       <AirlineLogo a={a}/>
       <div><h3>{faName(a.name)}</h3>
-        <p className="cat-where">{COUNTRY_FA[a.country_code] ?? a.country_code}{a.airline_type && AIRLINE_TYPE_FA[a.airline_type] ? ` · ${AIRLINE_TYPE_FA[a.airline_type]}` : ''} · <span dir="ltr">{a.iata}</span></p>
-        {a.website && <a href={a.website} target="_blank" rel="noreferrer nofollow">وب‌سایت رسمی</a>}</div></article>)}</div>}
+        <p className="cat-where">{COUNTRY_FA[a.country_code] ?? a.country_code}{a.airline_type && AIRLINE_TYPE_FA[a.airline_type] ? ` · ${AIRLINE_TYPE_FA[a.airline_type]}` : ''} · <span dir="ltr">{a.iata}</span></p></div></article>)}</div>}
   </section>;
 }
 
@@ -306,7 +305,7 @@ export function RailDirectory() {
   return <section className="cat" aria-labelledby="cat-rail-title">
     <header className="cat-head"><div><h2 id="cat-rail-title">شرکت‌های ریلی و ایستگاه‌ها</h2><p>شهر مقصدت را انتخاب کن تا قطارهای آن مسیر را جست‌وجو کنی. ساعت حرکت، نوع واگن و قیمت در نتیجه‌ی جست‌وجو نمایش داده می‌شود.</p></div><SearchBox value={q} onSubmit={setQ} placeholder="نام شهر یا ایستگاه"/></header>
     {ops.data && <div className="cat-grid cat-grid-ref">{ops.data.items.map(o => <article className="cat-ref" key={o.id}><div className="cat-logo"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M7 4h10a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM5 11h14M9 14h.01M15 14h.01M8 21l2-4M16 21l-2-4"/></svg></div>
-      <div><h3>{o.name_fa}</h3><p className="cat-where">{o.operator_kind === 'national_infrastructure' ? 'شبکهٔ ملی راه‌آهن' : 'شرکت مسافری ریلی'}</p>{o.website && <a href={o.website} target="_blank" rel="noreferrer nofollow">وب‌سایت رسمی</a>}</div></article>)}</div>}
+      <div><h3>{o.name_fa}</h3><p className="cat-where">{o.operator_kind === 'national_infrastructure' ? 'شبکهٔ ملی راه‌آهن' : 'شرکت مسافری ریلی'}</p></div></article>)}</div>}
     <Status loading={stations.loading} error={stations.error} empty={towns.length === 0}/>
     {major.length > 0 && <><h3 className="cat-sub">ایستگاه‌های اصلی</h3><div className="cat-grid cat-grid-airport">{major.map(t => <article className="cat-airport" key={t}>
       <b className="cat-airport-code" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M7 4h10a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM5 11h14M8 21l2-4M16 21l-2-4"/></svg></b>
@@ -532,7 +531,7 @@ export function TrainLanding() {
         .map(([t, d]) => <article key={t}><b>{t}</b><p>{d}</p></article>)}
     </section>
     {ops.data && ops.data.items.length > 0 && <section className="tl-sec" aria-labelledby="tl-ops"><h2 id="tl-ops">شرکت‌های ریلی</h2>
-      <ul className="tl-ops">{ops.data.items.map(o => <li key={o.id}>{o.website ? <a href={o.website} target="_blank" rel="noreferrer nofollow">{o.name_fa}</a> : o.name_fa}</li>)}</ul></section>}
+      <ul className="tl-ops">{ops.data.items.map(o => <li key={o.id}>{o.name_fa}</li>)}</ul></section>}
     <section className="tl-sec" aria-labelledby="tl-faq"><h2 id="tl-faq">پرسش‌های شما</h2>
       <div className="tl-faq">{TRAIN_FAQ.map(([q, a]) => <details key={q}><summary>{q}</summary><p>{a}</p></details>)}</div></section>
   </>;
