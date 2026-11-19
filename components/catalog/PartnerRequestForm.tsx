@@ -1,4 +1,5 @@
 'use client';
+import {JalaliDateInput} from '../forms/JalaliDateInput';
 /* Sends a request to a partner site (Padvira or Gift Asan) through KarenSeir, so it is tracked under حساب من. */
 import Link from 'next/link';
 import {useState} from 'react';
@@ -36,7 +37,7 @@ export function PartnerRequestForm({partner, service, city, venueId, onClose}: P
       <label>نام و نام خانوادگی<input value={v.full_name} onChange={e => set('full_name', e.target.value)} autoComplete="name"/></label>
       <label>موبایل یا ایمیل<input dir="ltr" value={v.contact} onChange={e => set('contact', e.target.value)} autoComplete="tel"/></label>
       {partner === 'shahrshad' ? <>
-        <label>تاریخ مراجعه<input type="date" dir="ltr" value={v.date} onChange={e => set('date', e.target.value)}/></label>
+        <label>تاریخ مراجعه<JalaliDateInput value={v.date} onChange={e => set('date', e.target.value)}/></label>
         <label>تعداد نفرات<input type="number" min={1} max={200} value={v.people} onChange={e => set('people', e.target.value)}/></label>
         <label className="prf-wide">توضیح (اختیاری)<textarea rows={2} value={v.message} onChange={e => set('message', e.target.value)} placeholder="ساعت دلخواه، سانس بانوان یا آقایان، مناسبت و…"/></label>
       </> : partner === 'padvira' ? <>

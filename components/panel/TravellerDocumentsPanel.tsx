@@ -1,4 +1,5 @@
 'use client';
+import {JalaliDateInput} from '../forms/JalaliDateInput';
 /* eslint-disable @next/next/no-img-element -- previews are blob URLs of private documents, not optimizable images */
 /* Traveller documents: customer upload/list/delete; staff review queue with blurred preview and audited reveal. */
 import {useEffect, useState, type FormEvent} from 'react';
@@ -30,7 +31,7 @@ export function CustomerDocuments() {
         <label>نوع مدرک<select name="doc_type" required defaultValue="passport">{TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
         <label>نام دارنده<input name="holder_name" maxLength={160}/></label>
         <label>شماره‌ی مدرک (فقط سه رقم آخر نگه داشته می‌شود)<input name="number" className="pn-ltr" maxLength={30}/></label>
-        <label>تاریخ انقضا<input name="expires_on" type="date"/></label>
+        <label>تاریخ انقضا<JalaliDateInput name="expires_on"  yearsAhead={12}/></label>
         <label>فایل<input name="file" type="file" accept=".jpg,.jpeg,.png,.pdf" required/></label>
         <button className="pn-btn" disabled={busy}>{busy ? 'در حال ارسال…' : 'بارگذاری'}</button>
       </form>

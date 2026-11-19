@@ -1,4 +1,5 @@
 'use client';
+import '../../components/marketplace/stitch-pages-2026-11.css';
 import { FormEvent, Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';

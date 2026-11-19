@@ -1,4 +1,5 @@
 'use client';
+import '../marketplace/stitch-pages-2026-11.css';
 /* Master-data views. Everything rendered here is reference data (name, place, facilities, contact);
    price, availability and rooms come only from real supplier offers and are never shown from this catalog. */
 import Link from 'next/link';
@@ -480,10 +481,18 @@ export function CatalogHotelsForSearch({mode = 'complement', fallback = null}: {
   const vertical = params.get('vertical'), destination = (params.get('destination') || '').trim();
   const show = (vertical === 'hotel' || vertical === 'package' || vertical === 'vacation_rental') && destination.length >= 2;
   const limit = mode === 'primary' ? 12 : 6;
-  const {data, loading} = useCatalog<Page<Hotel>>(show ? `/catalog/hotels?q=${encodeURIComponent(destination)}&limit=${limit}` : null);
+  const {data: raw, loading} = useCatalog<Page<Hotel>>(show ? `/catalog/hotels?q=${encodeURIComponent(destination)}&limit=${limit}` : null);
+  let data = raw;
   if (!show) return <>{fallback}</>;
   if (loading) return mode === 'primary' ? <p className="cat-muted" role="status">در حال یافتن اقامتگاه‌های «{destination}»…</p> : null;
   if (!data || data.items.length === 0) return <>{fallback}</>;
+  // Destination relevance: hotels located in the searched city/region first; drop name-only matches from other cities when local ones exist.
+  const norm = (t: string) => t.replace(/[يى]/g, 'ی').replace(/ك/g, 'ک').replace(/\u200c/g, ' ').trim();
+  const dest = norm(destination);
+  const inDest = (h: Hotel) => [h.city?.name, h.region?.name].some(n => !!n && norm(String(n)).includes(dest));
+  const local = data.items.filter(inDest);
+  const items = local.length > 0 ? local : data.items;
+  data = {...data, items, total: items.length < data.items.length ? items.length : data.total};
   const all = <Link className="button secondary" href={`/hotels?q=${encodeURIComponent(destination)}`}>دیدن همهٔ {fa(data.total)} اقامتگاه «{destination}»</Link>;
   if (mode === 'primary') return <section className="cat" id="catalog-for-search" aria-labelledby="cat-search-title">
     <header className="cat-head"><div><h2 id="cat-search-title">{fa(data.total)} اقامتگاه در «{destination}»</h2><p>قیمت آنلاین برای این تاریخ هنوز از تأمین‌کننده نرسیده است. اقامتگاه را انتخاب کن و استعلام قیمت بگیر؛ کارشناس ما قیمت و موجودی همین تاریخ را اعلام می‌کند.</p></div></header>

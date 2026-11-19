@@ -1,4 +1,5 @@
 'use client';
+import {JalaliDateInput} from '../forms/JalaliDateInput';
 /* Online booking for hotels under a KarenSeir contract: dates + guests -> live availability from
    /stays/hotels/{slug}/availability -> chosen room becomes a normal offer (/offers/{id}) for checkout. */
 import Link from 'next/link';
@@ -36,8 +37,8 @@ export function StayBooking({slug}: {slug: string}) {
   if (!contracted) return null;
   return <div className="stay-booking">
     <form onSubmit={search} style={{display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', alignItems: 'end'}}>
-      <label>ورود<input type="date" value={v.checkin} onChange={e => setV({...v, checkin: e.target.value})} dir="ltr" required/></label>
-      <label>خروج<input type="date" value={v.checkout} onChange={e => setV({...v, checkout: e.target.value})} dir="ltr" required/></label>
+      <label>ورود<JalaliDateInput  value={v.checkin} onChange={e => setV({...v, checkin: e.target.value})} required/></label>
+      <label>خروج<JalaliDateInput  value={v.checkout} onChange={e => setV({...v, checkout: e.target.value})} required/></label>
       <label>بزرگسال در هر اتاق<input type="number" min={1} max={8} value={v.adults} onChange={e => setV({...v, adults: Number(e.target.value) || 1})}/></label>
       <label>سن کودکان هر اتاق<input value={v.ages} placeholder="مثلاً ۴، ۹" onChange={e => setV({...v, ages: e.target.value.replace(/[۰-۹]/g, d => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))})}/></label>
       <label>تعداد اتاق<input type="number" min={1} max={10} value={v.rooms} onChange={e => setV({...v, rooms: Number(e.target.value) || 1})}/></label>

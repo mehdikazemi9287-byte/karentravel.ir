@@ -5,7 +5,7 @@ import {FormEvent, useId, useState} from 'react';
 import type {KarenSeirApi} from '../../lib/api/karenseir-client';
 import {ApiError} from '../../lib/api/karenseir-client';
 import {isValidNationalCode, NATIONAL_CODE_ERROR, normalizeDigits} from '../../lib/national-code';
-import {currentJalaliYear, JalaliDateInput} from '../forms/JalaliDateInput';
+import {currentJalaliYear, JalaliDateSelect} from '../forms/JalaliDateSelect';
 
 export type SavedTraveller = {id: string; full_name: string; profile_reference?: string | null; national_code_masked?: string | null; passport_number_masked?: string | null;
   birth_date?: string | null; gender?: string | null; nationality?: string | null; passport_expiry?: string | null; has_national_code?: boolean; has_passport?: boolean};
@@ -77,10 +77,10 @@ export function TravellerForm({api, requirement = 'none', traveller, onSaved, na
       <small id={id + '-code'}>{codeInvalid ? NATIONAL_CODE_ERROR : traveller?.national_code_masked ? 'کد ملی ثبت شده است؛ برای تغییر، کد جدید را وارد کنید.' : '۱۰ رقم، بدون خط تیره'}</small>
     </label>}
     <label>جنسیت<select value={gender} onChange={e => setGender(e.target.value)}><option value="">انتخاب کنید</option><option value="female">زن</option><option value="male">مرد</option></select></label>
-    <JalaliDateInput label="تاریخ تولد" value={birthDate} onChange={setBirthDate} fromYear={year - 110} toYear={year}/>
+    <JalaliDateSelect label="تاریخ تولد" value={birthDate} onChange={setBirthDate} fromYear={year - 110} toYear={year}/>
     {(needPassport || !iranian || requirement !== 'domestic') && <>
       <label>شماره گذرنامه{needPassport ? ' (الزامی)' : ''}<input dir="ltr" maxLength={12} autoComplete="off" value={passport} placeholder={traveller?.passport_number_masked || ''} onChange={e => setPassport(e.target.value)}/></label>
-      <JalaliDateInput label="تاریخ انقضای گذرنامه" value={passportExpiry} onChange={setPassportExpiry} fromYear={year} toYear={year + 15} required={needPassport}/>
+      <JalaliDateSelect label="تاریخ انقضای گذرنامه" value={passportExpiry} onChange={setPassportExpiry} fromYear={year} toYear={year + 15} required={needPassport}/>
     </>}
     {error && <p id={id + '-error'} role="alert" className="form-error">{error}</p>}
     <button className="button secondary" disabled={busy}>{busy ? 'در حال ثبت…' : submitLabel}</button>

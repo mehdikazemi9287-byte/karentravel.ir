@@ -1,0 +1,61 @@
+/*
+  Karen Travel — inner pages refinement 2026-11 (Google Stitch redesign, ADR-022 re-port on `production`)
+  Scope: ONLY pages wrapped in ApprovedShell (.approved-site.ks-inner). The protected Homepage
+  (.approved-figma-home), JourneyShell pages, the approved header and the approved footer are NOT touched.
+  Palette already comes from approved-figma.css (plum #2a1530 / coral #ef5b3d / cream #fbf3e7).
+  Rollback: remove the import in ApprovedFigmaHome.tsx and the ks-inner class in ApprovedShell.
+*/
+.approved-site.ks-inner{--paper:#fffaf4;--coral:#ef5b3d;--coral-hover:#e0492b;--coral-text:#c93f24;--sun:#efb448;--ks-shadow:0 18px 45px rgba(42,21,48,.10)}
+.approved-site.ks-inner>main{direction:rtl;padding-bottom:32px}
+
+/* typography */
+.approved-site.ks-inner>main .eyebrow{color:var(--coral-text)}
+.approved-site.ks-inner>main :is(.page-hero h1,.assistant-intro h1,.dashboard h1){color:var(--ink);letter-spacing:-1px}
+.approved-site.ks-inner>main :is(.page-hero p,.dashboard-title p){color:var(--muted)}
+.approved-site.ks-inner>main :is(.mock-label,.tag,.mock-dot){background:#fbe9c6;color:#6a4708;border-radius:999px}
+.approved-site.ks-inner>main .text-link{color:var(--coral-text)}
+
+/* buttons: pill, coral primary */
+.approved-site.ks-inner>main .button{border-radius:999px;padding:11px 22px}
+.approved-site.ks-inner>main .primary{background:var(--coral);color:#fff}
+.approved-site.ks-inner>main .primary:hover{background:var(--coral-hover)}
+.approved-site.ks-inner>main .secondary{background:var(--paper);border-color:var(--line);color:var(--ink)}
+.approved-site.ks-inner>main .ghost{border-color:var(--line);border-radius:999px}
+.approved-site.ks-inner :focus-visible{outline:3px solid #0b8f8b;outline-offset:2px}
+
+/* cards, filters, results */
+.approved-site.ks-inner>main :is(.filters,.metrics>div,.panel,.hotel-card,.chat,.integration-table,.comparison-table){background:var(--paper);border:1px solid var(--line);border-radius:24px;box-shadow:none}
+.approved-site.ks-inner>main .hotel-card:hover{border-color:#e9b9a9;box-shadow:var(--ks-shadow)}
+.approved-site.ks-inner>main .hotel-card>img{border-radius:20px 20px 0 0}
+.approved-site.ks-inner>main .filters button{background:transparent;border-top-color:var(--line);color:var(--ink)}
+.approved-site.ks-inner>main .result-bar{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:10px 14px}
+.approved-site.ks-inner>main .compare-hotels{background:var(--paper);border-radius:24px 24px 0 0}
+.approved-site.ks-inner>main .comparison-row strong{background:#fbf3e7}
+.approved-site.ks-inner>main .comparison-row .winner{color:var(--coral-text);background:#fdeee8}
+.approved-site.ks-inner>main .compare-note{background:#fbe9c6;color:#6a4708}
+.approved-site.ks-inner>main .i-head{background:#f5eee4}
+.approved-site.ks-inner>main .bar-list i{background:#efe4da}
+.approved-site.ks-inner>main .bar-list b{background:var(--coral)}
+
+/* assistant chat */
+.approved-site.ks-inner>main .chat-bar{background:var(--ink);color:#fff}
+.approved-site.ks-inner>main .chat-bar span{color:var(--sun)}
+.approved-site.ks-inner>main .message.bot{background:#f3e7dc;color:var(--ink)}
+.approved-site.ks-inner>main .message.user{background:var(--ink);color:#fff}
+.approved-site.ks-inner>main .chat-input button{background:var(--coral);color:#fff;border:0;border-radius:999px;padding:8px 18px;font-weight:700}
+.approved-site.ks-inner>main .assistant-steps span{background:var(--paper);border:1px solid var(--line);border-radius:999px;color:var(--ink)}
+
+/* white label frame */
+.approved-site.ks-inner>main .wl-head{background:var(--paper);border-bottom:1px solid var(--line)}
+
+@media(max-width:800px){.approved-site.ks-inner>main .page-hero{padding:36px 18px 24px}}
+@media(prefers-reduced-motion:reduce){.approved-site.ks-inner *{transition:none!important}}
+
+/* ---- JourneyShell pages (47 routes) — light consistency layer, owner-approved 1405-08-26 ----
+   Excludes the approved header/footer, the search card and the support dock. Palette already matches. */
+.journey-page .button:not(:where(.approved-shared-header,.kh-foot,.approved-search-card,.support-dock) *){border-radius:999px}
+.journey-page .button.primary:not(:where(.approved-shared-header,.kh-foot,.approved-search-card,.support-dock) *){background:var(--j-coral,#ef5b3d);color:#fff;border-color:transparent}
+.journey-page .button.primary:not(:where(.approved-shared-header,.kh-foot,.approved-search-card,.support-dock) *):hover{background:#e0492b}
+.journey-page .button.secondary:not(:where(.approved-shared-header,.kh-foot,.approved-search-card,.support-dock) *){background:var(--j-paper,#fffaf4);border-color:#e7dcd4;color:var(--j-plum,#2a1530)}
+.journey-page :focus-visible{outline:3px solid #0b8f8b;outline-offset:2px}
+.journey-page .journey-mock{background:#fbe9c6;color:#6a4708;border-radius:999px}

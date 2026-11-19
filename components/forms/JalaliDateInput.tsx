@@ -1,44 +1,50 @@
 'use client';
-/* Jalali (شمسی) date entry as day / month / year selects; the value in and out is an ISO Gregorian date (YYYY-MM-DD).
-   Selects are easier than a calendar grid for birth dates and passport expiry, and work with keyboard and screen readers. */
-import {useId, useState} from 'react';
-import {isoToJalali, jalaliMonthLength, jalaliMonths, jalaliToIso, persianDigits, todayJalali} from '../../lib/domain/jalali';
+import '../marketplace/stitch-pages-2026-11.css';
+import {useEffect, useState, type ChangeEvent} from 'react';
+import {isoToJalali, jalaliToIso, jalaliMonths, jalaliMonthLength, persianDigits, todayJalali} from '../../lib/domain/jalali';
 
-type Parts = {jy: string; jm: string; jd: string};
+type Draft = {jy?: number; jm?: number; jd?: number};
+type Props = {
+  value?: string; defaultValue?: string; name?: string; required?: boolean; disabled?: boolean; min?: string;
+  onChange?: (event: ChangeEvent<HTMLInputElement>) => void; 'aria-label'?: string; className?: string;
+  yearsBack?: number; yearsAhead?: number;
+};
 
-export function JalaliDateInput({label, value, onChange, fromYear, toYear, required, hint}: {label: string; value: string; onChange: (iso: string) => void; fromYear: number; toYear: number; required?: boolean; hint?: string}) {
-  const id = useId();
-  const [parts, setParts] = useState<Parts>(() => toParts(value));
-  const [seen, setSeen] = useState(value);
-  if (value !== seen) { setSeen(value); if (value !== fromParts(parts)) setParts(toParts(value)); }
+/** Shamsi (Jalali) date picker: day / month / year selects. Emits and stores ISO (Gregorian) yyyy-mm-dd like <input type="date">. */
+export function JalaliDateInput(props: Props) {
+  const controlled = props.value !== undefined;
+  const [inner, setInner] = useState(props.defaultValue || '');
+  const iso = controlled ? (props.value || '') : inner;
+  const [draft, setDraft] = useState<Draft>(() => (iso ? isoToJalali(iso) : {}));
+  useEffect(() => { if (iso) setDraft(isoToJalali(iso)); }, [iso]);
+  const today = todayJalali();
+  const minYear = props.min ? isoToJalali(props.min).jy : today.jy - (props.yearsBack ?? 0);
   const years: number[] = [];
-  for (let y = toYear; y >= fromYear; y--) years.push(y);
-  const days = parts.jy && parts.jm ? jalaliMonthLength(Number(parts.jy), Number(parts.jm)) : 31;
-  function update(next: Partial<Parts>) {
-    const merged = {...parts, ...next};
-    if (merged.jd && merged.jy && merged.jm && Number(merged.jd) > jalaliMonthLength(Number(merged.jy), Number(merged.jm))) merged.jd = '';
-    setParts(merged);
-    onChange(fromParts(merged));
-  }
-  return <fieldset className="jalali-date" aria-describedby={hint ? id + '-hint' : undefined}>
-    <legend>{label}{required ? ' (الزامی)' : ''}</legend>
-    <div className="jalali-date-row">
-      <label>روز<select value={parts.jd} required={required} onChange={e => update({jd: e.target.value})}><option value="">روز</option>{Array.from({length: days}, (_, i) => i + 1).map(d => <option key={d} value={d}>{persianDigits(d)}</option>)}</select></label>
-      <label>ماه<select value={parts.jm} required={required} onChange={e => update({jm: e.target.value})}><option value="">ماه</option>{jalaliMonths.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}</select></label>
-      <label>سال<select value={parts.jy} required={required} onChange={e => update({jy: e.target.value})}><option value="">سال</option>{years.map(y => <option key={y} value={y}>{persianDigits(y)}</option>)}</select></label>
-    </div>
-    {hint && <small id={id + '-hint'}>{hint}</small>}
-  </fieldset>;
+  for (let y = minYear; y <= today.jy + (props.yearsAhead ?? 2); y++) years.push(y);
+  const maxDay = draft.jy && draft.jm ? jalaliMonthLength(draft.jy, draft.jm) : 31;
+  const update = (key: keyof Draft, raw: string) => {
+    const next: Draft = {...draft, [key]: raw ? Number(raw) : undefined};
+    setDraft(next);
+    if (next.jy && next.jm && next.jd) {
+      const out = jalaliToIso({jy: next.jy, jm: next.jm, jd: Math.min(next.jd, jalaliMonthLength(next.jy, next.jm))});
+      if (!controlled) setInner(out);
+      props.onChange?.({target: {value: out, name: props.name ?? ''}, currentTarget: {value: out}} as unknown as ChangeEvent<HTMLInputElement>);
+    }
+  };
+  const label = props['aria-label'] || 'تاریخ';
+  return <span className={`jdate${props.className ? ' ' + props.className : ''}`} role="group" aria-label={label} dir="rtl">
+    <select aria-label={`${label} — روز`} value={draft.jd ?? ''} required={props.required} disabled={props.disabled} onChange={e => update('jd', e.target.value)}>
+      <option value="">روز</option>
+      {Array.from({length: maxDay}, (_, i) => i + 1).map(d => <option key={d} value={d}>{persianDigits(d)}</option>)}
+    </select>
+    <select aria-label={`${label} — ماه`} value={draft.jm ?? ''} required={props.required} disabled={props.disabled} onChange={e => update('jm', e.target.value)}>
+      <option value="">ماه</option>
+      {jalaliMonths.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+    </select>
+    <select aria-label={`${label} — سال`} value={draft.jy ?? ''} required={props.required} disabled={props.disabled} onChange={e => update('jy', e.target.value)}>
+      <option value="">سال</option>
+      {years.map(y => <option key={y} value={y}>{persianDigits(y)}</option>)}
+    </select>
+    {props.name && <input type="hidden" name={props.name} value={iso}/>}
+  </span>;
 }
-
-function toParts(iso: string): Parts {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso || '')) return {jy: '', jm: '', jd: ''};
-  const d = isoToJalali(iso);
-  return {jy: String(d.jy), jm: String(d.jm), jd: String(d.jd)};
-}
-
-function fromParts(p: Parts): string {
-  return p.jy && p.jm && p.jd ? jalaliToIso({jy: Number(p.jy), jm: Number(p.jm), jd: Number(p.jd)}) : '';
-}
-
-export const currentJalaliYear = () => todayJalali().jy;

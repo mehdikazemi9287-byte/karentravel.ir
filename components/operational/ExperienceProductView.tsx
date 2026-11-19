@@ -1,4 +1,5 @@
 'use client';
+import {JalaliDateInput} from '../forms/JalaliDateInput';
 import Link from 'next/link';
 import { useRouter,useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -73,7 +74,7 @@ export function ExperienceProductView({ productId }: { productId: string }) {
     {notice && <p role="status" className="results-notice">{notice}</p>}
 
     <section className="panel" style={{ marginTop: 20 }}>
-      <h2>تاریخ و سانس</h2><label>تاریخ حضور<input type="date" aria-label="تاریخ حضور خدمت" value={day} disabled={busy||!!pending} onChange={e=>{const p=new URLSearchParams(params.toString());p.set('date',e.target.value);p.delete('depart');p.delete('session');router.replace('/experience-products/'+productId+'?'+p)}}/></label>
+      <h2>تاریخ و سانس</h2><label>تاریخ حضور<JalaliDateInput  aria-label="تاریخ حضور خدمت" value={day} disabled={busy||!!pending} onChange={e=>{const p=new URLSearchParams(params.toString());p.set('date',e.target.value);p.delete('depart');p.delete('session');router.replace('/experience-products/'+productId+'?'+p)}}/></label>
       {sessions.length === 0 ? <p>در حال حاضر سانس فعالی برای این خدمت ثبت نشده است.</p> : <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
         {sessions.map(row => <button type="button" key={row.id} disabled={busy||!!pending} aria-pressed={sessionId===row.id} onClick={()=>{const p=new URLSearchParams(params.toString());p.set('session',row.id);router.replace('/experience-products/'+productId+'?'+p)}} className={sessionId === row.id ? 'active' : ''} style={{ padding: '8px 14px', borderRadius: 10, border: '1px solid var(--line)', background: sessionId === row.id ? 'var(--ink)' : '#fff', color: sessionId === row.id ? '#fff' : 'inherit' }}>
           {new Date(row.starts_at).toLocaleString('fa-IR', {dateStyle:'short',timeStyle:'short',timeZone:'Asia/Tehran'})} · {row.capacity_available.toLocaleString('fa-IR')} ظرفیت اعلام‌شده
