@@ -294,3 +294,5 @@ Code (branch `feat/inner-redesign-on-production`): 807cdb8 (backend), a72425d (U
 Rules kept: no price/media invented (empty states when organiser has not supplied data); anonymous users see add-on titles without prices; homepage untouched.
 Tests: `backend/tests/test_stitch_round6_backend.py` (3) + full suite 596 passed (2 pre-existing failures unrelated). UI QA screenshots `qa/impl/r6-*.png` (mock data, labelled Mock).
 Next: owner/organisers enter real add-ons, 360 images and stop coordinates for tours; Figma frames for the three screens.
+
+- 2026-11-19 20:52 UTC: owner asked to merge — PR #90 merged into `main` as 4d62042 (CI quality running). Live after the next `main` deploy. Stitch 10-min sync stopped at owner request.
