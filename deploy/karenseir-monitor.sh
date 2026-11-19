@@ -19,7 +19,7 @@ for p in / /flights /hotels /trains /tours /login /blog; do
 done
 c=$(code -k --resolve karentravel.ir:443:127.0.0.1 https://karentravel.ir/); [ "$c" = 200 ] || alert "https / -> $c"
 c=$(code -H 'Host: karentravel.ir' http://127.0.0.1/api/health); [ "$c" = 200 ] || alert "api health -> $c"
-curl -s -m 15 -H 'Host: karentravel.ir' http://127.0.0.1/ | grep -q 'کارن تراول' || alert "brand text missing on homepage"
+HOME_HTML=$(curl -s -m 15 -H 'Host: karentravel.ir' http://127.0.0.1/ 2>/dev/null); case "$HOME_HTML" in *'کارن تراول'*) ;; *) alert "brand text missing on homepage";; esac
 
 # containers
 for n in karenseir-web-1 karenseir-api-1 karenseir-worker-1 karenseir-db-1 karenseir-redis-1 karenseir-nginx-1; do

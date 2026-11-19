@@ -132,7 +132,8 @@ main() {
 
   say "== 6/6 health"
   if ! health; then say "HEALTH FAILED"; rollback; exit 1; fi
-  curl -fsS -m 5 -H 'Host: karentravel.ir' http://127.0.0.1/ | grep -q 'کارن تراول' && say "brand: کارن تراول OK" || say "WARN: brand not found in the home page"
+  HOME_HTML=$(curl -fsS -m 10 -H 'Host: karentravel.ir' http://127.0.0.1/ 2>/dev/null || true)
+  case "$HOME_HTML" in *'کارن تراول'*) say "brand: کارن تراول OK";; *) say "WARN: brand not found in the home page";; esac
   echo "$NEW $BRANCH release-$TS $(date -u +%FT%TZ)" > "$ROOT/DEPLOYED"
   say "live version: $(curl -fsS -m 5 -H 'Host: karentravel.ir' http://127.0.0.1/build_info.json 2>/dev/null || echo unavailable)"
   docker compose ps --format '{{.Name}}\t{{.Status}}'
