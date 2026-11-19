@@ -120,7 +120,7 @@ export const PANEL_ITEMS: NavItem[] = [
     .map(([l, h]) => I('agency', l, h, R.agency, {group: 'آژانس'})),
 
   I('supplier', 'نمای کلی', '/supplier', R.supplier, {menu: true}), I('supplier', 'خدمات، نرخ و ظرفیت', '/supplier/services', R.supplier),
-  I('supplier', 'تورهای من', '/supplier/tours', R.supplier, {menu: true, moved: {agency_partner: '/agency/tours'}}), I('supplier', 'هتل‌های من', '/supplier/hotels', R.supplier, {menu: true}),
+  I('supplier', 'تورهای من', '/supplier/tours', R.supplier, {menu: true, moved: {agency_partner: '/agency/tours'}}), I('supplier', 'تجربه‌ها و کارگاه‌ها', '/supplier/experiences', R.supplier, {menu: true}), I('supplier', 'هتل‌های من', '/supplier/hotels', R.supplier, {menu: true}),
   I('supplier', 'اقامتگاه و تقویم', '/supplier/accommodation', R.supplier), I('supplier', 'سفارش‌ها و تأیید', '/supplier/fulfillment', R.supplier),
   I('supplier', 'کنترل بلیت', '/supplier/admission', R.fulfil), I('supplier', 'درخواست‌های سازمانی', '/supplier/rfqs', R.supplier),
   I('supplier', 'تسویه و قرارداد', '/supplier/settlements', R.supplier, {menu: true}), I('supplier', 'گزارش', '/supplier/reports', R.supplier),
