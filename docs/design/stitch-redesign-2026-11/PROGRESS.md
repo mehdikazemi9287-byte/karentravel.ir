@@ -251,3 +251,12 @@ Changed (production code branch `feat/inner-redesign-on-production` → commit 7
 QA: `qa/impl/r5-flight-results-desktop.png`, `r5-flight-results-mobile.png`, reference `r5-stitch-02-reference.png`. `tsc` clean, `next build --webpack` OK.
 
 Deploy: pending — server console is stuck (needs one Ctrl+C by a human), then `REDESIGN deploy` with the new script (0010 applied idempotently). Rollback: `deploy/redesign-2026-11-rollback.sh` or `git revert` of the 0010 commit on the server.
+
+## KARENSEIR CHECKPOINT — Round 5 deployed + HTTPS finalized (2026-11-19)
+
+- Server console unstuck (Ctrl+C sent from the Arvan noVNC page).
+- `.env` (backup in `/opt/karenseir/backups/env-<ts>`): `PUBLIC_WEB_URL=https://karentravel.ir`; `CORS_ORIGINS=http://188.121.123.218,https://karentravel.ir,https://www.karentravel.ir`. `api` recreated → healthy.
+- Deploy script at 598fc33: 0010 applied (server commit 1f889d5, docs 7fbc23f), web rebuilt → `RESULT: DEPLOY OK`, homepage check `ks-inner on / = 0 (want 0)`, web healthy. Log `/root/rd-0010.log`.
+- Arvan: «پیش‌فرض‌شدن HTTPS» ON. Verified from 8 Iranian nodes: `http://karentravel.ir/` → 301; `https://karentravel.ir/search/results?vertical=flight` → 200.
+- Rollback: redirect toggle off in Arvan edge settings; `.env` from backup + `docker compose up -d --no-deps api`; web via `deploy/redesign-2026-11-rollback.sh`.
+- Remaining external: Eghamat24 credentials, VandaPay gateway specs, OTP test number; international (non-Iran) access to the origin is closed at the network level (Arvan ticket needed if required).
