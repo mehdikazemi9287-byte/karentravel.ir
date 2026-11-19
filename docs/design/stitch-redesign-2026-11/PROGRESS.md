@@ -260,3 +260,12 @@ Deploy: pending — server console is stuck (needs one Ctrl+C by a human), then 
 - Arvan: «پیش‌فرض‌شدن HTTPS» ON. Verified from 8 Iranian nodes: `http://karentravel.ir/` → 301; `https://karentravel.ir/search/results?vertical=flight` → 200.
 - Rollback: redirect toggle off in Arvan edge settings; `.env` from backup + `docker compose up -d --no-deps api`; web via `deploy/redesign-2026-11-rollback.sh`.
 - Remaining external: Eghamat24 credentials, VandaPay gateway specs, OTP test number; international (non-Iran) access to the origin is closed at the network level (Arvan ticket needed if required).
+
+## KARENSEIR CHECKPOINT — VandaPay gateway in code (2026-11-19)
+
+- Source: VandaPay repo `docs/integration-plans/karenseir.md` + `integrations/sdk-python` (API contract, webhook signature).
+- Code commit 9052936 on `feat/inner-redesign-on-production`; patch `deploy/patches/0011-vandapay-payment-gateway.patch`; ADR-024.
+- Behaviour: disabled by default; with `VANDAPAY_MODE=test|live` + `VANDAPAY_SECRET_KEY` + `VANDAPAY_WEBHOOK_SECRET` the existing checkout starts a VandaPay intent and redirects to its checkout; capture only after server-side GET shows `succeeded` (same amount + order_ref). Return `/api/payments/vandapay/return`, webhook `/api/payments/vandapay/webhook`.
+- Tests: 7 new VandaPay tests + existing payment tests (20) green; full backend 593 passed, 2 failures pre-existing on base.
+- **Not deployed yet** (backend/api rebuild needed; inert without keys). Deploy together with the first `sk_test_` key.
+- Needed from owner/VandaPay: merchant account for Karen Travel (legal entity + SHEBA), `sk_test_` key + webhook secret, decision hosted vs embedded checkout, payment expiry vs supplier hold time.

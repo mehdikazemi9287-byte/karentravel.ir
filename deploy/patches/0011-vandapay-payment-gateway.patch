@@ -1,0 +1,446 @@
+From 90529361b79ca25937cdb5ded3e15bb8323d783b Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 19 Nov 2026 16:19:13 +0100
+Subject: [PATCH] feat(payment): VandaPay gateway adapter (fail-closed), return
+ + signed webhook, server-side verify before capture
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_013GiGkh6Annw6zKCRasH7Lo
+---
+ .env.example                                 |   9 ++
+ backend/app/main.py                          |  82 ++++++++++++-
+ backend/app/providers.py                     | 119 +++++++++++++++++++
+ backend/tests/test_vandapay_payment.py       | 113 ++++++++++++++++++
+ docs/adr/ADR-024-vandapay-payment-gateway.md |  29 +++++
+ 5 files changed, 351 insertions(+), 1 deletion(-)
+ create mode 100644 backend/tests/test_vandapay_payment.py
+ create mode 100644 docs/adr/ADR-024-vandapay-payment-gateway.md
+
+diff --git a/.env.example b/.env.example
+index 1d21071..e7d3bca 100644
+--- a/.env.example
++++ b/.env.example
+@@ -28,6 +28,15 @@ OTP_PROVIDER_MODE=disabled
+ ZARINPAL_MODE=disabled
+ ZARINPAL_MERCHANT_ID=
+ ZARINPAL_CALLBACK_URL=https://api.your-domain.example/payments/zarinpal/callback
++# VandaPay (ونداپی) — group gateway. disabled | test | live. Fail-closed: without a valid key no payment is started.
++VANDAPAY_MODE=disabled
++VANDAPAY_SECRET_KEY=            # sk_test_… / sk_live_… — server only, never in the frontend
++VANDAPAY_WEBHOOK_SECRET=        # signs VandaPay-Signature (t=…,v1=…)
++VANDAPAY_BASE_URL=https://api.vandapay.ir/api/v1
++VANDAPAY_RETURN_URL=https://karentravel.ir/api/payments/vandapay/return
++VANDAPAY_CATEGORY=travel
++# Webhook URL to register in the VandaPay merchant panel: https://karentravel.ir/api/payments/vandapay/webhook
++
+ # Sandbox example (never put the secret itself here):
+ # PAYMENT_PROVIDER_MODE=sandbox
+ # PAYMENT_PROVIDER_ENDPOINT=https://sandbox.authorized-provider.example
+diff --git a/backend/app/main.py b/backend/app/main.py
+index 1fe62c2..187c0c6 100644
+--- a/backend/app/main.py
++++ b/backend/app/main.py
+@@ -1585,7 +1585,8 @@ def initiate_payment(payment_id: str, user: User = Depends(current_user), db: Se
+     attempt = operational_models.IdempotencyKey(tenant_id=user.tenant_id, scope="payment.initiate", key=intent.id, request_hash=_secure_hash(f"{intent.id}:{intent.amount}:{intent.currency}"), response_json='{"status":"initiation_pending"}')
+     db.add(attempt); db.commit()  # Durable before network: timeout/crash must not trigger a second initiation.
+     try:
+-        callback_state = jwt.encode({"iss": JWT_ISSUER, "aud": "karenseir-zarinpal-callback", "tenant_id": user.tenant_id, "payment_intent_id": intent.id, "user_id": user.id, "amount": intent.amount, "exp": datetime.now(timezone.utc) + timedelta(minutes=30), "iat": datetime.now(timezone.utc), "jti": str(uuid.uuid4())}, JWT_SECRET, algorithm="HS256")
++        _provider = getattr(ADAPTERS["payment"], "provider", "zarinpal")
++        callback_state = jwt.encode({"iss": JWT_ISSUER, "aud": f"karenseir-{_provider}-callback", "tenant_id": user.tenant_id, "payment_intent_id": intent.id, "user_id": user.id, "amount": intent.amount, "exp": datetime.now(timezone.utc) + timedelta(minutes=30), "iat": datetime.now(timezone.utc), "jti": str(uuid.uuid4())}, JWT_SECRET, algorithm="HS256")
+         result = ADAPTERS["payment"].execute("initiate", {"payment_intent_id": intent.id, "amount": intent.amount, "currency": intent.currency, "callback_state": callback_state}, ProviderContext(tenant_id=user.tenant_id, correlation_id=str(uuid.uuid4()), idempotency_key=intent.command_id))
+     except Exception:
+         logging.getLogger("karenseir.payment").warning("payment_provider_unavailable")
+@@ -1599,6 +1600,7 @@ def initiate_payment(payment_id: str, user: User = Depends(current_user), db: Se
+     if parsed.scheme != "https" or not parsed.hostname:
+         raise HTTPException(status_code=502, detail="پاسخ درگاه پرداخت معتبر نیست")
+     intent.status = "initiated"
++    intent.provider_key = getattr(ADAPTERS["payment"], "provider", "zarinpal")
+     intent.provider_reference = str(result.get("reference", ""))[:160] or None
+     intent.provider_authority = str(result.get("authority", result.get("reference", "")))[:160] or None
+     response = {"id": intent.id, "status": intent.status, "redirect_url": redirect_url}
+@@ -1677,6 +1679,81 @@ def zarinpal_callback(request: Request, state_token: str = Query(alias="state",
+     return result
+ 
+ 
++def _verify_vandapay(db: Session, *, tenant_id: int, payment_id: str, user_id: int | None = None, authority: str | None = None) -> dict:
++    """Server-side verification against VandaPay (GET intent). Captures only on status == succeeded with same amount/order_ref."""
++    set_tenant_context(db, tenant_id)
++    query = select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.id == payment_id, operational_models.PaymentIntent.tenant_id == tenant_id)
++    if user_id is not None: query = query.where(operational_models.PaymentIntent.user_id == user_id)
++    intent = db.scalar(query.with_for_update())
++    if intent is None: raise HTTPException(status_code=404, detail="Payment Intent در tenant معتبر وجود ندارد")
++    if intent.provider_key != "vandapay" or not intent.provider_authority: raise HTTPException(status_code=409, detail="این پرداخت از طریق ونداپی آغاز نشده است")
++    if authority is not None and authority != intent.provider_authority: raise HTTPException(status_code=409, detail="شناسهٔ ونداپی با Payment Intent تطابق ندارد")
++    if intent.status == "captured" and intent.provider_capture_reference: return {"status": "duplicate", "payment_status": "captured", "ref_id": intent.provider_capture_reference}
++    if intent.status not in {"initiated", "failed"}: raise HTTPException(status_code=409, detail="Payment Intent قابل verify نیست")
++    from .providers import ADAPTERS, ProviderContext
++    result = ADAPTERS["payment"].execute("verify", {"payment_intent_id": intent.id, "amount": intent.amount, "currency": intent.currency, "authority": intent.provider_authority}, ProviderContext(tenant_id=tenant_id, correlation_id=str(uuid.uuid4()), idempotency_key=f"vandapay-verify:{intent.provider_authority}"))
++    if result.get("status") == "pending": return {"status": "pending", "payment_status": intent.status}
++    if result.get("status") == "failed" and result.get("reason") == "payment_failed":
++        if intent.status == "initiated":
++            intent.status = "failed"; db.add(operational_models.OutboxEvent(tenant_id=tenant_id, aggregate_type="payment", aggregate_id=intent.id, event_type="payment.vandapay.failed", payload_json=json.dumps({"remote_status": result.get("remote_status")}), correlation_id=str(uuid.uuid4()), idempotency_key=f"vandapay-failed:{intent.provider_authority}"))
++            _record_payment_trip_event(db, tenant_id=tenant_id, intent=intent, event_key=f"payment-failed:{intent.provider_authority}", event_type="payment.failed", title="پرداخت ناموفق بود", message="پرداخت رزرو در ونداپی لغو یا ناموفق شد.", severity="warning")
++            db.commit()
++        return {"status": "cancelled", "payment_status": intent.status}
++    if not result.get("ok") or result.get("authority") != intent.provider_authority or int(result.get("amount", 0)) != intent.amount: raise HTTPException(status_code=502, detail="تأیید server-side ونداپی ناموفق بود")
++    ref_id = str(result.get("ref_id", ""))[:160]
++    event_id = f"vandapay:{ref_id}"
++    prior = db.scalar(select(operational_models.PaymentEvent).where(operational_models.PaymentEvent.provider_key == "vandapay", operational_models.PaymentEvent.provider_event_id == event_id))
++    if prior:
++        if prior.payment_intent_id != intent.id or prior.tenant_id != tenant_id: raise HTTPException(status_code=409, detail="مرجع درگاه قبلاً به پرداخت دیگری متصل شده است")
++        return {"status": "duplicate", "payment_status": intent.status, "ref_id": ref_id}
++    intent.status = "captured"; intent.captured_amount = intent.amount; intent.provider_capture_reference = ref_id; intent.provider_reference = ref_id
++    from .commerce import record_payment as _record_payment
++    _buyer = db.get(User, intent.user_id); _res = db.get(operational_models.Reservation, intent.reservation_id)
++    _record_payment(db, tenant_id=tenant_id, intent=intent, buyer_name=_buyer.name if _buyer else None, booking_reference=_res.booking_reference if _res else None)
++    db.add(operational_models.PaymentEvent(tenant_id=tenant_id, payment_intent_id=intent.id, provider_key="vandapay", provider_event_id=event_id, event_type="captured", payload_hash=_secure_hash(f"{ref_id}:{intent.amount}")))
++    db.add(operational_models.OutboxEvent(tenant_id=tenant_id, aggregate_type="payment", aggregate_id=intent.id, event_type="payment.vandapay.captured", payload_json=json.dumps({"vandapay_intent": ref_id}), correlation_id=str(uuid.uuid4()), idempotency_key=event_id))
++    _record_payment_trip_event(db, tenant_id=tenant_id, intent=intent, event_key=f"payment-captured:{event_id}", event_type="payment.captured", title="پرداخت با موفقیت انجام شد", message=f"مبلغ {intent.amount:,} {intent.currency} از طریق ونداپی پرداخت شد.")
++    db.commit(); record_business_event("payment", "captured"); return {"status": "accepted", "payment_status": "captured", "ref_id": ref_id}
++
++
++@app.get("/payments/vandapay/return", response_model=None)
++def vandapay_return(request: Request, state_token: str = Query(alias="state", min_length=20), db: Session = Depends(get_db)):
++    # The browser return never decides success: we re-read the intent from VandaPay server-side.
++    try:
++        claims = jwt.decode(state_token, JWT_SECRET, algorithms=["HS256"], audience="karenseir-vandapay-callback", issuer=JWT_ISSUER, options={"require": ["exp", "iat", "jti", "tenant_id", "payment_intent_id", "user_id", "amount"]})
++        payment_id = str(uuid.UUID(str(claims["payment_intent_id"]))); tenant_id = int(claims["tenant_id"]); user_id = int(claims["user_id"])
++    except (jwt.InvalidTokenError, KeyError, ValueError, TypeError):
++        raise HTTPException(status_code=401, detail="state پرداخت نامعتبر یا منقضی است")
++    origin = _payment_return_origin(); wants_page = "text/html" in request.headers.get("accept", "")
++    try: result = _verify_vandapay(db, tenant_id=tenant_id, payment_id=payment_id, user_id=user_id)
++    except HTTPException:
++        db.rollback()
++        if wants_page and origin: return RedirectResponse(f"{origin}/payments/{payment_id}", status_code=303, headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"})
++        raise
++    if wants_page and origin: return RedirectResponse(f"{origin}/payments/{payment_id}", status_code=303, headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"})
++    return result
++
++
++@app.post("/payments/vandapay/webhook")
++async def vandapay_webhook(request: Request, db: Session = Depends(get_db)) -> dict:
++    from .providers import vandapay_webhook_event
++    secret = read_secret("VANDAPAY_WEBHOOK_SECRET") if os.getenv("VANDAPAY_MODE", "disabled") != "disabled" else ""
++    if not secret: raise HTTPException(status_code=503, detail="وب‌هوک ونداپی پیکربندی نشده است")
++    raw = await request.body()
++    try: event = vandapay_webhook_event(raw, request.headers.get("VandaPay-Signature"), secret)
++    except ValueError: raise HTTPException(status_code=400, detail="امضای وب‌هوک ونداپی نامعتبر است")
++    data = event.get("data") or {}; meta = data.get("metadata") or {}
++    try: tenant_id = int(meta["tenant_id"]); payment_id = str(uuid.UUID(str(meta["karenseir_payment_intent_id"])))
++    except (KeyError, ValueError, TypeError): return {"status": "ignored"}
++    # The signed event is only a trigger: the outcome is re-read from VandaPay inside _verify_vandapay.
++    try: result = _verify_vandapay(db, tenant_id=tenant_id, payment_id=payment_id, authority=str(data.get("id", "")))
++    except HTTPException as exc:
++        db.rollback()
++        if exc.status_code in {404, 409}: return {"status": "ignored"}
++        raise
++    return {"status": "received", "payment_status": result.get("payment_status")}
++
++
+ @app.get("/payments/{payment_id}")
+ def customer_payment_status(payment_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+     intent = db.scalar(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.id == payment_id, operational_models.PaymentIntent.tenant_id == user.tenant_id, operational_models.PaymentIntent.user_id == user.id))
+@@ -1696,6 +1773,9 @@ def recover_payment_verification(payment_id: str, user: User = Depends(current_u
+     if intent.status == "captured": return customer_payment_status(payment_id, user, db)
+     if intent.status not in {"initiated", "failed"} or not intent.provider_authority: raise HTTPException(status_code=409, detail="این پرداخت در انتظار تأیید درگاه نیست")
+     # Reconciliation checks the known authority and amount; it never initiates a charge.
++    if intent.provider_key == "vandapay":
++        _verify_vandapay(db, tenant_id=user.tenant_id, payment_id=intent.id, user_id=user.id)
++        return customer_payment_status(payment_id, user, db)
+     now = datetime.now(timezone.utc)
+     state = jwt.encode({"iss": JWT_ISSUER, "aud": "karenseir-zarinpal-callback", "tenant_id": user.tenant_id, "payment_intent_id": intent.id, "user_id": user.id, "amount": intent.amount, "exp": now+timedelta(minutes=5), "iat": now, "jti": str(uuid.uuid4())}, JWT_SECRET, algorithm="HS256")
+     _verify_zarinpal_callback(state, intent.provider_authority, "OK", db)
+diff --git a/backend/app/providers.py b/backend/app/providers.py
+index 93c402d..c8426a4 100644
+--- a/backend/app/providers.py
++++ b/backend/app/providers.py
+@@ -122,6 +122,123 @@ class NotificationAdapter(DisabledMockAdapter):
+         return self.execute(f"deliver_{channel}", {"notification_id": notification_id}, context)
+ 
+ 
++class VandaPayTransport(Protocol):
++    def request(self, method: str, url: str, headers: Mapping[str, str], payload: Mapping[str, Any] | None, timeout_seconds: float) -> tuple[int, Mapping[str, Any]]: ...
++
++
++class VandaPayHttpTransport:
++    def request(self, method: str, url: str, headers: Mapping[str, str], payload: Mapping[str, Any] | None, timeout_seconds: float) -> tuple[int, Mapping[str, Any]]:
++        from urllib.error import HTTPError
++        data = json.dumps(dict(payload)).encode("utf-8") if payload is not None else None
++        req = Request(url, data=data, headers=dict(headers), method=method)
++        try:
++            with urlopen(req, timeout=timeout_seconds) as response:  # noqa: S310 - base URL is operator configuration, HTTPS enforced
++                return response.status, json.loads(response.read().decode("utf-8") or "{}")
++        except HTTPError as exc:
++            try: body = json.loads(exc.read().decode("utf-8") or "{}")
++            except ValueError: body = {}
++            return exc.code, body
++
++
++class VandaPayAdapter:
++    """VandaPay Payment Intents (hosted checkout). Server-side only; the secret key never reaches the browser.
++
++    Success is decided only by a server-side GET of the intent (status == "succeeded", same amount and order_ref),
++    never by the browser return or by an unsigned message. See vandapay docs/integration-plans/karenseir.md.
++    """
++    key = "payment"
++    provider = "vandapay"
++    retry_policy = RetryPolicy(max_attempts=1)
++    PAID = {"succeeded"}
++    PENDING = {"created", "requires_confirmation", "processing", "card_pending", "unknown"}
++    FAILED = {"failed", "canceled", "cancelled", "expired"}
++
++    def __init__(self, *, mode: str, secret_key: str, base_url: str, return_url: str, category: str = "travel", transport: VandaPayTransport | None = None, timeout_seconds: float = 10.0) -> None:
++        self.mode = mode
++        self.secret_key = secret_key.strip()
++        self.base_url = base_url.strip().rstrip("/")
++        self.return_url = return_url.strip()
++        self.category = category.strip() or "travel"
++        self.transport = transport or VandaPayHttpTransport()
++        self.timeout_seconds = timeout_seconds
++
++    def validate(self) -> None:
++        if self.mode not in {"test", "live"}: raise RuntimeError("vandapay: mode must be test or live")
++        prefix = "sk_test_" if self.mode == "test" else "sk_live_"
++        if not self.secret_key.startswith(prefix) or len(self.secret_key) < len(prefix) + 8: raise RuntimeError(f"vandapay: secret key must start with {prefix}")
++        for name, value in (("base URL", self.base_url), ("return URL", self.return_url)):
++            parsed = urlparse(value)
++            if parsed.scheme != "https" or not parsed.hostname: raise RuntimeError(f"vandapay: {name} must be explicit HTTPS")
++
++    def health(self) -> ProviderHealth:
++        try: self.validate()
++        except RuntimeError as exc: return ProviderHealth(status="configuration_error", mode=self.mode, detail=str(exc))
++        return ProviderHealth(status="configured_not_verified", mode=self.mode, detail="VandaPay credentials configured; no payment is claimed until server-side verification")
++
++    def _headers(self, idempotency_key: str | None = None) -> dict[str, str]:
++        headers = {"Authorization": f"Bearer {self.secret_key}", "Content-Type": "application/json", "Accept": "application/json"}
++        if idempotency_key: headers["Idempotency-Key"] = idempotency_key[:120]
++        return headers
++
++    def _fail(self, status: str, reason: str, message: str, context: ProviderContext, retryable: bool = False) -> Mapping[str, Any]:
++        return {"ok": False, "status": status, "provider": "vandapay", "reason": reason, "error": ProviderError(reason, message, retryable, context.correlation_id).__dict__}
++
++    def execute(self, operation: str, payload: Mapping[str, Any], context: ProviderContext) -> Mapping[str, Any]:
++        try: self.validate()
++        except RuntimeError as exc: return self._fail("not_sent", "invalid_configuration", str(exc), context)
++        amount = int(payload.get("amount") or 0)
++        if amount <= 0 or payload.get("currency") != "IRR": return self._fail("not_sent", "invalid_amount", "Positive IRR amount is required", context)
++        if operation == "initiate":
++            state = str(payload.get("callback_state", ""))
++            sep = "&" if "?" in self.return_url else "?"
++            body = {"amount": amount, "order_ref": str(payload["payment_intent_id"]), "return_url": f"{self.return_url}{sep}state={state}", "category": str(payload.get("category") or self.category), "description": str(payload.get("description") or "رزرو کارن تراول")[:140], "metadata": {"karenseir_payment_intent_id": str(payload["payment_intent_id"]), "tenant_id": context.tenant_id}}
++            try: code, data = self.transport.request("POST", f"{self.base_url}/payment_intents", self._headers(context.idempotency_key), body, self.timeout_seconds)
++            except Exception: return self._fail("unknown", "transport_error", "VandaPay unreachable; outcome unknown — reuse the same Idempotency-Key", context, True)
++            intent_id = str(data.get("id", "")); checkout = str(data.get("checkout_url", ""))
++            if code not in {200, 201} or not intent_id or urlparse(checkout).scheme != "https" or int(data.get("amount", 0)) != amount:
++                return self._fail("failed", "request_rejected", "VandaPay rejected the payment intent", context)
++            return {"ok": True, "status": "initiated", "provider": "vandapay", "reference": intent_id, "authority": intent_id, "redirect_url": checkout, "expires_at": data.get("expires_at")}
++        if operation == "verify":
++            authority = str(payload.get("authority", ""))
++            if not re.fullmatch(r"[A-Za-z0-9_\-]{6,160}", authority): return self._fail("failed", "authority_mismatch", "VandaPay intent id is invalid", context)
++            try: code, data = self.transport.request("GET", f"{self.base_url}/payment_intents/{authority}", self._headers(), None, self.timeout_seconds)
++            except Exception: return self._fail("unknown", "transport_error", "VandaPay unreachable", context, True)
++            if code != 200 or str(data.get("id")) != authority: return self._fail("failed", "verify_rejected", "VandaPay intent lookup failed", context)
++            if str(data.get("order_ref")) != str(payload.get("payment_intent_id")) or int(data.get("amount", 0)) != amount: return self._fail("failed", "amount_or_reference_mismatch", "VandaPay intent does not match this payment", context)
++            remote = str(data.get("status", ""))
++            if remote in self.PAID: return {"ok": True, "status": "verified", "provider": "vandapay", "authority": authority, "ref_id": authority, "amount": amount, "remote_status": remote}
++            if remote in self.FAILED: return {"ok": False, "status": "failed", "provider": "vandapay", "reason": "payment_failed", "remote_status": remote}
++            return {"ok": False, "status": "pending", "provider": "vandapay", "reason": "payment_pending", "remote_status": remote}
++        if operation == "cancel":
++            authority = str(payload.get("authority", ""))
++            try: code, data = self.transport.request("POST", f"{self.base_url}/payment_intents/{authority}/cancel", self._headers(context.idempotency_key), {}, self.timeout_seconds)
++            except Exception: return self._fail("unknown", "transport_error", "VandaPay unreachable", context, True)
++            return {"ok": code == 200, "status": str(data.get("status", "unknown")), "provider": "vandapay"}
++        return self._fail("not_sent", "unsupported_operation", "Unsupported operation", context)
++
++
++def vandapay_webhook_event(raw_body: bytes, header: str | None, secret: str, tolerance_seconds: int = 300, now: int | None = None) -> Mapping[str, Any]:
++    """Verify ``VandaPay-Signature: t=<unix>,v1=<hex>`` (HMAC-SHA256 of f"{t}.{raw_body}") and return the event. Raises ValueError."""
++    import hashlib, hmac, time as _time
++    if not secret: raise ValueError("webhook secret is not configured")
++    ts, sigs = None, []
++    for part in (header or "").split(","):
++        k, _, v = part.partition("="); k, v = k.strip(), v.strip()
++        if k == "t" and re.fullmatch(r"\d{1,12}", v): ts = int(v)
++        elif k == "v1" and v: sigs.append(v)
++    if ts is None or not sigs: raise ValueError("malformed signature header")
++    current = int(_time.time()) if now is None else now
++    if abs(current - ts) > tolerance_seconds: raise ValueError("timestamp outside tolerance")
++    expected = hmac.new(secret.encode("utf-8"), str(ts).encode("ascii") + b"." + raw_body, hashlib.sha256).hexdigest()
++    ok = False
++    for sig in sigs:
++        if hmac.compare_digest(expected.encode("ascii"), sig.encode("utf-8")): ok = True
++    if not ok: raise ValueError("signature mismatch")
++    event = json.loads(raw_body.decode("utf-8"))
++    if not isinstance(event, dict) or not event.get("id") or not str(event.get("type", "")).startswith("payment_intent."): raise ValueError("unsupported event")
++    return event
++
++
+ class ZarinPalTransport(Protocol):
+     def post_json(self, url: str, payload: Mapping[str, Any], timeout_seconds: float) -> Mapping[str, Any]: ...
+ 
+@@ -293,6 +410,8 @@ def validate_provider_modes(environment: str, demo_mode: bool, keys: tuple[str,
+ 
+ 
+ def configured_adapter(key: str) -> IntegrationAdapter:
++    if key == "payment" and os.getenv("VANDAPAY_MODE", "disabled") != "disabled":
++        return VandaPayAdapter(mode=os.getenv("VANDAPAY_MODE", "disabled"), secret_key=read_secret("VANDAPAY_SECRET_KEY"), base_url=os.getenv("VANDAPAY_BASE_URL", "https://api.vandapay.ir/api/v1"), return_url=os.getenv("VANDAPAY_RETURN_URL", ""), category=os.getenv("VANDAPAY_CATEGORY", "travel"))
+     if key == "payment" and os.getenv("ZARINPAL_MODE", "disabled") != "disabled":
+         return ZarinPalAdapter(mode=os.getenv("ZARINPAL_MODE", "disabled"), merchant_id=read_secret("ZARINPAL_MERCHANT_ID"), callback_url=os.getenv("ZARINPAL_CALLBACK_URL", ""))
+     if key == "hotel" and os.getenv("GRS_MODE", "disabled") != "disabled":
+diff --git a/backend/tests/test_vandapay_payment.py b/backend/tests/test_vandapay_payment.py
+new file mode 100644
+index 0000000..5f18718
+--- /dev/null
++++ b/backend/tests/test_vandapay_payment.py
+@@ -0,0 +1,113 @@
++"""VandaPay adapter + return/webhook: isolated DB, fake transport, no real money moves."""
++import json, time, uuid
++from datetime import datetime, timedelta, timezone
++import jwt
++from sqlalchemy import select, func
++from app import operations as models, providers
++from app.main import SessionLocal, User, JWT_SECRET, JWT_ISSUER
++from app.providers import VandaPayAdapter, ProviderContext, vandapay_webhook_event
++from test_checkout_reviews_zarinpal import reservation_fixture, auth, login
++
++KEY = "sk_test_" + "a" * 24
++
++
++class FakeVandaPay:
++    def __init__(self, status="succeeded", amount=2000000):
++        self.status = status; self.amount = amount; self.calls = []; self.order_ref = None
++    def request(self, method, url, headers, payload, timeout):
++        self.calls.append((method, url, dict(headers), payload))
++        assert headers["Authorization"] == "Bearer " + KEY
++        if method == "POST" and url.endswith("/payment_intents"):
++            self.order_ref = payload["order_ref"]
++            return 201, {"id": "pi_test_123456", "status": "created", "amount": payload["amount"], "checkout_url": "https://pay.vandapay.ir/c/abc", "order_ref": payload["order_ref"]}
++        if method == "GET":
++            return 200, {"id": url.rsplit("/", 1)[1], "status": self.status, "amount": self.amount, "order_ref": self.order_ref}
++        return 404, {}
++
++
++def adapter(transport, mode="test", key=KEY):
++    return VandaPayAdapter(mode=mode, secret_key=key, base_url="https://api.vandapay.test/api/v1", return_url="https://karentravel.test/api/payments/vandapay/return", transport=transport)
++
++
++def test_adapter_fails_closed_without_valid_config():
++    ctx = ProviderContext(tenant_id=1, correlation_id="c", idempotency_key="k")
++    assert adapter(FakeVandaPay(), key="").health().status == "configuration_error"
++    assert adapter(FakeVandaPay(), mode="live").health().status == "configuration_error"  # test key in live mode
++    assert adapter(FakeVandaPay(), key="sk_live_" + "b" * 20).execute("initiate", {"amount": 10, "currency": "IRR", "payment_intent_id": "x"}, ctx)["ok"] is False
++    bad = VandaPayAdapter(mode="test", secret_key=KEY, base_url="http://insecure.test", return_url="https://k.test/r", transport=FakeVandaPay())
++    assert bad.health().status == "configuration_error"
++
++
++def test_initiate_and_verify_rules():
++    t = FakeVandaPay(); a = adapter(t); ctx = ProviderContext(tenant_id=7, correlation_id="c", idempotency_key="idem-1")
++    r = a.execute("initiate", {"amount": 2000000, "currency": "IRR", "payment_intent_id": "pay-1", "callback_state": "STATE"}, ctx)
++    assert r["ok"] and r["redirect_url"].startswith("https://") and r["authority"] == "pi_test_123456"
++    body = t.calls[0][3]; assert body["order_ref"] == "pay-1" and body["return_url"].endswith("?state=STATE") and t.calls[0][2]["Idempotency-Key"] == "idem-1"
++    assert a.execute("verify", {"amount": 2000000, "currency": "IRR", "payment_intent_id": "pay-1", "authority": "pi_test_123456"}, ctx)["status"] == "verified"
++    t.amount = 1  # amount tampering must not verify
++    assert a.execute("verify", {"amount": 2000000, "currency": "IRR", "payment_intent_id": "pay-1", "authority": "pi_test_123456"}, ctx)["ok"] is False
++    t.amount = 2000000; t.status = "processing"
++    assert a.execute("verify", {"amount": 2000000, "currency": "IRR", "payment_intent_id": "pay-1", "authority": "pi_test_123456"}, ctx)["status"] == "pending"
++
++
++def test_webhook_signature():
++    body = json.dumps({"id": "evt_1", "type": "payment_intent.succeeded", "data": {"id": "pi_1"}}).encode()
++    import hmac, hashlib
++    ts = int(time.time()); sig = hmac.new(b"whsec", f"{ts}.".encode() + body, hashlib.sha256).hexdigest()
++    assert vandapay_webhook_event(body, f"t={ts},v1={sig}", "whsec")["id"] == "evt_1"
++    for header in (f"t={ts},v1={'0'*64}", f"t={ts-1000},v1={sig}", "garbage", None):
++        try: vandapay_webhook_event(body, header, "whsec"); assert False
++        except ValueError: pass
++
++
++def setup_intent(client, monkeypatch, transport):
++    suffix = uuid.uuid4().hex
++    session, reservation, _, _ = reservation_fixture(client, suffix)
++    with SessionLocal() as db:
++        user = db.scalar(select(User).where(User.email == 'employee@aftab.test'))
++        row = models.PaymentIntent(tenant_id=user.tenant_id, reservation_id=reservation['id'], user_id=user.id, command_id='vp-' + suffix, amount=2000000, currency='IRR', status='initiated', provider_key='vandapay', provider_authority='pi_test_' + suffix[:10])
++        db.add(row); db.commit(); payment_id = row.id; tenant_id = user.tenant_id
++        now = datetime.now(timezone.utc)
++        token = jwt.encode({'iss': JWT_ISSUER, 'aud': 'karenseir-vandapay-callback', 'tenant_id': user.tenant_id, 'payment_intent_id': row.id, 'user_id': user.id, 'amount': row.amount, 'exp': now + timedelta(minutes=5), 'iat': now, 'jti': suffix}, JWT_SECRET, algorithm='HS256')
++    transport.order_ref = payment_id
++    monkeypatch.setitem(providers.ADAPTERS, 'payment', adapter(transport))
++    monkeypatch.setenv('PUBLIC_WEB_URL', 'https://web.example.test')
++    return session, payment_id, tenant_id, 'pi_test_' + suffix[:10], f'/payments/vandapay/return?state={token}'
++
++
++def test_return_captures_only_after_server_side_success_and_is_idempotent(client, monkeypatch):
++    t = FakeVandaPay()
++    session, payment_id, _, _, url = setup_intent(client, monkeypatch, t)
++    r = client.get(url, headers={'Accept': 'text/html'}, follow_redirects=False)
++    assert r.status_code == 303 and r.headers['location'] == 'https://web.example.test/payments/' + payment_id and 'state=' not in r.headers['location']
++    data = client.get('/payments/' + payment_id, headers=auth(session)).json()
++    assert data['status'] == 'captured' and data['receipt_reference'].startswith('pi_test_') and data['reservation_status'] != 'issued'
++    assert client.get(url).json()['status'] == 'duplicate'
++    assert client.post('/payments/' + payment_id + '/verify', headers=auth(session)).json()['status'] == 'captured'
++    other = login(client, 'supplier@aftab.test')
++    assert client.post('/payments/' + payment_id + '/verify', headers=auth(other)).status_code == 404
++    with SessionLocal() as db:
++        assert db.scalar(select(func.count()).select_from(models.PaymentEvent).where(models.PaymentEvent.payment_intent_id == payment_id)) == 1
++
++
++def test_pending_and_failed_do_not_capture(client, monkeypatch):
++    t = FakeVandaPay(status="processing")
++    session, payment_id, _, _, url = setup_intent(client, monkeypatch, t)
++    assert client.get(url).json()['status'] == 'pending'
++    assert client.get('/payments/' + payment_id, headers=auth(session)).json()['status'] == 'initiated'
++    t.status = "failed"
++    assert client.get(url).json()['status'] == 'cancelled'
++    assert client.get('/payments/' + payment_id, headers=auth(session)).json()['status'] == 'failed'
++
++
++def test_webhook_requires_signature_and_reverifies(client, monkeypatch):
++    import hmac, hashlib
++    t = FakeVandaPay()
++    session, payment_id, tenant_id, authority, _ = setup_intent(client, monkeypatch, t)
++    monkeypatch.setenv('VANDAPAY_MODE', 'test'); monkeypatch.setenv('VANDAPAY_WEBHOOK_SECRET', 'whsec_test')
++    body = json.dumps({"id": "evt_" + authority, "type": "payment_intent.succeeded", "data": {"id": authority, "status": "succeeded", "metadata": {"tenant_id": tenant_id, "karenseir_payment_intent_id": payment_id}}}).encode()
++    assert client.post('/payments/vandapay/webhook', content=body, headers={'VandaPay-Signature': 't=1,v1=00'}).status_code == 400
++    ts = int(time.time()); sig = hmac.new(b'whsec_test', f'{ts}.'.encode() + body, hashlib.sha256).hexdigest()
++    r = client.post('/payments/vandapay/webhook', content=body, headers={'VandaPay-Signature': f't={ts},v1={sig}', 'Content-Type': 'application/json'})
++    assert r.status_code == 200 and r.json()['payment_status'] == 'captured'
++    assert any(c[0] == 'GET' for c in t.calls)  # outcome re-read from VandaPay, not trusted from the event
+diff --git a/docs/adr/ADR-024-vandapay-payment-gateway.md b/docs/adr/ADR-024-vandapay-payment-gateway.md
+new file mode 100644
+index 0000000..b780ded
+--- /dev/null
++++ b/docs/adr/ADR-024-vandapay-payment-gateway.md
+@@ -0,0 +1,29 @@
++# ADR-024 — VandaPay as KarenSeir payment gateway (2026-11-19)
++
++**Status:** Implemented in code, **disabled** until credentials (owner: VandaPay merchant onboarding).
++
++## Context
++Owner decision (1405-08-27): KarenSeir payments go through VandaPay (the group gateway). VandaPay plan:
++`vandapay/docs/integration-plans/karenseir.md` (server-side API, hosted checkout, signed webhook, issue only after `succeeded`).
++KarenSeir already had a provider-neutral Payment Intent flow (intent → initiate → return/verify → capture → ledger/outbox) wired to ZarinPal.
++
++## Decision
++- New `VandaPayAdapter` (backend/app/providers.py) behind the same `ADAPTERS["payment"]` slot. Selected when `VANDAPAY_MODE` ∈ {test, live}; takes precedence over ZarinPal.
++- Fail-closed: mode/key prefix must match (`sk_test_`/`sk_live_`), base/return URLs must be HTTPS, otherwise health = `configuration_error` and `/payments/{id}/initiate` returns 503 before any attempt is recorded.
++- Initiate: `POST /payment_intents` with `order_ref` = KarenSeir payment intent id, `Idempotency-Key` = intent command id, `return_url` carrying a signed short-lived state (aud `karenseir-vandapay-callback`).
++- **Success is decided only server-side:** `GET /payment_intents/{id}` must return `succeeded` with the same amount and `order_ref`. Browser return (`GET /payments/vandapay/return`) and webhook (`POST /payments/vandapay/webhook`, HMAC `VandaPay-Signature`, 300 s tolerance) are only triggers.
++- Pending (`processing`, `card_pending`, `unknown`…) → nothing captured, customer can re-check via `/payments/{id}/verify`. Failed/cancelled → intent `failed`.
++- Capture reuses the existing ledger path (`commerce.record_payment`, PaymentEvent dedupe, Outbox, trip timeline). **Ticket issuance is unchanged: only after capture.**
++- No price/amount is computed in the frontend; the amount is the reservation's bank-payable allocation.
++
++## Not yet (owner decisions / VandaPay side)
++- Merchant legal entity + SHEBA (Tazheban?), keys, webhook registration.
++- Cancel VandaPay intent when a supplier hold expires (`cancel` operation exists in adapter; hook to hold-release job pending).
++- Refunds via VandaPay (partial only for credit share; card share full only — see VandaPay merchant guide §7).
++- Hosted page vs embedded checkout (owner: customers should not leave the site → embedded option exists in VandaPay).
++
++## Test evidence
++`backend/tests/test_vandapay_payment.py` (7 tests): fail-closed config, idempotent initiate, amount tampering rejected, pending/failed not captured, signed webhook required and outcome re-read from API, cross-user isolation, single PaymentEvent. Full suite: 593 passed, 2 pre-existing failures unrelated (also fail on base).
++
++## Rollback
++`VANDAPAY_MODE=disabled` + `docker compose up -d --no-deps api` (ZarinPal/disabled path unchanged).
+-- 
+2.43.0
+
