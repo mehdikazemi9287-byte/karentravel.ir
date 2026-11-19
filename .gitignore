@@ -18,3 +18,6 @@ blob-report/
 *.tsbuildinfo
 dist/
 artifacts/
+
+# per-server PyPI mirror config written by deploy/karenseir-deploy-server.sh
+pip.conf

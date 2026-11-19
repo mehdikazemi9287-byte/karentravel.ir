@@ -14,6 +14,14 @@ Security و Research / Integration است؛ نقش جدید مدیریتی مو�
 قواعد اختصاصی Karen Travel در ادامه همین فایل باقی می‌مانند؛ قواعد مشترک بدون اتصال
 کد، دیتابیس یا زیرساخت پروژه‌ها قابل استفاده‌اند. Bootstrap فقط پیکربندی Agent تولید می‌کند.
 
+## Release truth — یک شاخه، یک مسیر دیپلوی (از 2026-11-19)
+
+- **فقط `main`.** شاخه‌های `production`، `feat/*` و patchهای سرور دیگر مسیر انتشار نیستند. هر جلسه از `origin/main` شروع می‌کند.
+- **دیپلوی فقط با `deploy/karenseir-deploy-server.sh`** روی سرور (کنسول ابرآروان یا ssh): `--check` اول، بعد اجرای اصلی. اسکریپت backup، migration، health و rollback خودکار دارد. patch دستی، `git am` روی سرور و commit فقط-سروری ممنوع است.
+- **نسخهٔ در حال اجرا:** `/opt/karenseir/DEPLOYED` روی سرور و `https://karentravel.ir/build_info.json`. قبل از هر کار با `origin/main` مقایسه کن.
+- **«انجام شد» یعنی روی سایت زنده دیده شد.** طرح Stitch وقتی پیاده‌شده حساب می‌شود که صفحهٔ زنده کنار PNG طرح مقایسه شده باشد. تغییر رنگ صفحهٔ قدیمی پیاده‌سازی طرح نیست.
+- سابقه: تا 2026-11-19 سه خط جدا وجود داشت (main قدیمی از سپتامبر، production با ۴۰ PR دیپلوی‌نشده، و سرور با patch)، و هر جلسه کار جلسهٔ قبل را دوباره انجام می‌داد. شرح در `docs/DEPLOY_DIAGNOSIS_2026-11-19.md`.
+
 ## Karen Travel — دستور دائمی Supervisor
 
 این قواعد برای همین پروژه Karen Travel در مسیر `/home/ubuntu/karenseir-current`

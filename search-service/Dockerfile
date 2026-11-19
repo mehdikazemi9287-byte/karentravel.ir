@@ -1,8 +1,10 @@
 FROM python:3.12-slim AS runtime
 WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Optional pip.conf (not in git) lets a server use a PyPI mirror without a server-only commit;
+# deploy/karenseir-deploy-server.sh writes it. Absent = default PyPI.
+COPY requirements.txt pip.con[f] ./
+RUN if [ -f pip.conf ]; then mv pip.conf /etc/pip.conf; fi && pip install --no-cache-dir -r requirements.txt
 COPY app ./app
 ARG GIT_COMMIT=unknown
 ARG BUILD_TIMESTAMP=unknown
