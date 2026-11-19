@@ -1,0 +1,6 @@
+#!/bin/bash
+clear
+echo "== https via 127.0.0.1 (SNI karentravel.ir)"; curl -sk -m 10 -o /dev/null -w '%{http_code} %{errormsg}\n' --resolve karentravel.ir:443:127.0.0.1 https://karentravel.ir/
+echo "== https via public IP"; curl -sk -m 10 -o /dev/null -w '%{http_code} %{errormsg}\n' --resolve karentravel.ir:443:188.121.123.218 https://karentravel.ir/
+echo "== listeners"; ss -ltnp | grep -E ':(80|443) ' | cut -c1-120
+echo "== nginx 443 server blocks"; docker exec karenseir-nginx-1 sh -c "grep -nE 'listen|server_name|ssl_certificate ' /etc/nginx/conf.d/*.conf /etc/nginx/nginx.conf 2>/dev/null" | cut -c1-140 | head -20
