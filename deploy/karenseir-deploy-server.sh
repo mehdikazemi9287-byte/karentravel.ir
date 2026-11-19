@@ -102,7 +102,8 @@ main() {
   say "== 5/6 build and restart $SERVICES"
   cd "$ROOT"
   export GIT_COMMIT=$(git -C "$APP" rev-parse --short HEAD) BUILD_TIMESTAMP=$(date -u +%FT%TZ)
-  if ! docker compose build $SERVICES; then
+  # build args make /build_info.json (web) and /app/build_info.json (api) show the deployed commit
+  if ! docker compose build --build-arg GIT_COMMIT="$GIT_COMMIT" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" $SERVICES; then
     say "build failed — the running containers were not touched"
     cd "$APP" && git checkout --quiet "$PREV_BRANCH" && git branch -D "release-$TS" >/dev/null
     for s in $SERVICES; do docker tag "karenseir-$s:pre-$TS" "karenseir-$s:latest"; done
@@ -129,6 +130,7 @@ main() {
   if ! health; then say "HEALTH FAILED"; rollback; exit 1; fi
   curl -fsS -m 5 -H 'Host: karentravel.ir' http://127.0.0.1/ | grep -q 'کارن تراول' && say "brand: کارن تراول OK" || say "WARN: brand not found in the home page"
   echo "$NEW $BRANCH release-$TS $(date -u +%FT%TZ)" > "$ROOT/DEPLOYED"
+  say "live version: $(curl -fsS -m 5 -H 'Host: karentravel.ir' http://127.0.0.1/build_info.json 2>/dev/null || echo unavailable)"
   docker compose ps --format '{{.Name}}\t{{.Status}}'
   say "DEPLOY-OK: $BRANCH @ $NEW on branch release-$TS (previous $PREV_BRANCH @ $PREV, images tagged pre-$TS)"
   say "manual rollback: cd $APP && git checkout $PREV_BRANCH && for s in $SERVICES; do docker tag karenseir-\$s:pre-$TS karenseir-\$s:latest; done && cd $ROOT && docker compose up -d --no-build $SERVICES"

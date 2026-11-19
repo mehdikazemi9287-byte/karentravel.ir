@@ -479,7 +479,7 @@ export function CatalogHotelsForSearch({mode = 'complement', fallback = null}: {
   const params = useSearchParams();
   const vertical = params.get('vertical'), destination = (params.get('destination') || '').trim();
   const show = (vertical === 'hotel' || vertical === 'package' || vertical === 'vacation_rental') && destination.length >= 2;
-  const limit = mode === 'primary' ? 12 : 6;
+  const limit = mode === 'primary' ? 36 : 6;
   const {data: raw, loading} = useCatalog<Page<Hotel>>(show ? `/catalog/hotels?q=${encodeURIComponent(destination)}&limit=${limit}` : null);
   let data = raw;
   if (!show) return <>{fallback}</>;
@@ -493,16 +493,67 @@ export function CatalogHotelsForSearch({mode = 'complement', fallback = null}: {
   const items = local.length > 0 ? local : data.items;
   data = {...data, items, total: items.length < data.items.length ? items.length : data.total};
   const all = <Link className="button secondary" href={`/hotels?q=${encodeURIComponent(destination)}`}>دیدن همهٔ {fa(data.total)} اقامتگاه «{destination}»</Link>;
-  if (mode === 'primary') return <section className="cat" id="catalog-for-search" aria-labelledby="cat-search-title">
-    <header className="cat-head"><div><h2 id="cat-search-title">{fa(data.total)} اقامتگاه در «{destination}»</h2><p>قیمت آنلاین برای این تاریخ هنوز از تأمین‌کننده نرسیده است. اقامتگاه را انتخاب کن و استعلام قیمت بگیر؛ کارشناس ما قیمت و موجودی همین تاریخ را اعلام می‌کند.</p></div></header>
-    <div className="cat-grid">{data.items.map(h => <HotelCard key={h.id} h={h}/>)}</div>
-    {data.total > data.items.length && all}
-  </section>;
+  if (mode === 'primary') return <HotelResultsStitch destination={destination} total={data.total} items={data.items} all={all}/>;
   return <section className="cat container" id="catalog-for-search" aria-labelledby="cat-search-title">
     <header className="cat-head"><div><h2 id="cat-search-title">اقامتگاه‌های بیشتر در «{destination}»</h2><p>این اقامتگاه‌ها در فهرست کارن تراول ثبت شده‌اند ولی هنوز نرخ آنلاین ندارند؛ برای هر کدام می‌توانید استعلام قیمت بگیرید.</p></div></header>
     <div className="cat-grid">{data.items.map(h => <HotelCard key={h.id} h={h}/>)}</div>
     {data.total > data.items.length && all}
   </section>;
+}
+
+/* Hotel results = Stitch screen _35 (design/stitch/screens/_35): title + sort pills, sidebar filters, horizontal cards.
+   Registered hotels without an online rate: filters/sort run on the loaded list only; no price, rating or discount is invented. */
+const HR_SORTS = [['recommended', 'پیشنهاد کارن تراول'], ['stars_desc', 'بیشترین ستاره'], ['stars_asc', 'کمترین ستاره'], ['name', 'نام اقامتگاه']] as const;
+function HotelResultsStitch({destination, total, items, all}: {destination: string; total: number; items: Hotel[]; all: ReactNode}) {
+  const [sort, setSort] = useState<string>('recommended');
+  const [name, setName] = useState('');
+  const [stars, setStars] = useState<number[]>([]);
+  const [amen, setAmen] = useState<string[]>([]);
+  const amenCounts = new Map<string, {label: string; n: number}>();
+  for (const h of items) for (const a of h.amenities) { const c = amenCounts.get(a.key); amenCounts.set(a.key, {label: a.label, n: (c?.n ?? 0) + 1}); }
+  const topAmen = Array.from(amenCounts.entries()).sort((a, b) => b[1].n - a[1].n).slice(0, 6);
+  const starCounts = [5, 4, 3, 2, 1].map(v => ({v, n: items.filter(h => h.stars === v).length})).filter(x => x.n > 0);
+  const toggle = <T,>(list: T[], v: T) => list.includes(v) ? list.filter(x => x !== v) : [...list, v];
+  let rows = items.filter(h => (!name.trim() || h.name.includes(name.trim())) && (!stars.length || (h.stars != null && stars.includes(h.stars))) && amen.every(k => h.amenities.some(a => a.key === k)));
+  if (sort === 'stars_desc') rows = [...rows].sort((a, b) => (b.stars ?? 0) - (a.stars ?? 0));
+  else if (sort === 'stars_asc') rows = [...rows].sort((a, b) => (a.stars ?? 9) - (b.stars ?? 9));
+  else if (sort === 'name') rows = [...rows].sort((a, b) => a.name.localeCompare(b.name, 'fa'));
+  else rows = [...rows].sort((a, b) => Number(!!b.image_url) - Number(!!a.image_url) || (b.stars ?? 0) - (a.stars ?? 0));
+  const reset = () => { setName(''); setStars([]); setAmen([]); };
+  return <section className="hr" id="catalog-for-search" aria-labelledby="cat-search-title">
+    <div className="hr-top">
+      <div><span className="hr-badge">اقامتگاه‌های ثبت‌شدهٔ کارن تراول</span><h2 id="cat-search-title">رزرو هتل در {destination} <small>({fa(total)} اقامتگاه یافت شد)</small></h2></div>
+    </div>
+    <div className="hr-sort" role="group" aria-label="مرتب‌سازی اقامتگاه‌ها"><small>مرتب‌سازی بر اساس:</small>{HR_SORTS.map(([v, l]) => <button key={v} type="button" aria-pressed={sort === v} onClick={() => setSort(v)}>{l}</button>)}</div>
+    <p className="hr-note">قیمت آنلاین برای این تاریخ هنوز از تأمین‌کننده نرسیده است. اقامتگاه را انتخاب کن و استعلام قیمت بگیر؛ کارشناس ما قیمت و موجودی همین تاریخ را اعلام می‌کند.</p>
+    <div className="hr-body">
+      <aside className="hr-filters" aria-label="فیلترها">
+        <div className="hr-filters-head"><b>فیلترهای پیشرفته</b>{(name || stars.length || amen.length) ? <button type="button" onClick={reset}>پاک کردن همه</button> : null}</div>
+        <label className="hr-f"><span>نام هتل یا اقامتگاه</span><input value={name} onChange={e => setName(e.target.value)} placeholder="مثلاً: هتل بزرگ…"/></label>
+        {starCounts.length > 0 && <fieldset className="hr-f"><legend>ردهٔ ستاره</legend>{starCounts.map(({v, n}) => <label key={v} className="hr-check"><input type="checkbox" checked={stars.includes(v)} onChange={() => setStars(toggle(stars, v))}/><span aria-label={`${fa(v)} ستاره`}>{'★'.repeat(v)}</span><small>{fa(n)}</small></label>)}</fieldset>}
+        {topAmen.length > 0 && <fieldset className="hr-f"><legend>امکانات اقامتگاه</legend>{topAmen.map(([k, {label, n}]) => <label key={k} className="hr-check"><input type="checkbox" checked={amen.includes(k)} onChange={() => setAmen(toggle(amen, k))}/><span>{label}</span><small>{fa(n)}</small></label>)}</fieldset>}
+        <div className="hr-help"><b>مشاورهٔ رزرو هتل</b><p>برای انتخاب اقامتگاه یا رزرو گروهی با کارشناس کارن تراول صحبت کنید.</p><Link href="/contact">تماس با پشتیبانی</Link></div>
+      </aside>
+      <div className="hr-list">
+        {rows.length === 0 ? <div className="hr-empty"><p>با این فیلترها اقامتگاهی پیدا نشد.</p><button type="button" onClick={reset}>پاک کردن فیلترها</button></div>
+          : rows.map(h => <HotelRowStitch key={h.id} h={h}/>)}
+        {total > items.length && <div className="hr-more">{all}</div>}
+      </div>
+    </div>
+  </section>;
+}
+function HotelRowStitch({h}: {h: Hotel}) {
+  const where = [h.city?.name, h.details?.district, h.region?.name !== h.city?.name ? h.region?.name : null].filter(Boolean).join('، ');
+  return <article className="hr-card">
+    <Link href={`/hotels/${h.slug}`} className="hr-media" aria-hidden="true" tabIndex={-1}><Thumb src={h.image_url} credit={h.image_credit} alt={h.name} label={h.hotel_type_fa}/></Link>
+    <div className="hr-main">
+      <div className="hr-meta"><span className="hr-type">{h.hotel_type_fa}</span><Stars value={h.stars}/></div>
+      <h3><Link href={`/hotels/${h.slug}`}>{h.name}</Link></h3>
+      <p className="hr-where"><span aria-hidden="true">⌖</span> {where || COUNTRY_FA[h.country_code]}</p>
+      {h.amenities.length > 0 && <ul className="hr-amen">{h.amenities.slice(0, 5).map(a => <li key={a.key}>{a.label}</li>)}</ul>}
+      <div className="hr-foot"><div className="hr-price"><small>قیمت هر شب</small><b>پس از استعلام</b></div><Link className="hr-cta" href={`/hotels/${h.slug}`}>مشاهده اتاق‌ها و استعلام <span aria-hidden="true">←</span></Link></div>
+    </div>
+  </article>;
 }
 
 /* Train landing after the common pattern of Iranian booking sites (Alibaba, MrBilit): quick routes with city photos,
