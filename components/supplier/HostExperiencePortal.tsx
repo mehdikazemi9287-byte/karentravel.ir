@@ -17,9 +17,10 @@ export function HostExperiencePortal() {
   const {state, reload, api} = useLoad<Portal>('/supplier/experience-portal?days=30');
   const [form, setForm] = useState({product: '', start: '', minutes: 120, capacity: 10});
   const [busy, setBusy] = useState(false), [note, setNote] = useState('');
+  const [days] = useState(() => {const n = Date.now(); return {today: dayKey(new Date(n).toISOString()), tomorrow: dayKey(new Date(n + 864e5).toISOString())};});
   async function addSession(e: React.FormEvent) {
     e.preventDefault(); if (!form.product || !form.start || busy) return;
-    const start = new Date(form.start); if (Number.isNaN(start.getTime()) || start <= new Date()) {setNote('زمان شروع باید در آینده باشد.'); return;}
+    const start = new Date(form.start); if (Number.isNaN(start.getTime()) || start.getTime() <= Date.now()) {setNote('زمان شروع باید در آینده باشد.'); return;}
     setBusy(true); setNote('');
     try {
       await api.post(`/supplier/experience-products/${form.product}/sessions`, {starts_at: start.toISOString(), ends_at: new Date(start.getTime() + form.minutes * 60000).toISOString(), capacity_total: form.capacity}, newId());
@@ -27,7 +28,7 @@ export function HostExperiencePortal() {
     } catch (err) {setNote(errorOf(err).message || 'ثبت سانس انجام نشد.');} finally {setBusy(false);}
   }
   return <Async state={state}>{d => {
-    const today = dayKey(new Date().toISOString()), tomorrow = dayKey(new Date(Date.now() + 864e5).toISOString());
+    const {today, tomorrow} = days;
     const todays = d.arrivals.filter(a => dayKey(a.starts_at) === today), nexts = d.arrivals.filter(a => dayKey(a.starts_at) === tomorrow);
     const fill = d.kpis.seats_total ? Math.round((d.kpis.seats_sold / d.kpis.seats_total) * 100) : 0;
     return <div className="host-portal">
