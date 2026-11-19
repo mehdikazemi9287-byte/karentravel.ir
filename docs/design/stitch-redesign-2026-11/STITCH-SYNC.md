@@ -12,3 +12,4 @@ Owner request (1405-08-28 · 2026-11-19): «تمام طراحی‌ها را هر
 |---|---|---|---|
 | 2026-11-19 19:40 | — (setup; round 6 = 3 screens already moved, f1598ca) | مسترکلاس بومی (صفحه جزئیات و رزرو)، دفترچه خاطرات دیجیتال سفر، کنسول مدیریت بحران تور | Canvas holds more screens than GitHub (55 files) → backlog moved in batches of 10 |
 | 2026-11-19 19:52 | — | — | Chrome (Claude in Chrome) not connected — skipped; next run 20:03 |
+| 2026-11-19 20:03 | — | — | Chrome not connected — skipped; next run 20:14 |
