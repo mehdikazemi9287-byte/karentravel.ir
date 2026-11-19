@@ -133,7 +133,7 @@ test('professional Homepage search interactions reach usable results', async ({ 
   const resultsUrl = page.url();
   await page.screenshot({ path: `${artifactDir}/search-ux/search-results-desktop.png`, fullPage: true, animations: 'disabled' });
 
-  await page.getByLabel('مرتب‌سازی نتایج').selectOption('cheapest');
+  await page.getByRole('group', { name: 'مرتب‌سازی نتایج' }).getByRole('button', { name: 'ارزان‌ترین' }).click(); // flight results use Stitch sort pills
   await page.getByRole('checkbox', { name: 'فقط قابل استرداد' }).check();
   await page.getByRole('button', { name: 'اعمال فیلتر' }).click();
   await page.screenshot({ path: `${artifactDir}/search-ux/filter-panel.png`, fullPage: true, animations: 'disabled' });
