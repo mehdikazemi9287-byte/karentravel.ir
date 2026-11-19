@@ -1,0 +1,707 @@
+From 807cdb870c09162bad77d31f93ef8cd106112f8c Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 19 Nov 2026 19:47:23 +0100
+Subject: [PATCH 1/2] feat(tours,experiences): package-builder add-ons
+ (organiser-priced, server quote), public 360/narration/route projection,
+ supplier host portal API
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_013GiGkh6Annw6zKCRasH7Lo
+---
+ backend/app/main.py                         | 105 ++++++++++++++++++--
+ backend/tests/test_stitch_round6_backend.py |  65 ++++++++++++
+ 2 files changed, 162 insertions(+), 8 deletions(-)
+ create mode 100644 backend/tests/test_stitch_round6_backend.py
+
+diff --git a/backend/app/main.py b/backend/app/main.py
+index 187c0c6..83aa867 100644
+--- a/backend/app/main.py
++++ b/backend/app/main.py
+@@ -293,6 +293,7 @@ class TourBookIn(BaseModel):
+     expected_total_amount: Optional[int] = Field(default=None,gt=0)
+     travellers: int = Field(ge=1, le=100); room_type: str = Field(default="double", pattern="^(single|double|triple|extra_bed)$"); command_id: str = Field(min_length=8, max_length=120)
+     children: int = Field(default=0, ge=0, le=100); infants: int = Field(default=0, ge=0, le=100)  # priced from the departure's room x passenger matrix
++    addons: list[str] = Field(default_factory=list, max_length=20)  # organiser-priced package add-ons (Stitch round 6 package builder)
+ class CruiseSailingIn(BaseModel):
+     supplier_id: Optional[str] = Field(default=None, min_length=36, max_length=36); title: str = Field(min_length=3, max_length=200); cruise_line: str = Field(min_length=2, max_length=160); ship: str = Field(min_length=2, max_length=160); departure_port: str = Field(min_length=2, max_length=160); arrival_port: str = Field(min_length=2, max_length=160); starts_at: datetime; nights: int = Field(ge=1, le=365); details: dict = Field(default_factory=dict)
+ class VisaProductIn(BaseModel):
+@@ -2148,7 +2149,19 @@ def tour_detail(tour_id: str, user: User = Depends(current_user), db: Session =
+     if row is None: raise HTTPException(404, "تور وجود ندارد")
+     departures = db.scalars(select(operational_models.TourDeparture).where(operational_models.TourDeparture.tour_id == row.id, operational_models.TourDeparture.tenant_id == user.tenant_id, operational_models.TourDeparture.status == "active", operational_models.TourDeparture.booking_deadline > datetime.now(timezone.utc), operational_models.TourDeparture.remaining > 0)).all()
+     details = json.loads(row.details_json)
+-    return {"id": row.id, "title": row.title, "origin": row.origin, "destination": row.destination, "tour_type": row.tour_type, "details": details, "visa_status": details.get("visa_status", "VISA_STATUS_UNKNOWN"), "visa_assistance_available": bool(details.get("visa_assistance_available", False)), "departures": [{"id": d.id, "starts_at": d.starts_at.isoformat(), "ends_at": d.ends_at.isoformat(), "remaining": d.remaining, "base_price": d.base_price, "currency": d.currency, "pricing": json.loads(d.pricing_json), "available_room_types": _tour_room_types(d)} for d in departures]}
++    return {"id": row.id, "title": row.title, "origin": row.origin, "destination": row.destination, "tour_type": row.tour_type, "details": details, "visa_status": details.get("visa_status", "VISA_STATUS_UNKNOWN"), "visa_assistance_available": bool(details.get("visa_assistance_available", False)), "departures": [{"id": d.id, "starts_at": d.starts_at.isoformat(), "ends_at": d.ends_at.isoformat(), "remaining": d.remaining, "base_price": d.base_price, "currency": d.currency, "pricing": json.loads(d.pricing_json), "available_room_types": _tour_room_types(d), "addons": _tour_addons(d)} for d in departures]}
++
++
++def _public_itinerary_item(v: dict) -> dict:
++    """Public itinerary stop: title plus optional day/time/place/coordinates/mode for the route simulator. Coordinates must be valid numbers."""
++    item = {"title": v["title"][:200]}
++    for key, limit in (("place", 120), ("time", 20), ("note", 300)):
++        if isinstance(v.get(key), str): item[key] = v[key][:limit]
++    if isinstance(v.get("day"), int) and not isinstance(v.get("day"), bool) and 0 < v["day"] < 400: item["day"] = v["day"]
++    if v.get("mode") in ("flight", "road", "rail", "walk", "stay", "activity"): item["mode"] = v["mode"]
++    lat, lng = v.get("lat"), v.get("lng")
++    if isinstance(lat, (int, float)) and isinstance(lng, (int, float)) and not isinstance(lat, bool) and -90 <= lat <= 90 and -180 <= lng <= 180: item["lat"], item["lng"] = float(lat), float(lng)
++    return item
+ 
+ 
+ def _public_tour_projection(row: dict) -> dict:
+@@ -2157,12 +2170,18 @@ def _public_tour_projection(row: dict) -> dict:
+     for key in ("itinerary", "inclusions", "exclusions", "requirements"):
+         value = details.get(key)
+         if isinstance(value, str): safe[key] = value
+-        elif isinstance(value, list): safe[key] = [v if isinstance(v, str) else {"title": v["title"]} for v in value if isinstance(v, str) or (isinstance(v, dict) and isinstance(v.get("title"), str))]
++        elif isinstance(value, list): safe[key] = [v if isinstance(v, str) else _public_itinerary_item(v) for v in value if isinstance(v, str) or (isinstance(v, dict) and isinstance(v.get("title"), str))]
++    media = [m for m in (details.get("media_360") or []) if isinstance(m, dict) and isinstance(m.get("url"), str) and re.match(r"^(https://|/)[^\s\"'<>]{3,500}$", m["url"])]
++    if media: safe["media_360"] = [{"url": m["url"], "title": str(m.get("title") or "")[:120], "hotspots": [{"label": str(h.get("label"))[:60], "yaw": float(h.get("yaw"))} for h in (m.get("hotspots") or []) if isinstance(h, dict) and isinstance(h.get("label"), str) and isinstance(h.get("yaw"), (int, float))][:12]} for m in media[:8]]
++    narration = details.get("narration")
++    if isinstance(narration, dict) and isinstance(narration.get("title"), str):
++        audio = narration.get("audio_url") if isinstance(narration.get("audio_url"), str) and re.match(r"^(https://|/)[^\s\"'<>]{3,500}$", narration["audio_url"]) else None
++        safe["narration"] = {"title": narration["title"][:160], "guide": str(narration.get("guide") or "")[:120], "audio_url": audio}
+     result = {key: row[key] for key in ("id", "title", "origin", "destination", "tour_type")}
+     result["details"] = safe
+     result["account_recheck_required"] = True
+     if "departures" in row:
+-        result["departures"] = [{key: d[key] for key in ("id", "starts_at", "ends_at")} for d in row["departures"]]
++        result["departures"] = [{**{key: d[key] for key in ("id", "starts_at", "ends_at")}, **({"addons": [{k: x[k] for k in ("code", "title", "category", "unit", "description")} for x in d["addons"]]} if d.get("addons") else {})} for d in row["departures"]]
+     return result
+ 
+ 
+@@ -2182,7 +2201,33 @@ def _tour_room_types(departure) -> list[str]:
+     return [room for room in ("double", "single", "triple", "extra_bed") if (room == "double" or f"{room}_surcharge" in pricing) and isinstance(pricing.get(f"{room}_surcharge", 0), int) and not isinstance(pricing.get(f"{room}_surcharge", 0), bool) and departure.base_price + pricing.get(f"{room}_surcharge", 0) > 0]
+ 
+ 
+-def _tour_amount(departure, travellers:int, room_type:str, children:int=0, infants:int=0) -> int:
++_ADDON_CODE = re.compile(r"^[a-z0-9][a-z0-9_-]{1,39}$")
++
++
++def _tour_addons(departure) -> list[dict]:
++    """Package-builder add-ons the organiser priced on this departure (pricing_json["addons"]). Invalid entries are dropped, never guessed."""
++    out = []
++    for item in (json.loads(departure.pricing_json or "{}").get("addons") or []):
++        if not isinstance(item, dict): continue
++        code, title, price, unit = item.get("code"), item.get("title"), item.get("price"), item.get("unit", "person")
++        if not (isinstance(code, str) and _ADDON_CODE.match(code) and isinstance(title, str) and title.strip() and isinstance(price, int) and not isinstance(price, bool) and price >= 0 and unit in ("person", "booking")): continue
++        out.append({"code": code, "title": title.strip()[:120], "price": price, "unit": unit, "category": str(item.get("category") or "other")[:40], "description": str(item.get("description") or "")[:240], "default": bool(item.get("default", False))})
++    return out
++
++
++def _addon_lines(departure, codes, payers:int) -> list[dict]:
++    if not codes: return []
++    available = {a["code"]: a for a in _tour_addons(departure)}
++    lines = []
++    for code in dict.fromkeys(codes):
++        addon = available.get(code)
++        if addon is None: raise HTTPException(409, "این گزینهٔ پکیج توسط برگزارکننده ثبت نشده است")
++        qty = payers if addon["unit"] == "person" else 1
++        lines.append({"code": code, "title": addon["title"], "unit": addon["unit"], "quantity": qty, "amount": addon["price"] * qty})
++    return lines
++
++
++def _tour_amount(departure, travellers:int, room_type:str, children:int=0, infants:int=0, addons=()) -> int:
+     if room_type not in _tour_room_types(departure):
+         raise HTTPException(409,"نرخ این نوع اتاق توسط برگزارکننده ثبت نشده است")
+     surcharge=json.loads(departure.pricing_json).get(f"{room_type}_surcharge",0)
+@@ -2198,17 +2243,19 @@ def _tour_amount(departure, travellers:int, room_type:str, children:int=0, infan
+             if not isinstance(price,int) or isinstance(price,bool) or price<0:
+                 raise HTTPException(409,f"نرخ {label} برای این نوع اتاق توسط برگزارکننده ثبت نشده است")
+             total+=price*count
++    total+=sum(line["amount"] for line in _addon_lines(departure, list(addons), travellers+children))
+     return total
+ 
+ 
+ @app.get("/tour-departures/{departure_id}/quote")
+-def quote_tour(departure_id:str,travellers:int=Query(default=1,ge=1,le=100),room_type:str=Query(default="double",pattern="^(single|double|triple|extra_bed)$"),children:int=Query(default=0,ge=0,le=100),infants:int=Query(default=0,ge=0,le=100),user:User=Depends(current_user),db:Session=Depends(get_db)) -> dict:
++def quote_tour(departure_id:str,travellers:int=Query(default=1,ge=1,le=100),room_type:str=Query(default="double",pattern="^(single|double|triple|extra_bed)$"),children:int=Query(default=0,ge=0,le=100),infants:int=Query(default=0,ge=0,le=100),addons:str=Query(default="",max_length=900),user:User=Depends(current_user),db:Session=Depends(get_db)) -> dict:
+     departure=db.scalar(select(operational_models.TourDeparture).where(operational_models.TourDeparture.id==departure_id,operational_models.TourDeparture.tenant_id==user.tenant_id))
+     now=datetime.now(timezone.utc)
+     if departure is None or departure.status!="active" or _aware(departure.booking_deadline)<=now or departure.remaining<travellers+children:raise HTTPException(409,"ظرفیت یا مهلت این حرکت قابل تأیید نیست")
+     tour=db.scalar(select(operational_models.TourProduct).where(operational_models.TourProduct.id==departure.tour_id,operational_models.TourProduct.tenant_id==user.tenant_id,operational_models.TourProduct.status=="published"))
+     if tour is None or db.scalar(select(operational_models.Supplier.id).where(operational_models.Supplier.id==tour.supplier_id,operational_models.Supplier.tenant_id==user.tenant_id,operational_models.Supplier.status=="active")) is None:raise HTTPException(404,"تور در دسترس نیست")
+-    return {"departure_id":departure.id,"total_amount":_tour_amount(departure,travellers,room_type,children,infants),"currency":departure.currency,"travellers":travellers,"children":children,"infants":infants,"room_type":room_type,"policy":json.loads(tour.details_json).get("cancellation_policy",{}),"expires_at":min(_aware(departure.booking_deadline),now+timedelta(minutes=5)).isoformat()}
++    codes=[c for c in addons.split(",") if c.strip()][:20]
++    return {"departure_id":departure.id,"total_amount":_tour_amount(departure,travellers,room_type,children,infants,codes),"addons":_addon_lines(departure,codes,travellers+children),"base_amount":_tour_amount(departure,travellers,room_type,children,infants),"currency":departure.currency,"travellers":travellers,"children":children,"infants":infants,"room_type":room_type,"policy":json.loads(tour.details_json).get("cancellation_policy",{}),"expires_at":min(_aware(departure.booking_deadline),now+timedelta(minutes=5)).isoformat()}
+ 
+ 
+ @app.post("/tour-departures/{departure_id}/reservations", status_code=201)
+@@ -2220,12 +2267,13 @@ def book_tour(departure_id: str, data: TourBookIn, user: User = Depends(require_
+     departure = db.scalar(select(operational_models.TourDeparture).where(operational_models.TourDeparture.id == departure_id, operational_models.TourDeparture.tenant_id == user.tenant_id).with_for_update())
+     now = datetime.now(timezone.utc)
+     if departure is None or departure.status != "active" or _aware(departure.booking_deadline) <= now or departure.remaining < data.travellers + data.children: raise HTTPException(409, "ظرفیت یا مهلت رزرو تور معتبر نیست")
+-    total=_tour_amount(departure,data.travellers,data.room_type,data.children,data.infants)
++    total=_tour_amount(departure,data.travellers,data.room_type,data.children,data.infants,data.addons)
++    addon_lines=_addon_lines(departure,data.addons,data.travellers+data.children)
+     if data.expected_total_amount is not None and total!=data.expected_total_amount:raise HTTPException(409,{"code":"PRICE_CHANGED","new_price":total})
+     tour = db.scalar(select(operational_models.TourProduct).where(operational_models.TourProduct.id == departure.tour_id, operational_models.TourProduct.tenant_id == user.tenant_id))
+     if tour is None or tour.status!="published" or db.scalar(select(operational_models.Supplier.id).where(operational_models.Supplier.id==tour.supplier_id,operational_models.Supplier.tenant_id==user.tenant_id,operational_models.Supplier.status=="active")) is None:raise HTTPException(409,"تور یا تأمین‌کننده فعال نیست")
+     details = json.loads(tour.details_json); policy = details.get("cancellation_policy") if isinstance(details.get("cancellation_policy"), dict) else {}; reservation = operational_models.Reservation(tenant_id=user.tenant_id, user_id=user.id, service_type="tour", status="reserved", booking_reference=f"KS-TOUR-{uuid.uuid4().hex[:10].upper()}", price_snapshot_json=json.dumps({"total_amount": total, "currency": departure.currency, "travellers": data.travellers + data.children, "units":data.travellers + data.children, **({"adults": data.travellers, "children": data.children, "infants": data.infants} if data.children or data.infants else {}), "room_type": data.room_type, "departure_id": departure.id, "visa_status": details.get("visa_status", "VISA_STATUS_UNKNOWN")}, sort_keys=True), policy_at_booking_json=json.dumps(policy, sort_keys=True), current_policy_json=json.dumps(policy, sort_keys=True)); db.add(reservation); db.flush(); departure.remaining -= data.travellers + data.children; row = operational_models.TourReservation(tenant_id=user.tenant_id, departure_id=departure.id, user_id=user.id, reservation_id=reservation.id, travellers=data.travellers + data.children, room_type=data.room_type, total_amount=total, command_id=data.command_id); db.add(row); db.flush(); _commerce_event(db, tenant_id=user.tenant_id, kind="tour_reservation", aggregate_id=row.id, command_id=data.command_id, payload={"status": row.status, "remaining": departure.remaining, "reservation_id": reservation.id, "visa_status": details.get("visa_status", "VISA_STATUS_UNKNOWN")})
+-    db.add(operational_models.BookingItem(tenant_id=user.tenant_id,reservation_id=reservation.id,item_type="tour",snapshot_json=json.dumps({"title":tour.title,"supplier_id":tour.supplier_id,"fulfillment_mode":"manual_supplier","provider_key":"manual_supplier","attributes":{"origin":tour.origin,"destination":tour.destination,"departure_time":_aware(departure.starts_at).isoformat(),"arrival_time":_aware(departure.ends_at).isoformat(),"travellers":data.travellers,"room_type":data.room_type}})))
++    db.add(operational_models.BookingItem(tenant_id=user.tenant_id,reservation_id=reservation.id,item_type="tour",snapshot_json=json.dumps({"title":tour.title,"supplier_id":tour.supplier_id,"fulfillment_mode":"manual_supplier","provider_key":"manual_supplier","package_addons":addon_lines,"attributes":{"origin":tour.origin,"destination":tour.destination,"departure_time":_aware(departure.starts_at).isoformat(),"arrival_time":_aware(departure.ends_at).isoformat(),"travellers":data.travellers,"room_type":data.room_type}})))
+     tour_title = tour.title if tour else "تور"; tour_destination = tour.destination if tour else ""
+     trip = operational_models.ensure_trip_for_reservation(db, reservation, title=tour_title, destination=tour_destination, origin=(tour.origin if tour else None), starts_at=departure.starts_at, ends_at=departure.ends_at)
+     operational_models.record_trip_event(db, tenant_id=user.tenant_id, trip_id=trip.id, reservation_id=reservation.id, event_key=f"booking-created:{data.command_id}", event_type="booking.created", source="system", title="رزرو تور ثبت شد", message=f"رزرو {reservation.booking_reference} برای {tour_title} ثبت شد.", deep_link=f"/manage-booking/{reservation.id}")
+@@ -3345,6 +3393,47 @@ def create_leisure_session(product_id: str, data: LeisureSessionIn, user: User =
+     return _leisure_session_output(row)
+ 
+ 
++_PORTAL_LIVE_STATUSES = ("reserved", "held", "confirmed", "paid", "ticketed", "issued", "fulfilled", "completed")
++
++
++@app.get("/supplier/experience-portal")
++def supplier_experience_portal(days: int = Query(default=30, ge=1, le=120), user: User = Depends(require_permission("inventory:manage")), db: Session = Depends(get_db)) -> dict:
++    """Host portal (Stitch round 6): the supplier's own places, experience products, upcoming sessions and arrivals.
++    Every figure is counted from stored sessions/reservations of this supplier scope; nothing is estimated."""
++    scope = _supplier_scope(db, user)
++    om = operational_models
++    if not scope: return {"suppliers": [], "places": [], "products": [], "sessions": [], "arrivals": [], "kpis": {"sessions": 0, "seats_total": 0, "seats_sold": 0, "bookings": 0, "gross_amount": 0, "currency": "IRR"}, "payout": {"provider": "vandapay", "status": "not_configured"}}
++    places = db.scalars(select(om.Place).where(om.Place.tenant_id == user.tenant_id, om.Place.supplier_id.in_(scope))).all()
++    products = db.scalars(select(om.ExperienceProduct).where(om.ExperienceProduct.tenant_id == user.tenant_id, om.ExperienceProduct.supplier_id.in_(scope))).all()
++    product_ids = [p.id for p in products]
++    now = datetime.now(timezone.utc)
++    sessions = db.scalars(select(om.LeisureSession).where(om.LeisureSession.tenant_id == user.tenant_id, om.LeisureSession.experience_product_id.in_(product_ids or [""]), om.LeisureSession.ends_at >= now, om.LeisureSession.starts_at < now + timedelta(days=days)).order_by(om.LeisureSession.starts_at)).all()
++    tickets = db.scalars(select(om.LeisureTicketType).where(om.LeisureTicketType.tenant_id == user.tenant_id, om.LeisureTicketType.experience_product_id.in_(product_ids or [""]))).all()
++    offer_to_session = {s.offer_id: s for s in sessions if s.offer_id}
++    rows = db.execute(select(om.Reservation, om.PriceCheck).join(om.PriceCheck, om.PriceCheck.id == om.Reservation.price_check_id).where(om.Reservation.tenant_id == user.tenant_id, om.PriceCheck.offer_id.in_(list(offer_to_session) or [""]), om.Reservation.status.in_(_PORTAL_LIVE_STATUSES))).all() if offer_to_session else []
++    product_by_id = {p.id: p for p in products}
++    arrivals, sold, gross = [], {}, 0
++    for reservation, check in rows:
++        session = offer_to_session.get(check.offer_id)
++        breakdown = json.loads(check.snapshot_json or "{}").get("ticket_breakdown", [])
++        guests = sum(int(x.get("quantity", 0)) for x in breakdown if isinstance(x, dict)) or check.units
++        sold[session.id] = sold.get(session.id, 0) + guests
++        gross += check.amount
++        arrivals.append({"reservation_id": reservation.id, "booking_reference": reservation.booking_reference, "status": reservation.status, "session_id": session.id, "starts_at": session.starts_at.isoformat(), "product_title": product_by_id[session.experience_product_id].title if session.experience_product_id in product_by_id else "", "guests": guests, "amount": check.amount, "currency": check.currency, "ticket_breakdown": breakdown})
++    arrivals.sort(key=lambda a: a["starts_at"])
++    session_rows = [{**_leisure_session_output(s), "product_title": product_by_id[s.experience_product_id].title if s.experience_product_id in product_by_id else "", "seats_sold": sold.get(s.id, 0)} for s in sessions]
++    payout_status = "configured" if os.getenv("VANDAPAY_MODE", "disabled") in ("test", "live") else "not_configured"
++    return {
++        "suppliers": sorted(scope),
++        "places": [_leisure_place_output(p) for p in places],
++        "products": [{**_leisure_product_output(p), "ticket_types": [_leisure_ticket_type_output(t) for t in tickets if t.experience_product_id == p.id], "upcoming_sessions": sum(1 for s in sessions if s.experience_product_id == p.id)} for p in products],
++        "sessions": session_rows,
++        "arrivals": arrivals[:100],
++        "kpis": {"sessions": len(sessions), "seats_total": sum(s.capacity_total for s in sessions), "seats_sold": sum(sold.values()), "bookings": len(arrivals), "gross_amount": gross, "currency": "IRR", "window_days": days},
++        "payout": {"provider": "vandapay", "status": payout_status},
++    }
++
++
+ @app.get("/experience-products/{product_id}")
+ def experience_product_detail(product_id: str, date: Optional[str] = None, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+     product = db.scalar(select(operational_models.ExperienceProduct).where(operational_models.ExperienceProduct.id == product_id, operational_models.ExperienceProduct.tenant_id == user.tenant_id, operational_models.ExperienceProduct.status == "published"))
+diff --git a/backend/tests/test_stitch_round6_backend.py b/backend/tests/test_stitch_round6_backend.py
+new file mode 100644
+index 0000000..f5b33f1
+--- /dev/null
++++ b/backend/tests/test_stitch_round6_backend.py
+@@ -0,0 +1,65 @@
++"""Stitch round 6: tour package-builder add-ons, public 360/route projection, host experience portal."""
++import uuid, json
++from datetime import datetime, timedelta, timezone
++from app.main import SessionLocal
++from app import operations as m
++from test_checkout_reviews_zarinpal import reservation_fixture, login, auth
++import test_leisure_commerce as lc
++
++ADDONS = [{"code": "vegan-menu", "title": "منوی گیاهی", "price": 450000, "unit": "person", "category": "food"},
++          {"code": "private-van", "title": "ون اختصاصی", "price": 1700000, "unit": "booking", "category": "transport"},
++          {"code": "BAD CODE", "title": "x", "price": 1}, {"code": "neg", "title": "منفی", "price": -5}]
++
++
++def make_tour(client):
++    employee, _, traveller, offer = reservation_fixture(client, uuid.uuid4().hex); supplier = login(client, 'supplier@aftab.test')
++    with SessionLocal() as db:
++        o = db.get(m.Offer, offer['id']); sid = o.supplier_id; policy = json.loads(o.policy_json)
++    details = {'cancellation_policy': policy, 'itinerary': [{'title': 'پرواز تهران به یزد', 'day': 1, 'mode': 'flight', 'lat': 31.9, 'lng': 54.3, 'place': 'یزد'}, {'title': 'کویر بافق', 'day': 2, 'lat': 999, 'lng': 55.1}],
++               'media_360': [{'url': 'https://cdn.example.test/yazd-360.jpg', 'title': 'بادگیر', 'hotspots': [{'label': 'بادگیر هتل داد', 'yaw': 40}]}, {'url': 'javascript:alert(1)'}],
++               'narration': {'title': 'راز شب‌های بافق', 'guide': 'استاد کاشانی', 'audio_url': 'http://insecure.test/a.mp3'}}
++    tour = client.post('/supplier/tours', headers=auth(supplier), json={'supplier_id': sid, 'title': 'Mock QA 360 Tour', 'slug': 'qa-' + uuid.uuid4().hex, 'origin': 'تهران', 'destination': 'یزد', 'tour_type': 'cultural', 'details': details}).json()
++    now = datetime.now(timezone.utc)
++    dep = client.post('/supplier/tours/' + tour['id'] + '/departures', headers=auth(supplier), json={'starts_at': (now + timedelta(days=10)).isoformat(), 'ends_at': (now + timedelta(days=14)).isoformat(), 'booking_deadline': (now + timedelta(days=9)).isoformat(), 'capacity': 5, 'base_price': 1000000, 'pricing': {'addons': ADDONS}}).json()
++    return employee, tour, dep
++
++
++def test_addons_priced_by_organiser_only(client):
++    employee, tour, dep = make_tour(client); url = '/tour-departures/' + dep['id']
++    detail = client.get('/tour-products/' + tour['id'], headers=auth(employee)).json()
++    codes = [a['code'] for a in detail['departures'][0]['addons']]; assert codes == ['vegan-menu', 'private-van']
++    q = client.get(url + '/quote?travellers=2&addons=vegan-menu,private-van', headers=auth(employee)).json()
++    assert q['base_amount'] == 2000000 and q['total_amount'] == 2000000 + 2 * 450000 + 1700000
++    assert client.get(url + '/quote?travellers=2&addons=spa', headers=auth(employee)).status_code == 409
++    r = client.post(url + '/reservations', headers=auth(employee), json={'travellers': 2, 'room_type': 'double', 'addons': ['vegan-menu'], 'expected_total_amount': 2900000, 'command_id': uuid.uuid4().hex})
++    assert r.status_code == 201, r.text and r.json()['total_amount'] == 2900000
++    with SessionLocal() as db:
++        item = db.query(m.BookingItem).filter(m.BookingItem.reservation_id == r.json()['reservation_id']).one()
++        assert json.loads(item.snapshot_json)['package_addons'][0]['amount'] == 900000
++    assert client.post(url + '/reservations', headers=auth(employee), json={'travellers': 1, 'addons': ['vegan-menu'], 'expected_total_amount': 1000000, 'command_id': uuid.uuid4().hex}).status_code == 409
++
++
++def test_public_projection_sanitises_media_and_route(client):
++    from app.main import _public_tour_projection
++    employee, tour, _ = make_tour(client)
++    pub = _public_tour_projection(client.get('/tour-products/' + tour['id'], headers=auth(employee)).json())
++    assert pub['details']['media_360'] == [{'url': 'https://cdn.example.test/yazd-360.jpg', 'title': 'بادگیر', 'hotspots': [{'label': 'بادگیر هتل داد', 'yaw': 40.0}]}]
++    assert pub['details']['narration']['audio_url'] is None
++    it = pub['details']['itinerary']; assert it[0]['lat'] == 31.9 and it[0]['mode'] == 'flight' and 'lat' not in it[1]
++    assert all('price' not in a for a in pub['departures'][0]['addons'])
++
++
++def test_host_portal_counts_only_own_data(client):
++    sup = login(client, 'supplier@aftab.test'); headers = auth(sup)
++    sid = lc.supplier(client, headers, 'pool_sport'); place = lc.make_place(client, headers, sid); product = lc.make_product(client, headers, place['id'])
++    ticket = lc.make_ticket_type(client, headers, product['id']); session = lc.make_session(client, headers, product['id'], capacity=4, starts_in_hours=5)
++    with SessionLocal() as db:
++        db.get(m.ExperienceProduct, product['id']).status = 'published'; db.commit()
++    customer = auth(login(client, 'employee@aftab.test'))
++    checked = lc.price_check(client, customer, session['id'], [{'ticket_type_id': ticket['id'], 'quantity': 2}]); assert checked.status_code == 201, checked.text
++    assert lc.book(client, customer, checked.json()['id']).status_code == 201
++    portal = client.get('/supplier/experience-portal', headers=headers).json()
++    mine = [s for s in portal['sessions'] if s['id'] == session['id']][0]
++    assert mine['seats_sold'] == 2 and any(a['session_id'] == session['id'] and a['guests'] == 2 for a in portal['arrivals'])
++    assert portal['payout']['status'] in ('configured', 'not_configured')
++    assert client.get('/supplier/experience-portal', headers=customer).status_code in (401, 403)
+-- 
+2.43.0
+
+
+From a72425d37c40396fae0eab38d71b8d0fd2b6b702 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 19 Nov 2026 19:54:16 +0100
+Subject: [PATCH 2/2] =?UTF-8?q?feat(ui):=20Stitch=20round=206=20=E2=80=94?=
+ =?UTF-8?q?=20tour=20360=20showcase=20+=20narration,=20package=20builder?=
+ =?UTF-8?q?=20with=20server=20re-quote,=20route=20simulator=20page=20(play?=
+ =?UTF-8?q?/pause/scrub/speed/stops),=20supplier=20host=20experience=20por?=
+ =?UTF-8?q?tal=20(KPIs,=20catalog,=20sessions=20+=20add-session,=20arrival?=
+ =?UTF-8?q?s,=20VandaPay=20payout=20state)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_013GiGkh6Annw6zKCRasH7Lo
+---
+ app/supplier/experiences/page.tsx            |  4 ++
+ app/tours/[id]/route/page.tsx                |  4 ++
+ components/operational/TourJourney.tsx       | 18 ++---
+ components/panel/PanelKit.tsx                |  2 +-
+ components/supplier/HostExperiencePortal.tsx | 74 ++++++++++++++++++++
+ components/tours/PackageBuilder.tsx          | 22 ++++++
+ components/tours/RouteSimulator.tsx          | 71 +++++++++++++++++++
+ components/tours/TourRouteView.tsx           | 20 ++++++
+ components/tours/TourShowcase.tsx            | 38 ++++++++++
+ components/tours/tours-round6.css            | 73 +++++++++++++++++++
+ 10 files changed, 317 insertions(+), 9 deletions(-)
+ create mode 100644 app/supplier/experiences/page.tsx
+ create mode 100644 app/tours/[id]/route/page.tsx
+ create mode 100644 components/supplier/HostExperiencePortal.tsx
+ create mode 100644 components/tours/PackageBuilder.tsx
+ create mode 100644 components/tours/RouteSimulator.tsx
+ create mode 100644 components/tours/TourRouteView.tsx
+ create mode 100644 components/tours/TourShowcase.tsx
+ create mode 100644 components/tours/tours-round6.css
+
+diff --git a/app/supplier/experiences/page.tsx b/app/supplier/experiences/page.tsx
+new file mode 100644
+index 0000000..d73eb6a
+--- /dev/null
++++ b/app/supplier/experiences/page.tsx
+@@ -0,0 +1,4 @@
++import {PanelShell} from '../../../components/panel/PanelKit';
++import {HostExperiencePortal} from '../../../components/supplier/HostExperiencePortal';
++export const metadata = {title: 'پورتال تجربه‌ها و کارگاه‌ها', robots: {index: false}};
++export default function Page() {return <PanelShell area="supplier" title="تجربه‌ها و کارگاه‌ها" intro="کارگاه‌ها، مسترکلاس‌ها و تجربه‌های بومی خود را مدیریت کنید: سانس‌ها، ظرفیت، ورود مسافران و تسویه."><HostExperiencePortal/></PanelShell>;}
+diff --git a/app/tours/[id]/route/page.tsx b/app/tours/[id]/route/page.tsx
+new file mode 100644
+index 0000000..b0adc84
+--- /dev/null
++++ b/app/tours/[id]/route/page.tsx
+@@ -0,0 +1,4 @@
++import {JourneyShell} from '../../../../components/journey/JourneyShell';
++import {TourRouteView} from '../../../../components/tours/TourRouteView';
++export const metadata = {title: 'شبیه‌ساز مسیر تور', robots: {index: false}};
++export default async function Page({params}: {params: Promise<{id: string}>}) {const {id} = await params; return <JourneyShell><main className="journey-main"><TourRouteView id={id}/></main></JourneyShell>;}
+diff --git a/components/operational/TourJourney.tsx b/components/operational/TourJourney.tsx
+index ef14e22..dcfe080 100644
+--- a/components/operational/TourJourney.tsx
++++ b/components/operational/TourJourney.tsx
+@@ -5,21 +5,23 @@ import {useEffect,useMemo,useRef,useState} from 'react';
+ import {useAuth} from '../../lib/api/auth-context';
+ import {ApiError,newId} from '../../lib/api/karenseir-client';
+ import {ContactOptions} from '../customer/CustomerHelp';
+-type Pending={departure:string;body:{travellers:number;children?:number;infants?:number;room_type:string;expected_total_amount:number;command_id:string}};
+-type Departure={id:string;starts_at:string;ends_at:string;remaining:number;base_price:number;available_room_types:string[]};
++import {TourShowcase} from '../tours/TourShowcase';
++import {PackageBuilder,type Addon} from '../tours/PackageBuilder';
++type Pending={departure:string;body:{travellers:number;children?:number;infants?:number;room_type:string;expected_total_amount:number;command_id:string;addons?:string[]}};
++type Departure={id:string;starts_at:string;ends_at:string;remaining:number;base_price:number;available_room_types:string[];addons?:Addon[]};
+ type Tour={id:string;title:string;origin:string;destination:string;details:Record<string,unknown>;departures:Departure[]};
+-type Quote={departure_id:string;total_amount:number;currency:string;policy:{verified?:boolean;description?:string;cancellation?:{description?:string;refundable?:boolean}};expires_at:string};
++type Quote={departure_id:string;total_amount:number;base_amount?:number;addons?:{code:string;title:string;quantity:number;amount:number}[];currency:string;policy:{verified?:boolean;description?:string;cancellation?:{description?:string;refundable?:boolean}};expires_at:string};
+ function localDay(value:string){const parts=new Intl.DateTimeFormat('en',{timeZone:'Asia/Tehran',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(value));return ['year','month','day'].map(type=>parts.find(p=>p.type===type)?.value).join('-')}
+ function terms(value:unknown){return typeof value==='string'?[value]:Array.isArray(value)?value.filter((v):v is string=>typeof v==='string'):[]}
+ export function TourJourney({id}:{id:string}){
+- const{api,session}=useAuth(),router=useRouter();const[tour,setTour]=useState<Tour|null>(null),[error,setError]=useState(false),[departure,setDeparture]=useState(''),[travellers,setTravellers]=useState(1),[children,setChildren]=useState(0),[infants,setInfants]=useState(0),[room,setRoom]=useState('double'),[quote,setQuote]=useState<Quote|null>(null),[busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[back,setBack]=useState('/tours');const storage=useMemo(()=>{try{const c=JSON.parse(atob(session!.access_token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));return c.sub?'karen-tour-pending:'+JSON.stringify([c.iss,c.sub,session?.user?.tenant,id]):null}catch{return null}},[session,id]);
+- const[loaded,setLoaded]=useState<{key:string|null|undefined;value:Pending|null}>({key:undefined,value:null});const inFlight=useRef(false),activeKey=useRef(storage);activeKey.current=storage;const pending=loaded.key===storage?loaded.value:null;const roomChoices=tour?.departures.find(d=>d.id===departure)?.available_room_types||[];const roomAvailable=roomChoices.includes(room);
++ const{api,session}=useAuth(),router=useRouter();const[tour,setTour]=useState<Tour|null>(null),[error,setError]=useState(false),[departure,setDeparture]=useState(''),[travellers,setTravellers]=useState(1),[children,setChildren]=useState(0),[infants,setInfants]=useState(0),[room,setRoom]=useState('double'),[quote,setQuote]=useState<Quote|null>(null),[busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[back,setBack]=useState('/tours'),[addons,setAddons]=useState<string[]>([]);const storage=useMemo(()=>{try{const c=JSON.parse(atob(session!.access_token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));return c.sub?'karen-tour-pending:'+JSON.stringify([c.iss,c.sub,session?.user?.tenant,id]):null}catch{return null}},[session,id]);
++ const[loaded,setLoaded]=useState<{key:string|null|undefined;value:Pending|null}>({key:undefined,value:null});const inFlight=useRef(false),activeKey=useRef(storage);activeKey.current=storage;const pending=loaded.key===storage?loaded.value:null;const roomChoices=tour?.departures.find(d=>d.id===departure)?.available_room_types||[];const roomAvailable=roomChoices.includes(room);const departureAddons=tour?.departures.find(d=>d.id===departure)?.addons||[];const hasRoute=Array.isArray(tour?.details.itinerary)&&(tour!.details.itinerary as unknown[]).filter(x=>!!x&&typeof x==='object'&&typeof (x as {lat?:unknown}).lat==='number').length>=2;
+  useEffect(()=>{let value:Pending|null=null;try{const p=storage?JSON.parse(sessionStorage.getItem(storage)||'null'):null;if(p&&typeof p.departure==='string'&&typeof p.body?.command_id==='string')value=p}catch{}setLoaded({key:storage,value});setQuote(null);setNotice('')},[storage]);
+  useEffect(()=>{const p=new URLSearchParams(window.location.search);setBack('/tours?'+p);setTravellers(Math.max(1,Math.min(100,Number(p.get('travellers'))||1)));const selected=p.get('room_type');if(selected&&['single','double','triple','extra_bed'].includes(selected))setRoom(selected)},[]);
+  useEffect(()=>{let active=true;setTour(null);setError(false);(session?api.get<Tour>(`/tour-products/${id}`):api.publicGet<Tour>(`/public/tour-products/${id}`)).then(d=>{if(active){setTour(d);const p=new URLSearchParams(window.location.search);const selected=d.departures.find(x=>x.id===p.get('departure'))||d.departures.find(x=>p.get('depart')&&localDay(x.starts_at)===p.get('depart'));if(selected)setDeparture(selected.id)}}).catch(()=>{if(active)setError(true)});return()=>{active=false}},[api,session,id]);
+  function remember(count:number,roomType:string,selected:string){const p=new URLSearchParams(window.location.search);p.set('travellers',String(count));p.set('room_type',roomType);if(selected)p.set('departure',selected);window.history.replaceState(null,'','?'+p);setBack('/tours?'+p)}
+- async function recheck(){if(!session||!departure||!roomAvailable||busy||pending||inFlight.current)return;inFlight.current=true;setBusy(true);setQuote(null);try{setQuote(await api.get<Quote>(`/tour-departures/${departure}/quote?travellers=${travellers}&children=${children}&infants=${infants}&room_type=${room}`));setNotice('مبلغ این درخواست دریافت شد؛ شرایط و مبلغ را پیش از ثبت ظرفیت بررسی کنید.')}catch{setNotice(children||infants?'ظرفیت، قیمت یا نرخ کودک/نوزاد این حرکت قابل تأیید نیست؛ حرکت یا اتاق دیگری انتخاب کنید یا تماس بگیرید.':'ظرفیت یا قیمت این حرکت قابل تأیید نیست؛ حرکت دیگری انتخاب کنید یا تماس بگیرید.')}finally{inFlight.current=false;setBusy(false)}}
++ async function recheck(){if(!session||!departure||!roomAvailable||busy||pending||inFlight.current)return;inFlight.current=true;setBusy(true);setQuote(null);try{setQuote(await api.get<Quote>(`/tour-departures/${departure}/quote?travellers=${travellers}&children=${children}&infants=${infants}&room_type=${room}${addons.length?`&addons=${encodeURIComponent(addons.join(','))}`:''}`));setNotice('مبلغ این درخواست دریافت شد؛ شرایط و مبلغ را پیش از ثبت ظرفیت بررسی کنید.')}catch{setNotice(children||infants?'ظرفیت، قیمت یا نرخ کودک/نوزاد این حرکت قابل تأیید نیست؛ حرکت یا اتاق دیگری انتخاب کنید یا تماس بگیرید.':'ظرفیت یا قیمت این حرکت قابل تأیید نیست؛ حرکت دیگری انتخاب کنید یا تماس بگیرید.')}finally{inFlight.current=false;setBusy(false)}}
+  async function send(command:Pending){if(!storage||loaded.key!==storage||inFlight.current)return;inFlight.current=true;setBusy(true);setNotice('');try{sessionStorage.setItem(storage,JSON.stringify(command))}catch{setNotice('امکان نگهداری درخواست در این مرورگر فراهم نیست؛ رزروی ارسال نشد. از مرورگر دیگری یا پشتیبانی کمک بگیرید.');inFlight.current=false;setBusy(false);return}setLoaded({key:storage,value:command});try{const result=await api.post<{reservation_id:string}>(`/tour-departures/${command.departure}/reservations`,command.body);try{sessionStorage.removeItem(storage)}catch{}if(activeKey.current!==storage)return;setLoaded({key:storage,value:null});router.push(`/checkout/${result.reservation_id}`)}catch(e){if(activeKey.current!==storage)return;if(e instanceof ApiError&&[404,409,422].includes(e.status)){try{sessionStorage.removeItem(storage)}catch{}setLoaded({key:storage,value:null});setQuote(null);setNotice('قیمت، ظرفیت یا شرایط تغییر کرده است؛ برای پذیرش مبلغ تازه دوباره استعلام بگیرید.')}else setNotice('پاسخ قطعی دریافت نشد؛ برای جلوگیری از رزرو تکراری همان درخواست را پیگیری کنید.')}finally{inFlight.current=false;if(activeKey.current===storage)setBusy(false)}}
+- function book(){if(!quote||busy||pending||!roomAvailable)return;if(!Number.isFinite(Date.parse(quote.expires_at))||Date.parse(quote.expires_at)<=Date.now()){setQuote(null);setNotice('زمان استعلام پایان یافته است؛ قیمت و ظرفیت را دوباره بررسی کنید.');return}void send({departure,body:{travellers,...(children?{children}:{}),...(infants?{infants}:{}),room_type:room,expected_total_amount:quote.total_amount,command_id:newId()}})}
+- return <section className="customer-page tour-marketplace"><Link href={back}>بازگشت به تورها</Link><h1>{tour?.title||'جزئیات تور'}</h1>{pending&&<section className="panel"><h2>درخواست تور در انتظار پاسخ قطعی</h2><p>پیش از رزرو تازه، نتیجهٔ همان انتخاب قبلی را پیگیری کنید.</p><button className="button primary" disabled={busy} onClick={()=>void send(pending)}>پیگیری همان تور</button> <Link href="/trips">بررسی سفرهای من</Link></section>}{error?<p role="alert">این تور در حساب شما در دسترس نیست. <Link href="/tours">جست‌وجوی دوباره</Link></p>:!tour?<p role="status">در حال دریافت…</p>:<><p className="tour-route">{tour.origin} ← {tour.destination}</p>{typeof tour.details.description==='string'&&<p>{tour.details.description}</p>}{Array.isArray(tour.details.itinerary)&&tour.details.itinerary.length>0&&<section className="panel"><h2>برنامهٔ سفر</h2><ol className="tour-itinerary">{tour.details.itinerary.flatMap(x=>typeof x==='string'?[x]:x&&typeof x==='object'&&'title' in x&&typeof x.title==='string'?[x.title]:[]).map((text,i)=><li key={i}>{text}</li>)}</ol></section>}{[['inclusions','خدمات شامل مبلغ'],['exclusions','خدمات خارج از مبلغ'],['requirements','مدارک و شرایط شرکت']].map(([key,label])=>terms(tour.details[key]).length>0&&<section className="panel" key={key}><h2>{label}</h2><ul>{terms(tour.details[key]).map((v,i)=><li key={i}>{v}</li>)}</ul></section>)}{!session?<section className="panel"><h2>حرکت‌ها و ادامهٔ رزرو</h2><p>برنامهٔ کاتالوگ عمومی به معنی تضمین موجودی یا دسترسی رزرو در همهٔ حساب‌ها نیست. قیمت و ظرفیت در حساب شما استعلام می‌شوند.</p>{tour.departures.map(d=><p key={d.id}>{new Date(d.starts_at).toLocaleDateString('fa-IR',{timeZone:'Asia/Tehran'})} تا {new Date(d.ends_at).toLocaleDateString('fa-IR',{timeZone:'Asia/Tehran'})}</p>)}<Link className="button primary" href={'/login?redirect='+encodeURIComponent('/tours/'+id+(back.includes('?')?'?'+back.split('?')[1]:''))}>ورود و استعلام تور</Link></section>:<section className="panel"><h2>حرکت و همراهان سفر</h2>{tour.departures.length===0?<p>حرکت قابل انتخاب ثبت نشده است.</p>:<fieldset disabled={busy||!!pending} className="stay-quote-form" style={{border:0,padding:0}}><label>حرکت تور<select aria-label="حرکت تور" value={departure} onChange={e=>{setDeparture(e.target.value);setQuote(null);remember(travellers,room,e.target.value)}}><option value="">انتخاب حرکت</option>{tour.departures.map(d=><option key={d.id} value={d.id} disabled={d.remaining<travellers+children}>{new Date(d.starts_at).toLocaleDateString('fa-IR',{timeZone:'Asia/Tehran'})} تا {new Date(d.ends_at).toLocaleDateString('fa-IR',{timeZone:'Asia/Tehran'})} — ظرفیت اعلام‌شده {d.remaining.toLocaleString('fa-IR')}</option>)}</select></label><label>تعداد مسافران (بزرگسال)<input type="number" min={1} max={100} value={travellers} onChange={e=>{const n=Math.max(1,Math.min(100,Number(e.target.value)||1));setTravellers(n);setQuote(null);remember(n,room,departure)}}/></label><label>کودک<input type="number" min={0} max={100} value={children} onChange={e=>{setChildren(Math.max(0,Math.min(100,Number(e.target.value)||0)));setQuote(null)}}/></label><label>نوزاد<input type="number" min={0} max={100} value={infants} onChange={e=>{setInfants(Math.max(0,Math.min(100,Number(e.target.value)||0)));setQuote(null)}}/></label><label>نوع اتاق<select aria-label="نوع اتاق" value={room} onChange={e=>{setRoom(e.target.value);setQuote(null);remember(travellers,e.target.value,departure)}}>{!roomAvailable&&<option value={room} disabled>نوع اتاق نیازمند انتخاب معتبر</option>}{roomChoices.map(value=><option key={value} value={value}>{({single:'یک‌نفره',double:'دونفره',triple:'سه‌نفره',extra_bed:'تخت اضافه'} as Record<string,string>)[value]}</option>)}</select></label><button className="button secondary" disabled={busy||!!pending||!departure||!roomAvailable||loaded.key!==storage} onClick={recheck}>استعلام مبلغ و ظرفیت</button>{departure&&!roomAvailable&&<p role="alert">برای نوع اتاق انتخابی نرخ ثبت نشده است؛ یکی از اتاق‌های اعلام‌شده را انتخاب کنید یا از پشتیبانی راهنمایی بگیرید.</p>}</fieldset>}{quote&&!pending&&<section className="tour-quote"><h2>برآورد نهایی درخواست</h2><p>{quote.total_amount.toLocaleString('fa-IR')} {quote.currency==='IRR'?'ریال':quote.currency} برای {travellers.toLocaleString('fa-IR')} بزرگسال{children?`، ${children.toLocaleString('fa-IR')} کودک`:''}{infants?`، ${infants.toLocaleString('fa-IR')} نوزاد`:''}</p>{quote.policy.description&&<p>{quote.policy.description}</p>}{quote.policy.cancellation?.description&&<p>{quote.policy.cancellation.description}</p>}{quote.policy.verified?<button className="button primary" disabled={busy||!storage||loaded.key!==storage} onClick={book}>پذیرش مبلغ و تکمیل اطلاعات مسافران</button>:<p>شرایط قرارداد هنوز تأیید نشده است؛ برای رزرو تماس بگیرید.</p>}</section>}</section>}</>}{notice&&<p role="status">{notice}</p>}<ContactOptions/></section>
++ function book(){if(!quote||busy||pending||!roomAvailable)return;if(!Number.isFinite(Date.parse(quote.expires_at))||Date.parse(quote.expires_at)<=Date.now()){setQuote(null);setNotice('زمان استعلام پایان یافته است؛ قیمت و ظرفیت را دوباره بررسی کنید.');return}void send({departure,body:{travellers,...(children?{children}:{}),...(infants?{infants}:{}),room_type:room,expected_total_amount:quote.total_amount,command_id:newId(),...(addons.length?{addons}:{})}})}
++ return <section className="customer-page tour-marketplace"><Link href={back}>بازگشت به تورها</Link><h1>{tour?.title||'جزئیات تور'}</h1>{pending&&<section className="panel"><h2>درخواست تور در انتظار پاسخ قطعی</h2><p>پیش از رزرو تازه، نتیجهٔ همان انتخاب قبلی را پیگیری کنید.</p><button className="button primary" disabled={busy} onClick={()=>void send(pending)}>پیگیری همان تور</button> <Link href="/trips">بررسی سفرهای من</Link></section>}{error?<p role="alert">این تور در حساب شما در دسترس نیست. <Link href="/tours">جست‌وجوی دوباره</Link></p>:!tour?<p role="status">در حال دریافت…</p>:<><p className="tour-route">{tour.origin} ← {tour.destination}</p>{typeof tour.details.description==='string'&&<p>{tour.details.description}</p>}<TourShowcase details={tour.details}/>{hasRoute&&<p><Link className="button secondary" href={`/tours/${id}/route`}>مشاهدهٔ شبیه‌ساز مسیر پرواز و ترانسفر</Link></p>}{Array.isArray(tour.details.itinerary)&&tour.details.itinerary.length>0&&<section className="panel"><h2>برنامهٔ سفر</h2><ol className="tour-itinerary">{tour.details.itinerary.flatMap(x=>typeof x==='string'?[x]:x&&typeof x==='object'&&'title' in x&&typeof x.title==='string'?[x.title]:[]).map((text,i)=><li key={i}>{text}</li>)}</ol></section>}{[['inclusions','خدمات شامل مبلغ'],['exclusions','خدمات خارج از مبلغ'],['requirements','مدارک و شرایط شرکت']].map(([key,label])=>terms(tour.details[key]).length>0&&<section className="panel" key={key}><h2>{label}</h2><ul>{terms(tour.details[key]).map((v,i)=><li key={i}>{v}</li>)}</ul></section>)}{!session?<section className="panel"><h2>حرکت‌ها و ادامهٔ رزرو</h2><p>برنامهٔ کاتالوگ عمومی به معنی تضمین موجودی یا دسترسی رزرو در همهٔ حساب‌ها نیست. قیمت و ظرفیت در حساب شما استعلام می‌شوند.</p>{tour.departures.map(d=><p key={d.id}>{new Date(d.starts_at).toLocaleDateString('fa-IR',{timeZone:'Asia/Tehran'})} تا {new Date(d.ends_at).toLocaleDateString('fa-IR',{timeZone:'Asia/Tehran'})}</p>)}<Link className="button primary" href={'/login?redirect='+encodeURIComponent('/tours/'+id+(back.includes('?')?'?'+back.split('?')[1]:''))}>ورود و استعلام تور</Link></section>:<section className="panel"><h2>حرکت و همراهان سفر</h2>{tour.departures.length===0?<p>حرکت قابل انتخاب ثبت نشده است.</p>:<fieldset disabled={busy||!!pending} className="stay-quote-form" style={{border:0,padding:0}}><label>حرکت تور<select aria-label="حرکت تور" value={departure} onChange={e=>{setDeparture(e.target.value);setAddons([]);setQuote(null);remember(travellers,room,e.target.value)}}><option value="">انتخاب حرکت</option>{tour.departures.map(d=><option key={d.id} value={d.id} disabled={d.remaining<travellers+children}>{new Date(d.starts_at).toLocaleDateString('fa-IR',{timeZone:'Asia/Tehran'})} تا {new Date(d.ends_at).toLocaleDateString('fa-IR',{timeZone:'Asia/Tehran'})} — ظرفیت اعلام‌شده {d.remaining.toLocaleString('fa-IR')}</option>)}</select></label><label>تعداد مسافران (بزرگسال)<input type="number" min={1} max={100} value={travellers} onChange={e=>{const n=Math.max(1,Math.min(100,Number(e.target.value)||1));setTravellers(n);setQuote(null);remember(n,room,departure)}}/></label><label>کودک<input type="number" min={0} max={100} value={children} onChange={e=>{setChildren(Math.max(0,Math.min(100,Number(e.target.value)||0)));setQuote(null)}}/></label><label>نوزاد<input type="number" min={0} max={100} value={infants} onChange={e=>{setInfants(Math.max(0,Math.min(100,Number(e.target.value)||0)));setQuote(null)}}/></label><label>نوع اتاق<select aria-label="نوع اتاق" value={room} onChange={e=>{setRoom(e.target.value);setQuote(null);remember(travellers,e.target.value,departure)}}>{!roomAvailable&&<option value={room} disabled>نوع اتاق نیازمند انتخاب معتبر</option>}{roomChoices.map(value=><option key={value} value={value}>{({single:'یک‌نفره',double:'دونفره',triple:'سه‌نفره',extra_bed:'تخت اضافه'} as Record<string,string>)[value]}</option>)}</select></label><PackageBuilder addons={departureAddons} selected={addons} disabled={busy||!!pending} onChange={codes=>{setAddons(codes);setQuote(null)}}/><button className="button secondary" disabled={busy||!!pending||!departure||!roomAvailable||loaded.key!==storage} onClick={recheck}>استعلام مبلغ و ظرفیت</button>{departure&&!roomAvailable&&<p role="alert">برای نوع اتاق انتخابی نرخ ثبت نشده است؛ یکی از اتاق‌های اعلام‌شده را انتخاب کنید یا از پشتیبانی راهنمایی بگیرید.</p>}</fieldset>}{quote&&!pending&&<section className="tour-quote"><h2>برآورد نهایی درخواست</h2><p>{quote.total_amount.toLocaleString('fa-IR')} {quote.currency==='IRR'?'ریال':quote.currency} برای {travellers.toLocaleString('fa-IR')} بزرگسال{children?`، ${children.toLocaleString('fa-IR')} کودک`:''}{infants?`، ${infants.toLocaleString('fa-IR')} نوزاد`:''}</p>{quote.addons&&quote.addons.length>0&&<ul className="pb-summary"><li><span>پایهٔ تور</span><b>{(quote.base_amount??0).toLocaleString('fa-IR')} ریال</b></li>{quote.addons.map(a=><li key={a.code}><span>{a.title}{a.quantity>1?` × ${a.quantity.toLocaleString('fa-IR')}`:''}</span><b>{a.amount===0?'رایگان':a.amount.toLocaleString('fa-IR')+' ریال'}</b></li>)}</ul>}{quote.policy.description&&<p>{quote.policy.description}</p>}{quote.policy.cancellation?.description&&<p>{quote.policy.cancellation.description}</p>}{quote.policy.verified?<button className="button primary" disabled={busy||!storage||loaded.key!==storage} onClick={book}>پذیرش مبلغ و تکمیل اطلاعات مسافران</button>:<p>شرایط قرارداد هنوز تأیید نشده است؛ برای رزرو تماس بگیرید.</p>}</section>}</section>}</>}{notice&&<p role="status">{notice}</p>}<ContactOptions/></section>
+ }
+diff --git a/components/panel/PanelKit.tsx b/components/panel/PanelKit.tsx
+index 0f10f0b..adaaa35 100644
+--- a/components/panel/PanelKit.tsx
++++ b/components/panel/PanelKit.tsx
+@@ -15,7 +15,7 @@ const NAV: Record<Area, {title: string; links: [string, string][]}> = {
+   customer: {title: 'حساب من', links: [['نمای کلی', '/account'], ['درخواست‌های قطار', '/account/train-requests'], ['شهرشاد، پادویرا و سوغات', '/account/partner-requests'], ['پروفایل و مسافران', '/account/profile'], ['رزروها و سفرها', '/account/bookings'], ['تغییرات سفر', '/account/changes'], ['ویزا', '/account/visa'], ['مدارک مسافران', '/account/documents'], ['پرداخت و فاکتور', '/account/payments'], ['لغو و استرداد', '/account/refunds'], ['کیف پول و اعتبار', '/account/wallet'], ['مزایای سازمانی', '/account/benefits'], ['ذخیره‌شده‌ها و پیشنهادها', '/account/saved'], ['اعلان‌ها', '/account/notifications'], ['امنیت ورود', '/account/security'], ['پشتیبانی', '/account/support']]},
+   organization: {title: 'پنل سازمان', links: [['نمای کلی', '/organization'], ['میز کار کارمند', '/employee'], ['کارکنان و دسترسی‌ها', '/organization/members'], ['درخواست و تأیید سفر', '/organization/requests'], ['سیاست سفر', '/organization/policy'], ['واحدها و مراکز هزینه', '/organization/structure'], ['اعتبار و اقساط', '/organization/credit'], ['رزروهای سازمان', '/organization/bookings'], ['صورتحساب و تسویه', '/organization/billing'], ['گزارش', '/organization/reports'], ['سوابق و گردش تأیید', '/organization/audit'], ['تعهد مالی سفر', '/organization/financial-context']]},
+   agency: {title: 'پنل همکار', links: [['نمای کلی', '/agency'], ['فروش و پیشنهاد قیمت', '/agency/sales'], ['رزروها', '/agency/bookings'], ['مشتریان', '/agency/customers'], ['کمیسیون', '/agency/commissions'], ['اعتبار و حساب', '/agency/credit'], ['تسویه و اسناد', '/agency/documents'], ['گزارش', '/agency/reports'], ['میز کار کامل', '/agency/workspace'], ['پشتیبانی', '/agency/support']]},
+-  supplier: {title: 'پنل تأمین‌کننده', links: [['نمای کلی', '/supplier'], ['خدمات، نرخ و ظرفیت', '/supplier/services'], ['تورهای من', '/supplier/tours'], ['هتل‌های من', '/supplier/hotels'], ['اقامتگاه و تقویم', '/supplier/accommodation'], ['سفارش‌ها و تأیید', '/supplier/fulfillment'], ['کنترل بلیت', '/supplier/admission'], ['درخواست‌های سازمانی', '/supplier/rfqs'], ['تسویه و قرارداد', '/supplier/settlements'], ['گزارش', '/supplier/reports'], ['پشتیبانی', '/supplier/support'], ['روابط مالی قرارداد', '/supplier/financial-context']]},
++  supplier: {title: 'پنل تأمین‌کننده', links: [['نمای کلی', '/supplier'], ['خدمات، نرخ و ظرفیت', '/supplier/services'], ['تورهای من', '/supplier/tours'], ['تجربه‌ها و کارگاه‌ها', '/supplier/experiences'], ['هتل‌های من', '/supplier/hotels'], ['اقامتگاه و تقویم', '/supplier/accommodation'], ['سفارش‌ها و تأیید', '/supplier/fulfillment'], ['کنترل بلیت', '/supplier/admission'], ['درخواست‌های سازمانی', '/supplier/rfqs'], ['تسویه و قرارداد', '/supplier/settlements'], ['گزارش', '/supplier/reports'], ['پشتیبانی', '/supplier/support'], ['روابط مالی قرارداد', '/supplier/financial-context']]},
+   admin: {title: 'مدیریت مجموعه', links: [['پیشخوان عملیات', '/admin/ops'], ['محتوای سایت', '/admin/content'], ['میز بلیت قطار', '/admin/train-desk'], ['خدمات همکار', '/admin/partner-requests'], ['پرونده‌ی قرارداد', '/admin/contracts'], ['صف مدارک مسافران', '/admin/documents'], ['کاربران و نقش‌ها', '/admin'], ['مستأجرها و وایت‌لیبل', '/admin/tenants'], ['سازمان‌ها', '/admin/organizations'], ['تأمین‌کنندگان و آژانس‌ها', '/admin/partners'], ['سوابق ممیزی', '/admin/audit'], ['هتل‌ها', '/admin/catalog'], ['داده‌های مرجع', '/admin/catalog/reference'], ['تورها', '/admin/tours'], ['سفرساز', '/admin/safarsaz'], ['میز گفتگو و فروش', '/admin/sales-desk'], ['حلقه‌ی همسفران', '/admin/loyalty'], ['کمپین پیامکی', '/admin/sms-campaigns'], ['عملیات و پشتیبانی', '/backoffice'], ['مالی', '/finance'], ['صندوق و حساب‌ها', '/finance/treasury'], ['قوانین فروش', '/admin/commerce'], ['پرواز و موجودی', '/admin/inventory'], ['سهمیه‌ی همکاران', '/admin/charter-quotas'], ['گزارش فروش', '/finance/reports'], ['سود و کمیسیون فروش', '/finance/markup-revenue'], ['خروجی فرانگر', '/finance/journal-export'], ['مطالبات سازمان‌ها', '/finance/receivables'], ['دفتر کل و بستن دوره', '/finance/ledger'], ['عملکرد و تطبیق تأمین‌کنندگان', '/finance/suppliers'], ['روابط مالی اکوسیستم', '/admin/ecosystem']]},
+ };
+ const ORG_ROLES = ['manager', 'welfare_manager', 'organization_admin', 'tenant_admin', 'platform_admin', 'employee'];
+diff --git a/components/supplier/HostExperiencePortal.tsx b/components/supplier/HostExperiencePortal.tsx
+new file mode 100644
+index 0000000..3cb53d7
+--- /dev/null
++++ b/components/supplier/HostExperiencePortal.tsx
+@@ -0,0 +1,74 @@
++'use client';
++/* Stitch round 6 — desktop/16 «پورتال تأمین‌کنندگان تجربیات بومی و کارگاه‌ها». All figures come from /supplier/experience-portal. */
++import {useState} from 'react';
++import {Async, Card, Empty, Stats, Unavailable, dateFa, errorOf, fa, money, useLoad} from '../panel/PanelKit';
++import {newId} from '../../lib/api/karenseir-client';
++import '../tours/tours-round6.css';
++
++type Ticket = {id: string; label: string; price: number; currency: string};
++type Product = {id: string; title: string; service_type: string; status: string; duration_minutes?: number | null; description?: string; ticket_types: Ticket[]; upcoming_sessions: number};
++type SessionRow = {id: string; experience_product_id: string; product_title: string; starts_at: string; ends_at: string; capacity_total: number; capacity_available?: number; seats_sold: number; status: string};
++type Arrival = {reservation_id: string; booking_reference?: string | null; status: string; session_id: string; starts_at: string; product_title: string; guests: number; amount: number; currency: string};
++type Portal = {places: {id: string; name: string; city: string}[]; products: Product[]; sessions: SessionRow[]; arrivals: Arrival[]; kpis: {sessions: number; seats_total: number; seats_sold: number; bookings: number; gross_amount: number; currency: string; window_days: number}; payout: {provider: string; status: string}};
++const time = (iso: string) => new Date(iso).toLocaleTimeString('fa-IR', {hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Tehran'});
++const dayKey = (iso: string) => new Date(iso).toLocaleDateString('en-CA', {timeZone: 'Asia/Tehran'});
++
++export function HostExperiencePortal() {
++  const {state, reload, api} = useLoad<Portal>('/supplier/experience-portal?days=30');
++  const [form, setForm] = useState({product: '', start: '', minutes: 120, capacity: 10});
++  const [busy, setBusy] = useState(false), [note, setNote] = useState('');
++  async function addSession(e: React.FormEvent) {
++    e.preventDefault(); if (!form.product || !form.start || busy) return;
++    const start = new Date(form.start); if (Number.isNaN(start.getTime()) || start <= new Date()) {setNote('زمان شروع باید در آینده باشد.'); return;}
++    setBusy(true); setNote('');
++    try {
++      await api.post(`/supplier/experience-products/${form.product}/sessions`, {starts_at: start.toISOString(), ends_at: new Date(start.getTime() + form.minutes * 60000).toISOString(), capacity_total: form.capacity}, newId());
++      setNote('سانس تازه ثبت شد.'); setForm(f => ({...f, start: ''})); reload();
++    } catch (err) {setNote(errorOf(err).message || 'ثبت سانس انجام نشد.');} finally {setBusy(false);}
++  }
++  return <Async state={state}>{d => {
++    const today = dayKey(new Date().toISOString()), tomorrow = dayKey(new Date(Date.now() + 864e5).toISOString());
++    const todays = d.arrivals.filter(a => dayKey(a.starts_at) === today), nexts = d.arrivals.filter(a => dayKey(a.starts_at) === tomorrow);
++    const fill = d.kpis.seats_total ? Math.round((d.kpis.seats_sold / d.kpis.seats_total) * 100) : 0;
++    return <div className="host-portal">
++      <Stats items={[
++        {label: `فروش ناخالص ${fa(d.kpis.window_days)} روز آینده`, value: money(d.kpis.gross_amount, d.kpis.currency), hint: 'از رزروهای ثبت‌شده'},
++        {label: 'رزروهای فعال', value: fa(d.kpis.bookings)},
++        {label: 'سانس‌های پیش رو', value: fa(d.kpis.sessions)},
++        {label: 'ظرفیت فروخته‌شده', value: `${fa(fill)}٪`, hint: `${fa(d.kpis.seats_sold)} از ${fa(d.kpis.seats_total)} صندلی`},
++      ]}/>
++      <div className="hp-grid">
++        <Card title="کاتالوگ کارگاه‌ها و مسترکلاس‌ها">{d.products.length === 0 ? <Empty>هنوز تجربه یا کارگاهی ثبت نکرده‌اید. از «خدمات، نرخ و ظرفیت» مکان و محصول را بسازید.</Empty> :
++          <div className="hp-products">{d.products.map(p => <article key={p.id} className="hp-product">
++            <header><b>{p.title}</b><span className={`hp-status ${p.status}`}>{p.status === 'published' ? 'فعال' : p.status === 'draft' ? 'پیش‌نویس' : p.status}</span></header>
++            {p.description && <p>{p.description}</p>}
++            <small>{p.duration_minutes ? `${fa(p.duration_minutes)} دقیقه · ` : ''}{p.ticket_types.length ? p.ticket_types.map(t => `${t.label}: ${money(t.price, t.currency)}`).join(' · ') : 'نرخ بلیت ثبت نشده'}</small>
++            <small>{fa(p.upcoming_sessions)} سانس در پیش</small>
++          </article>)}</div>}
++        </Card>
++        <Card title="ورود کاروان‌های امروز و فردا">
++          {[['امروز', todays], ['فردا', nexts]].map(([label, list]) => <div key={label as string} className="hp-arrivals"><h3>{label as string}</h3>
++            {(list as Arrival[]).length === 0 ? <p className="pn-muted">ورودی ثبت نشده است.</p> : <ul>{(list as Arrival[]).map(a => <li key={a.reservation_id}><b>{time(a.starts_at)}</b><span>{a.product_title}</span><span>{fa(a.guests)} نفر</span><small>{a.booking_reference || '—'}</small></li>)}</ul>}
++          </div>)}
++        </Card>
++      </div>
++      <Card title="سانس‌ها و ظرفیت">
++        {d.sessions.length === 0 ? <Empty>سانسی در {fa(d.kpis.window_days)} روز آینده ندارید.</Empty> :
++          <table className="hp-sessions"><thead><tr><th>تجربه</th><th>تاریخ</th><th>ساعت</th><th>ظرفیت</th><th>فروش</th></tr></thead><tbody>{d.sessions.map(s => <tr key={s.id}><td>{s.product_title}</td><td>{dateFa(s.starts_at)}</td><td>{time(s.starts_at)}</td><td>{fa(s.capacity_total)}</td><td><div className="hp-bar" role="img" aria-label={`${fa(s.seats_sold)} از ${fa(s.capacity_total)}`}><i style={{width: `${Math.min(100, (s.seats_sold / Math.max(1, s.capacity_total)) * 100)}%`}}/></div><small>{fa(s.seats_sold)} / {fa(s.capacity_total)}</small></td></tr>)}</tbody></table>}
++        {d.products.length > 0 && <form className="hp-form" onSubmit={addSession}>
++          <h3>افزودن سانس تازه</h3>
++          <label>تجربه<select required value={form.product} onChange={e => setForm({...form, product: e.target.value})}><option value="">انتخاب</option>{d.products.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}</select></label>
++          <label>شروع<input required type="datetime-local" value={form.start} onChange={e => setForm({...form, start: e.target.value})}/></label>
++          <label>مدت (دقیقه)<input type="number" min={15} max={1440} value={form.minutes} onChange={e => setForm({...form, minutes: Math.max(15, Number(e.target.value) || 15)})}/></label>
++          <label>ظرفیت<input type="number" min={1} max={500} value={form.capacity} onChange={e => setForm({...form, capacity: Math.max(1, Number(e.target.value) || 1)})}/></label>
++          <button className="pn-btn" disabled={busy}>{busy ? 'در حال ثبت…' : 'ثبت سانس'}</button>
++          {note && <p role="status">{note}</p>}
++        </form>}
++      </Card>
++      <Card title="تسویهٔ مالی میزبان">
++        {d.payout.status === 'configured' ? <p>تسویه از طریق درگاه ونداپی انجام می‌شود؛ وجه پس از تأیید ورود مسافر و طبق قرارداد به حساب شما واریز می‌شود.</p> :
++          <Unavailable title="تسویهٔ آنی هنوز فعال نیست">کیف پول و تسویهٔ آنی میزبان پس از فعال شدن درگاه ونداپی برای کارن تراول روشن می‌شود. تا آن زمان تسویه طبق قرارداد و از بخش «تسویه‌ها» پیگیری می‌شود.</Unavailable>}
++      </Card>
++    </div>;
++  }}</Async>;
++}
+diff --git a/components/tours/PackageBuilder.tsx b/components/tours/PackageBuilder.tsx
+new file mode 100644
+index 0000000..3e562bf
+--- /dev/null
++++ b/components/tours/PackageBuilder.tsx
+@@ -0,0 +1,22 @@
++'use client';
++/* Stitch round 6 — «سفارشی‌سازی خدمات اختصاصی». Options and prices come only from the organiser's departure; the total is re-quoted by the server. */
++import './tours-round6.css';
++
++export type Addon = {code: string; title: string; price?: number; unit: 'person' | 'booking'; category: string; description?: string};
++const CATEGORY_FA: Record<string, string> = {food: 'رژیم و ترجیحات غذایی', accessibility: 'پایش توان جسمی و حرکتی', transport: 'ترابری و حمل‌ونقل سفر', room: 'ارتقای اقامت', activity: 'برنامه‌های تکمیلی', insurance: 'بیمه و پوشش', other: 'سایر خدمات'};
++
++export function PackageBuilder({addons, selected, onChange, disabled}: {addons: Addon[]; selected: string[]; onChange: (codes: string[]) => void; disabled?: boolean}) {
++  if (!addons.length) return null;
++  const groups = addons.reduce<Record<string, Addon[]>>((acc, a) => {(acc[a.category] ||= []).push(a); return acc;}, {});
++  const toggle = (code: string) => onChange(selected.includes(code) ? selected.filter(c => c !== code) : [...selected, code]);
++  return <section className="package-builder" aria-label="سفارشی‌سازی پکیج">
++    <h3>سفارشی‌سازی خدمات اختصاصی</h3><p className="pb-intro">برنامه را متناسب با نیازها و آسایش خود شخصی‌سازی کنید. مبلغ نهایی پس از انتخاب، دوباره از سامانه استعلام می‌شود.</p>
++    {Object.entries(groups).map(([cat, items]) => <fieldset key={cat} className="pb-group" disabled={disabled}><legend>{CATEGORY_FA[cat] || cat}</legend>
++      {items.map(a => <label key={a.code} className={`pb-option${selected.includes(a.code) ? ' on' : ''}`}>
++        <input type="checkbox" checked={selected.includes(a.code)} onChange={() => toggle(a.code)}/>
++        <span><b>{a.title}</b>{a.description && <small>{a.description}</small>}</span>
++        <em>{typeof a.price === 'number' ? (a.price === 0 ? 'رایگان' : `${a.price.toLocaleString('fa-IR')} ریال${a.unit === 'person' ? ' برای هر نفر' : ' برای کل رزرو'}`) : 'قیمت پس از ورود'}</em>
++      </label>)}
++    </fieldset>)}
++  </section>;
++}
+diff --git a/components/tours/RouteSimulator.tsx b/components/tours/RouteSimulator.tsx
+new file mode 100644
+index 0000000..f4579d9
+--- /dev/null
++++ b/components/tours/RouteSimulator.tsx
+@@ -0,0 +1,71 @@
++'use client';
++/* Stitch round 6 — desktop/15 «شبیه‌ساز مسیر پرواز و ترانسفر». Draws only the organiser's itinerary stops that carry real coordinates. */
++import {useEffect, useMemo, useRef, useState} from 'react';
++import './tours-round6.css';
++
++export type Stop = {title: string; place?: string; day?: number; time?: string; mode?: string; note?: string; lat?: number; lng?: number};
++const MODE_FA: Record<string, string> = {flight: 'پرواز', road: 'زمینی', rail: 'ریلی', walk: 'پیاده', stay: 'اقامت', activity: 'برنامه'};
++const W = 1000, H = 560, PAD = 70;
++
++export function RouteSimulator({stops: raw, title}: {stops: Stop[]; title?: string}) {
++  const stops = useMemo(() => raw.filter(s => typeof s.lat === 'number' && typeof s.lng === 'number'), [raw]);
++  const [progress, setProgress] = useState(0); // 0..stops.length-1
++  const [playing, setPlaying] = useState(false);
++  const [speed, setSpeed] = useState(1);
++  const last = useRef<number | null>(null);
++  const points = useMemo(() => {
++    if (stops.length === 0) return [];
++    const lats = stops.map(s => s.lat as number), lngs = stops.map(s => s.lng as number);
++    const minLat = Math.min(...lats), maxLat = Math.max(...lats), minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
++    const spanLng = Math.max(maxLng - minLng, 0.5), spanLat = Math.max(maxLat - minLat, 0.5);
++    const k = Math.min((W - 2 * PAD) / spanLng, (H - 2 * PAD) / spanLat);
++    const ox = (W - spanLng * k) / 2, oy = (H - spanLat * k) / 2;
++    // RTL map is still geographic: east is right.
++    const raw = stops.map(s => ({x: ox + ((s.lng as number) - minLng) * k, y: oy + (maxLat - (s.lat as number)) * k}));
++    // Stops at the same place (e.g. return to origin) are fanned out so both stay visible and clickable.
++    return raw.map((p, i) => {const same = raw.slice(0, i).filter(q => Math.hypot(q.x - p.x, q.y - p.y) < 6).length; return same ? {x: p.x + same * 34, y: p.y + same * 30} : p;});
++  }, [stops]);
++  const max = Math.max(0, points.length - 1);
++  useEffect(() => {
++    if (!playing) {last.current = null; return;}
++    let raf = 0;
++    const tick = (t: number) => {
++      if (last.current !== null) setProgress(p => {const n = p + ((t - last.current!) / 2500) * speed; if (n >= max) {setPlaying(false); return max;} return n;});
++      last.current = t; raf = requestAnimationFrame(tick);
++    };
++    raf = requestAnimationFrame(tick);
++    return () => cancelAnimationFrame(raf);
++  }, [playing, speed, max]);
++  if (points.length < 2) return <div className="route-sim empty"><b>شبیه‌ساز مسیر هنوز آماده نیست</b><p>برای نمایش مسیر، برگزارکننده باید دست‌کم دو توقف برنامهٔ سفر را با مختصات جغرافیایی ثبت کند.</p></div>;
++  const seg = Math.min(Math.floor(progress), max - 1), frac = progress - seg;
++  const a = points[seg], b = points[seg + 1];
++  const curve = (p: {x: number; y: number}, q: {x: number; y: number}, flight: boolean) => {const mx = (p.x + q.x) / 2, my = (p.y + q.y) / 2 - (flight ? Math.hypot(q.x - p.x, q.y - p.y) * 0.25 : 0); return {mx, my};};
++  const isFlight = (i: number) => stops[i + 1]?.mode === 'flight' || stops[i]?.mode === 'flight';
++  const {mx, my} = curve(a, b, isFlight(seg));
++  const bez = (t: number) => ({x: (1 - t) ** 2 * a.x + 2 * (1 - t) * t * mx + t * t * b.x, y: (1 - t) ** 2 * a.y + 2 * (1 - t) * t * my + t * t * b.y});
++  const marker = progress >= max ? points[max] : bez(frac);
++  const current = Math.min(Math.round(progress), max);
++  const jump = (i: number) => {setPlaying(false); setProgress(Math.max(0, Math.min(max, i)));};
++  return <section className="route-sim" aria-label="شبیه‌ساز مسیر سفر">
++    <div className="rs-stage">
++      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`مسیر ${title || 'تور'} در ${points.length.toLocaleString('fa-IR')} توقف`}>
++        <defs><linearGradient id="rs-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#f6e7d6"/><stop offset="1" stopColor="#ead3bd"/></linearGradient></defs>
++        <rect width={W} height={H} rx="28" fill="url(#rs-sky)"/>
++        {points.slice(0, -1).map((p, i) => {const q = points[i + 1]; const c = curve(p, q, isFlight(i)); return <path key={i} d={`M${p.x},${p.y} Q${c.mx},${c.my} ${q.x},${q.y}`} className={`rs-leg ${isFlight(i) ? 'flight' : 'ground'} ${i < seg || progress >= max ? 'done' : ''}`}/>;})}
++        {points.map((p, i) => <g key={i} className={`rs-stop ${i === current ? 'now' : ''} ${i < progress ? 'past' : ''}`} onClick={() => jump(i)} tabIndex={0} role="button" aria-label={`توقف ${(i + 1).toLocaleString('fa-IR')}: ${stops[i].place || stops[i].title}`} onKeyDown={e => {if (e.key === 'Enter') jump(i);}}>
++          <circle cx={p.x} cy={p.y} r="14"/><text x={p.x} y={p.y + 5} textAnchor="middle">{(i + 1).toLocaleString('fa-IR')}</text>
++          <text className="rs-label" x={p.x} y={p.y - 24} textAnchor="middle">{stops[i].place || stops[i].title}</text></g>)}
++        <g className="rs-marker" transform={`translate(${marker.x},${marker.y})`}><circle r="11"/><text y="5" textAnchor="middle">{isFlight(seg) ? '✈' : '●'}</text></g>
++      </svg>
++      <div className="rs-hud"><b>{stops[current].title}</b><span>{stops[current].day ? `روز ${stops[current].day!.toLocaleString('fa-IR')}` : ''}{stops[current].time ? ` · ${stops[current].time}` : ''}{stops[current].mode ? ` · ${MODE_FA[stops[current].mode!] || ''}` : ''}</span></div>
++    </div>
++    <div className="rs-controls">
++      <button type="button" className="rs-play" onClick={() => {if (progress >= max) setProgress(0); setPlaying(p => !p);}} aria-pressed={playing}>{playing ? '❚❚ توقف' : '▶ پخش مسیر'}</button>
++      <button type="button" onClick={() => jump(Math.ceil(progress) - 1)} disabled={progress <= 0}>توقف قبلی</button>
++      <button type="button" onClick={() => jump(Math.floor(progress) + 1)} disabled={progress >= max}>توقف بعدی</button>
++      <input type="range" min={0} max={max} step={0.01} value={progress} aria-label="پیشرفت مسیر" onChange={e => {setPlaying(false); setProgress(Number(e.target.value));}}/>
++      <div className="rs-speed" role="group" aria-label="سرعت">{[1, 2, 4].map(s => <button key={s} type="button" aria-pressed={speed === s} onClick={() => setSpeed(s)}>{s.toLocaleString('fa-IR')}×</button>)}</div>
++    </div>
++    <ol className="rs-timeline">{stops.map((s, i) => <li key={i} className={i === current ? 'now' : i < progress ? 'past' : ''}><button type="button" onClick={() => jump(i)}><b>{(i + 1).toLocaleString('fa-IR')}. {s.title}</b><small>{[s.day ? `روز ${s.day.toLocaleString('fa-IR')}` : '', s.time, s.mode ? MODE_FA[s.mode] : '', s.place].filter(Boolean).join(' · ')}</small>{s.note && <span>{s.note}</span>}</button></li>)}</ol>
++  </section>;
++}
+diff --git a/components/tours/TourRouteView.tsx b/components/tours/TourRouteView.tsx
+new file mode 100644
+index 0000000..2ec83e1
+--- /dev/null
++++ b/components/tours/TourRouteView.tsx
+@@ -0,0 +1,20 @@
++'use client';
++import Link from 'next/link';
++import {useEffect, useState} from 'react';
++import {useAuth} from '../../lib/api/auth-context';
++import {RouteSimulator, type Stop} from './RouteSimulator';
++
++type Tour = {id: string; title: string; origin: string; destination: string; details: Record<string, unknown>};
++
++export function TourRouteView({id}: {id: string}) {
++  const {api, session} = useAuth();
++  const [tour, setTour] = useState<Tour | null>(null), [error, setError] = useState(false);
++  useEffect(() => {let active = true; setError(false); (session ? api.get<Tour>(`/tour-products/${id}`) : api.publicGet<Tour>(`/public/tour-products/${id}`)).then(t => {if (active) setTour(t);}).catch(() => {if (active) setError(true);}); return () => {active = false;};}, [api, session, id]);
++  const stops: Stop[] = Array.isArray(tour?.details.itinerary) ? (tour!.details.itinerary as unknown[]).flatMap(x => typeof x === 'string' ? [{title: x}] : x && typeof x === 'object' && typeof (x as Stop).title === 'string' ? [x as Stop] : []) : [];
++  return <section className="customer-page tour-route-page">
++    <Link href={`/tours/${id}`}>بازگشت به جزئیات تور</Link>
++    <h1>شبیه‌ساز مسیر سفر{tour ? `: ${tour.title}` : ''}</h1>
++    {tour && <p className="tour-route">{tour.origin} ← {tour.destination}</p>}
++    {error ? <p role="alert">این تور در دسترس نیست. <Link href="/tours">جست‌وجوی تورها</Link></p> : !tour ? <p role="status">در حال دریافت…</p> : <RouteSimulator stops={stops} title={tour.title}/>}
++  </section>;
++}
+diff --git a/components/tours/TourShowcase.tsx b/components/tours/TourShowcase.tsx
+new file mode 100644
+index 0000000..8252040
+--- /dev/null
++++ b/components/tours/TourShowcase.tsx
+@@ -0,0 +1,38 @@
++'use client';
++/* Stitch round 6 — mobile/08 «Tour 360 Showcase». Organiser-supplied equirectangular images only; no stock or invented media. */
++import {useRef, useState} from 'react';
++import './tours-round6.css';
++
++type Hotspot = {label: string; yaw: number};
++type Scene = {url: string; title?: string; hotspots?: Hotspot[]};
++type Narration = {title: string; guide?: string; audio_url?: string | null};
++
++export function TourShowcase({details}: {details: Record<string, unknown>}) {
++  const scenes = (Array.isArray(details.media_360) ? details.media_360 : []).filter((s): s is Scene => !!s && typeof s === 'object' && typeof (s as Scene).url === 'string');
++  const narration = details.narration && typeof details.narration === 'object' && typeof (details.narration as Narration).title === 'string' ? details.narration as Narration : null;
++  const [index, setIndex] = useState(0);
++  const [yaw, setYaw] = useState(0);
++  const drag = useRef<{x: number; yaw: number} | null>(null);
++  if (scenes.length === 0 && !narration) return null;
++  const scene = scenes[Math.min(index, scenes.length - 1)];
++  const norm = (v: number) => ((v % 360) + 360) % 360;
++  const turn = (delta: number) => setYaw(v => norm(v + delta));
++  return <section className="tour-showcase" aria-label="نمای ۳۶۰ درجه تور">
++    {scene && <>
++      <div className="ts-viewer" role="img" aria-label={scene.title || 'تصویر ۳۶۰ درجه'} tabIndex={0}
++        style={{backgroundImage: `url("${scene.url.replace(/"/g, '')}")`, backgroundPositionX: `${-(yaw / 360) * 100 * 4}%`}}
++        onPointerDown={e => {drag.current = {x: e.clientX, yaw}; (e.target as HTMLElement).setPointerCapture?.(e.pointerId);}}
++        onPointerMove={e => {if (drag.current) setYaw(norm(drag.current.yaw - (e.clientX - drag.current.x) * 0.4));}}
++        onPointerUp={() => {drag.current = null;}} onPointerCancel={() => {drag.current = null;}}
++        onKeyDown={e => {if (e.key === 'ArrowLeft') turn(15); if (e.key === 'ArrowRight') turn(-15);}}>
++        {(scene.hotspots || []).map(h => {const rel = ((norm(h.yaw - yaw) + 180) % 360) - 180; return Math.abs(rel) < 70 ? <span key={h.label} className="ts-hotspot" style={{insetInlineStart: `${50 - rel / 1.4}%`}}><i aria-hidden="true"/>{h.label}</span> : null;})}
++        <span className="ts-angle">زاویه: {Math.round(yaw).toLocaleString('fa-IR')}°</span>
++        <span className="ts-hint">برای چرخش ۳۶۰ درجه به طرفین بکشید</span>
++        <div className="ts-controls"><button type="button" aria-label="چرخش به راست" onClick={() => turn(-45)}>›</button><button type="button" aria-label="چرخش به چپ" onClick={() => turn(45)}>‹</button></div>
++      </div>
++      {scenes.length > 1 && <div className="ts-scenes" role="tablist" aria-label="صحنه‌ها">{scenes.map((s, i) => <button key={s.url} role="tab" aria-selected={i === index} onClick={() => {setIndex(i); setYaw(0);}}>{s.title || `صحنهٔ ${(i + 1).toLocaleString('fa-IR')}`}</button>)}</div>}
++    </>}
++    {narration && <div className="ts-narration"><div><b>{narration.title}</b>{narration.guide && <small>روایت: {narration.guide}</small>}</div>
++      {narration.audio_url ? <audio controls preload="none" src={narration.audio_url}>پخش صوت در این مرورگر پشتیبانی نمی‌شود.</audio> : <small className="ts-muted">فایل صوتی روایت هنوز توسط برگزارکننده بارگذاری نشده است.</small>}</div>}
++  </section>;
++}
+diff --git a/components/tours/tours-round6.css b/components/tours/tours-round6.css
+new file mode 100644
+index 0000000..9adb618
+--- /dev/null
++++ b/components/tours/tours-round6.css
+@@ -0,0 +1,73 @@
++/* Stitch round 6 — tour showcase, package builder, route simulator, host portal. Tokens: plum #2A1530, coral #EF5B3D/#ad2c12, cream #F5EEE4, paper #FFFAF4, line #E7DCD4, muted #7F6D79. */
++.tour-showcase{margin:18px 0;display:grid;gap:12px}
++.ts-viewer{position:relative;height:clamp(240px,42vw,460px);border-radius:28px;background-color:#2A1530;background-size:400% 100%;background-repeat:repeat-x;cursor:grab;touch-action:pan-y;overflow:hidden;user-select:none;outline-offset:3px}
++.ts-viewer:active{cursor:grabbing}
++.ts-hotspot{position:absolute;top:42%;transform:translateX(50%);display:inline-flex;align-items:center;gap:8px;background:#fffaf4;color:#2A1530;border-radius:999px;padding:6px 14px 6px 8px;font-size:13px;font-weight:700;box-shadow:0 6px 18px rgba(42,21,48,.25);pointer-events:none}
++.ts-hotspot i{width:14px;height:14px;border-radius:50%;background:#ad2c12;box-shadow:0 0 0 4px rgba(173,44,18,.25)}
++.ts-angle{position:absolute;bottom:16px;inset-inline-end:16px;background:rgba(255,250,244,.92);border-radius:999px;padding:6px 14px;font-size:12px;font-weight:700}
++.ts-hint{position:absolute;bottom:16px;inset-inline-start:16px;background:rgba(255,250,244,.92);border-radius:999px;padding:6px 14px;font-size:12px}
++.ts-controls{position:absolute;top:16px;inset-inline-start:16px;display:flex;gap:8px}
++.ts-controls button{width:42px;height:42px;border-radius:50%;border:0;background:#fffaf4;color:#2A1530;font-size:22px;cursor:pointer;box-shadow:0 4px 12px rgba(42,21,48,.2)}
++.ts-scenes{display:flex;gap:8px;overflow-x:auto}
++.ts-scenes button{border:1px solid #E7DCD4;background:#fffaf4;border-radius:999px;padding:8px 16px;font:inherit;cursor:pointer;white-space:nowrap}
++.ts-scenes button[aria-selected=true]{background:#2A1530;color:#fff;border-color:#2A1530}
++.ts-narration{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#fffaf4;border:1px solid #E7DCD4;border-radius:22px;padding:14px 18px}
++.ts-narration b{display:block}.ts-narration small{color:#7F6D79}.ts-narration audio{max-width:100%}
++.ts-muted{color:#7F6D79}
++
++.package-builder{grid-column:1/-1;background:#fffaf4;border:1px solid #E7DCD4;border-radius:24px;padding:18px;display:grid;gap:12px}
++.package-builder h3{margin:0;font-size:18px}.pb-intro{margin:0;color:#7F6D79;font-size:13px}
++.pb-group{border:0;padding:0;margin:0;display:grid;gap:8px}
++.pb-group legend{font-weight:800;font-size:14px;margin-bottom:6px;padding:0}
++.pb-option{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;border:1px solid #E7DCD4;border-radius:18px;padding:12px 14px;background:#fff;cursor:pointer}
++.pb-option.on{border-color:#ad2c12;background:#fff3ee}
++.pb-option input{width:20px;height:20px;accent-color:#ad2c12}
++.pb-option b{display:block;font-size:14px}.pb-option small{display:block;color:#7F6D79;font-size:12px}
++.pb-option em{font-style:normal;font-weight:800;color:#ad2c12;font-size:13px;white-space:nowrap}
++.pb-summary{list-style:none;margin:8px 0;padding:12px 16px;background:#F5EEE4;border-radius:18px;display:grid;gap:6px}
++.pb-summary li{display:flex;justify-content:space-between;gap:12px;font-size:14px}
++
++.route-sim{display:grid;gap:14px;margin-top:12px}
++.route-sim.empty{background:#fffaf4;border:1px dashed #E7DCD4;border-radius:24px;padding:24px;text-align:center}
++.rs-stage{position:relative;border-radius:28px;overflow:hidden;box-shadow:0 10px 30px rgba(42,21,48,.12)}
++.rs-stage svg{display:block;width:100%;height:auto}
++.rs-leg{fill:none;stroke-width:4;stroke-linecap:round}
++.rs-leg.flight{stroke:#c9a3b4;stroke-dasharray:10 10}.rs-leg.ground{stroke:#d9bfa8}
++.rs-leg.done.flight{stroke:#ad2c12}.rs-leg.done.ground{stroke:#7b5c74}
++.rs-stop{cursor:pointer}.rs-stop circle{fill:#fffaf4;stroke:#2A1530;stroke-width:3}
++.rs-stop text{font-size:14px;font-weight:800;fill:#2A1530}.rs-stop .rs-label{font-size:15px;font-weight:700;paint-order:stroke;stroke:#f6e7d6;stroke-width:5px}
++.rs-stop.past circle{fill:#2A1530}.rs-stop.past text:not(.rs-label){fill:#fff}
++.rs-stop.now circle{fill:#ad2c12;stroke:#ad2c12}.rs-stop.now text:not(.rs-label){fill:#fff}
++.rs-marker circle{fill:#EF5B3D;stroke:#fff;stroke-width:3}.rs-marker text{font-size:12px;fill:#fff}
++.rs-hud{position:absolute;top:16px;inset-inline-end:16px;background:rgba(42,21,48,.9);color:#fff;border-radius:18px;padding:12px 16px;display:grid;gap:2px;max-width:60%}
++.rs-hud span{font-size:12px;color:#f3d9e6}
++.rs-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#fffaf4;border:1px solid #E7DCD4;border-radius:999px;padding:8px 10px}
++.rs-controls button{border:0;background:#F5EEE4;border-radius:999px;padding:9px 16px;font:inherit;font-weight:700;cursor:pointer}
++.rs-controls button:disabled{opacity:.45;cursor:not-allowed}
++.rs-controls .rs-play{background:#ad2c12;color:#fff}
++.rs-controls input[type=range]{flex:1;min-width:140px;accent-color:#ad2c12}
++.rs-speed{display:flex;gap:4px}.rs-speed button[aria-pressed=true]{background:#2A1530;color:#fff}
++.rs-timeline{list-style:none;margin:0;padding:0;display:grid;gap:8px}
++.rs-timeline button{width:100%;text-align:start;border:1px solid #E7DCD4;background:#fff;border-radius:18px;padding:12px 16px;font:inherit;cursor:pointer;display:grid;gap:2px}
++.rs-timeline small{color:#7F6D79}.rs-timeline span{font-size:13px}
++.rs-timeline li.now button{border-color:#ad2c12;background:#fff3ee}.rs-timeline li.past button{opacity:.75}
++
++.host-portal{display:grid;gap:16px}
++.hp-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:16px}
++.hp-products{display:grid;gap:10px}
++.hp-product{border:1px solid #E7DCD4;border-radius:20px;padding:14px;display:grid;gap:6px;background:#fff}
++.hp-product header{display:flex;justify-content:space-between;gap:8px}
++.hp-product p{margin:0;color:#5d4a57;font-size:13px}.hp-product small{color:#7F6D79}
++.hp-status{border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700;background:#F5EEE4}
++.hp-status.published{background:#e6f4ec;color:#1f6b45}
++.hp-arrivals h3{font-size:14px;margin:6px 0}
++.hp-arrivals ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
++.hp-arrivals li{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;border:1px solid #E7DCD4;border-radius:16px;padding:10px 12px;background:#fff}
++.hp-arrivals li small{grid-column:1/-1;color:#7F6D79}
++.hp-sessions{width:100%;border-collapse:collapse;font-size:13px}
++.hp-sessions th,.hp-sessions td{padding:10px 8px;border-bottom:1px solid #E7DCD4;text-align:start}
++.hp-bar{height:8px;border-radius:99px;background:#F5EEE4;overflow:hidden;min-width:90px}.hp-bar i{display:block;height:100%;background:#ad2c12}
++.hp-form{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;gap:10px;align-items:end;margin-top:16px;padding-top:16px;border-top:1px solid #E7DCD4}
++.hp-form h3{grid-column:1/-1;margin:0;font-size:15px}.hp-form label{display:grid;gap:4px;font-size:12px}
++.hp-form p{grid-column:1/-1;margin:0}
++@media(max-width:900px){.hp-grid{grid-template-columns:1fr}.hp-form{grid-template-columns:1fr 1fr}.rs-hud{max-width:80%}.rs-controls{border-radius:24px}}
+-- 
+2.43.0
+

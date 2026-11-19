@@ -279,3 +279,18 @@ Owner prompt in Stitch: «عالیه انجام بده هرسه» → 3 new scre
 Gallery (`index.html`) and `SCREENS.md` updated; previews in `qa/round6/`. All numbers in these designs are Mock.
 Note: Stitch exports max 10 screens per export; the Stitch canvas holds more screens/variants than the 55 files in GitHub — a full sync (batches of 10, md5 de-dup) is a separate step if wanted.
 Next: Figma (same file R3FvzMWcCVLmgKviiY0lav), then implementation decisions (these are new features, not restyles — need backend: 360 media, package builder pricing, host portal/payout via VandaPay).
+
+## KARENSEIR CHECKPOINT — Round 6 implemented (backend + interactive UI) (2026-11-19)
+
+Owner: «اینا رو ببر و بکندش و تعاملی و دکمه‌هاش کار کنه، فعال بشه».
+Code (branch `feat/inner-redesign-on-production`): 807cdb8 (backend), a72425d (UI). Deploy patch `deploy/patches/0012-stitch-round6-tours-experiences.patch` (+0011 VandaPay). Deploy script now rebuilds `api`+`worker` when backend patches apply (backup image tags, health wait). **No DB migration**: new data lives in existing JSON fields.
+
+| Stitch screen | Live route | Backend | Interactive |
+|---|---|---|---|
+| mobile/08 Tour 360 showcase + package builder | `/tours/{id}` (inside tour page) | `details.media_360[]` (+hotspots), `details.narration`, departure `pricing.addons[]` (code/title/price/unit/category, organiser-priced); `/tour-departures/{id}/quote?addons=` and booking `addons[]` re-priced server-side; add-ons stored in booking snapshot `package_addons` | drag/arrow 360 rotation, scene tabs, hotspots, audio narration, add-on checkboxes → re-quote → breakdown → book |
+| desktop/15 route simulator | `/tours/{id}/route` | itinerary items may carry `day,time,place,mode,lat,lng,note` (validated in public projection) | play/pause, prev/next stop, scrub, 1×/2×/4×, click stop, timeline |
+| desktop/16 host portal | `/supplier/experiences` (supplier nav) | `GET /supplier/experience-portal` — supplier-scoped places/products/ticket types/sessions/arrivals/KPIs counted from stored reservations | add session (existing POST), arrivals today/tomorrow, capacity bars, payout state (VandaPay not configured → explicit unavailable) |
+
+Rules kept: no price/media invented (empty states when organiser has not supplied data); anonymous users see add-on titles without prices; homepage untouched.
+Tests: `backend/tests/test_stitch_round6_backend.py` (3) + full suite 596 passed (2 pre-existing failures unrelated). UI QA screenshots `qa/impl/r6-*.png` (mock data, labelled Mock).
+Next: owner/organisers enter real add-ons, 360 images and stop coordinates for tours; Figma frames for the three screens.

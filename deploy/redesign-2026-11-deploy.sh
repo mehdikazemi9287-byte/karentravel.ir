@@ -138,6 +138,16 @@ else
   CODE=1
 fi
 
+BACKEND=0
+P11=0011-vandapay-payment-gateway.patch
+if grep -q "class VandaPayAdapter" backend/app/providers.py 2>/dev/null; then echo "0011 already applied — skip"; else
+  curl -fsSL --retry 3 -m 120 -o "$TMP/$P11" "$RAW/deploy/patches/$P11"; git apply --check "$TMP/$P11"
+  git -c user.name="KarenSeir Deploy" -c user.email="deploy@karentravel.ir" am "$TMP/$P11"; CODE=1; BACKEND=1; fi
+P12=0012-stitch-round6-tours-experiences.patch
+if grep -q "supplier/experience-portal" backend/app/main.py 2>/dev/null; then echo "0012 already applied — skip"; else
+  curl -fsSL --retry 3 -m 120 -o "$TMP/$P12" "$RAW/deploy/patches/$P12"
+  git -c user.name="KarenSeir Deploy" -c user.email="deploy@karentravel.ir" am "$TMP/$P12"; CODE=1; BACKEND=1; fi
+
 step "4) design gallery + docs (everything from Stitch/Figma round 1–4)"
 # Not served from Next public/: production CSP (script-src 'self', X-Frame-Options DENY) blocks the
 # Tailwind CDN and the gallery iframes. Public preview stays on GitHub Pages; the server keeps the full set in docs/.
@@ -159,12 +169,24 @@ docker compose build "$SVC"
 docker compose up -d --no-deps "$SVC"
 sleep 20
 
+if [ "${BACKEND:-0}" = 1 ] || [ "${FORCE_BACKEND:-0}" = 1 ]; then
+  step "5b) build + restart backend (api, worker) — no DB migration in 0011/0012"
+  TS=$(date +%Y%m%d-%H%M%S)
+  for s in api worker; do IMG=$(docker compose images -q "$s" 2>/dev/null | head -1); [ -n "$IMG" ] && docker tag "$IMG" "karenseir-$s:pre-$TS" && echo "backup image karenseir-$s:pre-$TS"; done
+  docker compose build api
+  docker compose up -d --no-deps api worker
+  for i in $(seq 1 30); do st=$(docker compose ps api --format '{{.Status}}'); case "$st" in *healthy*) [ "${st#*unhealthy}" = "$st" ] && break;; esac; sleep 3; done
+  echo "api: $(docker compose ps api --format '{{.Status}}')  worker: $(docker compose ps worker --format '{{.Status}}')"
+  echo "backend rollback: docker tag karenseir-api:pre-$TS <api image> && docker compose up -d --no-deps api worker"
+fi
+
 step "6) verify"
 ok=1
 chk(){ local u=$1 want=$2; local c; c=$(curl -s -o /dev/null -w '%{http_code}' "$u" || echo 000); echo "$c  $u"; [ "$c" = "$want" ] || ok=0; }
 chk https://karentravel.ir/ 200
 chk https://karentravel.ir/hotels 200
 chk https://karentravel.ir/services 200
+chk https://karentravel.ir/api/health 200
 n=$(curl -s https://karentravel.ir/services | grep -c 'ks-inner' || true); echo "ks-inner on /services: $n (want ≥1)"; [ "$n" -ge 1 ] || ok=0
 h=$(curl -s https://karentravel.ir/ | grep -c 'ks-inner' || true); echo "ks-inner on / (homepage): $h (want 0)"; [ "$h" = 0 ] || ok=0
 docker compose ps "$SVC"
