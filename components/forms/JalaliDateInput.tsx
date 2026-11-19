@@ -1,6 +1,6 @@
 'use client';
 import '../marketplace/stitch-pages-2026-11.css';
-import {useEffect, useState, type ChangeEvent} from 'react';
+import {useState, type ChangeEvent} from 'react';
 import {isoToJalali, jalaliToIso, jalaliMonths, jalaliMonthLength, persianDigits, todayJalali} from '../../lib/domain/jalali';
 
 type Draft = {jy?: number; jm?: number; jd?: number};
@@ -16,7 +16,8 @@ export function JalaliDateInput(props: Props) {
   const [inner, setInner] = useState(props.defaultValue || '');
   const iso = controlled ? (props.value || '') : inner;
   const [draft, setDraft] = useState<Draft>(() => (iso ? isoToJalali(iso) : {}));
-  useEffect(() => { if (iso) setDraft(isoToJalali(iso)); }, [iso]);
+  const [seenIso, setSeenIso] = useState(iso);
+  if (iso !== seenIso) { setSeenIso(iso); if (iso) setDraft(isoToJalali(iso)); } // sync draft when the value changes from outside (render-phase, no effect)
   const today = todayJalali();
   const minYear = props.min ? isoToJalali(props.min).jy : today.jy - (props.yearsBack ?? 0);
   const years: number[] = [];
