@@ -48,3 +48,10 @@
 - ادغام: `production` + PR #87 + `main`، بدون تکرار. VandaPay دوم، یعنی #88، برای انتقال روی `port/vandapay-hardening-88` نگه داشته شد.
 - `main` = تنها منبع. `deploy/karenseir-deploy-server.sh` دقیقاً `origin/main` را دیپلوی می‌کند و commit فقط-سروری ندارد. mirror پایتون در `pip.conf` است که در git نمی‌رود.
 - `AGENTS.md`: بخش «Release truth».
+
+## وضعیت پایان جلسه (2026-11-19، حدود 19:20 به وقت برلین)
+- `main` = `production` = `80adbb2`. PR #89 ادغام شد.
+- CI روی `6e70b96`: build، lint، tsc و ۸۵۲ تست backend سبز شدند. سه تست e2e به‌خاطر selectorهای قدیمی در صفحهٔ ورود و هدر نتایج پرواز شکست خوردند. اصلاحشان در `80adbb2` است و نتیجهٔ CI روی `main` هنوز باید دیده شود.
+- **انتشار:** بعد از تأیید مالک، دستور `bash deploy.sh` برای `80adbb2` در کنسول ابرآروان تایپ شد. همان لحظه اتصال افزونهٔ Chrome قطع شد، پس اجرا شدن دستور و نتیجه‌اش **تأیید نشده** است.
+- برای بررسی روی سرور: `cat /opt/karenseir/DEPLOYED` و `tail -30 /opt/karenseir/release-*.log | tail -30`. اگر `DEPLOYED` وجود ندارد، انتشار انجام نشده است. در این صورت اجرا کنید: `curl -s --location raw.githubusercontent.com/mehdikazemi9287-byte/karentravel.ir/main/deploy/karenseir-deploy-server.sh -o deploy.sh; bash deploy.sh`
+- **باقی‌مانده:** مقایسهٔ تصویری صفحه‌های زنده (ورود، نتایج هتل، نتایج پرواز، `/flights`) با PNGهای Stitch بعد از انتشار. صفحهٔ ورود با چیدمان کامل Stitch بازسازی شد. نتایج هتل و پرواز همان پیاده‌سازی PR #87 هستند و باید روی سایت زنده با `_35` و `_2` مقایسه شوند. همچنین انتقال VandaPay #88 از شاخهٔ `port/vandapay-hardening-88`، و ارتقای Next.js که build یک هشدار امنیتی برایش داد.
