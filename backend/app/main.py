@@ -293,6 +293,7 @@ class TourBookIn(BaseModel):
     expected_total_amount: Optional[int] = Field(default=None,gt=0)
     travellers: int = Field(ge=1, le=100); room_type: str = Field(default="double", pattern="^(single|double|triple|extra_bed)$"); command_id: str = Field(min_length=8, max_length=120)
     children: int = Field(default=0, ge=0, le=100); infants: int = Field(default=0, ge=0, le=100)  # priced from the departure's room x passenger matrix
+    addons: list[str] = Field(default_factory=list, max_length=20)  # organiser-priced package add-ons (Stitch round 6 package builder)
 class CruiseSailingIn(BaseModel):
     supplier_id: Optional[str] = Field(default=None, min_length=36, max_length=36); title: str = Field(min_length=3, max_length=200); cruise_line: str = Field(min_length=2, max_length=160); ship: str = Field(min_length=2, max_length=160); departure_port: str = Field(min_length=2, max_length=160); arrival_port: str = Field(min_length=2, max_length=160); starts_at: datetime; nights: int = Field(ge=1, le=365); details: dict = Field(default_factory=dict)
 class VisaProductIn(BaseModel):
@@ -2148,7 +2149,19 @@ def tour_detail(tour_id: str, user: User = Depends(current_user), db: Session = 
     if row is None: raise HTTPException(404, "تور وجود ندارد")
     departures = db.scalars(select(operational_models.TourDeparture).where(operational_models.TourDeparture.tour_id == row.id, operational_models.TourDeparture.tenant_id == user.tenant_id, operational_models.TourDeparture.status == "active", operational_models.TourDeparture.booking_deadline > datetime.now(timezone.utc), operational_models.TourDeparture.remaining > 0)).all()
     details = json.loads(row.details_json)
-    return {"id": row.id, "title": row.title, "origin": row.origin, "destination": row.destination, "tour_type": row.tour_type, "details": details, "visa_status": details.get("visa_status", "VISA_STATUS_UNKNOWN"), "visa_assistance_available": bool(details.get("visa_assistance_available", False)), "departures": [{"id": d.id, "starts_at": d.starts_at.isoformat(), "ends_at": d.ends_at.isoformat(), "remaining": d.remaining, "base_price": d.base_price, "currency": d.currency, "pricing": json.loads(d.pricing_json), "available_room_types": _tour_room_types(d)} for d in departures]}
+    return {"id": row.id, "title": row.title, "origin": row.origin, "destination": row.destination, "tour_type": row.tour_type, "details": details, "visa_status": details.get("visa_status", "VISA_STATUS_UNKNOWN"), "visa_assistance_available": bool(details.get("visa_assistance_available", False)), "departures": [{"id": d.id, "starts_at": d.starts_at.isoformat(), "ends_at": d.ends_at.isoformat(), "remaining": d.remaining, "base_price": d.base_price, "currency": d.currency, "pricing": json.loads(d.pricing_json), "available_room_types": _tour_room_types(d), "addons": _tour_addons(d)} for d in departures]}
+
+
+def _public_itinerary_item(v: dict) -> dict:
+    """Public itinerary stop: title plus optional day/time/place/coordinates/mode for the route simulator. Coordinates must be valid numbers."""
+    item = {"title": v["title"][:200]}
+    for key, limit in (("place", 120), ("time", 20), ("note", 300)):
+        if isinstance(v.get(key), str): item[key] = v[key][:limit]
+    if isinstance(v.get("day"), int) and not isinstance(v.get("day"), bool) and 0 < v["day"] < 400: item["day"] = v["day"]
+    if v.get("mode") in ("flight", "road", "rail", "walk", "stay", "activity"): item["mode"] = v["mode"]
+    lat, lng = v.get("lat"), v.get("lng")
+    if isinstance(lat, (int, float)) and isinstance(lng, (int, float)) and not isinstance(lat, bool) and -90 <= lat <= 90 and -180 <= lng <= 180: item["lat"], item["lng"] = float(lat), float(lng)
+    return item
 
 
 def _public_tour_projection(row: dict) -> dict:
@@ -2157,12 +2170,18 @@ def _public_tour_projection(row: dict) -> dict:
     for key in ("itinerary", "inclusions", "exclusions", "requirements"):
         value = details.get(key)
         if isinstance(value, str): safe[key] = value
-        elif isinstance(value, list): safe[key] = [v if isinstance(v, str) else {"title": v["title"]} for v in value if isinstance(v, str) or (isinstance(v, dict) and isinstance(v.get("title"), str))]
+        elif isinstance(value, list): safe[key] = [v if isinstance(v, str) else _public_itinerary_item(v) for v in value if isinstance(v, str) or (isinstance(v, dict) and isinstance(v.get("title"), str))]
+    media = [m for m in (details.get("media_360") or []) if isinstance(m, dict) and isinstance(m.get("url"), str) and re.match(r"^(https://|/)[^\s\"'<>]{3,500}$", m["url"])]
+    if media: safe["media_360"] = [{"url": m["url"], "title": str(m.get("title") or "")[:120], "hotspots": [{"label": str(h.get("label"))[:60], "yaw": float(h.get("yaw"))} for h in (m.get("hotspots") or []) if isinstance(h, dict) and isinstance(h.get("label"), str) and isinstance(h.get("yaw"), (int, float))][:12]} for m in media[:8]]
+    narration = details.get("narration")
+    if isinstance(narration, dict) and isinstance(narration.get("title"), str):
+        audio = narration.get("audio_url") if isinstance(narration.get("audio_url"), str) and re.match(r"^(https://|/)[^\s\"'<>]{3,500}$", narration["audio_url"]) else None
+        safe["narration"] = {"title": narration["title"][:160], "guide": str(narration.get("guide") or "")[:120], "audio_url": audio}
     result = {key: row[key] for key in ("id", "title", "origin", "destination", "tour_type")}
     result["details"] = safe
     result["account_recheck_required"] = True
     if "departures" in row:
-        result["departures"] = [{key: d[key] for key in ("id", "starts_at", "ends_at")} for d in row["departures"]]
+        result["departures"] = [{**{key: d[key] for key in ("id", "starts_at", "ends_at")}, **({"addons": [{k: x[k] for k in ("code", "title", "category", "unit", "description")} for x in d["addons"]]} if d.get("addons") else {})} for d in row["departures"]]
     return result
 
 
@@ -2182,7 +2201,33 @@ def _tour_room_types(departure) -> list[str]:
     return [room for room in ("double", "single", "triple", "extra_bed") if (room == "double" or f"{room}_surcharge" in pricing) and isinstance(pricing.get(f"{room}_surcharge", 0), int) and not isinstance(pricing.get(f"{room}_surcharge", 0), bool) and departure.base_price + pricing.get(f"{room}_surcharge", 0) > 0]
 
 
-def _tour_amount(departure, travellers:int, room_type:str, children:int=0, infants:int=0) -> int:
+_ADDON_CODE = re.compile(r"^[a-z0-9][a-z0-9_-]{1,39}$")
+
+
+def _tour_addons(departure) -> list[dict]:
+    """Package-builder add-ons the organiser priced on this departure (pricing_json["addons"]). Invalid entries are dropped, never guessed."""
+    out = []
+    for item in (json.loads(departure.pricing_json or "{}").get("addons") or []):
+        if not isinstance(item, dict): continue
+        code, title, price, unit = item.get("code"), item.get("title"), item.get("price"), item.get("unit", "person")
+        if not (isinstance(code, str) and _ADDON_CODE.match(code) and isinstance(title, str) and title.strip() and isinstance(price, int) and not isinstance(price, bool) and price >= 0 and unit in ("person", "booking")): continue
+        out.append({"code": code, "title": title.strip()[:120], "price": price, "unit": unit, "category": str(item.get("category") or "other")[:40], "description": str(item.get("description") or "")[:240], "default": bool(item.get("default", False))})
+    return out
+
+
+def _addon_lines(departure, codes, payers:int) -> list[dict]:
+    if not codes: return []
+    available = {a["code"]: a for a in _tour_addons(departure)}
+    lines = []
+    for code in dict.fromkeys(codes):
+        addon = available.get(code)
+        if addon is None: raise HTTPException(409, "این گزینهٔ پکیج توسط برگزارکننده ثبت نشده است")
+        qty = payers if addon["unit"] == "person" else 1
+        lines.append({"code": code, "title": addon["title"], "unit": addon["unit"], "quantity": qty, "amount": addon["price"] * qty})
+    return lines
+
+
+def _tour_amount(departure, travellers:int, room_type:str, children:int=0, infants:int=0, addons=()) -> int:
     if room_type not in _tour_room_types(departure):
         raise HTTPException(409,"نرخ این نوع اتاق توسط برگزارکننده ثبت نشده است")
     surcharge=json.loads(departure.pricing_json).get(f"{room_type}_surcharge",0)
@@ -2198,17 +2243,19 @@ def _tour_amount(departure, travellers:int, room_type:str, children:int=0, infan
             if not isinstance(price,int) or isinstance(price,bool) or price<0:
                 raise HTTPException(409,f"نرخ {label} برای این نوع اتاق توسط برگزارکننده ثبت نشده است")
             total+=price*count
+    total+=sum(line["amount"] for line in _addon_lines(departure, list(addons), travellers+children))
     return total
 
 
 @app.get("/tour-departures/{departure_id}/quote")
-def quote_tour(departure_id:str,travellers:int=Query(default=1,ge=1,le=100),room_type:str=Query(default="double",pattern="^(single|double|triple|extra_bed)$"),children:int=Query(default=0,ge=0,le=100),infants:int=Query(default=0,ge=0,le=100),user:User=Depends(current_user),db:Session=Depends(get_db)) -> dict:
+def quote_tour(departure_id:str,travellers:int=Query(default=1,ge=1,le=100),room_type:str=Query(default="double",pattern="^(single|double|triple|extra_bed)$"),children:int=Query(default=0,ge=0,le=100),infants:int=Query(default=0,ge=0,le=100),addons:str=Query(default="",max_length=900),user:User=Depends(current_user),db:Session=Depends(get_db)) -> dict:
     departure=db.scalar(select(operational_models.TourDeparture).where(operational_models.TourDeparture.id==departure_id,operational_models.TourDeparture.tenant_id==user.tenant_id))
     now=datetime.now(timezone.utc)
     if departure is None or departure.status!="active" or _aware(departure.booking_deadline)<=now or departure.remaining<travellers+children:raise HTTPException(409,"ظرفیت یا مهلت این حرکت قابل تأیید نیست")
     tour=db.scalar(select(operational_models.TourProduct).where(operational_models.TourProduct.id==departure.tour_id,operational_models.TourProduct.tenant_id==user.tenant_id,operational_models.TourProduct.status=="published"))
     if tour is None or db.scalar(select(operational_models.Supplier.id).where(operational_models.Supplier.id==tour.supplier_id,operational_models.Supplier.tenant_id==user.tenant_id,operational_models.Supplier.status=="active")) is None:raise HTTPException(404,"تور در دسترس نیست")
-    return {"departure_id":departure.id,"total_amount":_tour_amount(departure,travellers,room_type,children,infants),"currency":departure.currency,"travellers":travellers,"children":children,"infants":infants,"room_type":room_type,"policy":json.loads(tour.details_json).get("cancellation_policy",{}),"expires_at":min(_aware(departure.booking_deadline),now+timedelta(minutes=5)).isoformat()}
+    codes=[c for c in addons.split(",") if c.strip()][:20]
+    return {"departure_id":departure.id,"total_amount":_tour_amount(departure,travellers,room_type,children,infants,codes),"addons":_addon_lines(departure,codes,travellers+children),"base_amount":_tour_amount(departure,travellers,room_type,children,infants),"currency":departure.currency,"travellers":travellers,"children":children,"infants":infants,"room_type":room_type,"policy":json.loads(tour.details_json).get("cancellation_policy",{}),"expires_at":min(_aware(departure.booking_deadline),now+timedelta(minutes=5)).isoformat()}
 
 
 @app.post("/tour-departures/{departure_id}/reservations", status_code=201)
@@ -2220,12 +2267,13 @@ def book_tour(departure_id: str, data: TourBookIn, user: User = Depends(require_
     departure = db.scalar(select(operational_models.TourDeparture).where(operational_models.TourDeparture.id == departure_id, operational_models.TourDeparture.tenant_id == user.tenant_id).with_for_update())
     now = datetime.now(timezone.utc)
     if departure is None or departure.status != "active" or _aware(departure.booking_deadline) <= now or departure.remaining < data.travellers + data.children: raise HTTPException(409, "ظرفیت یا مهلت رزرو تور معتبر نیست")
-    total=_tour_amount(departure,data.travellers,data.room_type,data.children,data.infants)
+    total=_tour_amount(departure,data.travellers,data.room_type,data.children,data.infants,data.addons)
+    addon_lines=_addon_lines(departure,data.addons,data.travellers+data.children)
     if data.expected_total_amount is not None and total!=data.expected_total_amount:raise HTTPException(409,{"code":"PRICE_CHANGED","new_price":total})
     tour = db.scalar(select(operational_models.TourProduct).where(operational_models.TourProduct.id == departure.tour_id, operational_models.TourProduct.tenant_id == user.tenant_id))
     if tour is None or tour.status!="published" or db.scalar(select(operational_models.Supplier.id).where(operational_models.Supplier.id==tour.supplier_id,operational_models.Supplier.tenant_id==user.tenant_id,operational_models.Supplier.status=="active")) is None:raise HTTPException(409,"تور یا تأمین‌کننده فعال نیست")
     details = json.loads(tour.details_json); policy = details.get("cancellation_policy") if isinstance(details.get("cancellation_policy"), dict) else {}; reservation = operational_models.Reservation(tenant_id=user.tenant_id, user_id=user.id, service_type="tour", status="reserved", booking_reference=f"KS-TOUR-{uuid.uuid4().hex[:10].upper()}", price_snapshot_json=json.dumps({"total_amount": total, "currency": departure.currency, "travellers": data.travellers + data.children, "units":data.travellers + data.children, **({"adults": data.travellers, "children": data.children, "infants": data.infants} if data.children or data.infants else {}), "room_type": data.room_type, "departure_id": departure.id, "visa_status": details.get("visa_status", "VISA_STATUS_UNKNOWN")}, sort_keys=True), policy_at_booking_json=json.dumps(policy, sort_keys=True), current_policy_json=json.dumps(policy, sort_keys=True)); db.add(reservation); db.flush(); departure.remaining -= data.travellers + data.children; row = operational_models.TourReservation(tenant_id=user.tenant_id, departure_id=departure.id, user_id=user.id, reservation_id=reservation.id, travellers=data.travellers + data.children, room_type=data.room_type, total_amount=total, command_id=data.command_id); db.add(row); db.flush(); _commerce_event(db, tenant_id=user.tenant_id, kind="tour_reservation", aggregate_id=row.id, command_id=data.command_id, payload={"status": row.status, "remaining": departure.remaining, "reservation_id": reservation.id, "visa_status": details.get("visa_status", "VISA_STATUS_UNKNOWN")})
-    db.add(operational_models.BookingItem(tenant_id=user.tenant_id,reservation_id=reservation.id,item_type="tour",snapshot_json=json.dumps({"title":tour.title,"supplier_id":tour.supplier_id,"fulfillment_mode":"manual_supplier","provider_key":"manual_supplier","attributes":{"origin":tour.origin,"destination":tour.destination,"departure_time":_aware(departure.starts_at).isoformat(),"arrival_time":_aware(departure.ends_at).isoformat(),"travellers":data.travellers,"room_type":data.room_type}})))
+    db.add(operational_models.BookingItem(tenant_id=user.tenant_id,reservation_id=reservation.id,item_type="tour",snapshot_json=json.dumps({"title":tour.title,"supplier_id":tour.supplier_id,"fulfillment_mode":"manual_supplier","provider_key":"manual_supplier","package_addons":addon_lines,"attributes":{"origin":tour.origin,"destination":tour.destination,"departure_time":_aware(departure.starts_at).isoformat(),"arrival_time":_aware(departure.ends_at).isoformat(),"travellers":data.travellers,"room_type":data.room_type}})))
     tour_title = tour.title if tour else "تور"; tour_destination = tour.destination if tour else ""
     trip = operational_models.ensure_trip_for_reservation(db, reservation, title=tour_title, destination=tour_destination, origin=(tour.origin if tour else None), starts_at=departure.starts_at, ends_at=departure.ends_at)
     operational_models.record_trip_event(db, tenant_id=user.tenant_id, trip_id=trip.id, reservation_id=reservation.id, event_key=f"booking-created:{data.command_id}", event_type="booking.created", source="system", title="رزرو تور ثبت شد", message=f"رزرو {reservation.booking_reference} برای {tour_title} ثبت شد.", deep_link=f"/manage-booking/{reservation.id}")
@@ -3343,6 +3391,47 @@ def create_leisure_session(product_id: str, data: LeisureSessionIn, user: User =
     _sync_leisure_session_offer(db, tenant_id=user.tenant_id, product=product, place=place, session=row)
     db.commit()
     return _leisure_session_output(row)
+
+
+_PORTAL_LIVE_STATUSES = ("reserved", "held", "confirmed", "paid", "ticketed", "issued", "fulfilled", "completed")
+
+
+@app.get("/supplier/experience-portal")
+def supplier_experience_portal(days: int = Query(default=30, ge=1, le=120), user: User = Depends(require_permission("inventory:manage")), db: Session = Depends(get_db)) -> dict:
+    """Host portal (Stitch round 6): the supplier's own places, experience products, upcoming sessions and arrivals.
+    Every figure is counted from stored sessions/reservations of this supplier scope; nothing is estimated."""
+    scope = _supplier_scope(db, user)
+    om = operational_models
+    if not scope: return {"suppliers": [], "places": [], "products": [], "sessions": [], "arrivals": [], "kpis": {"sessions": 0, "seats_total": 0, "seats_sold": 0, "bookings": 0, "gross_amount": 0, "currency": "IRR"}, "payout": {"provider": "vandapay", "status": "not_configured"}}
+    places = db.scalars(select(om.Place).where(om.Place.tenant_id == user.tenant_id, om.Place.supplier_id.in_(scope))).all()
+    products = db.scalars(select(om.ExperienceProduct).where(om.ExperienceProduct.tenant_id == user.tenant_id, om.ExperienceProduct.supplier_id.in_(scope))).all()
+    product_ids = [p.id for p in products]
+    now = datetime.now(timezone.utc)
+    sessions = db.scalars(select(om.LeisureSession).where(om.LeisureSession.tenant_id == user.tenant_id, om.LeisureSession.experience_product_id.in_(product_ids or [""]), om.LeisureSession.ends_at >= now, om.LeisureSession.starts_at < now + timedelta(days=days)).order_by(om.LeisureSession.starts_at)).all()
+    tickets = db.scalars(select(om.LeisureTicketType).where(om.LeisureTicketType.tenant_id == user.tenant_id, om.LeisureTicketType.experience_product_id.in_(product_ids or [""]))).all()
+    offer_to_session = {s.offer_id: s for s in sessions if s.offer_id}
+    rows = db.execute(select(om.Reservation, om.PriceCheck).join(om.PriceCheck, om.PriceCheck.id == om.Reservation.price_check_id).where(om.Reservation.tenant_id == user.tenant_id, om.PriceCheck.offer_id.in_(list(offer_to_session) or [""]), om.Reservation.status.in_(_PORTAL_LIVE_STATUSES))).all() if offer_to_session else []
+    product_by_id = {p.id: p for p in products}
+    arrivals, sold, gross = [], {}, 0
+    for reservation, check in rows:
+        session = offer_to_session.get(check.offer_id)
+        breakdown = json.loads(check.snapshot_json or "{}").get("ticket_breakdown", [])
+        guests = sum(int(x.get("quantity", 0)) for x in breakdown if isinstance(x, dict)) or check.units
+        sold[session.id] = sold.get(session.id, 0) + guests
+        gross += check.amount
+        arrivals.append({"reservation_id": reservation.id, "booking_reference": reservation.booking_reference, "status": reservation.status, "session_id": session.id, "starts_at": session.starts_at.isoformat(), "product_title": product_by_id[session.experience_product_id].title if session.experience_product_id in product_by_id else "", "guests": guests, "amount": check.amount, "currency": check.currency, "ticket_breakdown": breakdown})
+    arrivals.sort(key=lambda a: a["starts_at"])
+    session_rows = [{**_leisure_session_output(s), "product_title": product_by_id[s.experience_product_id].title if s.experience_product_id in product_by_id else "", "seats_sold": sold.get(s.id, 0)} for s in sessions]
+    payout_status = "configured" if os.getenv("VANDAPAY_MODE", "disabled") in ("test", "live") else "not_configured"
+    return {
+        "suppliers": sorted(scope),
+        "places": [_leisure_place_output(p) for p in places],
+        "products": [{**_leisure_product_output(p), "ticket_types": [_leisure_ticket_type_output(t) for t in tickets if t.experience_product_id == p.id], "upcoming_sessions": sum(1 for s in sessions if s.experience_product_id == p.id)} for p in products],
+        "sessions": session_rows,
+        "arrivals": arrivals[:100],
+        "kpis": {"sessions": len(sessions), "seats_total": sum(s.capacity_total for s in sessions), "seats_sold": sum(sold.values()), "bookings": len(arrivals), "gross_amount": gross, "currency": "IRR", "window_days": days},
+        "payout": {"provider": "vandapay", "status": payout_status},
+    }
 
 
 @app.get("/experience-products/{product_id}")
