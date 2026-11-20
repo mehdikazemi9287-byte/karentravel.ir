@@ -1,5 +1,15 @@
 import Link from 'next/link';
-import { Shell } from '../page';
+import { JourneyShell } from '../../components/journey/JourneyShell';
 import { customerGroups } from '../../lib/customer-catalog';
-import { ContactOptions } from '../../components/customer/CustomerHelp';
-export default async function ServicesPage({searchParams}:{searchParams:Promise<{group?:string}>}){const {group}=await searchParams;const selected=group!==undefined&&/^[0-5]$/.test(group)?Number(group):null;const rows=selected===null?customerGroups:[customerGroups[selected]];return <Shell><section className="container customer-page"><span className="eyebrow">از برنامه‌ریزی تا پیگیری سفر</span><h1>{selected===null?'خدمات سفر':customerGroups[selected].title}</h1><p>همه‌ی خدمات سفر کارن تراول در یک صفحه.</p><nav className="customer-actions" aria-label="دسته‌های خدمات"><Link href="/services">همه خدمات</Link>{customerGroups.map((g,i)=><Link key={g.title} href={'/services?group='+i} aria-current={selected===i?'page':undefined}>{g.title}</Link>)}</nav><div className="customer-grid">{rows.map(g=><article className="panel" key={g.title}><h2>{g.title}</h2><p>{g.copy}</p><div className="customer-actions">{g.items.map(([title,href])=><Link className="button secondary" key={href} href={href}>{title} ←</Link>)}</div></article>)}</div><ContactOptions/></section></Shell>}
+import { HelpHero } from '../../components/customer/HelpCenter';
+
+export default async function ServicesPage({searchParams}:{searchParams:Promise<{group?:string}>}){
+  const {group}=await searchParams;
+  const selected=group!==undefined&&/^[0-5]$/.test(group)?Number(group):null;
+  const rows=selected===null?customerGroups:[customerGroups[selected]];
+  return <JourneyShell><main className="journey-main hc-page">
+    <HelpHero kicker="از برنامه‌ریزی تا پیگیری سفر" title={selected===null?'خدمات سفر':customerGroups[selected].title} lead="همه‌ی خدمات سفر کارن تراول در یک صفحه؛ خدمت موردنظرت را انتخاب کن یا برای راهنمایی تماس بگیر."/>
+    <nav className="hc-pills" aria-label="دسته‌های خدمات"><Link href="/services" aria-current={selected===null?'page':undefined}>همه خدمات</Link>{customerGroups.map((g,i)=><Link key={g.title} href={'/services?group='+i} aria-current={selected===i?'page':undefined}>{g.title}</Link>)}</nav>
+    <section className="hc-svc">{rows.map(g=><article key={g.title}><h2>{g.title}</h2><p>{g.copy}</p><ul>{g.items.map(([title,href])=><li key={href}><Link href={href}>{title} ←</Link></li>)}</ul></article>)}</section>
+  </main></JourneyShell>;
+}

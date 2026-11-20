@@ -1,5 +1,12 @@
-import Link from 'next/link';
-import { Shell } from '../page';
-import { supportPhone } from '../../lib/site-contact';
+import { JourneyShell } from '../../components/journey/JourneyShell';
 import { TripRequestForm } from '../../components/customer/TripRequestForm';
-export default function ContactPage(){return <Shell><section className="container customer-page"><span className="eyebrow">همراه شما در مسیر سفر</span><h1>تماس با کارن تراول</h1><p>برای راهنمایی انتخاب خدمت، بررسی امکان رزرو یا پیگیری درخواست، با شمارهٔ زیر تماس بگیرید.</p><article className="panel"><h2>تماس تلفنی با پشتیبانی</h2><a className="button primary" href={supportPhone.href}><span dir="ltr">{supportPhone.display}</span></a><p>هنگام تماس، مقصد، تاریخ سفر و تعداد مسافران را آماده داشته باشید. برای پیگیری خرید قبلی، شناسهٔ رزرو را هم اعلام کنید.</p></article><TripRequestForm/><div className="customer-actions"><Link className="button secondary" href="/support">راهنمای مشکلات رایج</Link><Link className="button secondary" href="/trips">پیگیری رزروهای من</Link><Link className="button secondary" href="/services">بازگشت به خدمات</Link></div></section></Shell>}
+import { HelpHero, HelpPaths, HelpFaq } from '../../components/customer/HelpCenter';
+
+export default function ContactPage(){
+  return <JourneyShell><main className="journey-main hc-page">
+    <HelpHero kicker="همراه شما در مسیر سفر" title="تماس با کارن تراول" lead="برای راهنمایی انتخاب خدمت، بررسی امکان رزرو یا پیگیری درخواست، با شمارهٔ پشتیبانی تماس بگیرید یا درخواستت را ثبت کن."/>
+    <section className="hc-section" aria-label="ثبت درخواست سفر"><TripRequestForm/></section>
+    <HelpPaths/>
+    <HelpFaq/>
+  </main></JourneyShell>;
+}
