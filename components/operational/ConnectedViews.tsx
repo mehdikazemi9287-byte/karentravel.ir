@@ -1,4 +1,5 @@
 'use client';
+import { HelpHero, HelpPaths, HelpFaq } from '../customer/HelpCenter';
 
 import {HotelStaySummary,type HotelStaySelection} from './HotelStaySelection';
 import Link from 'next/link';
@@ -55,8 +56,9 @@ export function ConnectedTrips() {
 
 type TimelineEvent = { id:string; type:string; severity:string; source:string; title:string; message:string; requires_action:boolean; deep_link?:string|null };
 export function SupportLanding() {
- return <><div className="journey-title"><div><span>پشتیبانی کارن تراول</span><h1>چطور می‌توانیم کمک کنیم؟</h1><p>برای راهنمایی سفر، استعلام خدمات یا پیگیری رزرو با ما تماس بگیرید.</p></div></div><ContactOptions/><section className="support-paths"><article className="support-path"><h2>پیگیری رزرو</h2><p>برای مشاهده رزرو ثبت‌شده وارد حساب خود شوید. هنگام تماس، شماره پیگیری را همراه داشته باشید.</p><Link href="/trips">سفرها و رزروهای من ←</Link></article><article className="support-path"><h2>تغییر یا لغو سفر</h2><p>شرایط و هزینهٔ تغییر به رزرو شما بستگی دارد. تماس یا ارسال درخواست به‌تنهایی تأیید لغو و بازپرداخت نیست.</p><Link href="/contact">تماس برای بررسی درخواست ←</Link></article><article className="support-path"><h2>راهنمایی پیش از سفر</h2><p>مقصد، تاریخ و تعداد مسافران را مشخص کنید تا دربارهٔ خدمت موردنیازتان پرس‌وجو کنید.</p><Link href="/services">مشاهده خدمات ←</Link></article></section><section className="panel"><h2>کد ورود به دستتان نرسیده؟</h2><p>شماره همراه را بررسی کنید. اگر دریافت کد ممکن نشد، برای راهنمایی از شماره تماس بالا استفاده کنید. کد ورودتان را در اختیار دیگران نگذارید.</p><Link href="/login">بازگشت به ورود</Link></section></>;
+ return <div className="hc-page"><HelpHero kicker="پشتیبانی کارن تراول" title="چطور می‌توانیم کمک کنیم؟" lead="برای راهنمایی سفر، استعلام خدمات یا پیگیری رزرو با ما تماس بگیرید."/><HelpPaths/><HelpFaq/></div>;
 }
+
 
 export function ConnectedTripTimeline({tripId}:{tripId:string}) {
   const {api,session}=useAuth();

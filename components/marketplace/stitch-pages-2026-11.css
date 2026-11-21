@@ -296,3 +296,46 @@ input.ks-otp:focus{outline:none;border-color:#cf4429;box-shadow:0 0 0 3px rgba(2
 .journey-main>.tour-marketplace.customer-page>a{color:#ffd79d}
 .journey-main>.tour-marketplace.customer-page .stay-search-form{color:#1e1b15;background:#fff;border-radius:24px;padding:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;align-items:end}
 .journey-main>.tour-marketplace.customer-page [role=status],.journey-main>.tour-marketplace.customer-page [role=alert],.journey-main>.tour-marketplace.customer-page .stay-login,.journey-main>.tour-marketplace.customer-page .stay-property-grid{color:#1e1b15;background:#fff;border-radius:20px;padding:14px}
+
+/* ---------- Help center (/support, /contact, /services) — same hero family ---------- */
+.hc-page{display:flex;flex-direction:column;gap:26px}
+.fl-hero-help{background:linear-gradient(135deg,rgba(42,21,48,.94),rgba(173,44,18,.6)),url(/images/approved-figma/tile-qeshm-cliffs.jpg) center/cover}
+.hc-cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
+.hc-call{display:inline-flex;align-items:center;gap:8px;padding:14px 22px;border-radius:16px;background:#ef5b3d;color:#fff;font-weight:800;text-decoration:none;box-shadow:0 10px 24px rgba(239,91,61,.35)}
+.hc-call b{font-size:17px;letter-spacing:.5px}
+.hc-ghost{display:inline-flex;align-items:center;padding:14px 18px;border-radius:16px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);color:#fff;font-weight:700;text-decoration:none}
+.hc-ghost:hover,.hc-call:hover{filter:brightness(1.06)}
+.hc-paths{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+.hc-card{display:flex;flex-direction:column;gap:8px;padding:22px;border-radius:24px;background:#fffcf9;border:1px solid #f0e2d8;box-shadow:0 8px 24px rgba(77,38,51,.06)}
+.hc-card h2{margin:4px 0 0;font-size:18px;color:#2a1530}
+.hc-card p{margin:0;color:#6e5e70;line-height:1.9;font-size:14px;flex:1}
+.hc-card a{color:#ad2c12;font-weight:800;text-decoration:none}
+.hc-ic{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;background:#fde3da;color:#ad2c12;font-size:20px;font-weight:900}
+.hc-faq{padding:22px 24px;border-radius:24px;background:#fff;border:1px solid #f0e2d8}
+.hc-faq h2{margin:0 0 8px;font-size:20px;color:#2a1530}
+.hc-faq details{border-top:1px solid #f4ede3;padding:14px 0}
+.hc-faq summary{cursor:pointer;font-weight:800;color:#2a1530}
+.hc-faq details p{margin:10px 0 6px;color:#6e5e70;line-height:1.9}
+.hc-faq details a{color:#ad2c12;font-weight:700}
+.hc-section{padding:22px 24px;border-radius:24px;background:#fff;border:1px solid #f0e2d8}
+.hc-section>h2{margin:0 0 6px;color:#2a1530}
+.hc-pills{display:flex;flex-wrap:wrap;gap:8px}
+.hc-pills a{padding:9px 16px;border-radius:999px;border:1px solid #f0e2d8;background:#fff;color:#2a1530;font-weight:700;text-decoration:none;font-size:14px}
+.hc-pills a[aria-current=page]{background:#2a1530;color:#fff;border-color:#2a1530}
+.hc-svc{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.hc-svc article{padding:22px;border-radius:24px;background:#fffcf9;border:1px solid #f0e2d8;display:flex;flex-direction:column;gap:10px}
+.hc-svc h2{margin:0;font-size:19px;color:#2a1530}
+.hc-svc p{margin:0;color:#6e5e70;line-height:1.9;font-size:14px}
+.hc-svc ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.hc-svc li a{display:inline-block;padding:8px 14px;border-radius:12px;background:#fde3da;color:#ad2c12;font-weight:800;text-decoration:none;font-size:14px}
+@media(max-width:700px){.fl-hero{padding:26px 18px 20px;border-radius:26px}.hc-cta a{flex:1 1 100%;justify-content:center}}
+/* trip-request form inside the help section: tidy 3-column grid, labels above fields */
+.hc-section .panel{border:0;box-shadow:none;padding:0;background:transparent}
+.hc-section form{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px 16px;align-items:end;margin-top:12px}
+.hc-section form>label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700;color:#2a1530}
+.hc-section form>label[style*="100%"]{grid-column:1/-1}
+.hc-section form>label[style*="100%"][style*="center"]{flex-direction:row;font-weight:500}
+.hc-section form input:not([type=checkbox]),.hc-section form select{width:100%;min-height:48px;padding:10px 14px;border-radius:14px;border:1px solid #e7dcd4;background:#fbf6f0;font:inherit;color:#2a1530}
+.hc-section form input:focus,.hc-section form select:focus{outline:none;border-color:#ef5b3d;box-shadow:0 0 0 3px rgba(239,91,61,.15)}
+.hc-section form>button{grid-column:1/-1;justify-self:start;min-height:48px;padding:0 28px;border-radius:14px}
+.hc-section .panel>h2,.hc-section .panel>h3{margin:0;color:#2a1530}
