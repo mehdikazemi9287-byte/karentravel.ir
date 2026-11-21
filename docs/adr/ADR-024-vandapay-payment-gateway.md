@@ -1,6 +1,6 @@
 # ADR-024 — VandaPay as KarenSeir payment gateway (2026-11-19)
 
-**Status:** Implemented in code, **disabled** until credentials (owner: VandaPay merchant onboarding).
+**Status:** Merged and **superseded in implementation** by [ADR-029](ADR-029-federated-org-credit-and-vandapay-hardening.md) (2026-11-19): the PR #87 code (`providers.VandaPayAdapter` HTTP client, `_verify_vandapay`, `providers.vandapay_webhook_event`, `tests/test_vandapay_payment.py`) was replaced by the hardened #88 implementation (`app/vandapay.py`); main has exactly one VandaPay implementation. The product decisions below (VandaPay is the KarenSeir gateway, `VANDAPAY_MODE`, one `/payments/{id}/initiate`, success only server-side, issue only after capture) still hold. Still **disabled** until credentials (owner: VandaPay merchant onboarding).
 
 ## Context
 Owner decision (1405-08-27): KarenSeir payments go through VandaPay (the group gateway). VandaPay plan:
@@ -18,8 +18,8 @@ KarenSeir already had a provider-neutral Payment Intent flow (intent → initiat
 
 ## Not yet (owner decisions / VandaPay side)
 - Merchant legal entity + SHEBA (Tazheban?), keys, webhook registration.
-- Cancel VandaPay intent when a supplier hold expires (`cancel` operation exists in adapter; hook to hold-release job pending).
-- Refunds via VandaPay (partial only for credit share; card share full only — see VandaPay merchant guide §7).
+- ~~Cancel VandaPay intent when a supplier hold expires~~ — done in ADR-029 (`cancel_pending` + worker sweep).
+- ~~Refunds via VandaPay~~ — done in ADR-029 (`POST /refunds/{id}/execute`, deterministic Idempotency-Key, `manual_review` for partial-card refunds).
 - Hosted page vs embedded checkout (owner: customers should not leave the site → embedded option exists in VandaPay).
 
 ## Test evidence
