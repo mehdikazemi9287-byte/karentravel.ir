@@ -134,6 +134,15 @@ main() {
   if ! health; then say "HEALTH FAILED"; rollback; exit 1; fi
   HOME_HTML=$(curl -fsS -m 10 -H 'Host: karentravel.ir' http://127.0.0.1/ 2>/dev/null || true)
   case "$HOME_HTML" in *'کارن تراول'*) say "brand: کارن تراول OK";; *) say "WARN: brand not found in the home page";; esac
+  # style gate: the approved homepage must link the stylesheet that carries its layout (kh-bento).
+  # 2026-11-19 a Next.js bump shipped a homepage without it (broken header/layout) while health was green.
+  STYLE_OK=0
+  for css in $(printf '%s' "$HOME_HTML" | grep -o '/_next/static/[^"]*\.css' | sort -u); do
+    CSS_BODY=$(curl -fsS -m 10 -H 'Host: karentravel.ir' "http://127.0.0.1$css" 2>/dev/null || true)
+    case "$CSS_BODY" in *kh-bento*) STYLE_OK=1; break;; esac
+  done
+  if [ "$STYLE_OK" != 1 ]; then say "STYLE GATE FAILED: homepage stylesheet (kh-bento) is not linked"; rollback; exit 1; fi
+  say "style gate: homepage stylesheet linked OK"
   echo "$NEW $BRANCH release-$TS $(date -u +%FT%TZ)" > "$ROOT/DEPLOYED"
   say "live version: $(curl -fsS -m 5 -H 'Host: karentravel.ir' http://127.0.0.1/build_info.json 2>/dev/null || echo unavailable)"
   docker compose ps --format '{{.Name}}\t{{.Status}}'
