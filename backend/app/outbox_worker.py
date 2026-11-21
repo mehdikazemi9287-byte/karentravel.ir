@@ -144,6 +144,12 @@ def run() -> None:
         tick += 1
         if tick % 12 == 0 and reservation_reaper_enabled():
             sweep_reservations_once()
+        try:  # VandaPay housekeeping (cancel released holds' intents, drive authorised refunds); no-op while disabled
+            vp_stats = _main_models.vandapay_sweep()
+            if vp_stats.get("enabled"):
+                logger.info("vandapay_sweep", extra=vp_stats)
+        except Exception:
+            logger.exception("vandapay_sweep_failed")
         time.sleep(5 if count else 15)
 
 
