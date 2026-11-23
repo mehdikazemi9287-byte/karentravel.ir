@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 /* Staff screens for Phase 2 (Figma P2: OPS-09 agency onboarding & licence verification, charter block review, FIN credit operations).
    Registry checks are manual (no registry API is connected): staff record result, method and inquiry reference. Money movements
    are always two-person: a request here, approval by a different finance user. */
@@ -76,11 +77,12 @@ export function StaffCharterBlocks() {
   return <>
     {notice && <p className="as-note ok" role="status">{notice}</p>}
     <Loaded state={r.state} reload={r.reload} skeleton={<Skeleton kind="table" rows={4}/>}>{d => <Card title="بلوک‌های صندلی چارتر" action={<span className={`as-chip ${d.domestic_charter_sale ? 'ok' : ''}`}>چارتر داخلی: {d.domestic_charter_sale ? 'فعال' : 'خاموش'}</span>}>
-      <div className="pn-chips" role="group" aria-label="وضعیت">{[['submitted', 'در انتظار بازبینی'], ['published', 'منتشرشده'], ['rejected', 'ردشده'], ['draft', 'پیش‌نویس'], ['', 'همه']].map(([k, l]) => <button key={k || 'all'} type="button" aria-pressed={status === k} onClick={() => setStatus(k)}>{l}</button>)}</div>
+      <div className="pn-chips" role="group" aria-label="وضعیت">{[['submitted', 'در انتظار بازبینی'], ['published', 'منتشرشده'], ['cancelled', 'لغوشده'], ['rejected', 'ردشده'], ['draft', 'پیش‌نویس'], ['', 'همه']].map(([k, l]) => <button key={k || 'all'} type="button" aria-pressed={status === k} onClick={() => setStatus(k)}>{l}</button>)}</div>
       <Table rows={d.items} rowKey={b => b.id} empty="بلوکی در این وضعیت نیست." cols={[{label: 'آژانس', cell: b => b.owner_agency_name ?? '—'}, {label: 'مسیر', cell: b => route(b)}, {label: 'پرواز', cell: b => <Ref>{b.airline_code}{b.flight_number}</Ref>},
         {label: 'حرکت', cell: b => jalali(b.departure_at, true)}, {label: 'صندلی', cell: b => `${b.seats.sold.toLocaleString('fa-IR')} / ${b.seats_total.toLocaleString('fa-IR')}`}, {label: 'نرخ ADT', cell: b => rial(b.net_adult_irr)},
         {label: 'سقف', cell: b => b.price_cap_unit_irr !== null ? rial(b.price_cap_unit_irr) : 'ثبت نشده'}, {label: 'وضعیت', cell: b => <>{b.domestic_sale_disabled && <span className="as-chip">داخلی: خاموش</span>} <BlockChip status={b.status}/></>},
-        {label: 'اقدام', cell: b => <button className="as-btn ghost" type="button" onClick={() => setOpen(open === b.id ? '' : b.id)}>{open === b.id ? 'بستن' : 'بررسی'}</button>}]}/>
+        {label: 'اقدام', cell: b => b.status === 'published' || b.status === 'cancelled' ? <Link className="as-btn ghost" href={`/backoffice/charter-blocks/${b.id}`}>{b.status === 'cancelled' ? 'سوابق' : 'تغییر یا لغو'}</Link>
+          : <button className="as-btn ghost" type="button" onClick={() => setOpen(open === b.id ? '' : b.id)}>{open === b.id ? 'بستن' : 'بررسی'}</button>}]}/>
       {d.items.filter(b => b.id === open).map(b => <BlockReview key={b.id} b={b} canPublish={d.can_publish} onDone={msg => {setNotice(`${b.airline_code}${b.flight_number}: ${msg}`); setOpen(''); r.reload();}}/>)}</Card>}</Loaded>
     <Card title="سقف قیمت سازمان هواپیمایی (price_cap)"><Loaded state={caps.state} reload={caps.reload}>{c => <>
       <Table rows={c.items} rowKey={x => x.id} empty="سقفی ثبت نشده است؛ تا ثبت سقف، کنترل سقف برای آن مسیر انجام نمی‌شود." cols={[{label: 'مسیر', cell: x => <Ref>{x.origin}-{x.destination}</Ref>}, {label: 'از', cell: x => jalali(x.valid_from)}, {label: 'تا', cell: x => jalali(x.valid_to)},

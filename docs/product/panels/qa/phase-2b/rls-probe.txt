@@ -1,0 +1,55 @@
+== RLS flags
+agency_credit_refunds rls=true force=true
+agency_settlement_disputes rls=true force=true
+agency_settlement_events rls=true force=true
+agency_settlement_lines rls=true force=true
+agency_settlements rls=true force=true
+charter_change_notices rls=true force=true
+charter_schedule_changes rls=true force=true
+== API role grants
+agency_credit_refunds: INSERT,SELECT,UPDATE
+agency_settlement_disputes: INSERT,SELECT,UPDATE
+agency_settlement_events: INSERT,SELECT
+agency_settlement_lines: INSERT,SELECT
+agency_settlements: INSERT,SELECT,UPDATE
+charter_change_notices: INSERT,SELECT,UPDATE
+charter_schedule_changes: INSERT,SELECT
+== superuser (bypass) rows per tenant
+agency_settlements: 1:7
+agency_settlement_lines: 1:27
+agency_settlement_disputes: 1:2
+agency_settlement_events: 1:25
+agency_credit_refunds: 1:4
+charter_schedule_changes: 1:3
+charter_change_notices: 1:6
+== api role, app.tenant_id=1
+agency_settlements: 7 rows, tenants=1
+agency_settlement_lines: 27 rows, tenants=1
+agency_settlement_disputes: 2 rows, tenants=1
+agency_settlement_events: 25 rows, tenants=1
+agency_credit_refunds: 4 rows, tenants=1
+charter_schedule_changes: 3 rows, tenants=1
+charter_change_notices: 6 rows, tenants=1
+== api role, app.tenant_id=2
+agency_settlements: 0 rows, tenants=-
+agency_settlement_lines: 0 rows, tenants=-
+agency_settlement_disputes: 0 rows, tenants=-
+agency_settlement_events: 0 rows, tenants=-
+agency_credit_refunds: 0 rows, tenants=-
+charter_schedule_changes: 0 rows, tenants=-
+charter_change_notices: 0 rows, tenants=-
+== api role, no tenant set
+agency_settlements: 0
+agency_settlement_lines: 0
+agency_settlement_disputes: 0
+agency_settlement_events: 0
+agency_credit_refunds: 0
+charter_schedule_changes: 0
+charter_change_notices: 0
+== append-only: UPDATE/DELETE as api role (tenant 1)
+ERROR:  permission denied for table agency_settlement_lines
+ERROR:  permission denied for table agency_settlement_events
+ERROR:  permission denied for table charter_schedule_changes
+ERROR:  permission denied for table agency_credit_refunds
+== cross-tenant insert as api role (app.tenant_id=2, row tenant_id=1)
+ERROR:  new row violates row-level security policy for table "charter_change_notices"

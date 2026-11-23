@@ -16,14 +16,15 @@ const ROLES: Record<string, { email: string; role?: string; pages: string[] }> =
   // welfare@ (an organization manager) because charter-block.spec turns org-admin@ into an agency partner on a shared e2e DB.
   // refund-loop and agency-credit promote welfare@ to finance_operator, so this test puts the role back first (`role`).
   organization: { email: 'welfare@aftab.test', role: 'welfare_manager', pages: ['/organization', '/organization/requests', '/organization/passengers'] },
-  agency: { email: 'agency@aftab.test', pages: ['/agency', '/agency/credit', '/agency/passengers'] },
+  agency: { email: 'agency@aftab.test', pages: ['/agency', '/agency/credit', '/agency/passengers', '/agency/settlements', '/agency/inventory/notices'] },
   supplier: { email: 'supplier@aftab.test', pages: ['/supplier', '/supplier/fulfillment'] },
   ops: { email: 'backoffice@aftab.test', pages: ['/panel/today', '/backoffice/queues/service_requests', '/backoffice/price-changes', '/backoffice/agencies'] },
-  finance: { email: 'finance@aftab.test', pages: ['/panel/today', '/finance/refunds', '/finance/approvals', '/finance/failed-payments', '/finance/settlement-import', '/finance/bank-batches', '/finance/tax-rates', '/finance/reconciliation'] },
+  finance: { email: 'finance@aftab.test', pages: ['/panel/today', '/finance/refunds', '/finance/approvals', '/finance/failed-payments', '/finance/settlement-import', '/finance/bank-batches', '/finance/tax-rates', '/finance/reconciliation', '/finance/settlements/agencies', '/finance/settlements/disputes'] },
   admin: { email: 'tenant-admin@aftab.test', pages: ['/panel/today', '/admin', '/admin/sla', '/finance/tax-rates'] },
 };
 const NEW_PAGES = new Set(['/panel/today', '/account/price-changes', '/organization/passengers', '/agency/passengers', '/backoffice/price-changes', '/finance/approvals',
-  '/finance/failed-payments', '/finance/settlement-import', '/finance/bank-batches', '/finance/tax-rates', '/admin/sla']);
+  '/finance/failed-payments', '/finance/settlement-import', '/finance/bank-batches', '/finance/tax-rates', '/admin/sla',
+  '/agency/settlements', '/agency/inventory/notices', '/finance/settlements/agencies', '/finance/settlements/disputes']);
 const findings: Record<string, unknown> = {};
 
 async function login(request: APIRequestContext, email: string): Promise<Session> {

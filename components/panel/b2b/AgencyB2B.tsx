@@ -106,7 +106,8 @@ function LicenceForm({agencyId, types, onSaved}: {agencyId: string; types: Recor
 /* ---------------------------------------------------------------- AG-15 account & credit */
 type Entry = {id: string; entry_type: string; amount_irr: number; signed_amount_irr: number | null; balance_after: number; held_after: number; limit_after: number; reference: string | null; note: string | null; created_at: string};
 type Req = {id: string; kind: string; status: string; summary: string; amount_irr: number | null; created_at: string};
-const ENTRY_FA: Record<string, string> = {TOPUP: 'شارژ', DECREASE: 'کاهش', HOLD: 'بلوکه', CAPTURE: 'کسر در صدور', RELEASE: 'آزادسازی', REFUND: 'استرداد به اعتبار', COMMISSION: 'کمیسیون', LIMIT_CHANGE: 'تغییر سقف'};
+const ENTRY_FA: Record<string, string> = {TOPUP: 'شارژ', DECREASE: 'کاهش', HOLD: 'بلوکه', CAPTURE: 'کسر در صدور', RELEASE: 'آزادسازی', REFUND: 'استرداد به اعتبار', COMMISSION: 'کمیسیون', LIMIT_CHANGE: 'تغییر سقف',
+  COMM_REVERSAL: 'برگشت کمیسیون (تسویه)', ADJ_CREDIT: 'اصلاحیه به نفع آژانس', ADJ_DEBIT: 'اصلاحیه به زیان آژانس', SETTLE_IN: 'پرداخت تسویه'};
 const REQ_FA: Record<string, string> = {pending: 'منتظر تأیید نفر دوم مالی', executed: 'تأییدشده و اعمال‌شده', rejected: 'ردشده', expired: 'منقضی'};
 export function AgencyCreditPage() {return <AgencyScope>{a => <CreditBody a={a}/>}</AgencyScope>;}
 function CreditBody({a}: {a: Agency}) {
@@ -129,10 +130,10 @@ function CreditBody({a}: {a: Agency}) {
     <Card title="صورت حساب (حرکات)" action={d.entries_visible ? <button type="button" className="as-btn ghost" onClick={() => void exportCsv()} disabled={act.busy}>خروجی CSV</button> : undefined}>
       <Feedback error={act.error}/>
       {!d.entries_visible ? <p className="as-muted">گردش حساب فقط برای مدیر آژانس نمایش داده می‌شود.</p> : <>
-        <div className="pn-chips" role="group" aria-label="نوع حرکت">{['', 'HOLD', 'CAPTURE', 'RELEASE', 'REFUND', 'COMMISSION', 'TOPUP', 'LIMIT_CHANGE'].map(t => <button type="button" key={t || 'all'} aria-pressed={filter === t} onClick={() => setFilter(t)}>{t ? `${ENTRY_FA[t]} · ${t}` : 'همه'}</button>)}</div>
+        <div className="pn-chips" role="group" aria-label="نوع حرکت">{['', 'HOLD', 'CAPTURE', 'RELEASE', 'REFUND', 'COMMISSION', 'SETTLE_IN', 'TOPUP', 'LIMIT_CHANGE'].map(t => <button type="button" key={t || 'all'} aria-pressed={filter === t} onClick={() => setFilter(t)}>{t ? `${ENTRY_FA[t]} · ${t}` : 'همه'}</button>)}</div>
         <Table rows={d.entries} rowKey={e => e.id} empty="حرکتی ثبت نشده است." cols={[
           {label: 'تاریخ', cell: e => jalali(e.created_at, true)}, {label: 'نوع', cell: e => `${ENTRY_FA[e.entry_type] ?? e.entry_type} · ${e.entry_type}`},
-          {label: 'شرح', cell: e => e.note ?? '—'}, {label: 'مرجع', cell: e => e.reference ? <Ref>{e.reference}</Ref> : '—'},
+          {label: 'شرح', cell: e => e.entry_type === 'REFUND' ? <span className="as-chip ok">{e.note ?? 'بازگشت به اعتبار'}</span> : e.note ?? '—'}, {label: 'مرجع', cell: e => e.reference ? <Ref>{e.reference}</Ref> : '—'},
           {label: 'مبلغ', cell: e => e.signed_amount_irr === null ? rial(e.amount_irr) : `${e.signed_amount_irr < 0 ? '−' : '+'} ${rial(Math.abs(e.signed_amount_irr))}`},
           {label: 'مانده پس از حرکت', cell: e => rial(e.balance_after)}]}/></>}
     </Card>

@@ -92,7 +92,7 @@ class CharterBlock(OperationalMixin, Base):
     refund_policy_json: Mapped[str] = mapped_column(Text, default="{}")
     tax_role: Mapped[str] = mapped_column(String(12), default="PRINCIPAL")
     accountant_confirmed: Mapped[int] = mapped_column(Integer, default=0)
-    status: Mapped[str] = mapped_column(String(16), default="draft", index=True)  # draft | submitted | published | rejected
+    status: Mapped[str] = mapped_column(String(16), default="draft", index=True)  # draft | submitted | published | rejected | cancelled (2b)
     review_note: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     reviewed_by_user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
     reviewed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -305,6 +305,8 @@ def charter_blocks_router(get_db, current_user, role_has_permission, User, audit
         return row
 
     def seats(db: Session, b: CharterBlock) -> dict:
+        if b.status == "cancelled":  # Phase 2b: a cancelled flight has nothing for sale and nothing sold (bookings are refunded)
+            return {"seats_total": b.seats_total, "sold": 0, "allocated_held": 0, "public_available": 0, "remaining": 0}
         held = sold = 0
         public = b.seats_total if b.status != "published" else 0
         if b.instance_id:

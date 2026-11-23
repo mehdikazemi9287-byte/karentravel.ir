@@ -1,0 +1,48 @@
+== upgrade 20261104_69
+INFO  [alembic.runtime.migration] Running upgrade 20261103_67 -> 20261104_68, partner venues copied from ShahrShad (global reference table, read by the public API)
+INFO  [alembic.runtime.migration] Running upgrade 20261104_68 -> 20261104_69, requests sent to partner sites (Padvira, Gift Asan), tenant-isolated
+== upgrade head
+INFO  [alembic.runtime.migration] Running upgrade 20261104_69 -> 20261109_70, traveller identity (national code, birth date, gender, nationality, passport) and on-behalf org bookings, tenant-isolated
+INFO  [alembic.runtime.migration] Running upgrade 20261109_70 -> 20261109_71, after-sales loop (Panels Phase 1): service-request handling + timeline, two-person refund execution, refund journal,
+INFO  [alembic.runtime.migration] Running upgrade 20261109_71 -> 20261109_72, maker-checker requests (four-eyes approval for wallet funding / credit lines; reusable), tenant-isolated
+INFO  [alembic.runtime.migration] Running upgrade 20261109_72 -> 20261109_73, users.disabled_at / tenants.disabled_at: reversible deactivation (demo seed data on production).
+INFO  [alembic.runtime.migration] Running upgrade 20261109_73 -> 20261110_74, blog posts (tenant-isolated)
+INFO  [alembic.runtime.migration] Running upgrade 20261110_74 -> 20261111_75, Panels Phase 2 (B2B agency + charter): agency profile/licences/registry checks, agency account + ledger, markup rules,
+INFO  [alembic.runtime.migration] Running upgrade 20261111_75 -> 20261111_76, Panels Phase 1 (rest) + security: configurable ops SLA, dated tax rates, change-price proposals, saved passengers of an
+INFO  [alembic.runtime.migration] Running upgrade 20261111_76 -> 20261112_77, Panels Phase 2b: agency periodic settlement (statements, append-only lines, disputes, append-only timeline), refunds to
+== check
+INFO  [alembic.ddl.postgresql] Detected sequence named 'audit_events_id_seq' as owned by integer column 'audit_events(id)', assuming SERIAL and omitting
+No new upgrade operations detected.
+== heads
+20261112_77 (head)
+== downgrade -1
+INFO  [alembic.runtime.migration] Running downgrade 20261112_77 -> 20261111_76, Panels Phase 2b: agency periodic settlement (statements, append-only lines, disputes, append-only timeline), refunds to
+20261111_76
+== upgrade head
+INFO  [alembic.runtime.migration] Running upgrade 20261111_76 -> 20261112_77, Panels Phase 2b: agency periodic settlement (statements, append-only lines, disputes, append-only timeline), refunds to
+20261112_77 (head)
+No new upgrade operations detected.
+== with karenseir_api present: downgrade -1 / upgrade head (GRANT path)
+INFO  [alembic.runtime.migration] Running downgrade 20261112_77 -> 20261111_76, Panels Phase 2b: agency periodic settlement (statements, append-only lines, disputes, append-only timeline), refunds to
+INFO  [alembic.runtime.migration] Running upgrade 20261111_76 -> 20261112_77, Panels Phase 2b: agency periodic settlement (statements, append-only lines, disputes, append-only timeline), refunds to
+No new upgrade operations detected.
+== after provision-api-role.sql (role exists): downgrade -1 / upgrade head / check
+INFO  [alembic.runtime.migration] Running downgrade 20261112_77 -> 20261111_76, Panels Phase 2b: agency periodic settlement (statements, append-only lines, disputes, append-only timeline), refunds to
+INFO  [alembic.runtime.migration] Running upgrade 20261111_76 -> 20261112_77, Panels Phase 2b: agency periodic settlement (statements, append-only lines, disputes, append-only timeline), refunds to
+No new upgrade operations detected.
+20261112_77 (head)
+== fresh DB, karenseir_api provisioned BEFORE migrating (production order): upgrade head / check
+INFO  [alembic.runtime.migration] Running upgrade 20261110_74 -> 20261111_75, Panels Phase 2 (B2B agency + charter): agency profile/licences/registry checks, agency account + ledger, markup rules,
+INFO  [alembic.runtime.migration] Running upgrade 20261111_75 -> 20261111_76, Panels Phase 1 (rest) + security: configurable ops SLA, dated tax rates, change-price proposals, saved passengers of an
+INFO  [alembic.runtime.migration] Running upgrade 20261111_76 -> 20261112_77, Panels Phase 2b: agency periodic settlement (statements, append-only lines, disputes, append-only timeline), refunds to
+No new upgrade operations detected.
+20261112_77 (head)
+agency_settlement_events: INSERT,SELECT
+agency_settlement_lines: INSERT,SELECT
+agency_settlements: INSERT,SELECT,UPDATE
+charter_schedule_changes: INSERT,SELECT
+after re-running provision-api-role.sql: agency_credit_refunds: INSERT,SELECT,UPDATE
+after re-running provision-api-role.sql: agency_settlement_events: INSERT,SELECT
+after re-running provision-api-role.sql: agency_settlement_lines: INSERT,SELECT
+after re-running provision-api-role.sql: agency_settlements: INSERT,SELECT,UPDATE
+after re-running provision-api-role.sql: charter_schedule_changes: INSERT,SELECT

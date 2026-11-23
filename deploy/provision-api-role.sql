@@ -19,6 +19,23 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE O
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO karenseir_api;
 REVOKE CREATE ON SCHEMA public FROM karenseir_api;
 
+-- Panels Phase 2b (migration 20261112_77): statement lines, statement timeline and charter schedule changes are append-only for the
+-- API (a correction is a new row); the broad grant above must not give them back UPDATE/DELETE when this script is re-run.
+DO $$
+DECLARE t text;
+BEGIN
+    FOREACH t IN ARRAY ARRAY['agency_settlement_lines', 'agency_settlement_events', 'charter_schedule_changes'] LOOP
+        IF to_regclass('public.' || t) IS NOT NULL THEN
+            EXECUTE format('REVOKE UPDATE, DELETE ON public.%I FROM karenseir_api', t);
+        END IF;
+    END LOOP;
+    FOREACH t IN ARRAY ARRAY['agency_settlements', 'agency_settlement_disputes', 'agency_credit_refunds', 'charter_change_notices'] LOOP
+        IF to_regclass('public.' || t) IS NOT NULL THEN
+            EXECUTE format('REVOKE DELETE ON public.%I FROM karenseir_api', t);
+        END IF;
+    END LOOP;
+END $$;
+
 DO $$
 BEGIN
     IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'find_login_identity') THEN

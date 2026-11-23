@@ -1,0 +1,64 @@
+== e2e-new
+  ✓  1 e2e/panels/agency-settlement.spec.ts:34:5 › agency settlement: issue (two finance users) → dispute → adjustment → accept → settle (43.1s)
+  ✓  2 e2e/panels/charter-change.spec.ts:48:5 › charter schedule change → second approver → agency notice → refund to agency credit (1.0m)
+  2 passed (1.9m)
+== e2e-smoke
+  ✓  1 e2e/panels/role-smoke.spec.ts:62:7 › customer: main panel pages render with nonce CSP and pass axe (18.8s)
+  ✓  2 e2e/panels/role-smoke.spec.ts:62:7 › organization: main panel pages render with nonce CSP and pass axe (7.6s)
+  ✓  3 e2e/panels/role-smoke.spec.ts:62:7 › agency: main panel pages render with nonce CSP and pass axe (12.5s)
+  ✓  4 e2e/panels/role-smoke.spec.ts:62:7 › supplier: main panel pages render with nonce CSP and pass axe (5.5s)
+  ✓  5 e2e/panels/role-smoke.spec.ts:62:7 › ops: main panel pages render with nonce CSP and pass axe (10.4s)
+  ✓  6 e2e/panels/role-smoke.spec.ts:62:7 › finance: main panel pages render with nonce CSP and pass axe (27.0s)
+  ✓  7 e2e/panels/role-smoke.spec.ts:62:7 › admin: main panel pages render with nonce CSP and pass axe (10.9s)
+  ✓  8 e2e/panels/role-smoke.spec.ts:90:5 › mobile: every role gets the bottom navigation with «بیشتر» (7.1s)
+  8 passed (2.3m)
+== e2e-panels
+  ✓   1 e2e/panels/agency-credit.spec.ts:30:5 › agency onboarding → licence verification → two-person credit limit → booking on agency credit (1.0m)
+  ✘   2 e2e/panels/agency-settlement.spec.ts:34:5 › agency settlement: issue (two finance users) → dispute → adjustment → accept → settle (1.1m)
+  ✓   3 e2e/panels/charter-block.spec.ts:43:5 › charter block: form → ops publish → allocation to a partner agency (23.1s)
+  ✘   4 e2e/panels/charter-change.spec.ts:48:5 › charter schedule change → second approver → agency notice → refund to agency credit (1.6m)
+  ✓   5 e2e/panels/refund-loop.spec.ts:31:5 › cancel → ops approve → two-person finance refund → customer sees paid refund (1.1m)
+  ✓   6 e2e/panels/role-smoke.spec.ts:61:7 › customer: main panel pages render with nonce CSP and pass axe (24.5s)
+  ✓   7 e2e/panels/role-smoke.spec.ts:61:7 › organization: main panel pages render with nonce CSP and pass axe (8.6s)
+  ✓   8 e2e/panels/role-smoke.spec.ts:61:7 › agency: main panel pages render with nonce CSP and pass axe (11.0s)
+  ✘   9 e2e/panels/role-smoke.spec.ts:61:7 › supplier: main panel pages render with nonce CSP and pass axe (12.9s)
+  ✘  10 e2e/panels/role-smoke.spec.ts:61:7 › ops: main panel pages render with nonce CSP and pass axe (0ms)
+  -  11 e2e/panels/role-smoke.spec.ts:61:7 › finance: main panel pages render with nonce CSP and pass axe
+  -  12 e2e/panels/role-smoke.spec.ts:61:7 › admin: main panel pages render with nonce CSP and pass axe
+  -  13 e2e/panels/role-smoke.spec.ts:89:5 › mobile: every role gets the bottom navigation with «بیشتر»
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m()[22m failed
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m()[22m failed
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mnot[2m.[22mtoHaveText[2m([22m[32mexpected[39m[2m)[22m failed
+  4 failed
+  6 passed (7.3m)
+== e2e-panels-ci (CI=1: 90s timeout, 1 retry, one worker; all 6 panel specs in one run)
+  ✓   1 e2e/panels/agency-credit.spec.ts:30:5 › agency onboarding → licence verification → two-person credit limit → booking on agency credit (1.1m)
+  ✘   2 e2e/panels/agency-settlement.spec.ts:34:5 › agency settlement: issue (two finance users) → dispute → adjustment → accept → settle (1.1m)
+  ✓   3 e2e/panels/agency-settlement.spec.ts:34:5 › agency settlement: issue (two finance users) → dispute → adjustment → accept → settle (retry #1) (32.3s)
+  ✓   4 e2e/panels/charter-block.spec.ts:43:5 › charter block: form → ops publish → allocation to a partner agency (44.9s)
+  ✘   5 e2e/panels/charter-change.spec.ts:48:5 › charter schedule change → second approver → agency notice → refund to agency credit (1.9m)
+  ✓   6 e2e/panels/charter-change.spec.ts:48:5 › charter schedule change → second approver → agency notice → refund to agency credit (retry #1) (26.4s)
+  ✘   7 e2e/panels/refund-loop.spec.ts:31:5 › cancel → ops approve → two-person finance refund → customer sees paid refund (1.9m)
+  ✘   8 e2e/panels/refund-loop.spec.ts:31:5 › cancel → ops approve → two-person finance refund → customer sees paid refund (retry #1) (57ms)
+  ✘   9 e2e/panels/role-smoke.spec.ts:62:7 › customer: main panel pages render with nonce CSP and pass axe (0ms)
+  -  10 e2e/panels/role-smoke.spec.ts:62:7 › organization: main panel pages render with nonce CSP and pass axe
+  -  11 e2e/panels/role-smoke.spec.ts:62:7 › agency: main panel pages render with nonce CSP and pass axe
+  -  12 e2e/panels/role-smoke.spec.ts:62:7 › supplier: main panel pages render with nonce CSP and pass axe
+  -  13 e2e/panels/role-smoke.spec.ts:62:7 › ops: main panel pages render with nonce CSP and pass axe
+  -  14 e2e/panels/role-smoke.spec.ts:62:7 › finance: main panel pages render with nonce CSP and pass axe
+  -  15 e2e/panels/role-smoke.spec.ts:62:7 › admin: main panel pages render with nonce CSP and pass axe
+  -  16 e2e/panels/role-smoke.spec.ts:90:5 › mobile: every role gets the bottom navigation with «بیشتر»
+  ✘  17 e2e/panels/role-smoke.spec.ts:62:7 › customer: main panel pages render with nonce CSP and pass axe (retry #1) (0ms)
+  -  18 e2e/panels/role-smoke.spec.ts:62:7 › organization: main panel pages render with nonce CSP and pass axe (retry #1)
+  -  19 e2e/panels/role-smoke.spec.ts:62:7 › agency: main panel pages render with nonce CSP and pass axe (retry #1)
+  -  20 e2e/panels/role-smoke.spec.ts:62:7 › supplier: main panel pages render with nonce CSP and pass axe (retry #1)
+  -  21 e2e/panels/role-smoke.spec.ts:62:7 › ops: main panel pages render with nonce CSP and pass axe (retry #1)
+  -  22 e2e/panels/role-smoke.spec.ts:62:7 › finance: main panel pages render with nonce CSP and pass axe (retry #1)
+  -  23 e2e/panels/role-smoke.spec.ts:62:7 › admin: main panel pages render with nonce CSP and pass axe (retry #1)
+  -  24 e2e/panels/role-smoke.spec.ts:90:5 › mobile: every role gets the bottom navigation with «بیشتر» (retry #1)
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m()[22m failed
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m()[22m failed
+  2 failed
+  2 flaky
+  2 passed (8.2m)
+cause of the refused connections: local sandbox memory cgroup OOM killer (dmesg: 'Memory cgroup out of memory: Killed process … (chrome)'); not reproduced in grouped runs
