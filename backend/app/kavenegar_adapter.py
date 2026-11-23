@@ -23,7 +23,7 @@ import re
 from dataclasses import dataclass
 from typing import Any, Mapping
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
 
 from .providers import ProviderContext, ProviderError, ProviderHealth, RetryPolicy
@@ -35,21 +35,63 @@ from .providers import ProviderContext, ProviderError, ProviderHealth, RetryPoli
 # is rejected outright, never coerced/guessed.
 _IRAN_MOBILE_RE = re.compile(r"^(?:\+98|0098|98|0)9(\d{9})$")
 
-# Kavenegar's own documented Verify/Lookup status codes that map to a
-# specific, actionable KarenSeir-side error rather than a generic one.
+# Kavenegar return-status codes (the same number is used as the HTTP status
+# of an error response, with a JSON body whose return.status repeats it).
+# Each maps to a precise KarenSeir-side reason instead of a generic one.
+# Earlier versions mapped 414/415 to "rate_limited" and 412 to an auth
+# error; in Kavenegar's table 414 is "too many records in one request",
+# 415 is "start index out of range" and 412 is "invalid sender line", so
+# those were misreported (and 414/415 were retried as if transient).
 _KAVENEGAR_ERROR_CODES: dict[int, str] = {
-    404: "unknown_method",
-    405: "method_not_allowed",
+    400: "provider_bad_request",        # parameters incomplete
+    401: "authentication_error",        # account disabled
+    402: "provider_rejected",           # operation failed
+    403: "authentication_error",        # API key invalid
+    404: "unknown_method",              # URL path matches no method (e.g. empty key in the path)
+    405: "method_not_allowed",          # GET/POST not accepted for this method
+    406: "provider_bad_request",        # required parameter empty
+    407: "access_denied",               # blocked by the account's security (IP) settings
+    409: "provider_busy",               # server could not answer; try later
+    411: "invalid_receptor",            # receptor is invalid
+    412: "invalid_sender",              # sender line is invalid
+    413: "provider_bad_request",        # message empty or too long
+    414: "provider_bad_request",        # too many records in one request
+    415: "provider_bad_request",        # start index out of range
+    417: "provider_bad_request",        # invalid date
     418: "insufficient_credit",
-    424: "template_unavailable",
-    426: "account_service_unavailable",
-    401: "authentication_error",   # account/API key not active
-    403: "authentication_error",   # invalid API key
-    412: "authentication_error",   # sender/account not verified for this template
-    411: "invalid_receptor",       # receptor is invalid
-    414: "rate_limited",           # daily/character send limit reached
-    415: "rate_limited",           # send limit exceeded
+    419: "provider_bad_request",        # array lengths differ
+    422: "invalid_token",               # invalid characters in the data
+    424: "template_unavailable",        # template not found / not approved
+    426: "account_service_unavailable", # method needs an upgraded service plan
+    431: "invalid_token",               # code/token structure is invalid
+    432: "template_token_missing",      # template text has no %token placeholder
+    451: "rate_limited",                # too many calls in a short window
+    501: "owner_only_test_account",     # test account: only the owner's own number receives SMS
 }
+_RETRYABLE_REASONS = frozenset({"rate_limited", "provider_busy"})
+# Failures that are about one request/recipient, not about Kavenegar's
+# health. They are flagged client_error so ResilientAdapter's tenant-wide
+# circuit breaker does not open on them -- otherwise five bad numbers (or
+# five legacy accounts without a mobile) in a minute would block OTP for
+# every user of the tenant for the circuit period.
+_CLIENT_ERROR_REASONS = frozenset({
+    "invalid_receptor", "missing_code", "unsupported_operation",
+    "owner_only_test_account", "recipient_undeliverable",
+})
+# entries[].status values that mean the message will not reach the
+# recipient even though return.status is 200 (6 failed, 11 undelivered,
+# 13 cancelled, 14 blocked by recipient, 100 invalid message id).
+_FAILED_ENTRY_STATUSES = frozenset({6, 11, 13, 14, 100})
+
+_DIGIT_MAP = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
+# Whitespace, dashes, brackets, plus the invisible bidi/zero-width marks a
+# Persian keyboard or a copy from a contact card often inserts.
+_PHONE_NOISE_RE = re.compile(r"[\s\-()\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]")
+
+
+def normalize_digits(value: str) -> str:
+    """Persian/Arabic-Indic digits -> ASCII digits; everything else unchanged."""
+    return (value or "").translate(_DIGIT_MAP)
 
 
 @dataclass(frozen=True)
@@ -66,7 +108,7 @@ def normalize_iranian_mobile(raw: str) -> str | None:
     well-formed Iranian mobile number. Never guesses a fallback."""
     if not raw:
         return None
-    digits = re.sub(r"[\s\-()]", "", raw.strip()).translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789"))
+    digits = normalize_digits(_PHONE_NOISE_RE.sub("", raw.strip()))
     match = _IRAN_MOBILE_RE.fullmatch(digits)
     if not match:
         return None
@@ -111,6 +153,7 @@ class KavenegarSmsOtpProvider:
             "ok": False, "status": "not_sent", "provider": "kavenegar", "operation": operation,
             "correlation_id": context.correlation_id, "idempotency_key": context.idempotency_key,
             "reason": code,
+            "client_error": code in _CLIENT_ERROR_REASONS,
             "error": ProviderError(code=code, message=message, retryable=retryable, correlation_id=context.correlation_id).__dict__,
         }
 
@@ -138,7 +181,7 @@ class KavenegarSmsOtpProvider:
         # Real Kavenegar Verify/Lookup call. KarenSeir generated `code`
         # already (sec 8) -- this is delivery only, never generation.
         params = {"receptor": receptor, "token": code, "template": self.template}
-        url = f"https://api.kavenegar.com/v1/{self.api_key}/verify/lookup.json"
+        url = f"https://api.kavenegar.com/v1/{quote(self.api_key, safe='')}/verify/lookup.json"
         request = Request(url, data=urlencode(params).encode("utf-8"), headers={"Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json"}, method="POST")
         try:
             with urlopen(request, timeout=self.timeout_seconds) as response:  # noqa: S310 - fixed Kavenegar host
@@ -164,6 +207,11 @@ class KavenegarSmsOtpProvider:
             entry = entries[0] if isinstance(entries, list) and entries else {}
             if not isinstance(entry, Mapping) or isinstance(entry.get("messageid"), bool) or not str(entry.get("messageid", "")).isdigit() or int(str(entry.get("messageid", "0"))) <= 0:
                 return self._error("provider_invalid_response", "Kavenegar response has no valid message reference", retryable=False, context=context, operation=operation)
+            entry_status = entry.get("status")
+            if isinstance(entry_status, int) and not isinstance(entry_status, bool) and entry_status in _FAILED_ENTRY_STATUSES:
+                # Accepted by the API but already known not to reach the
+                # recipient -- never reported as sent.
+                return self._error("recipient_undeliverable", f"Kavenegar message status {entry_status}", retryable=False, context=context, operation=operation)
             return {
                 "ok": True, "status": "sent", "provider": "kavenegar", "operation": operation,
                 "correlation_id": context.correlation_id, "idempotency_key": context.idempotency_key,
@@ -171,9 +219,21 @@ class KavenegarSmsOtpProvider:
             }
         reason = _KAVENEGAR_ERROR_CODES.get(status_code, "provider_rejected")
         return self._error(reason, f"Kavenegar rejected the request ({reason})",
-                            retryable=reason == "rate_limited", context=context, operation=operation)
+                            retryable=reason in _RETRYABLE_REASONS, context=context, operation=operation)
 
     def _map_http_error(self, exc: HTTPError, context: ProviderContext, operation: str) -> Mapping[str, Any]:
-        reason = _KAVENEGAR_ERROR_CODES.get(exc.code, "provider_rejected")
-        retryable = exc.code >= 500 or reason == "rate_limited"
+        # Kavenegar answers errors with an HTTP status equal to its own
+        # return.status and a JSON body; prefer the body's code when it is
+        # readable, fall back to the HTTP status otherwise.
+        status_code = exc.code
+        try:
+            body = json.loads(exc.read().decode("utf-8"))
+            body_status = (body.get("return") or {}).get("status") if isinstance(body, Mapping) else None
+            if isinstance(body_status, int) and not isinstance(body_status, bool):
+                status_code = body_status
+        except Exception:  # noqa: BLE001 - unreadable body: keep the HTTP status
+            pass
+        reason = _KAVENEGAR_ERROR_CODES.get(status_code, "provider_rejected")
+        # An unmapped 5xx is a transient server fault; a mapped code (e.g. 501) keeps its own meaning.
+        retryable = reason in _RETRYABLE_REASONS or (exc.code >= 500 and status_code not in _KAVENEGAR_ERROR_CODES)
         return self._error(reason, f"Kavenegar HTTP {exc.code} ({reason})", retryable=retryable, context=context, operation=operation)
