@@ -19,6 +19,14 @@ from test_agency_b2b import _user, activate, fund, key, login, make_agency, pric
 from test_charter_blocks import block_body
 
 
+def _midday_block_body() -> dict:
+    """Departure pinned to 08:00 UTC (11:30 Tehran) so a few-hours shift never crosses a Tehran
+    midnight; otherwise the same-day/other-day rule made these tests depend on the time of day."""
+    dep = (datetime.now(timezone.utc) + timedelta(days=15)).replace(hour=8, minute=0, second=0, microsecond=0)
+    return block_body(departure_at=dep.isoformat(), arrival_at=(dep + timedelta(hours=3, minutes=30)).isoformat(),
+                      release_at=(dep - timedelta(days=2)).isoformat())
+
+
 @pytest.fixture()
 def cw(client):
     owner, ops, fin1, fin2, buyer_owner, ops2 = (_user("agency_partner"), _user("backoffice_expert"), _user("finance_operator"), _user("finance_operator"),
@@ -29,7 +37,7 @@ def cw(client):
     activate(client, w["owner"], w["ops"], a)
     activate(client, w["bh"], w["ops"], buyer, licence_type="BAND_BE")
     fund(client, w["fin1"], w["fin2"], buyer, limit=500_000_000)
-    blk = client.post(f"/agency/{a}/charter/blocks", json=block_body(), headers=w["owner"]).json()
+    blk = client.post(f"/agency/{a}/charter/blocks", json=_midday_block_body(), headers=w["owner"]).json()
     pub = client.post(f"/staff/charter/blocks/{blk['id']}/decision", json={"decision": "approve", "platform_fee_bps": 300}, headers=w["ops"])
     assert pub.status_code == 200, pub.text
     w["block"] = pub.json()
