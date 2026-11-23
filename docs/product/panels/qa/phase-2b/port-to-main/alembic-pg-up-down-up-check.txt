@@ -1,0 +1,13 @@
+FORCE ROW LEVEL SECURITY; statement lines, statement events and schedule changes are append-only for the API role (a
+correction is a new line).
+== heads
+20261112_77 (head)
+== down
+correction is a new line).
+20261111_76
+== up
+correction is a new line).
+20261112_77 (head)
+== check
+INFO  [alembic.ddl.postgresql] Detected sequence named 'audit_events_id_seq' as owned by integer column 'audit_events(id)', assuming SERIAL and omitting
+No new upgrade operations detected.

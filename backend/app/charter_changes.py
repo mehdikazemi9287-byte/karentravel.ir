@@ -198,7 +198,7 @@ def charter_changes_router(get_db, current_user, role_has_permission, User, audi
             a["net_irr"] += x.net_irr
             a["refundable_to_credit_irr"] += credit_remaining(db, x)
             a["booking_refs"].append(r.booking_reference)
-        owner = names.get(b.owner_agency_id) or db.scalar(select(m.Agency.display_name).where(m.Agency.id == b.owner_agency_id))
+        owner = names.get(b.owner_agency_id) or db.scalar(select(m.Agency.display_name).where(m.Agency.id == b.owner_agency_id, m.Agency.tenant_id == t))
         items = sorted(agencies.values(), key=lambda a: -(a["passengers"] + a["allocation_held"]))
         return {"block_id": b.id, "kind": kind, "flight": f"{b.airline_code}{b.flight_number}", "route": f"{b.origin}-{b.destination}", "owner_agency": owner,
                 "agencies": items, "agency_bookings": len(active_lines), "agency_passengers": sum(x.units for x in active_lines),

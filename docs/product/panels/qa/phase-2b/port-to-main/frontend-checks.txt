@@ -1,0 +1,3 @@
+npx tsc --noEmit: exit 0, no output
+npx eslint <19 touched ts/tsx files>: exit 0, no output
+node tests/unit/panel-access.cjs: PASS

@@ -558,7 +558,7 @@ def after_sales_router(get_db, current_user, role_has_permission, User, audit, q
                         "pending_bank_reference": ex.bank_reference, "note": ex.note})
         return out
 
-    def _agency_refund_view(db: Session, h: ServiceRequestHandling) -> Optional[dict]:
+    def _agency_refund_view(db: Session, h: ServiceRequestHandling, customer_view: bool = True) -> Optional[dict]:
         if h.refund_destination != "agency_credit":
             return None
         rid = json.loads(h.destination_json or "{}").get("agency_credit_refund_id")
@@ -571,7 +571,7 @@ def after_sales_router(get_db, current_user, role_has_permission, User, audit, q
         o = refund_out(db, row)
         return {"id": row.id, "status": o["status"], "status_label": o["status_label"], "amount": row.amount_irr, "currency": "IRR", "destination": "agency_credit",
                 "destination_label": METHOD_FA["agency_credit"], "method": "agency_credit", "bank_reference": None, "paid_at": o["executed_at"],
-                "mc_request_id": row.mc_request_id}
+                "mc_request_id": None if customer_view else row.mc_request_id}
 
     def _request_out(db: Session, req: m.BookingServiceRequest, res: m.Reservation, h: ServiceRequestHandling, customer_view: bool) -> dict:
         refund = db.get(m.RefundRecord, h.refund_id) if h.refund_id else None
@@ -584,7 +584,7 @@ def after_sales_router(get_db, current_user, role_has_permission, User, audit, q
                "refund_destination_label": METHOD_FA.get(h.refund_destination or ""), "penalty_amount": h.penalty_amount,
                "penalty_source": h.penalty_source, "approved_amount": h.approved_amount, "decision_reason": h.decision_reason,
                "customer_question": h.customer_question if req.status == "needs_customer" else None,
-               "refund": _refund_view(db, refund, ex) or _agency_refund_view(db, h), "next": request_next_step(db, req, h.status_since),
+               "refund": _refund_view(db, refund, ex) or _agency_refund_view(db, h, customer_view), "next": request_next_step(db, req, h.status_since),
                "can_withdraw": req.status == "submitted", "can_reply": req.status == "needs_customer"}
         if not customer_view:
             names = _names(db, [h.assigned_to_user_id, h.decided_by_user_id, h.customer_user_id])

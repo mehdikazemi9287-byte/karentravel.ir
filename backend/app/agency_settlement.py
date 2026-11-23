@@ -244,6 +244,9 @@ def queue_credit_refund(db: Session, *, user, line: AgencyBookingLine, amount: i
     """Creates the refund row and its maker-checker request. Nothing is credited until a finance user (≠ maker) approves."""
     prior = db.scalar(select(AgencyCreditRefund).where(AgencyCreditRefund.tenant_id == line.tenant_id, AgencyCreditRefund.idempotency_key == key[:160]))
     if prior is not None:
+        # same key → same result only for the same request; another line/amount/source under the same key is a conflict, not a silent replay
+        if (prior.booking_line_id, prior.amount_irr, prior.penalty_irr, prior.source) != (line.id, amount, penalty, source):
+            raise ValueError("این شناسهٔ درخواست قبلاً با مبلغ یا رزرو دیگری ثبت شده است")
         return prior
     if source not in REFUND_SOURCES or amount <= 0:
         raise ValueError("مبلغ بازگشت به اعتبار نامعتبر است")
@@ -275,7 +278,10 @@ def _execute_credit_refund(db: Session, request, payload: dict, checker) -> dict
         raise ValueError("ردیف بازگشت به اعتبار یافت نشد")
     if row.status == "executed":
         return {"ledger_entry_id": row.ledger_entry_id}
-    line = db.get(AgencyBookingLine, row.booking_line_id)
+    # lock the booking line so two approvals for the same booking cannot both pass the "≤ net" check below
+    line = db.scalar(select(AgencyBookingLine).where(AgencyBookingLine.id == row.booking_line_id, AgencyBookingLine.tenant_id == row.tenant_id).with_for_update())
+    if line is None:
+        raise ValueError("ردیف رزرو آژانس یافت نشد")
     others = sum(r.amount_irr for r in db.scalars(select(AgencyCreditRefund).where(AgencyCreditRefund.tenant_id == row.tenant_id,
                                                                                     AgencyCreditRefund.booking_line_id == row.booking_line_id,
                                                                                     AgencyCreditRefund.status == "executed", AgencyCreditRefund.id != row.id)))
@@ -522,7 +528,7 @@ def agency_settlement_router(get_db, current_user, role_has_permission, User, au
                              "occurred_at": _iso(x.occurred_at), "dispute_id": x.dispute_id, "open_dispute_id": by_line[x.id].id if x.id in by_line else None,
                              "disputable": st.status in ("issued", "disputed") and x.id not in by_line and x.line_type != "OPENING"} for x in lines_of(db, st)]
             nm = names(db, [d.opened_by_user_id for d in ds] + [d.resolved_by_user_id for d in ds])
-            out["disputes"] = [dispute_out(db, d, nm) for d in ds]
+            out["disputes"] = [dispute_out(db, d, nm, agency_view=agency_view) for d in ds]
             evs = db.scalars(select(AgencySettlementEvent).where(AgencySettlementEvent.tenant_id == st.tenant_id, AgencySettlementEvent.settlement_id == st.id)
                              .order_by(AgencySettlementEvent.created_at, AgencySettlementEvent.id)).all()
             en = names(db, [e.actor_id for e in evs])
@@ -531,13 +537,15 @@ def agency_settlement_router(get_db, current_user, role_has_permission, User, au
                                 "at": _iso(e.created_at)} for e in evs]
         return out
 
-    def dispute_out(db: Session, d: AgencySettlementDispute, nm: dict) -> dict:
-        line = db.get(AgencySettlementLine, d.line_id)
+    def dispute_out(db: Session, d: AgencySettlementDispute, nm: dict, agency_view: bool = False) -> dict:
+        line = db.scalar(select(AgencySettlementLine).where(AgencySettlementLine.id == d.line_id, AgencySettlementLine.tenant_id == d.tenant_id))
         return {"id": d.id, "settlement_id": d.settlement_id, "line_id": d.line_id, "line_no": line.line_no if line else None,
                 "line_type": line.line_type if line else None, "line_amount_irr": line.amount_irr if line else None, "line_description": line.description if line else None,
                 "reason": d.reason, "claimed_amount_irr": d.claimed_amount_irr, "status": d.status, "status_label": DISPUTE_FA.get(d.status, d.status),
-                "adjustment_amount_irr": d.adjustment_amount_irr, "resolution_note": d.resolution_note, "mc_request_id": d.mc_request_id,
-                "opened_by": nm.get(d.opened_by_user_id), "resolved_by": nm.get(d.resolved_by_user_id), "created_at": _iso(d.created_at), "resolved_at": _iso(d.resolved_at)}
+                "adjustment_amount_irr": d.adjustment_amount_irr, "resolution_note": d.resolution_note,
+                "mc_request_id": None if agency_view else d.mc_request_id, "opened_by": nm.get(d.opened_by_user_id),
+                # the agency sees "finance", not the name of the staff member who decided
+                "resolved_by": ("کارشناس مالی" if d.resolved_by_user_id else None) if agency_view else nm.get(d.resolved_by_user_id), "created_at": _iso(d.created_at), "resolved_at": _iso(d.resolved_at)}
 
     def settler(user=Depends(current_user)):
         if not role_has_permission(user.role, "settlement:manage"):
@@ -724,7 +732,9 @@ def agency_settlement_router(get_db, current_user, role_has_permission, User, au
             raise HTTPException(status_code=409, detail="فقط پیش‌نویس قابل صدور است")
         if st.issue_mc_request_id and mc_status(db, st.issue_mc_request_id) == "pending":
             prior = db.get(approvals.MakerCheckerRequest, st.issue_mc_request_id)
-            if prior.idempotency_key == idempotency_key and prior.maker_user_id == user.id:
+            if prior.idempotency_key == idempotency_key:  # replay: mc() compares the request hash (another body/maker → 409)
+                mc(db, user, "agency.settlement_issue", {"settlement_id": st.id, "net_irr": st.net_irr, "note": data.note}, idempotency_key,
+                   f"صدور صورت تسویهٔ {st.statement_no}", st.net_irr, st.agency_id)
                 return {"request_id": prior.id, "status": prior.status, "message": "درخواست صدور قبلاً ثبت شده است."}
             raise HTTPException(status_code=409, detail="درخواست صدور این صورت در انتظار تأیید است")
         r = mc(db, user, "agency.settlement_issue", {"settlement_id": st.id, "net_irr": st.net_irr, "note": data.note}, idempotency_key,
@@ -744,7 +754,10 @@ def agency_settlement_router(get_db, current_user, role_has_permission, User, au
             raise HTTPException(status_code=422, detail="برای دریافت مبلغ از آژانس، شمارهٔ پیگیری واریز بانکی لازم است")
         if st.settle_mc_request_id and mc_status(db, st.settle_mc_request_id) == "pending":
             prior = db.get(approvals.MakerCheckerRequest, st.settle_mc_request_id)
-            if prior.idempotency_key == idempotency_key and prior.maker_user_id == user.id:
+            if prior.idempotency_key == idempotency_key:  # replay: mc() compares the request hash (another body/maker → 409)
+                mc(db, user, "agency.settlement_settle", {"settlement_id": st.id, "net_irr": st.net_irr, "bank_reference": data.bank_reference,
+                                                          "paid_on": _iso(data.paid_on), "note": data.note}, idempotency_key, f"تسویهٔ صورت {st.statement_no}", st.net_irr,
+                   st.agency_id)
                 return {"request_id": prior.id, "status": prior.status, "message": "درخواست تسویه قبلاً ثبت شده است."}
             raise HTTPException(status_code=409, detail="درخواست تسویهٔ این صورت در انتظار تأیید است")
         r = mc(db, user, "agency.settlement_settle", {"settlement_id": st.id, "net_irr": st.net_irr, "bank_reference": data.bank_reference,
@@ -829,7 +842,12 @@ def agency_settlement_router(get_db, current_user, role_has_permission, User, au
     @api.get("/finance/agency-credit-refunds")
     def fin_credit_refunds(status: Optional[str] = Query(default=None, pattern="^(pending_approval|executed|rejected|expired)$"), user=Depends(fin_reader),
                            db: Session = Depends(get_db)) -> dict:
-        rows = db.scalars(select(AgencyCreditRefund).where(AgencyCreditRefund.tenant_id == user.tenant_id).order_by(AgencyCreditRefund.created_at.desc()).limit(300)).all()
+        q = select(AgencyCreditRefund).where(AgencyCreditRefund.tenant_id == user.tenant_id)
+        if status == "executed":
+            q = q.where(AgencyCreditRefund.status == "executed")
+        elif status:  # pending/rejected/expired are synced lazily from the approval: a stored pending row may now be rejected/expired
+            q = q.where(AgencyCreditRefund.status.in_({status, "pending_approval"}))
+        rows = db.scalars(q.order_by(AgencyCreditRefund.created_at.desc()).limit(300)).all()  # filter before LIMIT
         items = [refund_out(db, r) for r in rows]
         if status:
             items = [i for i in items if i["status"] == status]

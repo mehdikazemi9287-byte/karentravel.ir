@@ -150,6 +150,10 @@ def test_dispute_reject_and_negative_net_stays_as_agency_credit(client, sw):
     assert client.post(f"/finance/agency-settlement-disputes/{d['id']}/resolve", headers={**sw["fin1"], **key()}, json={"decision": "reject"}).status_code == 422  # reason required
     r = client.post(f"/finance/agency-settlement-disputes/{d['id']}/resolve", headers={**sw["fin1"], **key()}, json={"decision": "reject", "reason": "رزرو لغو نشده و صادر شده است"})
     assert r.status_code == 200 and r.json()["dispute"]["status"] == "rejected" and r.json()["statement_status"] == "issued"
+    # the agency sees that finance decided, not which staff member (and no internal approval id)
+    ad = client.get(f"/agency/{a}/settlement-statements/{st['id']}", headers=sw["owner"]).json()["disputes"][0]
+    assert ad["resolved_by"] == "کارشناس مالی" and ad["mc_request_id"] is None
+    assert client.get(f"/finance/agency-settlements/{st['id']}", headers=sw["fin1"]).json()["disputes"][0]["resolved_by"] not in (None, "کارشناس مالی")
     client.post(f"/agency/{a}/settlement-statements/{st['id']}/accept", json={}, headers=sw["owner"])
     # nothing to collect: no bank reference needed; the platform's debt stays in the agency account
     sr = client.post(f"/finance/agency-settlements/{st['id']}/settle-request", json={}, headers={**sw["fin1"], **key()})
@@ -262,6 +266,12 @@ def test_rejected_credit_refund_can_be_requeued(client, sw):
     items = client.get("/finance/agency-credit-refunds", headers=sw["fin1"]).json()["items"]
     row = next(i for i in items if i["id"] == body["refund"]["id"])
     assert row["status"] == "rejected"
+    # the status filter runs in SQL before the LIMIT, and a stored pending row whose approval was rejected is reported as rejected
+    assert any(i["id"] == row["id"] for i in client.get("/finance/agency-credit-refunds?status=rejected", headers=sw["fin1"]).json()["items"])
+    assert not any(i["id"] == row["id"] for i in client.get("/finance/agency-credit-refunds?status=executed", headers=sw["fin1"]).json()["items"])
+    assert not any(i["id"] == row["id"] for i in client.get("/finance/agency-credit-refunds?status=pending_approval", headers=sw["fin1"]).json()["items"])
+    # the customer view of the request carries no internal approval id
+    assert client.get(f"/me/service-requests/{req_id}", headers=sw["agent"]).json()["refund"]["mc_request_id"] is None
     rq = client.post(f"/finance/agency-credit-refunds/{row['id']}/requeue", headers=sw["ops"])
     assert rq.status_code == 202 and rq.json()["status"] == "pending_approval" and rq.json()["mc_request_id"] != row["mc_request_id"]
     approve(client, sw["fin2"], rq.json()["mc_request_id"])
@@ -281,3 +291,18 @@ def test_staff_cannot_send_agency_credit_for_a_customer_paid_booking(client):
     assert client.get(f"/ops/service-requests/{req}", headers=ops).json()["agency_credit"] is None
     r = client.post(f"/backoffice/booking-requests/{req}/actions", headers={**ops, **key()}, json={"action": "approve", "penalty_mode": "policy", "refund_destination": "agency_credit"})
     assert r.status_code == 422
+
+
+def test_credit_refund_key_reuse_with_another_amount_is_a_conflict(client, sw):
+    line = book(client, sw, 6_000_000)
+    with SessionLocal() as db:
+        bl = db.scalar(select(S.AgencyBookingLine).where(S.AgencyBookingLine.reservation_id == line["reservation_id"]))
+        u = type("U", (), {"id": bl.booked_by_user_id, "tenant_id": bl.tenant_id})()
+        k = f"t-{uuid.uuid4().hex}"
+        first = S.queue_credit_refund(db, user=u, line=bl, amount=1_000_000, penalty=0, source="service_request", key=k, audit=lambda *a, **kw: None)
+        db.flush()
+        # exact replay → the same row; same key with another amount → conflict (never a silent replay of the first)
+        assert S.queue_credit_refund(db, user=u, line=bl, amount=1_000_000, penalty=0, source="service_request", key=k, audit=lambda *a, **kw: None).id == first.id
+        with pytest.raises(ValueError):
+            S.queue_credit_refund(db, user=u, line=bl, amount=2_000_000, penalty=0, source="service_request", key=k, audit=lambda *a, **kw: None)
+        db.rollback()
