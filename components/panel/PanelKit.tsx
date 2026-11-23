@@ -8,7 +8,8 @@ import {Fragment, useCallback, useEffect, useState, type ReactNode} from 'react'
 import {useAuth} from '../../lib/api/auth-context';
 import {ApiError} from '../../lib/api/karenseir-client';
 import {AccountMenu} from '../marketplace/ApprovedFigmaHome';
-import {AREA_FA, areaFor, canOpen, homeFor, itemFor, mobileTabsFor, navFor, ROLE_FA, staffAreasFor, type Area} from '../../lib/panel-access';
+import {AREA_FA, areaFor, canOpen, homeFor, itemFor, mobileTabsFor, navFor, PANEL_ITEMS, ROLE_FA, staffAreasFor, type Area} from '../../lib/panel-access';
+import {orgAllows, orgPagesFor, panelContextsFor, type OrgMembership} from '../../lib/panel-context';
 import './panel.css';
 
 export type {Area} from '../../lib/panel-access';
@@ -60,26 +61,38 @@ export function PanelShell({area: declared, title, intro, children}: {area: Area
   // Staff pages declared as 'admin' sit in the operations, finance or administration area by their path (spec §1.1).
   const area = areaFor(declared, path);
   // Navigation and the guard come from one registry (lib/panel-access.ts); the API stays the authority for every call.
-  const links = navFor(area, role); const allowed = canOpen(area, path, role);
+  // Personal vs organization panel (Launch V1 item 8): organization pages also open by membership in an organization
+  // (/enterprise/context, the same membership every /enterprise/* endpoint checks), not only by the global role.
+  const personalOrOrg = area === 'customer' || area === 'organization';
+  const ctx = useLoad<{organizations: OrgMembership[]}>(session && personalOrOrg ? '/enterprise/context' : null);
+  const orgs = ctx.state.kind === 'ready' ? ctx.state.data.organizations : [];
+  const byRole = canOpen(area, path, role);
+  const allowed = byRole || (area === 'organization' && orgAllows(path, orgs));
+  const waiting = !!session && !byRole && area === 'organization' && ctx.state.kind === 'loading';
+  const roleNav = navFor(area, role); const byMembership = area === 'organization' ? orgPagesFor(orgs) : [];
+  const links = byMembership.length ? PANEL_ITEMS.filter(i => i.area === 'organization' && i.inNav && (roleNav.includes(i) || byMembership.includes(i.href))) : roleNav;
+  const roleOrgHome = ['/organization', '/employee'].includes(homeFor(role)) ? homeFor(role) : null;
+  const contexts = session && personalOrOrg ? panelContextsFor(roleOrgHome, orgs) : [];
   const navTitle = AREA_FA[area];
   const nativeTitle = links.find(i => i.href === path)?.label ?? title;
   const staff = area === 'ops' || area === 'finance' || area === 'admin';
   const areas = staff && session ? staffAreasFor(role) : [];
-  const tabs = session ? mobileTabsFor(area, role) : [];
+  const tabs = !session ? [] : byMembership.length ? [...links.filter(i => i.mobile).sort((a, b) => (a.mobile ?? 9) - (b.mobile ?? 9)), ...links.filter(i => !i.mobile)].slice(0, 4).map(i => ({label: i.label, href: i.href, glyph: i.glyph ?? '•'})) : mobileTabsFor(area, role);
   const current = (href: string) => path === href || (href !== '/agency' && href !== '/admin' && href !== '/finance' && path.startsWith(href + '/'));
   return <div className="pn-page" data-figma-page="129:11966" data-area={area}><a className="skip-link" href="#main-content">پرش به محتوای اصلی</a>
     <header className="pn-page-header"><Link className="pn-page-brand" href="/">کارن تراول</Link>
       {session?.user ? <AccountMenu variant="panel"/> : <Link className="pn-page-login" href="/login">ورود / ثبت‌نام</Link>}
     </header><div className="pn" data-area={area}>
     <nav className="pn-nav" id="pn-nav" aria-label={navTitle}><span className="pn-nav-title">{navTitle}</span>
+      {contexts.length > 1 && <span className="pn-areas" role="group" aria-label="نوع حساب" data-panel-switcher="">{contexts.map(c => <Link key={c.kind} href={c.href} aria-current={(c.kind === 'personal') === (area === 'customer') ? 'true' : undefined}>{c.label}</Link>)}</span>}
       {areas.length > 1 && <span className="pn-areas" role="group" aria-label="بخش کاری">{areas.map(a => <Link key={a.area} href={a.href} aria-current={a.area === area ? 'true' : undefined}>{a.label}</Link>)}</span>}
       {session && links.map(({label, href, group}, i) => <Fragment key={href}>{group && group !== links[i - 1]?.group && <span className="pn-nav-group" role="presentation">{group}</span>}
         <Link href={href} aria-current={current(href) ? 'page' : undefined}>{label}</Link></Fragment>)}
       <span className="pn-nav-foot">{area !== 'customer' && <Link href="/account">حساب من</Link>}{area === 'customer' && role && role !== 'customer' && <Link href={homeFor(role)}>پنل کاری من</Link>}</span>
     </nav>
-    <main className="pn-main" id="main-content" tabIndex={-1}><header className="pn-head"><h1>{allowed ? nativeTitle : 'دسترسی ندارید'}</h1>{intro && allowed && <p>{intro}</p>}</header>
+    <main className="pn-main" id="main-content" tabIndex={-1}><header className="pn-head"><h1>{allowed || waiting ? nativeTitle : 'دسترسی ندارید'}</h1>{intro && allowed && <p>{intro}</p>}</header>
       {!session ? <div className="pn-card"><p>برای دیدن این بخش وارد حساب خود شوید.</p><div><Link className="pn-btn" href="/login">ورود / ثبت‌نام</Link></div></div>
-        : allowed ? children : <NoAccess role={role} path={path} area={area}/>}
+        : allowed ? children : waiting ? <Loading/> : <NoAccess role={role} path={path} area={area}/>}
       <Card title="وضعیت و دسترسی"><p className="pn-access-note">اطلاعات تأییدنشده و خدمات متصل‌نشده با وضعیت مشخص نمایش داده می‌شوند.</p><p className="pn-access-note">عملیات فقط با نقش و مجوز همان حساب انجام می‌شود.</p></Card>
     </main></div>
     {tabs.length > 1 && <nav className="pn-bottom" aria-label={`میان‌بر پنل ${navTitle}`}>{tabs.map(t => <Link key={t.href} href={t.href} aria-current={current(t.href) ? 'page' : undefined}><span aria-hidden="true">{t.glyph}</span>{t.label}</Link>)}
