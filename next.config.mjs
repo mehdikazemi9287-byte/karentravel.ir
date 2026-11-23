@@ -29,6 +29,8 @@ const nextConfig = {
     ];
   },
   productionBrowserSourceMaps: false,
+  // Next-optimized images (next/image) are served as AVIF/WebP when the browser accepts them.
+  images: { formats: ['image/avif', 'image/webp'] },
   async headers() {
     return [
       {
