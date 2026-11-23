@@ -13,8 +13,8 @@ test('an older search failure cannot overwrite the latest successful search', as
   const delayed = await first;
   // Flight results sort by the flight-specific orderings (cheapest/best/fastest).
   await page.getByRole('group', { name: 'مرتب‌سازی نتایج' }).getByRole('button', { name: 'ارزان‌ترین' }).click(); // flight results use Stitch sort pills
-  // Zero results now offer the trip-request form instead of an empty-results heading.
-  const zeroResults = page.getByRole('region', { name: 'ثبت درخواست سفر' });
+  // Zero results: honest empty state in the normal results layout; the callback request is a secondary, collapsible action.
+  const zeroResults = page.getByRole('region', { name: 'بدون نتیجهٔ آنلاین' });
   const failure = page.getByRole('alert').filter({ hasText: 'جست‌وجو فعلاً انجام نشد' });
   await expect(zeroResults).toBeVisible();
   await expect(failure).toHaveCount(0);
