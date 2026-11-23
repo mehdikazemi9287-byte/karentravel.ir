@@ -1699,8 +1699,18 @@ def create_payment_intent(reservation_id: str, user: User = Depends(current_user
     return {"id": intent.id, "status": intent.status, "amount": intent.amount, "currency": intent.currency}
 
 
+class PaymentInitiateRequest(BaseModel):
+    """Optional body. Absent (or gateway=vandapay) = the existing behaviour, unchanged. national_id is used
+    only to create the Injast invoice and build its payment link; it is never stored in clear."""
+    model_config = ConfigDict(extra="forbid")
+    gateway: Optional[str] = Field(default=None, pattern="^(vandapay|injast)$")
+    national_id: Optional[str] = Field(default=None, max_length=20)
+
+
 @app.post("/payments/{payment_id}/initiate", status_code=status.HTTP_202_ACCEPTED)
-def initiate_payment(payment_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+def initiate_payment(payment_id: str, user: User = Depends(current_user), db: Session = Depends(get_db), payload: Optional[PaymentInitiateRequest] = Body(default=None)) -> dict:
+    if isinstance(payload, PaymentInitiateRequest) and payload.gateway == "injast":
+        return _injast_initiate(db, user=user, payment_id=payment_id, national_id=payload.national_id)
     intent = db.scalar(select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.id == payment_id, operational_models.PaymentIntent.tenant_id == user.tenant_id, operational_models.PaymentIntent.user_id == user.id).with_for_update())
     if intent is None:
         raise HTTPException(status_code=404, detail="درخواست پرداخت وجود ندارد")
@@ -2262,14 +2272,308 @@ def vandapay_sweep() -> dict:
     return totals
 
 
+# ----------------------------------------------------------------------------------------------- Injast (ADR-030)
+# Second hosted gateway beside VandaPay; the customer chooses at checkout. The Injast callback is UNSIGNED (IPM
+# v1.05.14), so it is only a hint: money is recorded only after OUR confirm-pay succeeds for an invoice WE created,
+# with the amount WE stored. No network call is made while a row lock is held.
+INJAST_TRANSPORT = None  # tests inject a MOCK transport here; production uses HTTPS urllib
+_ij_log = logging.getLogger("karenseir.injast")
+_INJAST_INVOICE_SCOPE = "payment.injast.invoice"   # one row per invoice we created: the only invoices we accept
+_INJAST_CONFIRM_SCOPE = "payment.injast.confirm"   # marker written BEFORE confirm-pay (crash / lost-response safe)
+_INJAST_STATE_HOURS = 24 * 7                       # callback may arrive late; the state only names the intent
+
+
+def _injast_client():
+    """(client, callback_url) when Injast is switched on and fully configured, else (None, None)."""
+    from . import injast as ij
+    if os.getenv("PAYMENT_PROVIDER", "").strip().lower() == "sandbox":
+        return None, None
+    config = ij.config_from_env(os.environ, environment=ENVIRONMENT, demo_mode=DEMO_MODE, secret_reader=read_secret)
+    callback = (os.getenv("INJAST_CALLBACK_URL") or "").strip()
+    parsed = urlparse(callback)
+    if config is None or parsed.scheme != "https" or not parsed.hostname or parsed.query:
+        return None, None
+    return ij.InjastClient(config, transport=INJAST_TRANSPORT), callback
+
+
+def _injast_row(db: Session, tenant_id: int, scope: str, key: str):
+    return db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id == tenant_id, operational_models.IdempotencyKey.scope == scope, operational_models.IdempotencyKey.key == key))
+
+
+def _injast_lock_intent(db: Session, *, tenant_id: int, payment_id: str, user_id: Optional[int] = None):
+    q = select(operational_models.PaymentIntent).where(operational_models.PaymentIntent.id == payment_id, operational_models.PaymentIntent.tenant_id == tenant_id)
+    if user_id is not None:
+        q = q.where(operational_models.PaymentIntent.user_id == user_id)
+    return db.scalar(q.with_for_update())
+
+
+def _injast_check_payable(db: Session, *, intent, reservation) -> None:
+    if reservation is None or reservation.status not in {"reserved", "pending_approval", "approved", "awaiting_payment"}:
+        raise HTTPException(409, "رزرو در وضعیت قابل پرداخت نیست")
+    if intent.amount <= 0 or intent.currency != "IRR":
+        raise HTTPException(409, "مبلغ معتبر برای پرداخت موجود نیست")
+    from .funding_references import bank_payable
+    from .financial_amounts import FinancialInvariantError
+    try: due = bank_payable(db, reservation, _secure_hash)
+    except (FinancialInvariantError, KeyError, ValueError): raise HTTPException(409, "مرجع تخصیص پرداخت معتبر نیست")
+    if due != intent.amount or json.loads(reservation.price_snapshot_json).get("currency") != intent.currency:
+        raise HTTPException(409, "مبلغ یا ارز intent با تخصیص معتبر رزرو متفاوت است")
+
+
+def _injast_initiate(db: Session, *, user: User, payment_id: str, national_id: Optional[str]) -> dict:
+    """Create an Injast invoice for OUR payment intent and return the hosted payment link.
+    Phase 1 (row lock): checks + durable attempt marker, commit. Phase 2 (no lock): create the invoice.
+    Phase 3 (row lock): record it unless a concurrent attempt already did (its orphan invoice just expires unpaid)."""
+    from . import injast as ij
+    client, callback_base = _injast_client()
+    if client is None:
+        raise HTTPException(503, "درگاه اینجاست فعال نیست")
+    nid = ij.normalize_national_id(national_id)
+    if nid is None:
+        raise HTTPException(422, "کد ملی واردشده معتبر نیست")
+    nid_hash = _secure_hash(f"injast-nid:{nid}")
+    intent = _injast_lock_intent(db, tenant_id=user.tenant_id, payment_id=payment_id, user_id=user.id)
+    if intent is None:
+        raise HTTPException(404, "درخواست پرداخت وجود ندارد")
+    if intent.status == "initiated" and intent.provider_key == ij.PROVIDER_KEY and intent.provider_authority:
+        row = _injast_row(db, user.tenant_id, _INJAST_INVOICE_SCOPE, intent.provider_authority)
+        stored = json.loads(row.response_json or "{}") if row else {}
+        db.rollback()
+        if stored.get("nid_hash") != nid_hash:  # the open invoice belongs to another national id
+            raise HTTPException(409, "برای این پرداخت قبلاً فاکتور اینجاست با کد ملی دیگری ساخته شده است")
+        return {"id": intent.id, "status": intent.status, "provider": ij.PROVIDER_KEY, "redirect_url": client.payment_url(intent.provider_authority, nid)}
+    if intent.status not in {"created", "failed"}:
+        status_now = intent.status; db.rollback()
+        if status_now == "initiated":
+            raise HTTPException(409, "این پرداخت با درگاه دیگری آغاز شده است")
+        return {"id": intent.id, "status": status_now}
+    reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == intent.reservation_id, operational_models.Reservation.tenant_id == user.tenant_id, operational_models.Reservation.user_id == user.id))
+    _injast_check_payable(db, intent=intent, reservation=reservation)
+    attempt = 1 + int(db.scalar(select(func.count()).select_from(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id == user.tenant_id, operational_models.IdempotencyKey.scope == "payment.injast.attempt", operational_models.IdempotencyKey.key.like(f"{intent.id}:%"))) or 0)
+    tracking = f"KS{intent.id.replace('-', '')[:24]}-{attempt}"
+    amount = int(intent.amount)
+    db.add(operational_models.IdempotencyKey(tenant_id=user.tenant_id, scope="payment.injast.attempt", key=f"{intent.id}:{attempt}", request_hash=_secure_hash(f"{intent.id}:{amount}:{tracking}"), response_json=json.dumps({"tracking_code": tracking, "state": "creating"})))
+    now = datetime.now(timezone.utc)
+    state = jwt.encode({"iss": JWT_ISSUER, "aud": "karenseir-injast-callback", "tenant_id": user.tenant_id, "payment_intent_id": intent.id, "amount": amount, "exp": now + timedelta(hours=_INJAST_STATE_HOURS), "iat": now, "jti": str(uuid.uuid4())}, _signing_key("payment_state", JWT_SECRET), algorithm="HS256")
+    db.commit()  # lock released before the network call
+    try:
+        invoice_id = client.create_invoice(amount_rial=amount, national_id=nid, tracking_code=tracking, callback_url=f"{callback_base}?state={state}")
+    except ij.InjastError as exc:
+        _ij_log.warning("injast_invoice_failed code=%s", exc.code)
+        record_business_event("provider", "payment_unavailable")
+        if exc.code == "USER_NOT_FOUND":
+            raise HTTPException(422, "کاربری با این کد ملی در اینجاست پیدا نشد")
+        raise HTTPException(503, "درگاه اینجاست در دسترس نیست")
+    intent = _injast_lock_intent(db, tenant_id=user.tenant_id, payment_id=payment_id, user_id=user.id)
+    db.add(operational_models.IdempotencyKey(tenant_id=user.tenant_id, scope=_INJAST_INVOICE_SCOPE, key=invoice_id, request_hash=_secure_hash(f"{intent.id}:{amount}:{tracking}"), response_json=json.dumps({"payment_intent_id": intent.id, "tracking_code": tracking, "amount": amount, "nid_hash": nid_hash})))
+    if intent.status not in {"created", "failed"}:  # a concurrent attempt won: keep the record, return the winner
+        db.commit()
+        return {"id": intent.id, "status": intent.status}
+    intent.status = "initiated"; intent.provider_key = ij.PROVIDER_KEY; intent.provider_authority = invoice_id; intent.provider_reference = tracking
+    db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="payment", aggregate_id=intent.id, event_type="payment.injast.initiated", payload_json=json.dumps({"invoice_id": invoice_id, "tracking_code": tracking, "amount": amount}), correlation_id=str(uuid.uuid4()), idempotency_key=f"injast-init:{invoice_id}"))
+    db.commit(); record_business_event("payment", "initiated")
+    return {"id": intent.id, "status": "initiated", "provider": ij.PROVIDER_KEY, "redirect_url": client.payment_url(invoice_id, nid)}
+
+
+def _injast_record_capture(db: Session, *, tenant_id: int, intent, invoice_id: str, tracking: str, rrn: Optional[str], late: bool) -> str:
+    """Apply a CONFIRMED Injast payment (caller holds the intent row lock). Returns captured|duplicate|late_capture|double_payment."""
+    from . import injast as ij
+    event_id = f"injast:{invoice_id}:captured"
+    if db.scalar(select(operational_models.PaymentEvent).where(operational_models.PaymentEvent.provider_key == ij.PROVIDER_KEY, operational_models.PaymentEvent.provider_event_id == event_id)):
+        return "duplicate"
+    if intent.status in {"captured", "refunded"}:  # this intent was already paid through another invoice
+        db.add(operational_models.PaymentEvent(tenant_id=tenant_id, payment_intent_id=intent.id, provider_key=ij.PROVIDER_KEY, provider_event_id=event_id, event_type="double_payment", payload_hash=_secure_hash(f"{invoice_id}:{intent.amount}:{rrn}")))
+        db.add(operational_models.OutboxEvent(tenant_id=tenant_id, aggregate_type="payment", aggregate_id=intent.id, event_type="payment.injast.double_payment", payload_json=json.dumps({"invoice_id": invoice_id, "tracking_code": tracking, "rrn": rrn, "amount": intent.amount}), correlation_id=str(uuid.uuid4()), idempotency_key=f"injast-double:{invoice_id}"))
+        _ij_log.error("injast double payment on intent %s (invoice %s): manual refund", intent.id, invoice_id)
+        return "double_payment"
+    intent.status = "captured"; intent.captured_amount = intent.amount; intent.provider_key = ij.PROVIDER_KEY
+    intent.provider_authority = invoice_id; intent.provider_reference = tracking; intent.provider_capture_reference = (rrn or invoice_id)[:160]
+    _vandapay_record_capture(db, tenant_id=tenant_id, intent=intent)  # same ledger path as every gateway (ADR-024)
+    db.add(operational_models.PaymentEvent(tenant_id=tenant_id, payment_intent_id=intent.id, provider_key=ij.PROVIDER_KEY, provider_event_id=event_id, event_type="captured_late" if late else "captured", payload_hash=_secure_hash(f"{invoice_id}:{intent.amount}:{rrn}")))
+    if late:  # hold already released: money really moved, NEVER issue; Injast has no refund API -> manual refund
+        db.add(operational_models.RefundRecord(tenant_id=tenant_id, payment_intent_id=intent.id, command_id=f"injast-late-capture:{intent.id}", amount=intent.amount, status="manual_review"))
+        db.add(operational_models.OutboxEvent(tenant_id=tenant_id, aggregate_type="payment", aggregate_id=intent.id, event_type="payment.injast.late_capture", payload_json=json.dumps({"invoice_id": invoice_id, "rrn": rrn}), correlation_id=str(uuid.uuid4()), idempotency_key=f"{event_id}:late"))
+        _record_payment_trip_event(db, tenant_id=tenant_id, intent=intent, event_key=f"payment-late-capture:{event_id}", event_type="payment.late_capture", title="پرداخت پس از لغو رزرو رسید", message="رزرو پیش از تکمیل پرداخت آزاد شده بود؛ مبلغ کامل توسط پشتیبانی مسترد می‌شود.", severity="warning")
+        return "late_capture"
+    db.add(operational_models.OutboxEvent(tenant_id=tenant_id, aggregate_type="payment", aggregate_id=intent.id, event_type="payment.injast.captured", payload_json=json.dumps({"invoice_id": invoice_id, "tracking_code": tracking, "rrn": rrn}), correlation_id=str(uuid.uuid4()), idempotency_key=event_id))
+    _record_payment_trip_event(db, tenant_id=tenant_id, intent=intent, event_key=f"payment-captured:{event_id}", event_type="payment.captured", title="پرداخت با موفقیت انجام شد", message=f"مبلغ {intent.amount:,} {intent.currency} با اینجاست پرداخت شد.")
+    record_business_event("payment", "captured")
+    return "captured"
+
+
+def _injast_confirm_and_apply(db: Session, *, tenant_id: int, payment_id: str, invoice_id: str, client, rrn: Optional[str] = None) -> str:
+    """confirm-pay (no lock held) then apply under the row lock. The confirm marker must already be committed.
+    Returns captured|duplicate|late_capture|double_payment|pending|rejected|manual_review."""
+    from . import injast as ij
+    marker = db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id == tenant_id, operational_models.IdempotencyKey.scope == _INJAST_CONFIRM_SCOPE, operational_models.IdempotencyKey.key == invoice_id).with_for_update())
+    if marker is None:
+        db.rollback()
+        return "rejected"
+    marker_state = json.loads(marker.response_json or "{}")
+    if marker_state.get("state") in {"done", "rejected", "manual_review"}:
+        db.rollback()
+        return "duplicate" if marker_state.get("state") == "done" else marker_state["state"]
+    prior_attempts = int(marker_state.get("attempts", 0))
+    sent_before = int(marker_state.get("sent", 0))  # confirms we SENT earlier (result possibly lost)
+    marker_state = {**marker_state, "sent": sent_before + 1}
+    marker.response_json = json.dumps(marker_state)
+    db.commit()  # durable "we are about to confirm" before the network call; no lock held during it
+    try:
+        result = client.confirm_pay(invoice_id)
+    except ij.InjastError as exc:
+        intent = _injast_lock_intent(db, tenant_id=tenant_id, payment_id=payment_id)
+        marker = _injast_row(db, tenant_id, _INJAST_CONFIRM_SCOPE, invoice_id)
+        state = "pending" if exc.transient else "rejected"
+        if marker is not None:
+            marker.response_json = json.dumps({**marker_state, "state": state, "attempts": prior_attempts + 1, "last_code": exc.code})
+        db.add(operational_models.OutboxEvent(tenant_id=tenant_id, aggregate_type="payment", aggregate_id=payment_id, event_type=f"payment.injast.confirm_{state}", payload_json=json.dumps({"invoice_id": invoice_id, "code": exc.code}), correlation_id=str(uuid.uuid4()), idempotency_key=f"injast-confirm-{state}:{invoice_id}:{prior_attempts + 1}"[:120]))
+        db.commit()
+        if not exc.transient:
+            _ij_log.warning("injast confirm-pay rejected invoice %s: %s (callback not trusted)", invoice_id, exc.code)
+        return state
+    intent = _injast_lock_intent(db, tenant_id=tenant_id, payment_id=payment_id)
+    marker = _injast_row(db, tenant_id, _INJAST_CONFIRM_SCOPE, invoice_id)
+    if intent is None:
+        db.rollback()
+        return "rejected"
+    if result == "already_verified" and sent_before < 1:
+        # Verified, but not by a confirm we can account for: do not assume -> people check it.
+        if marker is not None:
+            marker.response_json = json.dumps({**marker_state, "state": "manual_review", "attempts": prior_attempts + 1})
+        db.add(operational_models.OutboxEvent(tenant_id=tenant_id, aggregate_type="payment", aggregate_id=payment_id, event_type="payment.injast.manual_review", payload_json=json.dumps({"invoice_id": invoice_id, "reason": "already_verified_without_prior_confirm"}), correlation_id=str(uuid.uuid4()), idempotency_key=f"injast-manual:{invoice_id}"))
+        db.commit()
+        return "manual_review"
+    reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == intent.reservation_id, operational_models.Reservation.tenant_id == tenant_id))
+    late = reservation is None or reservation.status in RESERVATION_RELEASED_STATUSES
+    invoice_row = _injast_row(db, tenant_id, _INJAST_INVOICE_SCOPE, invoice_id)
+    tracking = json.loads(invoice_row.response_json or "{}").get("tracking_code", "") if invoice_row else ""
+    outcome = _injast_record_capture(db, tenant_id=tenant_id, intent=intent, invoice_id=invoice_id, tracking=tracking, rrn=rrn, late=late)
+    if marker is not None:
+        marker.response_json = json.dumps({**marker_state, "state": "done", "attempts": prior_attempts + 1, "outcome": outcome})
+    db.commit()
+    return outcome
+
+
+def _injast_handle_callback(raw: bytes, state_token: str, db: Session) -> tuple[str, Optional[str]]:
+    """Returns (outcome, payment_id). Never trusts the payload beyond naming an invoice we created."""
+    from . import injast as ij
+    client, _ = _injast_client()
+    if client is None:
+        return "disabled", None
+    try:
+        claims = _decode_payment_state(state_token, audience="karenseir-injast-callback", issuer=JWT_ISSUER, options={"require": ["exp", "iat", "jti", "tenant_id", "payment_intent_id", "amount"]})
+        tenant_id = int(claims["tenant_id"]); payment_id = str(uuid.UUID(str(claims["payment_intent_id"]))); claimed_amount = int(claims["amount"])
+    except (jwt.InvalidTokenError, TypeError, ValueError, KeyError):
+        _ij_log.warning("injast callback rejected: invalid state")
+        return "invalid_state", None
+    cb = ij.parse_callback(raw)
+    set_tenant_context(db, tenant_id)
+    if cb is None:
+        _ij_log.warning("injast callback rejected: malformed payload for intent %s", payment_id)
+        return "malformed", payment_id
+    log_key = f"injast-cb:{cb['invoice_id']}:{cb['status']}:{_secure_hash(raw.decode('utf-8', 'replace'))[:16]}"
+    intent = _injast_lock_intent(db, tenant_id=tenant_id, payment_id=payment_id)
+    invoice_row = _injast_row(db, tenant_id, _INJAST_INVOICE_SCOPE, cb["invoice_id"])
+    invoice = json.loads(invoice_row.response_json or "{}") if invoice_row else {}
+    replay = db.scalar(select(operational_models.OutboxEvent.id).where(operational_models.OutboxEvent.tenant_id == tenant_id, operational_models.OutboxEvent.idempotency_key == log_key)) is not None
+    if not replay:  # audit trail of every distinct callback (sanitized: only the typed fields)
+        db.add(operational_models.OutboxEvent(tenant_id=tenant_id, aggregate_type="payment", aggregate_id=payment_id, event_type="payment.injast.callback", payload_json=json.dumps({k: cb[k] for k in ("invoice_id", "tracking_code", "status", "amount", "rrn", "time")}), correlation_id=str(uuid.uuid4()), idempotency_key=log_key))
+    if intent is None or invoice.get("payment_intent_id") != payment_id or invoice.get("tracking_code") != cb["tracking_code"]:
+        db.commit(); _ij_log.warning("injast callback for unknown invoice %s", cb["invoice_id"])
+        return "unknown_invoice", payment_id
+    if cb["amount"] != intent.amount or invoice.get("amount") != intent.amount or claimed_amount != intent.amount:
+        db.commit(); _ij_log.error("injast callback amount mismatch on intent %s", payment_id)
+        return "amount_mismatch", payment_id
+    if cb["status"] in {ij.STATUS_FAILED, ij.STATUS_EXPIRED}:
+        if intent.status == "initiated" and intent.provider_authority == cb["invoice_id"]:
+            intent.status = "failed"
+            reason = "expired" if cb["status"] == ij.STATUS_EXPIRED else "failed"
+            db.add(operational_models.OutboxEvent(tenant_id=tenant_id, aggregate_type="payment", aggregate_id=intent.id, event_type="payment.injast.failed", payload_json=json.dumps({"invoice_id": cb["invoice_id"], "reason": reason}), correlation_id=str(uuid.uuid4()), idempotency_key=f"injast:{cb['invoice_id']}:failed"))
+            _record_payment_trip_event(db, tenant_id=tenant_id, intent=intent, event_key=f"payment-failed:injast:{cb['invoice_id']}", event_type="payment.failed", title="پرداخت ناموفق بود", message="مهلت پرداخت با اینجاست تمام شد." if reason == "expired" else "پرداخت با اینجاست انجام نشد.", severity="warning")
+        db.commit()
+        return "failed", payment_id
+    if cb["status"] == ij.STATUS_UNKNOWN:
+        db.commit()
+        return "pending", payment_id
+    # status 2 (paid) or 5 (verified): verify server-to-server
+    if db.scalar(select(operational_models.PaymentEvent.id).where(operational_models.PaymentEvent.provider_key == ij.PROVIDER_KEY, operational_models.PaymentEvent.provider_event_id == f"injast:{cb['invoice_id']}:captured")):
+        db.commit()
+        return "duplicate", payment_id
+    if _injast_row(db, tenant_id, _INJAST_CONFIRM_SCOPE, cb["invoice_id"]) is None:
+        db.add(operational_models.IdempotencyKey(tenant_id=tenant_id, scope=_INJAST_CONFIRM_SCOPE, key=cb["invoice_id"], request_hash=_secure_hash(f"{payment_id}:{cb['invoice_id']}"), response_json=json.dumps({"payment_intent_id": payment_id, "state": "requested", "attempts": 0})))
+    db.commit()  # lock released before confirm-pay
+    return _injast_confirm_and_apply(db, tenant_id=tenant_id, payment_id=payment_id, invoice_id=cb["invoice_id"], client=client, rrn=cb["rrn"]), payment_id
+
+
+@app.post("/payments/injast/callback", response_model=None)
+async def injast_callback(request: Request, state_token: str = Query(alias="state", min_length=20), db: Session = Depends(get_db)):
+    """Injast server callback (also redirects the customer when we answer 302). Unsigned -> hint only."""
+    from starlette.concurrency import run_in_threadpool
+    raw = await request.body()
+    if len(raw) > 8192:
+        return JSONResponse(status_code=413, content={"error": {"code": "payload_too_large"}})
+    outcome, payment_id = await run_in_threadpool(_injast_handle_callback, raw, state_token, db)
+    if outcome == "disabled":
+        return JSONResponse(status_code=404, content={"error": {"code": "not_found"}})
+    origin = _payment_return_origin()
+    if origin and payment_id:
+        return RedirectResponse(f"{origin}/payments/{payment_id}", status_code=302, headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"})
+    return JSONResponse(status_code=200, content={"received": True, "outcome": outcome})
+
+
+def injast_drive_pending(db: Session, *, tenant_id: int, client=None, min_age_seconds: int = 60) -> dict:
+    """Re-drive confirm-pay for callbacks whose confirm result was lost (timeout / 5xx). Idempotent: a confirm we
+    already sent comes back INVOICE_ALREADY_VERIFIED and is then recorded (our own marker proves it was ours)."""
+    client = client or _injast_client()[0]
+    stats = {"confirm": 0}
+    if client is None:
+        return stats
+    set_tenant_context(db, tenant_id)
+    cutoff = datetime.now(timezone.utc) - timedelta(seconds=min_age_seconds)
+    rows = db.scalars(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id == tenant_id, operational_models.IdempotencyKey.scope == _INJAST_CONFIRM_SCOPE).limit(200)).all()
+    todo = []
+    for row in rows:
+        st = json.loads(row.response_json or "{}")
+        updated = getattr(row, "updated_at", None) or getattr(row, "created_at", None)
+        if st.get("state") in {"requested", "pending"} and int(st.get("attempts", 0)) < 20 and (updated is None or (updated if updated.tzinfo else updated.replace(tzinfo=timezone.utc)) <= cutoff):
+            todo.append((row.key, st.get("payment_intent_id")))
+    db.rollback()
+    for invoice_id, payment_id in todo[:50]:
+        if payment_id:
+            _injast_confirm_and_apply(db, tenant_id=tenant_id, payment_id=payment_id, invoice_id=invoice_id, client=client); stats["confirm"] += 1
+    return stats
+
+
+def injast_sweep() -> dict:
+    """Called from the outbox worker loop. Disabled -> returns immediately without touching the database."""
+    client, _ = _injast_client()
+    if client is None:
+        return {"enabled": False}
+    totals = {"enabled": True, "confirm": 0}
+    with SessionLocal() as db:
+        tenant_ids = list(db.scalars(select(Tenant.id)).all())
+    for tid in tenant_ids:
+        try:
+            with SessionLocal() as db:
+                totals["confirm"] += injast_drive_pending(db, tenant_id=tid, client=client)["confirm"]
+        except Exception:
+            _ij_log.exception("injast_sweep_failed tenant=%s", tid)
+    return totals
+
+
 @app.get("/payments/methods")
 def payment_methods(user: User = Depends(current_user)) -> dict:
-    """Which hosted gateway /payments/{id}/initiate will use (label + test-mode label for the checkout UI)."""
+    """Hosted gateways the checkout may offer. Without ``gateway`` /payments/{id}/initiate keeps its old behaviour
+    (VandaPay when configured); Injast is chosen with {"gateway": "injast", "national_id": …}."""
     from . import vandapay as vp
+    from . import injast as ij
     client, _ = _vandapay_client()
     methods = []
     if client is not None:
         methods.append({"key": vp.PROVIDER_KEY, "label": vp.LABEL, "mode": client.config.mode, "test_mode_label": vp.TEST_MODE_LABEL if client.config.is_test else None, "initiate_path": "/payments/{payment_id}/initiate"})
+    ij_client, _ = _injast_client()
+    if ij_client is not None:
+        methods.append({"key": ij.PROVIDER_KEY, "label": ij.LABEL, "mode": ij_client.config.mode, "test_mode_label": None, "initiate_path": "/payments/{payment_id}/initiate", "requires": ["national_id"]})
     return {"methods": methods}
 
 
