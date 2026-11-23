@@ -36,9 +36,21 @@ function EmptyState({ children }: { children: React.ReactNode }) { return <div r
 function errorOf(error: unknown) { return error instanceof ApiError ? { status: error.status, message: error.message } : { status: 0, message: 'خطای پیش‌بینی‌نشده رخ داد.' }; }
 const money = (amount?: number, currency='IRR') => amount == null ? '—' : `${amount.toLocaleString('fa-IR')} ${currency==='IRR'?'ریال':currency}`;
 
+/* Stitch _32/_20 «سفرهای من»: tabs + ticket cards. Same three API calls as before; the tabs only group what the API returned. */
+const TRIP_DONE=new Set(['completed','archived','fulfilled','used']);
+const TRIP_OFF=new Set(['cancelled','canceled','expired','failed','refunded']);
+type TripTab='upcoming'|'done'|'off';
+const tabOf=(status:string):TripTab=>{const s=status.toLowerCase();return TRIP_OFF.has(s)?'off':TRIP_DONE.has(s)?'done':'upcoming'};
+const TRIP_TABS:[TripTab,string][]=[['upcoming','پیش‌رو'],['done','انجام‌شده'],['off','لغوشده']];
+const SERVICE_GLYPH:Record<string,string>={flight:'✈',hotel:'🏨',train:'🚆',bus:'🚌',tour:'🧭',package:'🧳',vacation_rental:'🏡',visa:'🛂',insurance:'🛡',transfer:'🚐',car_rental:'🚗'};
+const TONE_OK=new Set(['confirmed','issued','active','in_progress','completed','fulfilled','planned','upcoming','changed']);
+const chipTone=(status:string)=>{const t=tabOf(status);if(t==='off')return 'off';if(t==='done')return 'done';return TONE_OK.has(status.toLowerCase())?'ok':'warn'};
+const shortDate=(iso?:string|null)=>{if(!iso)return null;const d=new Date(iso);return Number.isNaN(d.getTime())?null:d.toLocaleDateString('fa-IR',{year:'numeric',month:'long',day:'numeric'})};
+const tripDate=(iso?:string|null)=>{if(!iso)return null;const d=new Date(iso);return Number.isNaN(d.getTime())?null:d.toLocaleDateString('fa-IR',{weekday:'long',year:'numeric',month:'long',day:'numeric'})};
 export function ConnectedTrips() {
   const { api, session } = useAuth();
   const [state, setState] = useState<LoadState<{trips: Trip[]; reservations: Reservation[]; notices: Notice[]}>>({kind:'loading'});
+  const [tab,setTab]=useState<TripTab>('upcoming');
   useEffect(() => {
     if (!session) return;
     let active=true;
@@ -51,7 +63,25 @@ export function ConnectedTrips() {
   if(state.kind==='loading')return <LoadingState/>;
   if(state.kind==='error')return <ErrorState status={state.status} message={state.message}/>;
   const {trips,reservations,notices}=state.data;
-  return <div className="grid gap-6"><section><h2 className="mb-3 text-xl font-black">سفرهای معتبر</h2>{trips.length===0?<EmptyState>هنوز سفری در حساب شما ساخته نشده است.</EmptyState>:<div className="grid gap-3 sm:grid-cols-2">{trips.map(t=><Link href={safeHref(t.timeline_link)} key={t.id} className="rounded-2xl border border-slate-200 bg-white p-5"><span className="tag">{tripStatusFa(t.status)}</span><h3 className="mt-3 font-black">{t.title}</h3><p className="text-sm text-slate-600">{t.origin?`${t.origin} ← `:''}{t.destination}</p></Link>)}</div>}</section><section><h2 className="mb-3 text-xl font-black">رزروهای من</h2>{reservations.length===0?<EmptyState>رزرو عملیاتی برای این حساب وجود ندارد.</EmptyState>:<div className="grid gap-3 sm:grid-cols-2">{reservations.map(r=><article key={r.id} className="rounded-2xl border border-slate-200 bg-white p-5"><span className="tag">{bookingStatus(r.status)}</span><h3 className="mt-3 font-black">{r.booking_reference||'در انتظار مرجع رزرو'}</h3><p>{serviceTypeFa(r.service_type)} · {money(r.price_snapshot?.total_amount,r.price_snapshot?.currency)}</p><Link className="text-link" href={safeHref(r.manage_link,`/manage-booking/${r.id}`)}>مدیریت رزرو ←</Link></article>)}</div>}</section><aside><h2 className="mb-3 text-xl font-black">اعلان‌ها</h2>{notices.length===0?<EmptyState>اعلان تازه‌ای ندارید.</EmptyState>:notices.map(n=><article className="mb-2 rounded-xl bg-cyan-50 p-4" key={n.id}><b>{n.title}</b><p className="text-sm">{n.message}</p>{n.deep_link&&<Link href={safeHref(n.deep_link)}>مشاهده جزئیات</Link>}</article>)}</aside></div>;
+  const count=(t:TripTab)=>trips.filter(x=>tabOf(x.status)===t).length+reservations.filter(x=>tabOf(x.status)===t).length;
+  const shownTrips=trips.filter(t=>tabOf(t.status)===tab);const shownRes=reservations.filter(r=>tabOf(r.status)===tab);
+  const emptyText=tab==='upcoming'?'سفر یا رزرو پیش‌رویی در حساب شما نیست.':tab==='done'?'هنوز سفر انجام‌شده‌ای ثبت نشده است.':'رزرو یا سفر لغوشده‌ای ندارید.';
+  return <div className="sa-trips">
+    <div className="sa-tabs" role="tablist" aria-label="دسته‌بندی سفرها">{TRIP_TABS.map(([key,label])=><button key={key} type="button" role="tab" id={`sa-tab-${key}`} aria-selected={tab===key} aria-controls="sa-trips-panel" onClick={()=>setTab(key)}>{label} <span>({count(key).toLocaleString('fa-IR')})</span></button>)}</div>
+    <div className="sa-trips-body"><div className="sa-trips-main" id="sa-trips-panel" role="tabpanel" aria-labelledby={`sa-tab-${tab}`}>
+      {shownTrips.length===0&&shownRes.length===0&&<div role="status" className="sa-empty"><span aria-hidden="true">🧳</span><b>{emptyText}</b><p>{tab==='upcoming'?'پس از ثبت رزرو، سفر و مدارک آن اینجا نمایش داده می‌شود.':'با تغییر وضعیت رزروها، این فهرست به‌روز می‌شود.'}</p>{tab==='upcoming'&&<Link className="sa-btn" href="/">جست‌وجوی سفر</Link>}</div>}
+      {shownTrips.length>0&&<section aria-labelledby="sa-trips-h"><h2 id="sa-trips-h" className="sa-sec-title">سفرهای معتبر</h2><div className="sa-grid">{shownTrips.map(t=>{const when=tripDate(t.starts_at);return <article key={t.id} className="sa-ticket"><div className="sa-ticket-top"><span className="sa-ic" aria-hidden="true">✈</span><div className="sa-ticket-title"><h3>{t.title}</h3><small>سفر ثبت‌شده در حساب</small></div><span className={`sa-chip ${chipTone(t.status)}`}>{tripStatusFa(t.status)}</span></div>
+        <div className="sa-route"><div><b>{t.origin||'—'}</b><small>{t.origin?'مبدأ':'مبدأ ثبت نشده'}</small></div><i aria-hidden="true"><span/>✈<span/></i><div><b>{t.destination}</b><small>مقصد</small></div></div>
+        <p className="sa-when"><span aria-hidden="true">📅</span>{when||'تاریخ سفر هنوز ثبت نشده است'}</p>
+        <div className="sa-perf" aria-hidden="true"/>
+        <Link className="sa-btn sa-btn-wide" href={safeHref(t.timeline_link)}>مشاهدهٔ سفر، مدارک و رویدادها</Link></article>})}</div></section>}
+      {shownRes.length>0&&<section aria-labelledby="sa-res-h"><h2 id="sa-res-h" className="sa-sec-title">رزروهای من</h2><div className="sa-grid">{shownRes.map(r=><article key={r.id} className="sa-res"><div className="sa-ticket-top"><span className="sa-ic soft" aria-hidden="true">{SERVICE_GLYPH[r.service_type]||'🎫'}</span><div className="sa-ticket-title"><small>رزرو {serviceTypeFa(r.service_type)}</small><h3 dir="ltr">{r.booking_reference||'در انتظار مرجع رزرو'}</h3></div><span className={`sa-chip ${chipTone(r.status)}`}>{bookingStatus(r.status)}</span></div>
+        <dl className="sa-facts"><div><dt>مبلغ ثبت‌شده</dt><dd>{money(r.price_snapshot?.total_amount,r.price_snapshot?.currency)}</dd></div>{r.created_at&&<div><dt>تاریخ ثبت</dt><dd>{shortDate(r.created_at)||'—'}</dd></div>}</dl>
+        {r.price_snapshot?.hotel_stay&&<HotelStaySummary stay={r.price_snapshot.hotel_stay}/>}
+        <Link className="sa-btn ghost sa-btn-wide" href={safeHref(r.manage_link,`/manage-booking/${r.id}`)}>مدیریت رزرو، واچر و استرداد</Link></article>)}</div></section>}
+    </div>
+    <aside className="sa-dark" aria-labelledby="sa-notice-h"><div className="sa-dark-head"><span className="sa-ic dark" aria-hidden="true">🔔</span><div><h2 id="sa-notice-h">اعلان‌های سفر</h2><p>تغییرات رزرو و سفر شما از سامانه</p></div></div>{notices.length===0?<p role="status" className="sa-dark-empty">اعلان تازه‌ای ندارید.</p>:<ul>{notices.map(n=><li key={n.id}><b>{n.title}</b><p>{n.message}</p>{n.deep_link&&<Link href={safeHref(n.deep_link)}>مشاهده جزئیات ←</Link>}</li>)}</ul>}</aside></div>
+  </div>;
 }
 
 type TimelineEvent = { id:string; type:string; severity:string; source:string; title:string; message:string; requires_action:boolean; deep_link?:string|null };
