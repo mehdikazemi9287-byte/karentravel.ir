@@ -932,7 +932,10 @@ def verify_otp(data: OTPVerifyIn, request: Request, db: Session = Depends(get_db
     if auth_state.locked_until and _aware(auth_state.locked_until) > now:
         raise HTTPException(status_code=423, detail="حساب موقتاً قفل است")
     device_hash, ip_hash = _request_fingerprints(request, data.device_id)
-    if not hmac.compare_digest(challenge.code_hash, _secure_hash(f"{challenge.id}:{data.code}")):
+    # The schema's \d also accepts Persian/Arabic-Indic digits; the stored hash is over ASCII digits, so
+    # normalize first -- otherwise a correct code typed on a Persian keyboard counts as a failed attempt.
+    from .kavenegar_adapter import normalize_digits as _normalize_digits
+    if not hmac.compare_digest(challenge.code_hash, _secure_hash(f"{challenge.id}:{_normalize_digits(data.code)}")):
         challenge.attempts += 1
         auth_state.failed_attempts += 1
         if challenge.attempts >= challenge.max_attempts or auth_state.failed_attempts >= 5:

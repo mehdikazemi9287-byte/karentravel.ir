@@ -146,9 +146,10 @@ def test_invalid_api_key_maps_to_authentication_error(monkeypatch):
 
 
 def test_rate_limit_maps_to_retryable_error(monkeypatch):
-    body = json.dumps({"return": {"status": 414, "message": "محدودیت ارسال"}}).encode()
+    # 451 = too many calls in a short window. (414 is "too many records in one request", not a rate limit.)
+    body = json.dumps({"return": {"status": 451, "message": "محدودیت ارسال"}}).encode()
     def raise_http_error(*a, **k):
-        raise HTTPError("https://api.kavenegar.com/x", 414, "Limit", {}, __import__("io").BytesIO(body))
+        raise HTTPError("https://api.kavenegar.com/x", 451, "Limit", {}, __import__("io").BytesIO(body))
     monkeypatch.setattr("app.kavenegar_adapter.urlopen", raise_http_error)
     provider = KavenegarSmsOtpProvider(api_key="test-key", template="karenseir-otp")
     result = provider.execute("send_otp", {"destination_reference": "09123456789", "code": "123456"}, _ctx())

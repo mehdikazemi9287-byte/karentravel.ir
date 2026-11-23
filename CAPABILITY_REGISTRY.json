@@ -165,10 +165,10 @@
     },
     "sms_notifications": {
       "status": "READY_BLOCKED_EXTERNAL",
-      "reason": "Configured OTP adapter corrected; account/info returned unknown-method response. Delivery has not been verified.",
-      "blocker": "Confirmed Kavenegar endpoint/account/template and explicitly authorized test recipient",
-      "last_verified_at": "2026-09-27T23:33:34.987023+00:00",
-      "evidence": "docs/recovery/2026-09-27-implementation-evidence.json"
+      "reason": "Kavenegar Verify/Lookup adapter is source-complete (POST /v1/{key}/verify/lookup.json, matches the official SDK). 2026-11-23 source fixes: corrected status-code mapping (414/415 were treated as retryable rate limits), JSON error bodies read, failed entry statuses never recorded as sent, per-request errors no longer open the tenant-wide circuit breaker, invisible marks stripped from mobiles, Persian-digit OTP codes accepted at verify. The Sept 27 'unknown method' (404) came from an ad-hoc account/info check, not from the send path; an empty key in the URL path produces exactly that answer. Owner reports the account is connected, but no server-side evidence of a delivered login SMS exists yet.",
+      "blocker": "Server evidence: run deploy/karenseir-diagnose-sms.sh on the server (env names reach the api container, adapter=KavenegarSmsOtpProvider, account/info return.status 200 with credit), an approved production template with %token (karentest reaches only the account owner), then one login code delivered to an explicitly authorized phone",
+      "last_verified_at": "2026-11-23",
+      "evidence": "docs/integrations/kavenegar-sms.md; backend/tests/test_sms_kavenegar_fixes.py (source only; prior: docs/recovery/2026-09-27-implementation-evidence.json)"
     },
     "ai_travel_assistant": {
       "status": "READY_BLOCKED_EXTERNAL",

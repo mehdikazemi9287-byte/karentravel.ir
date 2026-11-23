@@ -293,7 +293,12 @@ return count
                     except Exception: pass
                 return result
             if not retryable or attempt == attempts:
-                self._record_failure(failure_key, circuit_key)
+                # A request-level rejection (bad recipient number, missing
+                # code, test-account-only recipient) says nothing about the
+                # provider's health; counting it would let a handful of bad
+                # requests open the tenant-wide circuit and block every user.
+                if not (isinstance(result, Mapping) and result.get("client_error") is True):
+                    self._record_failure(failure_key, circuit_key)
                 return result
             delay = min(self.retry_policy.initial_backoff_seconds * (2 ** (attempt - 1)), self.retry_policy.max_backoff_seconds)
             time.sleep(delay)
