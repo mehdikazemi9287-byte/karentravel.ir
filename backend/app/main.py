@@ -3675,7 +3675,7 @@ def search_autocomplete(q: str, service_type: Optional[str] = None, user: User =
             attrs = json.loads(row.attributes_json or "{}")
             seen.add((row.title, row.service_type)); suggestions.append({"id": row.id, "title": row.title, "label": row.title, "subtitle": attrs.get("city"), "normalized": _normalize_search_text(row.title), "entity_type": row.service_type, "city": attrs.get("city"), "country": attrs.get("country", "ایران"), "code": attrs.get("code"), "coordinates": [attrs.get("latitude"), attrs.get("longitude")] if attrs.get("latitude") is not None else None, "popularity_score": int(attrs.get("popularity_score", 0)), "match_type": match_type, "ranking_score": score + int(attrs.get("popularity_score", 0)), "source": "tenant_offer"})
     suggestions.sort(key=lambda item: (-item["ranking_score"], item["title"]))
-    return {"query": q, "normalized_query": normalized, "suggestions": suggestions[:10], "cache_policy": "private_tenant_30s"}
+    return {"query": q, "normalized_query": normalized, "suggestions": suggestions[:10], "cache_policy": "private_no_store"}
 
 
 @app.get("/search/autocomplete/v3/public")
@@ -3709,7 +3709,7 @@ async def autocomplete_v3_public_gateway(q: str) -> dict:
 
 
 @app.get("/search/autocomplete/public")
-def public_search_autocomplete(q: str) -> dict:
+def public_search_autocomplete(q: str = Query(min_length=2, max_length=200)) -> dict:
     """Expose only the non-tenant geographic catalog for pre-login search."""
     normalized = _normalize_search_text(q)
     if len(normalized) < 2:
@@ -3720,7 +3720,8 @@ def public_search_autocomplete(q: str) -> dict:
         if score:
             suggestions.append({"id": item["id"], "title": item["title"], "subtitle": " · ".join(filter(None, [item.get("city"), item.get("country")])), "entity_type": item["type"], "city": item.get("city"), "country": item.get("country"), "code": item.get("code"), "coordinates": item.get("coordinates"), "popularity_score": item.get("popularity", 0), "match_type": match_type, "ranking_score": score + item.get("popularity", 0), "source": "karenseir_geo_catalog"})
     suggestions.sort(key=lambda item: (-item["ranking_score"], item["title"]))
-    return {"query": q, "normalized_query": normalized, "suggestions": suggestions[:10], "cache_policy": "public_5m", "tenant_data_included": False}
+    suggestions = suggestions[:10]
+    return {"query": q, "normalized_query": normalized, "suggestions": suggestions, "cache_policy": "public_5m", "tenant_data_included": False}
 
 
 def _grs_hotel_offers_for_search(*, tenant_id: int, query: str, min_price: Optional[int], max_price: Optional[int], min_review_score: Optional[float], refundable: Optional[bool], instant_booking: Optional[bool], check_in: Optional[str], check_out: Optional[str], travellers: int = 1, db: Session, adapter=None) -> list[dict]:
@@ -5356,10 +5357,19 @@ def _case_output(row: operational_models.SupportCase, messages: list[operational
 def support_cases(user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
     query = select(operational_models.SupportCase).where(operational_models.SupportCase.tenant_id == user.tenant_id)
     if not role_has_permission(user.role, "support:manage"): query = query.where(operational_models.SupportCase.user_id == user.id)
-    rows = db.scalars(query.order_by(operational_models.SupportCase.created_at.desc())).all(); result = []
-    for row in rows:
-        messages = db.scalars(select(operational_models.SupportThreadMessage).where(operational_models.SupportThreadMessage.tenant_id == user.tenant_id, operational_models.SupportThreadMessage.case_id == row.id).order_by(operational_models.SupportThreadMessage.created_at)).all(); result.append(_case_output(row, messages))
-    return result
+    rows = db.scalars(query.order_by(operational_models.SupportCase.created_at.desc())).all()
+    if not rows:
+        return []
+    # Reuse the authorized case query: no cross-tenant or other customer's messages.
+    case_ids = query.with_only_columns(operational_models.SupportCase.id)
+    messages = db.scalars(select(operational_models.SupportThreadMessage).where(
+        operational_models.SupportThreadMessage.tenant_id == user.tenant_id,
+        operational_models.SupportThreadMessage.case_id.in_(case_ids),
+    ).order_by(operational_models.SupportThreadMessage.created_at)).all()
+    by_case: dict[str, list] = {}
+    for message in messages:
+        by_case.setdefault(message.case_id, []).append(message)
+    return [_case_output(row, by_case.get(row.id, [])) for row in rows]
 
 
 @app.post("/support/cases", status_code=status.HTTP_201_CREATED)
@@ -5686,17 +5696,35 @@ def create_destination(data: DestinationIn, user: User = Depends(require_role("b
     row = operational_models.Destination(tenant_id=user.tenant_id, **{**data.model_dump(exclude={"seasonality", "categories", "highlights", "nearby_slugs"}), "seasonality_json": json.dumps(data.seasonality), "categories_json": json.dumps(data.categories), "highlights_json": json.dumps(data.highlights), "nearby_slugs_json": json.dumps(data.nearby_slugs)}); db.add(row); db.flush(); db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="destination", aggregate_id=row.id, event_type="destination.published", payload_json=json.dumps({"slug": row.slug, "kind": row.kind}), correlation_id=str(uuid.uuid4()), idempotency_key=f"destination:{row.id}")); db.commit(); return {"id": row.id, "slug": row.slug, "name_fa": row.name_fa, "kind": row.kind}
 
 
-def _destination_output(db: Session, row: operational_models.Destination) -> dict:
-    offers = db.scalars(select(operational_models.Offer).where(operational_models.Offer.tenant_id == row.tenant_id, operational_models.Offer.status == "active", operational_models.Offer.valid_until > datetime.now(timezone.utc))).all(); counts: dict[str, int] = {}
-    for offer in offers:
-        attrs = json.loads(offer.attributes_json or "{}")
-        if attrs.get("destination_slug") == row.slug: counts[offer.service_type] = counts.get(offer.service_type, 0) + 1
+def _destination_service_counts(db: Session, tenant_id: int, slugs: set[str]) -> dict[str, dict[str, int]]:
+    counts: dict[str, dict[str, int]] = {}
+    if not slugs:
+        return counts
+    # Project two columns and stream bounded batches once, rather than load every
+    # ORM Offer for every destination. Works on both supported database dialects.
+    statement = select(operational_models.Offer.service_type, operational_models.Offer.attributes_json).where(
+        operational_models.Offer.tenant_id == tenant_id,
+        operational_models.Offer.status == "active",
+        operational_models.Offer.valid_until > datetime.now(timezone.utc),
+    ).execution_options(yield_per=500)
+    for service_type, attributes_json in db.execute(statement):
+        slug = json.loads(attributes_json or "{}").get("destination_slug")
+        if isinstance(slug, str) and slug in slugs:
+            group = counts.setdefault(slug, {})
+            group[service_type] = group.get(service_type, 0) + 1
+    return counts
+
+
+def _destination_output(db: Session, row: operational_models.Destination, service_counts: Optional[dict[str, int]] = None) -> dict:
+    counts = service_counts if service_counts is not None else _destination_service_counts(db, row.tenant_id, {row.slug}).get(row.slug, {})
     return {"id": row.id, "parent_id": row.parent_id, "kind": row.kind, "name_fa": row.name_fa, "name_en": row.name_en, "slug": row.slug, "geo": {"latitude": float(row.latitude) if row.latitude is not None else None, "longitude": float(row.longitude) if row.longitude is not None else None}, "description": row.description, "seasonality": json.loads(row.seasonality_json), "categories": json.loads(row.categories_json), "highlights": json.loads(row.highlights_json), "nearby_destinations": json.loads(row.nearby_slugs_json), "service_counts": counts}
 
 
 @app.get("/destinations")
 def list_destinations(user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
-    rows = db.scalars(select(operational_models.Destination).where(operational_models.Destination.tenant_id == user.tenant_id, operational_models.Destination.status == "published").order_by(operational_models.Destination.kind, operational_models.Destination.name_fa)).all(); return [_destination_output(db, row) for row in rows]
+    rows = db.scalars(select(operational_models.Destination).where(operational_models.Destination.tenant_id == user.tenant_id, operational_models.Destination.status == "published").order_by(operational_models.Destination.kind, operational_models.Destination.name_fa)).all()
+    counts = _destination_service_counts(db, user.tenant_id, {row.slug for row in rows})
+    return [_destination_output(db, row, counts.get(row.slug, {})) for row in rows]
 
 
 @app.get("/destinations/{slug}")
@@ -5714,7 +5742,9 @@ def _public_tenant(db: Session, tenant_slug: str) -> Tenant:
 
 @app.get("/public/tenants/{tenant_slug}/destinations")
 def public_destinations(tenant_slug: str, db: Session = Depends(get_db)) -> list[dict]:
-    tenant = _public_tenant(db, tenant_slug); rows = db.scalars(select(operational_models.Destination).where(operational_models.Destination.tenant_id == tenant.id, operational_models.Destination.status == "published").order_by(operational_models.Destination.kind, operational_models.Destination.name_fa)).all(); return [_destination_output(db, row) for row in rows]
+    tenant = _public_tenant(db, tenant_slug); rows = db.scalars(select(operational_models.Destination).where(operational_models.Destination.tenant_id == tenant.id, operational_models.Destination.status == "published").order_by(operational_models.Destination.kind, operational_models.Destination.name_fa)).all()
+    counts = _destination_service_counts(db, tenant.id, {row.slug for row in rows})
+    return [_destination_output(db, row, counts.get(row.slug, {})) for row in rows]
 
 
 @app.get("/public/tenants/{tenant_slug}/destinations/{slug}")

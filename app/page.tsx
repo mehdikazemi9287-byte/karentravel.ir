@@ -3,6 +3,7 @@ import ApprovedFigmaHome, {ApprovedShell} from '../components/marketplace/Approv
 import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   AssistantChatMessage, AssistantEntity, AssistantReplyData, AssistantTurnResponse,
@@ -19,7 +20,10 @@ import { HomeSearchExperience } from '../components/search/HomeSearchExperience'
 import { ContactOptions, ServiceIntro } from '../components/customer/CustomerHelp';
 import { supportPhone } from '../lib/site-contact';
 import { MarketplaceHome } from '../components/marketplace/MarketplaceHome';
-import { UnifiedSearchView } from '../components/operational/UnifiedSearchView';
+// Results view is code-split: the home page loads it only when search results are shown (same skeleton markup as the view itself).
+const UnifiedSearchView = dynamic(() => import('../components/operational/UnifiedSearchView').then(module => module.UnifiedSearchView), {
+  loading: () => <section aria-label="در حال دریافت نتایج" className="search-results-list">{[1,2,3].map(item=><article className="result-card result-skeleton" key={item}><i/><div><span/><span/><span/></div><b/></article>)}</section>,
+});
 
 const hotels = [
   { name: 'هتل پارسیان آزادی', city: 'تهران', score: '۴.۷', price: '۷٬۸۵۰٬۰۰۰', image: '/images/figma/trip-north.jpeg', tag: 'بهترین کیفیت' },
