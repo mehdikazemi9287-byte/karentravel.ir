@@ -8,14 +8,21 @@ export function FlightFacts({attributes:a,provider}:Props){const stops=a.stops;c
 /** Compact Stitch-style flight row (carrier · departure — duration/stops — arrival). Only real attributes; unknown values show a dash. */
 export function FlightRoute({attributes:a}:{attributes:Record<string,unknown>}){const stops=a.stops;const knownStops=(typeof stops==='number'||typeof stops==='string'&&stops.trim()!=='')&&Number.isInteger(Number(stops))&&Number(stops)>=0;const code=typeof a.airline_code==='string'&&a.airline_code.trim()?a.airline_code:typeof a.flight_number==='string'&&a.flight_number.trim()?a.flight_number.replace(/[^A-Za-z]/g,'').slice(0,2).toUpperCase()||'✈':'✈';return <div className="fr-row"><div className="fr-carrier"><span className="fr-logo" aria-hidden="true">{code}</span><div><strong>{fact(a.airline,'شرکت هواپیمایی')}</strong><small>{[typeof a.flight_number==='string'&&a.flight_number?'پرواز '+a.flight_number:'',typeof a.aircraft==='string'?a.aircraft:''].filter(Boolean).join(' · ')||'شماره پرواز پس از استعلام'}</small></div></div><div className="fr-point"><TransportTime value={a.departure_time} fallback="—"/><b>{fact(a.origin,'مبدأ')}</b></div><div className="fr-line"><span>{fact(a.duration,'')}</span><i aria-hidden="true"/><small className={knownStops&&Number(stops)===0?'direct':''}>{knownStops?(Number(stops)===0?'مستقیم (بدون توقف)':Number(stops).toLocaleString('fa-IR')+' توقف'):'توقف: نامشخص'}</small></div><div className="fr-point"><TransportTime value={a.arrival_time} fallback="—"/><b>{fact(a.destination,'مقصد')}</b></div></div>}
 const VERTICAL_FA:Record<string,string>={flight:'پرواز',hotel:'هتل',tour:'تور',vacation_rental:'اقامتگاه',bus:'اتوبوس',car_rental:'اجاره‌ی خودرو',train:'قطار'};
-/** No bookable result: the visitor leaves the search with an expert request instead of an empty page (goes to the sales desk). */
-export function SearchRecovery({vertical,origin,destination,depart,returnDate,travellers,onEdit,onDate,onClear}:{vertical:string;origin:string;destination:string;depart:string;returnDate?:string;travellers?:number;onEdit:()=>void;onDate:(offset:number)=>void;onClear:()=>void}){
+/** No bookable result: an honest empty state like Alibaba / MrBilit (nothing online for this date, try the day before/after),
+    with the expert callback request as a compact secondary action that opens in place (same TripRequestForm and API as before). */
+const EMPTY_TITLE:Record<string,string>={flight:'برای این تاریخ پروازی برای فروش آنلاین موجود نیست',train:'برای این تاریخ قطاری برای فروش آنلاین موجود نیست'};
+export function SearchRecovery({vertical,origin,destination,depart,returnDate,travellers,onEdit,onDate,onClear,failed=false}:{vertical:string;origin:string;destination:string;depart:string;returnDate?:string;travellers?:number;onEdit:()=>void;onDate:(offset:number)=>void;onClear:()=>void;failed?:boolean}){
   const kind=VERTICAL_FA[vertical]||'سفر';
-  const trip=[kind,origin?`${origin} به ${destination}`:destination,depart?`از ${formatJalali(depart)}`:'',returnDate?`تا ${formatJalali(returnDate)}`:''].filter(Boolean).join(' ');
-  return <section className="search-recovery" aria-label="ثبت درخواست سفر">
-    <h2>{kind} {origin?`${origin} به ${destination}`:destination} را کارشناس ما برایت پیدا می‌کند</h2>
-    <p>برای این جست‌وجو گزینه‌ی آنلاین در سایت نیست. درخواستت را ثبت کن؛ کارشناس کارن تراول گزینه‌ها و قیمت را تلفنی اعلام می‌کند.</p>
-    <TripRequestForm compact title="ثبت درخواست" initial={{trip,travel_date:depart||'',travellers:String(travellers||1)}}/>
-    <div className="recovery-actions"><button className="button secondary" onClick={onEdit}>تغییر مسیر یا تاریخ</button><button className="button secondary" onClick={onClear}>پاک‌کردن فیلترها</button></div>
-    {depart&&<div className="recovery-dates"><b>تاریخ دیگری را ببین</b><div>{[1,3,7].map(n=><button key={n} onClick={()=>onDate(n)}>{n.toLocaleString('fa-IR')} روز بعد</button>)}</div></div>}
+  const route=origin?`${origin} به ${destination}`:destination;
+  const trip=[kind,route,depart?`از ${formatJalali(depart)}`:'',returnDate?`تا ${formatJalali(returnDate)}`:''].filter(Boolean).join(' ');
+  const today=new Date();const todayIso=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  const canPrev=!!depart&&depart>todayIso;
+  return <section className="search-recovery sr-empty" aria-label="بدون نتیجهٔ آنلاین">
+    <span className="sr-empty-ic" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M3 12l7 1 8 8 2-1-5-9 6-6-2-2-6 6-9-5-1 2 7 8-1 7"/></svg></span>
+    <h2>{failed?'نتایج این جست‌وجو فعلاً دریافت نشد':EMPTY_TITLE[vertical]||`برای این جست‌وجو ${kind} قابل رزرو آنلاین موجود نیست`}</h2>
+    <p>{failed?'چند لحظه بعد دوباره امتحان کن یا تاریخ دیگری را ببین.':`${kind} ${route}${depart?`، ${formatJalali(depart)}`:''}؛ روز دیگری را امتحان کن یا مسیر را تغییر بده.`}</p>
+    {depart&&<div className="sr-empty-dates" role="group" aria-label="تاریخ دیگر"><button type="button" className="button secondary" disabled={!canPrev} onClick={()=>onDate(-1)}><span aria-hidden="true">→</span> روز قبل</button><button type="button" className="button secondary" onClick={()=>onDate(1)}>روز بعد <span aria-hidden="true">←</span></button></div>}
+    <div className="recovery-actions"><button type="button" className="sr-link" onClick={onEdit}>تغییر مسیر یا تاریخ</button><button type="button" className="sr-link" onClick={onClear}>پاک‌کردن فیلترها</button></div>
+    <details className="sr-callback"><summary><span>می‌خواهی کارشناس کارن تراول گزینه‌ها و قیمت را تلفنی اعلام کند؟</span><b>درخواست تماس</b></summary>
+      <TripRequestForm compact title="درخواست تماس کارشناس" initial={{trip,travel_date:depart||'',travellers:String(travellers||1)}}/></details>
   </section>}

@@ -882,3 +882,17 @@ a.cat-card:hover{box-shadow:0 12px 28px rgba(8,37,61,.12);transform:translateY(-
 /* Installment tours */
 .installment-options{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:8px 0 22px}.installment-options>div{background:#fff;border:1px solid #e7dcd4;border-radius:16px;padding:16px;display:grid;gap:6px;align-content:start}.installment-options>div.org{background:#3a1b3d;border-color:#3a1b3d;color:#fdf5ea}.installment-options span{justify-self:start;background:#ef5b3d;color:#fff;border-radius:999px;padding:1px 10px;font-size:11px;font-weight:700}.installment-options b{font-size:17px}.installment-options p{margin:0;font-size:13px;line-height:1.8;color:#7f6d79}.installment-options .org p{color:#f1e4d6}.installment-options a{color:#f6c56b;font-weight:700;font-size:13px}.tour-pass-inst{background:#3a1b3d;color:#fdf5ea;border-radius:6px;padding:2px 6px;font-size:10px;font-weight:700}.installment-request{margin-top:22px}
 @media(max-width:900px){.installment-options{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:480px){.installment-options{grid-template-columns:1fr}}
+/* 2026-11-23 normal-OTA pass: suggestion row — city/name primary, airport secondary, IATA code small at the end */
+.fs-pop--auto .fs-sug-text{flex:1 1 auto;min-width:0}
+.fs-pop--auto .fs-sug-code{flex:0 0 auto;font-style:normal;font-size:11px;font-weight:700;color:var(--fs-muted);letter-spacing:.5px}
+/* 2026-11-23 normal-OTA pass: popular-route tiles — an incomplete last row is centred instead of leaving a hole;
+   on phones the row scrolls sideways like Alibaba's popular routes. */
+.tl-routes{display:flex;flex-wrap:wrap;justify-content:center}
+.tl-routes>.tl-route{flex:0 0 calc((100% - 48px)/5)}
+@media(max-width:900px){.tl-routes>.tl-route{flex-basis:calc((100% - 24px)/3)}}
+@media(max-width:560px){.tl-routes{flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px;-webkit-overflow-scrolling:touch}.tl-routes>.tl-route{flex:0 0 42%;scroll-snap-align:start}}
+/* 2026-11-23: photo credit as a small «i» badge on list cards (full credit + licence stay on the detail page) */
+.cat-thumb .cat-credit{position:absolute;bottom:8px;inset-inline-start:8px;width:18px;height:18px;border-radius:50%;background:rgba(42,21,48,.55);color:#fff;font:700 11px/18px Georgia,serif;text-align:center;cursor:help}
+.tl-route .cat-thumb .cat-credit{display:none}
+.tour-marketplace .tour-help-links{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin:14px 0 0}
+.tour-marketplace .tour-help-links a{display:inline}

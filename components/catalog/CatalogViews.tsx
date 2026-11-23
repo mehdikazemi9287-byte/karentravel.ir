@@ -29,7 +29,7 @@ type Venue = {id: string; kind: string; kind_fa: string; name: string; name_en: 
   opening_hours: string | null; detail: string | null; description: string | null; image_url: string | null; image_credit: string | null; price_note: string};
 type Airport = {iata: string; icao: string | null; name: string; name_en: string; city_name: string | null; country_code: string; scope: string | null; timezone: string | null; scheduled_service: boolean | null};
 type Station = {id: string; name: string; name_en: string | null; city_id: string | null; latitude: number; longitude: number};
-type Airline = {id: string; iata: string; icao: string | null; name: string; name_en: string | null; country_code: string; airline_type: string | null; website: string | null; logo_url: string | null; logo_credit: string | null};
+type Airline = {id: string; iata: string; icao: string | null; name: string; name_fa?: string | null; name_en: string | null; country_code: string; airline_type: string | null; website: string | null; logo_url: string | null; logo_credit: string | null};
 type Place = {id: string; kind: string; parent_id: string | null; country_code: string; name: string; name_fa: string | null; name_en: string | null; latitude: number | null; longitude: number | null; population: number | null;
   description: string | null; image_url: string | null; image_credit: string | null; hotel_count: number};
 type PlaceDetail = Place & {details?: {capital?: string; currency?: string; official_language?: string; population_text?: string; voltage?: string; time_zone?: string; visa_note?: string; guide?: string; images?: string[]; map_link?: string; major_cities?: string};
@@ -70,11 +70,13 @@ function Stars({value}: {value: number | null}) {
   if (!value) return null;
   return <span className="cat-stars" aria-label={`${fa(value)} ستاره`}>{'★'.repeat(value)}</span>;
 }
-function Thumb({src, credit, alt, label}: {src: string | null; credit: string | null; alt: string; label: string}) {
+/* Photo credit: list cards show only a small «ⓘ» with the credit as tooltip (the full credit and licence are on the detail page);
+   detail pages pass caption to keep the credit line under the photo. */
+function Thumb({src, credit, alt, label, caption = false}: {src: string | null; credit: string | null; alt: string; label: string; caption?: boolean}) {
   const [failed, setFailed] = useState(false);
   if (!src || failed) return <div className="cat-thumb cat-thumb-empty" aria-hidden="true"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M16 10h3a1 1 0 0 1 1 1v10M3 21h18M8 7h4M8 11h4M8 15h4"/></svg><span>{label}</span></div>;
   // eslint-disable-next-line @next/next/no-img-element -- remote Wikimedia Commons file with per-image credit
-  return <div className="cat-thumb"><img src={src} alt={alt} loading="lazy" onError={() => setFailed(true)}/>{credit && !credit.startsWith('کارن تراول') && <small title={credit}>{credit}</small>}</div>;
+  return <div className="cat-thumb"><img src={src} alt={alt} loading="lazy" onError={() => setFailed(true)}/>{credit && !credit.startsWith('کارن تراول') && (caption ? <small title={credit}>{credit}</small> : <span className="cat-credit" role="img" title={credit} aria-label={`منبع تصویر: ${credit}`}>i</span>)}</div>;
 }
 function Pager({total, limit, page, onPage}: {total: number; limit: number; page: number; onPage: (p: number) => void}) {
   const pages = Math.ceil(total / limit);
@@ -274,9 +276,19 @@ const IR_AIRPORT_CITY: Record<string, string> = {ABD: 'آبادان', AWZ: 'اه
 const hasLatin = (s?: string | null) => !!s && /[A-Za-z]/.test(s);
 const airportCity = (a: Airport) => (a.country_code === 'IR' || !a.country_code) && IR_AIRPORT_CITY[a.iata] ? IR_AIRPORT_CITY[a.iata] : hasLatin(a.city_name) ? null : a.city_name ?? null;
 
-function AirlineLogo({a}: {a: Airline}) {
+/* Persian trade names of Iranian airlines by IATA code (checked against the published IATA/ICAO list of Iranian airlines).
+   Used when the catalogue row has no Persian name; unknown codes keep the catalogue name. */
+const IR_AIRLINE_FA: Record<string, string> = {IR: 'ایران ایر', W5: 'ماهان', EP: 'آسمان', Y9: 'کیش ایر', QB: 'قشم ایر', B9: 'ایران ایرتور', ZV: 'زاگرس', I3: 'آتا', JI: 'معراج', NV: 'کارون',
+  HH: 'تابان', RV: 'کاسپین', VR: 'وارش', IS: 'سپهران', PR: 'پارس ایر', PY: 'پویا ایر', FP: 'فلای پرشیا', RU: 'چابهار'};
+export const airlineFa = (a: {iata?: string | null; name: string; name_fa?: string | null; country_code?: string}) => {
+  const known = a.country_code === 'IR' && a.iata ? IR_AIRLINE_FA[a.iata.toUpperCase()] : undefined;
+  if (known) return known;
+  return faName(a.name_fa || a.name).replace(/^(شرکت\s*)?هواپیمایی\s*/, '');
+};
+function AirlineLogo({a, icon = false}: {a: Airline; icon?: boolean}) {
   const [failed, setFailed] = useState(false);
   const mark = (a.iata || a.name.replace(/^هواپیمایی\s*/, '').slice(0, 2)).toUpperCase();
+  if (icon && (!a.logo_url || failed)) return <div className="cat-logo cat-logo-icon" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M3 12l7 1 8 8 2-1-5-9 6-6-2-2-6 6-9-5-1 2 7 8-1 7"/></svg></div>;
   // eslint-disable-next-line @next/next/no-img-element -- airline logo from Wikimedia Commons, credited in title; falls back to a code mark when blocked
   return <div className="cat-logo">{a.logo_url && !failed ? <img src={a.logo_url} alt={`نشان ${a.name}`} title={a.logo_credit ?? undefined} loading="lazy" onError={() => setFailed(true)}/> : <b dir="ltr">{mark}</b>}</div>;
 }
@@ -290,7 +302,7 @@ export function AirlineDirectory() {
     <Status loading={loading} error={error} empty={!data || data.items.length === 0}/>
     {data && <div className="cat-grid cat-grid-ref">{data.items.map(a => <article className="cat-ref" key={a.id}>
       <AirlineLogo a={a}/>
-      <div><h3>{faName(a.name)}</h3>
+      <div><h3>{airlineFa(a)}</h3>
         <p className="cat-where">{COUNTRY_FA[a.country_code] ?? a.country_code}{a.airline_type && AIRLINE_TYPE_FA[a.airline_type] ? ` · ${AIRLINE_TYPE_FA[a.airline_type]}` : ''} · <span dir="ltr">{a.iata}</span></p></div></article>)}</div>}
   </section>;
 }
@@ -364,14 +376,14 @@ export function CatalogPlaceView({slug, fallback}: {slug: string; fallback: Reac
   return <div className="cat cat-place">
     {p.breadcrumbs && p.breadcrumbs.length > 0 && <nav className="cat-crumbs" aria-label="مسیر"><Link href="/destinations">مقصدها</Link>{p.breadcrumbs.map(b => <Link key={b.id} href={`/destinations/${b.id}`}>{b.name}</Link>)}</nav>}
     <header className="cat-detail-head"><h1>سفر به {p.name}</h1>{p.name_en && <p className="cat-en" dir="ltr" lang="en">{p.name_en}</p>}<p className="cat-where">{[p.parent?.name, COUNTRY_FA[p.country_code]].filter((x, i, all) => x && x !== p.name && all.indexOf(x) === i).join('، ')}{p.population ? ` · جمعیت ${fa(p.population)}` : ''}</p></header>
-    {p.image_url && <Thumb src={p.image_url} credit={p.image_credit} alt={p.name} label=""/>}
+    {p.image_url && <Thumb src={p.image_url} credit={p.image_credit} alt={p.name} label="" caption/>}
     {p.description && p.description.split('\n').map((line, i) => <p key={i}>{line}</p>)}
     {p.details && Object.keys(p.details).length > 0 && <section><h2>اطلاعات مقصد</h2><dl className="cat-dl">{([['پایتخت', p.details.capital], ['واحد پول', p.details.currency], ['زبان رسمی', p.details.official_language], ['جمعیت', p.details.population_text], ['برق شهری', p.details.voltage], ['اختلاف ساعت', p.details.time_zone]] as [string, string | undefined][]).filter(([, v]) => v).map(([k, v]) => <span key={k} style={{display: 'contents'}}><dt>{k}</dt><dd>{v}</dd></span>)}</dl>
       {p.details.guide && p.details.guide.split('\n').map((line, i) => <p key={i}>{line}</p>)}{p.details.visa_note && <><h3 className="cat-h3">ویزا</h3>{p.details.visa_note.split('\n').map((line, i) => <p key={i}>{line}</p>)}</>}</section>}
     {p.details?.images && p.details.images.length > 1 && <ExpandableGallery limit={6} label="تصاویر مقصد" figures={p.details.images.map((src, i) => <figure key={src}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={src} alt={`${p.name} ${i + 1}`} loading="lazy"/></figure>)}/>}
     {p.details?.map_link && <p><a href={p.details.map_link} target="_blank" rel="noreferrer nofollow">نمایش {p.name} روی نقشه</a></p>}
     {p.details?.visa_note && <p><Link className="button secondary" href={`/visa/cl-visa-country-${p.country_code.toLowerCase()}`}>راهنمای کامل ویزای {p.name}</Link></p>}
-    {p.reference_tours && p.reference_tours.length > 0 && <section><h2>تورهای برگزارشده به این مقصد</h2><div className="cat-grid">{p.reference_tours.map(t => <TourCard key={t.id} t={t}/>)}</div></section>}
+    {p.reference_tours && p.reference_tours.length > 0 && <section><h2>تورهای برگزارشده به این مقصد</h2><div className="cat-grid">{p.reference_tours.map(t => <TourCard key={t.id} t={t} img={p.image_url}/>)}</div></section>}
     <div className="cat-place-stats"><Link href={hotelsHref}><b>{fa(p.hotels)}</b> هتل و اقامتگاه</Link>
       {PLACE_VENUE_LINKS.filter(([k]) => p.venue_counts[k]).map(([k, label, href]) => <Link key={k} href={`${href}?vcity=${p.kind === 'city' ? p.id : ''}&vkind=${k}`}><b>{fa(p.venue_counts[k])}</b> {label}</Link>)}</div>
     {p.airports.length > 0 && <section><h2>فرودگاه‌ها</h2><ul className="cat-access">{p.airports.map(a => <li key={a.iata}>{a.name} <span dir="ltr">({a.iata})</span></li>)}</ul></section>}
@@ -397,8 +409,13 @@ type TourFull = TourBrief & {description: string | null; guide_included: boolean
   departures: {starts_jalali: string | null; ends_jalali: string | null; past: boolean}[]};
 const duration = (t: {duration_nights: number | null; duration_days: number | null}) => t.duration_nights !== null && t.duration_days !== null ? `${fa(t.duration_nights)} شب و ${fa(t.duration_days)} روز` : t.duration_nights !== null ? `${fa(t.duration_nights)} شب` : t.duration_days !== null ? `${fa(t.duration_days)} روز` : null;
 
-export function TourCard({t}: {t: TourBrief}) {
-  return <Link className="cat-card" href={t.href}><Thumb src={t.image_url} credit={null} alt={t.title} label="تور"/>
+/* Site photos of a few cities (also used on the flight and train landings). */
+const CITY_LOCAL_IMG: Record<string, string> = {شیراز: '/images/figma/tile-shiraz.jpeg', اصفهان: '/images/approved-figma/imgTileIsfahan.jpg', یزد: '/images/figma/hero-yazd.jpeg'};
+/* Tour cards use the destination's photo (site or catalogue city photo), not the imported tour banner: those banners carry
+   large baked-in English words (e.g. "MASHHAD") that get cropped on the card. No photo -> neutral placeholder. */
+export function TourCard({t, img = null}: {t: TourBrief; img?: string | null}) {
+  const src = (t.destination?.name && CITY_LOCAL_IMG[t.destination.name]) || img;
+  return <Link className="cat-card" href={t.href}><Thumb src={src} credit={null} alt={t.destination?.name ?? t.title} label={t.destination?.name ?? 'تور'}/>
     <div className="cat-card-body"><h3>{t.title.replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[Number(d)])}</h3><p className="cat-where">{[t.destination?.name, duration(t), t.transport_fa].filter(Boolean).join(' · ')}</p>
       <p className="cat-price">قیمت و تاریخ جدید با استعلام</p></div></Link>;
 }
@@ -411,6 +428,8 @@ export function TourCatalog({title = 'برنامهٔ تورهای برگزارش
   const query = new URLSearchParams(); if (destination) query.set('destination', destination); if (q) query.set('q', q); if (category) query.set('category', category); if (nights) query.set('nights', nights); if (year) query.set('year', year); query.set('limit', String(size)); query.set('offset', String((page - 1) * size));
   const list = useCatalog<{total: number; items: TourBrief[]; destinations: {id: string; name: string; count: number}[]; categories: {name: string; count: number}[]; years: number[]}>(`/catalog/tours?${query}`);
   const data = list.data ?? list.stale;
+  const places = useCatalog<{items: Place[]}>('/catalog/places?kind=city&with_image=true&limit=500');
+  const cityImg = (name?: string | null) => (name && places.data?.items.find(x => x.name === name || x.name_fa === name)?.image_url) || null;
   return <section className="cat" id="tour-catalog" aria-labelledby="cat-tours-title">
     <header className="cat-head"><div><h2 id="cat-tours-title">{title}</h2><p>{intro ?? 'برنامه، مقصد، مدت، خدمات و هتل‌های تورهایی که پیش‌تر برگزار شده‌اند. تاریخ حرکت و قیمت جدید فقط با استعلام از برگزارکننده اعلام می‌شود و از این فهرست رزرو انجام نمی‌شود.'}</p></div>
       <SearchBox value={q} onSubmit={v => set({tq: v || null, tpage: null})} placeholder="نام تور یا مقصد"/></header>
@@ -421,7 +440,7 @@ export function TourCatalog({title = 'برنامهٔ تورهای برگزارش
       <label>سال برگزاری<select value={year} onChange={e => set({year: e.target.value || null, tpage: null})}><option value="">همه</option>{data.years.map(y => <option key={y} value={y}>{fa(y).replace(/٬/g, '')}</option>)}</select></label></div>}
     <div className="cat-meta"><span aria-live="polite">{data ? `${fa(data.total)} تور` : ''}</span>{((destination && !presetDestination) || q || category || nights || year) && <button onClick={() => set({destination: null, tq: null, tpage: null, category: null, nights: null, year: null})}>حذف فیلترها</button>}</div>
     <Status loading={list.loading} error={list.error} empty={!data || data.items.length === 0}>توری با این شرایط ثبت نشده است.</Status>
-    {data && data.items.length > 0 && <div className={`cat-grid${list.loading ? ' is-loading' : ''}`}>{data.items.filter((t, i, all) => all.findIndex(o => o.title === t.title && o.destination?.name === t.destination?.name && duration(o) === duration(t)) === i).map(t => <TourCard key={t.id} t={t}/>)}</div>}
+    {data && data.items.length > 0 && <div className={`cat-grid${list.loading ? ' is-loading' : ''}`}>{data.items.filter((t, i, all) => all.findIndex(o => o.title === t.title && o.destination?.name === t.destination?.name && duration(o) === duration(t)) === i).map(t => <TourCard key={t.id} t={t} img={cityImg(t.destination?.name)}/>)}</div>}
     {data && !limit && <Pager total={data.total} limit={size} page={page} onPage={p => {set({tpage: p > 1 ? String(p) : null}); document.getElementById('tour-catalog')?.scrollIntoView();}}/>}
     {limit && data && data.total > data.items.length ? <Link className="button secondary" href="/tours/search">جست‌وجو در همهٔ برنامه‌های تور</Link> : null}
   </section>;
@@ -577,7 +596,7 @@ function HotelRowStitch({h}: {h: Hotel}) {
       <h3><Link href={`/hotels/${h.slug}`}>{h.name}</Link></h3>
       <p className="hr-where"><span aria-hidden="true">⌖</span> {where || COUNTRY_FA[h.country_code]}</p>
       {h.amenities.length > 0 && <ul className="hr-amen">{h.amenities.slice(0, 5).map(a => <li key={a.key}>{a.label}</li>)}</ul>}
-      <div className="hr-foot"><div className="hr-price"><small>قیمت هر شب</small><b>پس از استعلام</b></div><Link className="hr-cta" href={`/hotels/${h.slug}`}>مشاهده اتاق‌ها و استعلام <span aria-hidden="true">←</span></Link></div>
+      <div className="hr-foot"><div className="hr-price"><small>قیمت هر شب</small><b>پس از استعلام</b></div><Link className="hr-cta" href={`/hotels/${h.slug}`}>انتخاب تاریخ و مشاهدهٔ اتاق‌ها <span aria-hidden="true">←</span></Link></div>
     </div>
   </article>;
 }
@@ -597,8 +616,7 @@ const FLIGHT_FAQ: [string, string][] = [
 export function FlightLanding() {
   const places = useCatalog<{items: Place[]}>('/catalog/places?kind=city&with_image=true&limit=500');
   const airlines = useCatalog<{items: Airline[]}>('/catalog/airlines?country=IR');
-  const LOCAL: Record<string, string> = {شیراز: '/images/figma/tile-shiraz.jpeg', اصفهان: '/images/approved-figma/imgTileIsfahan.jpg', یزد: '/images/figma/hero-yazd.jpeg'};
-  const img = (city: string) => LOCAL[city] ?? places.data?.items.find(x => x.name === city || x.name_fa === city)?.image_url ?? null;
+  const img = (city: string) => CITY_LOCAL_IMG[city] ?? places.data?.items.find(x => x.name === city || x.name_fa === city)?.image_url ?? null;
   const [depart, setDepart] = useState('');
   useEffect(() => { const d = new Date(Date.now() + 86400000); setDepart(d.toISOString().slice(0, 10)); }, []); // eslint-disable-line react-hooks/set-state-in-effect -- date exists only on the client (avoid hydration mismatch)
   const href = (o: string, d: string) => `/search/results?${new URLSearchParams({vertical: 'flight', origin: o, destination: d, adults: '1', trip_type: 'one_way', ...(depart ? {depart} : {})})}`;
@@ -606,7 +624,7 @@ export function FlightLanding() {
     <section className="tl-sec" aria-labelledby="fl-routes"><h2 id="fl-routes">مسیرهای پرطرفدار</h2><p className="fl-sub">روی هر مسیر بزن تا پروازهای فردای آن را ببینی؛ تاریخ را در صفحهٔ نتایج عوض کن.</p>
       <div className="tl-routes fl-routes">{(places.data ? FLIGHT_ROUTES.filter(([, d]) => img(d)) : FLIGHT_ROUTES).slice(0, 10).map(([o, d]) => <a key={o + d} href={href(o, d)} className="tl-route"><Thumb src={img(d)} credit={null} alt={d} label={d}/><span>{o} <i aria-hidden="true">←</i> {d}</span></a>)}</div></section>
     {airlines.data && airlines.data.items.length > 0 && <section className="tl-sec" aria-labelledby="fl-air"><h2 id="fl-air">ایرلاین‌های داخلی</h2>
-      <ul className="fl-airlines">{airlines.data.items.map(a => <li key={a.id} title={a.name}><AirlineLogo a={a}/><span>{faName(a.name)}</span></li>)}</ul></section>}
+      <ul className="fl-airlines">{airlines.data.items.map(a => <li key={a.id} title={a.name_en ?? a.name}><AirlineLogo a={a} icon/><span>{airlineFa(a)}</span>{a.iata && <small dir="ltr">{a.iata}</small>}</li>)}</ul></section>}
     <section className="tl-sec tl-perks" aria-label="مزایای خرید">
       {[['مقایسهٔ پروازها کنار هم', 'ساعت، ایرلاین، بار مجاز و قوانین استرداد پروازها را در یک صفحه مقایسه کن.'], ['قوانین هر نرخ پیش از خرید', 'بار، کلاس و شرایط استرداد هر بلیت پیش از پرداخت نمایش داده می‌شود.'], ['پیگیری در سفرهای من', 'وضعیت پرداخت، صدور و استرداد بلیت را در حساب خودت ببین.'], ['پشتیبانی کارشناس', 'پیش و پس از خرید، کارشناس کارن تراول پاسخگوست.']]
         .map(([t, d]) => <article key={t}><b>{t}</b><p>{d}</p></article>)}
@@ -631,8 +649,7 @@ const TRAIN_FAQ: [string, string][] = [
 export function TrainLanding() {
   const places = useCatalog<{items: Place[]}>('/catalog/places?kind=city&country=IR&with_image=true&limit=500');
   const ops = useCatalog<{items: {id: string; name_fa: string; website: string | null}[]}>('/catalog/rail/operators');
-  const LOCAL: Record<string, string> = {شیراز: '/images/figma/tile-shiraz.jpeg', اصفهان: '/images/approved-figma/imgTileIsfahan.jpg', یزد: '/images/figma/hero-yazd.jpeg'};
-  const img = (city: string) => LOCAL[city] ?? places.data?.items.find(x => x.name === city || x.name_fa === city)?.image_url ?? null;
+  const img = (city: string) => CITY_LOCAL_IMG[city] ?? places.data?.items.find(x => x.name === city || x.name_fa === city)?.image_url ?? null;
   const href = (city: string) => `/trains?vertical=train&origin=${encodeURIComponent('تهران')}&destination=${encodeURIComponent(city)}`;
   return <>
     <section className="tl-sec" aria-labelledby="tl-routes"><h2 id="tl-routes">خرید بلیط قطار فوری</h2>

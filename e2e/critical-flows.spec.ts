@@ -50,7 +50,7 @@ test('frozen Homepage keeps approved structure on desktop and mobile', async ({ 
     await expect(page.getByRole('heading', { level: 1 })).toContainText('سفر را');
     const search = page.getByRole('region', { name: 'جست‌وجوی یکپارچه سفر' });
     for (const name of ['پرواز', 'هتل', 'قطار', 'تور']) await expect(search.getByRole('tab', { name, exact: true })).toBeVisible();
-    await expect(search.getByRole('radiogroup', { name: 'نوع سفر' }).getByRole('radio', { name: 'رفت‌وبرگشت' })).toBeChecked();
+    await expect(search.getByRole('radiogroup', { name: 'نوع سفر' }).getByRole('radio', { name: 'یک‌طرفه' })).toBeChecked(); // one-way default (2026-11-23, pending owner confirmation)
     await expect(search.getByRole('button', { name: 'پیدا کن', exact: true })).toBeVisible();
     for (const name of ['کجای ایران صدایت می‌زند؟', 'همه‌ی سفر، در یک جا', 'سفر سازمانی، بدون پیچیدگی']) await expect(page.getByRole('heading', { level: 2, name })).toBeVisible();
     await expect(page.getByRole('contentinfo')).toHaveCount(1);
@@ -103,9 +103,10 @@ test('professional Homepage search interactions reach usable results', async ({ 
   await page.screenshot({ path: `${artifactDir}/search-ux/destination-autocomplete.png`, animations: 'disabled' });
   await page.getByRole('option', { name: /^شیراز/ }).first().click();
 
-  // Trip type lives outside the calendar (owner-approved D11); round trip stays the default.
+  // Trip type lives outside the calendar (owner-approved D11); one-way is the default like Alibaba (2026-11-23, pending owner confirmation).
   const tripType = page.getByRole('radiogroup', { name: 'نوع سفر' });
-  await expect(tripType.getByRole('radio', { name: 'رفت‌وبرگشت' })).toBeChecked();
+  await expect(tripType.getByRole('radio', { name: 'یک‌طرفه' })).toBeChecked();
+  await tripType.getByRole('radio', { name: 'رفت‌وبرگشت' }).click(); // the steps below pick a depart + return range
   await page.getByRole('button', { name: 'تاریخ سفر', exact: true }).click();
   await page.getByRole('button', { name: 'ماه بعد', exact: true }).click();
   await page.getByRole('button', { name: /^انتخاب ۱۰ / }).first().click();
