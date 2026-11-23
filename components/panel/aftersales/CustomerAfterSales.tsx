@@ -214,22 +214,27 @@ export function CustomerRefundDetail({id}: {id: string}) {
 
 /* ---------------------------------------------------------------- C-06 wallet */
 type History = {wallet_id: string; available: number; reserved: number; consumed: number; items: {id: string; label: string; amount: number; direction: 'in' | 'out'; booking_reference: string | null; at: string}[]};
+/* Stitch _45/_1 wallet: balance card + transaction list. Same API calls and states as before; no corporate credit,
+   BNPL or top-up figures are shown because the API does not return them (top-up stays disabled with its reason). */
 function WalletHistory({id}: {id: string}) {
   const h = useLoad<History>(`/me/wallets/${id}/history`);
   return <Loaded state={h.state} reload={h.reload} skeleton={<Skeleton kind="table" rows={3}/>}>{d => d.items.length === 0 ? <EmptyState title="هنوز تراکنشی ندارید">واریز استرداد و خرید از کیف پول اینجا ثبت می‌شود.</EmptyState> :
-    <DataTable caption="تاریخچهٔ کیف پول" rows={d.items} rowKey={x => x.id} cols={[{label: 'تاریخ', cell: x => jDateTime(x.at)}, {label: 'شرح', cell: x => x.label},
-      {label: 'رزرو', cell: x => (x.booking_reference ? <Ref>{x.booking_reference}</Ref> : '—')}, {label: 'مبلغ', cell: x => <span style={{color: x.direction === 'in' ? 'var(--pn-ok)' : 'inherit', fontWeight: 700}}>{x.direction === 'in' ? '+' : '−'} {toman(x.amount)}</span>}]}/>}</Loaded>;
+    <ul className="sa-tx" aria-label="تاریخچهٔ کیف پول">{d.items.map(x => <li key={x.id} className={x.direction}><span className="sa-ic" aria-hidden="true">{x.direction === 'in' ? '↓' : '↑'}</span>
+      <span><b>{x.label}</b><small>{jDateTime(x.at)}{x.booking_reference && <> · رزرو <Ref>{x.booking_reference}</Ref></>}</small></span>
+      <strong>{x.direction === 'in' ? '+' : '−'} {toman(x.amount)}</strong></li>)}</ul>}</Loaded>;
 }
 export function CustomerWalletPage() {
   const w = useLoad<Wallet[]>('/me/wallets'); const [busy, setBusy] = useState(false); const [error, setError] = useState('');
   const total = useMemo(() => (w.state.kind === 'ready' ? w.state.data.reduce((s, x) => s + x.available, 0) : 0), [w.state]);
+  const reserved = useMemo(() => (w.state.kind === 'ready' ? w.state.data.reduce((s, x) => s + x.reserved, 0) : 0), [w.state]);
   async function create() {setBusy(true); setError(''); try {await w.api.post('/me/wallets', {currency: 'IRR'}, newKey('wallet')); w.reload();} catch (e) {setError(messageOf(e));} finally {setBusy(false);}}
-  return <div className="as"><Loaded state={w.state} reload={w.reload} skeleton={<Skeleton rows={3}/>}>{rows => rows.length === 0 ? <section className="as-card">
+  return <div className="as sa-wallet"><Loaded state={w.state} reload={w.reload} skeleton={<Skeleton rows={3}/>}>{rows => rows.length === 0 ? <section className="sa-card">
     <EmptyState title="کیف پول ندارید">موجودی کیف پول فقط از تراکنش‌های واقعی (مثل استرداد) ساخته می‌شود.</EmptyState>
-    <div className="as-actions"><button type="button" className="as-btn" disabled={busy} onClick={() => void create()}>ایجاد کیف پول ریالی</button></div>{error && <p className="as-note bad" role="alert">{error}</p>}</section> : <>
-    <section className="as-card" aria-labelledby="wl-bal"><h2 id="wl-bal">موجودی</h2><p style={{fontSize: 28, fontWeight: 800, color: 'var(--pn-plum)'}}>{toman(total)}</p>
-      {rows.map(x => <dl key={x.id} className="as-dl"><dt>قابل استفاده</dt><dd>{toman(x.available)}</dd><dt>رزروشده برای خرید</dt><dd>{toman(x.reserved)}</dd></dl>)}
-      <div className="as-actions"><button type="button" className="as-btn" disabled aria-disabled="true" aria-describedby="wl-topup">شارژ آنلاین</button></div>
-      <p id="wl-topup" className="as-muted">شارژ آنلاین کیف پول هنوز به درگاه پرداخت وصل نشده است؛ واریز بانکی را از بخش «درخواست‌های خزانه» پایین همین صفحه ثبت کنید تا واحد مالی بررسی و اعمال کند.</p></section>
-    <section className="as-card" aria-labelledby="wl-hist"><h2 id="wl-hist">تاریخچهٔ تراکنش‌ها</h2>{rows.map(x => <WalletHistory key={x.id} id={x.id}/>)}</section></>}</Loaded></div>;
+    <div className="as-actions"><button type="button" className="sa-btn" disabled={busy} onClick={() => void create()}>ایجاد کیف پول ریالی</button></div>{error && <p className="as-note bad" role="alert">{error}</p>}</section> : <>
+    <section className="sa-balance" aria-labelledby="wl-bal"><div className="sa-balance-top"><div><h2 id="wl-bal">کیف پول کارن تراول</h2><small>کیف پول ریالی حساب شما</small></div><span className="sa-chip">فعال</span></div>
+      <div className="sa-balance-amt"><small>موجودی قابل استفاده</small><b>{toman(total)}</b></div>
+      <dl><div><dt>رزروشده برای خرید</dt><dd>{toman(reserved)}</dd></div><div><dt>تعداد کیف پول</dt><dd>{faNum(rows.length)}</dd></div></dl>
+      <div className="sa-balance-actions"><button type="button" className="sa-btn" disabled aria-disabled="true" aria-describedby="wl-topup">شارژ آنلاین</button><a className="sa-btn light" href="#wallet-treasury">ثبت واریز یا برداشت بانکی</a></div>
+      <p id="wl-topup" className="sa-balance-note">شارژ آنلاین کیف پول هنوز به درگاه پرداخت وصل نشده است؛ واریز بانکی را از بخش «درخواست‌های خزانه» پایین همین صفحه ثبت کنید تا واحد مالی بررسی و اعمال کند.</p></section>
+    <section className="sa-card" aria-labelledby="wl-hist"><div className="sa-card-head"><span className="sa-ic soft" aria-hidden="true">🕘</span><h2 id="wl-hist">گردش حساب و تراکنش‌ها</h2></div>{rows.map(x => <WalletHistory key={x.id} id={x.id}/>)}</section></>}</Loaded></div>;
 }

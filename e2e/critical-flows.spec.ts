@@ -324,12 +324,12 @@ test('customer account connects profile, travellers, wallet, payment and notific
   const employee = await login(request, 'employee@aftab.test');
   const reference = (await (await request.get(`${api}/reservations/${reservationId}`, { headers: { Authorization: `Bearer ${employee.access_token}` } })).json()).booking_reference;
   await expect(page.getByRole('link', { name: `تکمیل رزرو ${reference}` })).toHaveAttribute('href', `/checkout/${reservationId}`);
-  const smsPreference = page.getByRole('switch', { name: /تغییرات سفر · sms/ });
+  const smsPreference = page.getByRole('switch', { name: /تغییرات سفر · پیامک/ });
   const before = await smsPreference.getAttribute('aria-checked');
   await smsPreference.focus();
   await page.keyboard.press('Space');
   await expect(page.getByRole('status')).toContainText('ترجیحات اعلان ذخیره شد');
-  await expect(page.getByRole('switch', { name: /تغییرات سفر · sms/ })).toHaveAttribute('aria-checked', before === 'true' ? 'false' : 'true');
+  await expect(page.getByRole('switch', { name: /تغییرات سفر · پیامک/ })).toHaveAttribute('aria-checked', before === 'true' ? 'false' : 'true');
 });
 
 test('supplier, agency and backoffice mutations remain role-scoped', async ({ page, request }) => {

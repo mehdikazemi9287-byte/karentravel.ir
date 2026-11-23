@@ -136,7 +136,7 @@ test('cancel → ops approve → two-person finance refund → customer sees pai
   for (const step of ['ثبت درخواست', 'شروع بررسی', 'تأیید درخواست', 'ورود به صف پرداخت', 'پرداخت استرداد']) await expect(cust.getByRole('list', { name: 'روند' })).toContainText(step);
   await shot(cust, 'C-04a-refund-timeline_1440');
   await go(cust, '/account/wallet');
-  await expect(cust.getByRole('table', { name: 'تاریخچهٔ کیف پول' })).toContainText('۱۶۰٬۰۰۰ تومان');
+  await expect(cust.getByRole('list', { name: 'تاریخچهٔ کیف پول' })).toContainText('۱۶۰٬۰۰۰ تومان');
   await shot(cust, 'C-06-wallet_1440');
   const mobile = await pageAs(browser, customer, 390);
   for (const [path, name] of [['/account/refunds', 'C-04-refunds_390'], [`/account/refunds/${requestId}`, 'C-04a-refund-timeline_390'], ['/account', 'C-01-today_390'], [`/account/bookings/${res.id}`, 'C-03-booking-detail_390']] as const) {
