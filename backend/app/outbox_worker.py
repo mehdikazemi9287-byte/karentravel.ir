@@ -150,6 +150,12 @@ def run() -> None:
                 logger.info("vandapay_sweep", extra=vp_stats)
         except Exception:
             logger.exception("vandapay_sweep_failed")
+        try:  # Injast: re-drive confirm-pay whose result was lost (timeout/5xx); no-op while disabled
+            ij_stats = _main_models.injast_sweep()
+            if ij_stats.get("enabled") and ij_stats.get("confirm"):
+                logger.info("injast_sweep", extra=ij_stats)
+        except Exception:
+            logger.exception("injast_sweep_failed")
         time.sleep(5 if count else 15)
 
 

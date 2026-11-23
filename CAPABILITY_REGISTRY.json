@@ -107,6 +107,13 @@
       "last_verified_at": "2026-09-28T10:40:49.269734+00:00",
       "evidence": "docs/recovery/2026-09-28-production-readiness.json"
     },
+    "payment_gateway_injast": {
+      "status": "READY_BLOCKED_EXTERNAL",
+      "reason": "Injast (IPM v1.05.14) second hosted gateway beside VandaPay on branch feat/injast-gateway: adapter, customer gateway choice, national-code checksum, unsigned callback treated as a hint (confirm-pay + stored amount + our invoice registry), lost-confirm sweep, late-capture/double-payment to manual refund. 24 targeted unit/API tests against a labelled MOCK Injast; full backend suite 898 passed. Not merged, not deployed, no real payment.",
+      "blocker": "Injast merchant_id for Karen Travel, server IP 188.121.123.218 whitelisted by Injast, HTTPS callback on karentravel.ir, answers to the open questions in docs/payments/INJAST_INTEGRATION.md, and explicit approval for a first real transaction",
+      "last_verified_at": "2026-11-23T00:00:00+00:00",
+      "evidence": "docs/payments/INJAST_INTEGRATION.md; backend/tests/test_injast.py"
+    },
     "invoice": {
       "status": "READY_BLOCKED_EXTERNAL",
       "reason": "Server invoice preview exercised in isolated checkout flows; deployed.",
