@@ -1,0 +1,659 @@
+# کارن تراول — وضعیت، پیشرفت و نقشهٔ راه
+
+> منبع: مخزن karentravel.ir — تجمیع خودکار برای Gemini Notebook (2026-11-24)
+
+
+---
+
+## فایل: IMPLEMENTATION_ROADMAP.md
+
+# Implementation Roadmap
+
+## Search UX operational gate — PASS — 2026-08-21
+
+The visible Search journey is connected end to end: autocomplete and Persian typo recovery, exact/flexible dates, passengers/cabin/rooms, trip type, structured URL submit, responsive results, filter/sort, selected-Offer comparison, Wishlist/Trip Basket mutations and authoritative price/availability recheck. Nine Browser artifacts and `16/16` full Chromium scenarios are the acceptance evidence. Homepage identity outside its existing Search interaction remains frozen.
+
+Next exact gate: provide one authorized sandbox travel-provider credential and run bounded fan-out, timeout/partial-failure and P50/P95 certification. Dated price hints remain disabled until a real Provider supplies them.
+
+## Search UX gate — PASS — 2026-08-21
+
+The existing Homepage Search Box now exposes the completed backend capabilities through accessible autocomplete, date flexibility, passenger/room/cabin controls, trip type and URL-restorable submission. The dedicated results route provides real authenticated Offer cards, filters, sorting, comparison and complete operational states on Desktop and Mobile. Six visual evidence files and `16/16` Chromium scenarios are green.
+
+Next exact gate: provide one authorized sandbox travel-provider credential and certify bounded fan-out, partial failure, provider P50/P95 and dated fare availability. Do not add price hints/calendar values until a real feed supplies them.
+
+## Unified Search next gate — 2026-08-21
+
+Credential-independent Search v2 is complete through normalization, entity/autocomplete, shared multi-vertical contracts, freshness/availability/price states, deduplication, explainable ranking, filters/flexible intent, saved history, natural-language structuring, budget candidates and zero-result recovery. Migration head is `20260820_13`; PostgreSQL `67/67` RLS/FORCE and backend `87/87` are green.
+
+Next exact gate: provide one authorized sandbox travel-provider credential, then certify bounded concurrent fan-out, timeout/partial-failure isolation, provider/vertical TTL cache keys, hit rate and Search/provider P50/P95 without changing Homepage. Price calendar and alerts remain inactive until real feeds/transports exist.
+
+## Next exact release gate
+
+اقدام دقیق بعدی: فراهم‌کردن PostgreSQL ایزوله روی میزبان validation، backup گرفتن از همان staging، اجرای migration `20260820_11` و اثبات fail-closed/cross-tenant/FORCE RLS برای هر ۷ جدول تازه؛ سپس اجرای backend بدون skip. بعد از آن، ZarinPal adapter request/verify با credential sandbox معتبر و unified checkout تکمیل می‌شود. تا پیش از این gate هیچ موفقیت پرداخت یا RLS واقعی جدید ادعا نمی‌شود.
+
+در scope جدید Product Ecosystem، Phase 1 و Search 2.0 داخلی بسته شده‌اند. اقدام داخلی دقیق بعدی: migration افزایشی tenant-RLS برای persisted Trip Basket/Wishlist و Verified Review، سپس APIهای idempotent و تست cross-tenant آن‌ها؛ Homepage frozen می‌ماند و UI فقط در routeهای اختصاصی افزوده می‌شود.
+
+تمام کارهای credential-independent این مرحله، شامل اجرای واقعی migration `20260820_10`، RLS/FORCE RLS هر ۵۶ جدول، backup→restore، rollback→upgrade، integrity و regression کامل شده‌اند. اقدام بعدی به‌صورت دقیق: دریافت target مجاز و Secret Manager references، build imageهای immutable و ثبت digest، سپس اجرای public readiness، restore و rollback smoke gate پیش از هر ترافیک. اتصال Providerها فقط پس از قرارداد و credential معتبر انجام می‌شود.
+
+| فاز | خروجی آزمون‌پذیر | معیار پذیرش |
+|---|---|---|
+| 0: Discovery/UI | اسناد + Prototype فعلی | build/lint سبز، مرور Desktop/Mobile و تأیید UI |
+| 1: Foundation | FastAPI modular monolith، identity، tenant، RLS، audit | migration و isolation test واقعی |
+| 2: Corporate pilot | catalog/manual hotel، policy، credit، approval، ledger | lifecycle رزرو end-to-end و reconciliation test |
+| 3: Integrations | adapters و hub | fail-closed، idempotency، routing و observability test |
+| 4: Scale | payment/settlement، API/widget، white label | security، DR و load acceptance |
+| 5: Intelligence | tool-backed assistant و comparison | no-hallucination evaluation و explanation audit |
+
+هر فاز ADR، acceptance criteria، security review، rollout و rollback plan دارد.
+# وضعیت تکمیل Production
+
+Identity core و financial command core به‌صورت افزایشی پیاده شده‌اند. اتصال SMS/Payment/Travel Provider، target deployment و certification بیرونی همچنان gate تجاری/زیرساختی هستند. ترتیب بعدی: target hardening و immutable release → contract provider validation → controlled pilot → certification.
+
+Booking orchestration، customer account، panel mutationها، invoice، support case lifecycle، installment execution، settlement posting و admin user/role lifecycle اکنون متصل‌اند. staging rehearsal migration/RLS/restore نیز PASS است. مقدار مالیات و مرجع قانونی صورتحساب configurable و در Production بدون policy مصوب fail-closed است؛ اتصال نهایی providerها و deliveryها credential-dependent است.
+## Travel Commerce checkpoint — 2026-08-21
+
+- [x] ADR-020 benchmark-derived domain boundaries and fail-closed rules.
+- [x] Additive migration 14 for Vacation Rental, Tour, Cruise and Visa tables; isolated Alembic validation.
+- [x] Vacation Rental availability/overlap/idempotency/tenant tests and dedicated list/detail UI.
+- [x] Tour departure capacity/oversell/pricing/checkout handoff and dedicated list/detail/booking UI.
+- [x] Cruise catalog/API/UI fail-closed when no live provider exists.
+- [x] Visa product/application/applicant/document/human-review/timeline APIs and dedicated UI.
+- [x] Chromium screenshots and full 17-flow regression with frozen Homepage.
+- [ ] Run migration 14 against disposable PostgreSQL, verify all new tables RLS+FORCE/missing-context/own/cross-tenant/API NOBYPASSRLS, backup/restore and rollback/re-upgrade.
+- [ ] Add seasonal per-night rental calendar, cancellation settlement, supplier rental/tour management forms and deeper Tour↔Visa↔Trip Timeline linkage.
+- [ ] Certify ZarinPal sandbox, Cruise and travel Provider fulfillment only after authorized credentials/contracts.
+# Closure increment — 2026-08-21
+
+- Completed: visible Search vertical redesign within frozen Homepage identity; Tour↔Visa tenant-safe linkage and linked timeline event; migration `20260821_15`; Browser evidence and regression suite.
+- Next internal gate: disposable PostgreSQL RLS/FORCE validation for head 15, then seasonal villa pricing/cancellation settlement and supplier operational mutation UI.
+- External gate: ZarinPal sandbox merchant and contracted provider credentials remain fail-closed blockers.
+
+---
+
+## فایل: FINAL_PROJECT_AUDIT.md
+
+# Final Project Audit
+
+Timestamp: `2026-08-20T03:37:57Z`
+
+## Verified state
+
+- Production core: PostgreSQL migrations through `20260820_09`, 52/52 tenant tables with RLS/FORCE RLS, Redis rate limiting, least-privilege worker contract, transactional outbox, idempotency, health/readiness, structured metrics/logging, backup/restore and release rollback are implemented and have recorded real staging evidence.
+- Identity: OTP request/verify, expiry, replay/brute-force protection, device-bound rotating refresh sessions and logout are implemented. Browser API client now exposes the real OTP path and keeps tokens in memory; Development login remains explicitly separate.
+- Commerce: provider-neutral offer, price check, four service booking types, payment gate, fulfillment and voucher; policy-safe change/cancel/refund and immutable status history are implemented.
+- Corporate and role panels: configurable approval steps/SLA/escalation, supplier/agency/backoffice read models, White Label persistence, grounded AI context and explainable comparison backend are implemented and tenant/RBAC tested.
+- Finance: payment callback/refund duplicate protection and a tenant-scoped reconciliation read model are implemented. Reconciliation is deliberately read-only and flags mismatches for operator review.
+- Operations: Trip events, timeline storage, outbox notification preferences/attempts/receipts, retry/dead letter and worker queue metrics are implemented.
+- UI: approved RTL/Vazirmatn homepage and visual identity remain unchanged. Authenticated trips/timeline, manage-booking, comparison, organization, supplier, agency and backoffice routes now consume tenant-scoped APIs with explicit state handling. Legacy sample journeys remain separately labelled and unchanged.
+
+## Partial or missing internal scope
+
+- Full customer account and supplier/agency/admin mutation flows are not yet connected end-to-end to the new APIs; the role-panel read models are connected.
+- Real Trip Operations ingestion adapters, human support case management, invoices, favorites, traveler/profile mutations, installment execution and automated settlement posting are not complete.
+- Strict nonce-based CSP is not adopted; tested CSP retains `unsafe-inline` for the current static Next rendering.
+- Independent penetration test, realistic production-data query plan review and target load/soak test remain certification work.
+
+No evidence of KarenSeir sharing code, database or deployment with 60Online/70Online was found.
+
+---
+
+## فایل: CHECKPOINT.md
+
+## Release + Mahan cert 6-8 + HTTPS prep — 2026-11-08 (۱۷ آبان ۱۴۰۵)
+PRs #43 (Mahan cert 6-8 fixes), #44 (guarded HTTPS script for host nginx, single-source headers), #45 (server deploy script) merged to production. Server 188.121.123.218 deployed: production 25d43ea (+ server-only 8ca27bd) on branch release-20261108-1832; previous release-20261104-1735 and images pre-20261108-1832 kept for rollback. Live check PASS: brand کارن تراول, core routes + /api/health 200. Mahan QAA scenarios 6/7/8 booked TL2C2/TL2C3/TL2C4, no tickets. Tests: 587 pass, 2 pre-existing fail, 7 skip; build PASS; lint 45 pre-existing errors.
+OPEN: HTTPS not live (server uses container nginx; container-specific script in progress); duplicate security headers live; .env origins still IP and Zarinpal callback on old karenseir.ir.
+Full report: docs/reports/1405-08-17-progress-report.md. NEXT EXACT ACTION: container-nginx HTTPS script → --check on server → apply → QA.
+
+## Historical UI recovery Candidate completed — 2026-09-30
+User authorized historical76bea5c (=2255a05 parent), explicitly independent of missing Figma. UI-only scoped change: HistoricalPresentation extracted; Hero650 desktop/520 phone, grouped services+all14 current links, Mosaic/editorial/CompareBand/full footer/scroll-aware assistant recovered; palette/current Search and booking71801f8 preserved. Candidate3384 imagee36d23716ee9; source snapshot92af832 with three frontend hashes in builds.json. No Backend/Worker/DB change, no Production deploy, no migration/payment/SMS; Production fingerprints/schema34/ACL unchanged, worker4d9f0c3 healthy/reaper disabled, rollbacks retained.
+Historical builds76bea5c/2255a05 and isolated actual publicd2ba674 image executed;28 full captures plus actual section comparison evidence at1366/1440/1536/1920/360/390/430. Historical visual recovery PASS (not Figma). Full-page compositor omission of reused images documented; real in-viewport captures verify imagery. Public mobile footer hidden; recovered footer visible. All prior homepage hrefs/72 routes preserved. Clean build/typecheck,7-width date/guest Enter/Escape/overlay + menu/floating, fresh homepage→hotel rooms/dates/4travellers→lost-response replay→test gateway→supplier voucher→account/back/refresh1440/390 PASS. Auth forms/customer/support/notifications/timeline/customer denial+staff Backoffice smoke PASS.
+Candidate UI patch READY_FOR_RELEASE; Figma VALIDATION_PENDING. Do NOT publish the entire root source/image as an implicitly authorized frontend release: prior hotel71801f8/enterprise35 dependencies remain separately unpublished and QA API matches source, not publicd2ba674. Next exact action: present Candidate for review, then prepare explicitly scoped compatible Production package only under new authorization. Detailed report docs/recovery/2026-09-30-historical-ui-recovery.md; evidence folder historical-ui-recovery-20260930. User debug_voucher.py unchanged. All prior P0/P1 retained.
+
+## UI reference discovery follow-up — 2026-09-30
+Figma tool inventory now recorded: no account file enumeration endpoint; all file-inspection methods require fileKey. Actual team-files browser navigation redirects to Figma login (screenshot+URL evidence). No guessed identifiers or design mutations. Historical reference filename19204EA5-4649-4726-9AF0-50AD4F478FC6.jpeg is documented missing and not found in attachments/public/tmp. Parent76bea5c→2255a05 component mapping now recorded: hero650→450, mosaic→equal cards, full footer→compact, floating AI removed; historical width1184 also fails requested broad-desktop goal. No source/runtime changes. NEXT EXACT ACTION: gain read access to project file listing or known file key, enumerate Pages/Frames and implement reference-based Candidate. Cannot truthfully assert no files exist, Figma visual PASS, or completion. Details/evidence in UI recovery reference-gate report.
+
+## UI recovery reference gate — 2026-09-30
+User requested frontend-only Candidate recovery, no Production changes. Read-only seven-width current screenshots and targeted route/tab evidence saved in docs/recovery/evidence/ui-recovery-20260930; report docs/recovery/2026-09-30-ui-recovery-reference-gate.md. Public Webd2ba674/buildf2RCNeisrtn7IzoGKDsyg unchanged; Worker4d9f0c3 healthy/reaper disabled; schema34/ACL/container fingerprints before-after identical. No code edits or new candidate;72 routes unchanged. Preserve71801f8/cd0cd4e and all outstanding product gaps.
+BLOCKER: Figma connection works but project file/frame identifiers absent; no repository artifact has established last-approved status. Historical2255a05 introduced current marketplace layout;916c6fe changed slogan. Neither history nor filenames prove design approval. Reference question pending. No FIGMA_MATCH/visual PASS asserted. NEXT EXACT ACTION: obtain approved Desktop/Mobile Figma URL or identify approved commit/artifact, compare and implement only the confirmed frontend delta in Preview; no Production authorization.
+
+## Worker-only Production closure — 2026-09-30
+Explicit user approval applied ONLY to worker4d9f0c3. Worker image405be1f2 deployed; original container63afba4f retained stopped as karenseir-worker-1-pre-reaper-guard-4d9f0c3. Before restartcount425; after210-second observation and fresh E2E restartcount0/healthy, no permission/traceback/error logs. Reaper disabled. API/frontend/search/DB container IDs/images/start times unchanged; public web d2ba674; schema20260928_34 and full public relation ACL/role fingerprint unchanged. No migration/grants/real payment/SMS. Prior rollback points preserved.
+Actual public Chromium1440/390 read-only landing/search/checkout authentication gate/trips smoke PASS, no page errors/overflow. Fresh isolated Preview3378/API18082 full hotel search→two rooms/four guests→quote→lost response recovery→travellers→test gateway→supplier issuance→downloaded voucher→My Trips→back/refresh PASS. This is NOT a public hotel publication or proof of real supplier/payment availability. SOURCE enterprise35/hotel71801f8 remain unpublished; all prior gaps preserved.
+Evidence: docs/recovery/evidence/worker-production-20260930. Scope note: root source c3a9dea contains unpublished work; deployed worker is the independently approved live-base branch4d9f0c3. User backend/debug_voucher.py unchanged.
+NEXT EXACT ACTION: continue remaining Hotel2.1 internal criteria in SOURCE/PREVIEW only; no additional Production operation authorized. Auto-expiration remains disabled, not operationally complete.
+
+## Approval boundary — worker runtime defect discovered during Hotel2.1 / 2026-09-29
+SOURCE commits: Hotel71801f8 + worker guard7e17fe8. User debug_voucher.py preserved. Hotel dated rooms/occupancy→quote→booking→travellers→test payment→supplier UI issuance→voucher/account/back/refresh PASS1440/390;68 affected regressions PASS; PG duplicate quote and independent-quote final-allotment race PASS. Product-wide hotel is NOT closed; H04/H10/H16 only promoted. New screenshots/evidence: docs/recovery/evidence/hotel-stay-integrity-20. Preview3378 is closure image214bfe2710c0. No Production hotel/enterprise publication or schema35 migration.
+NEW REAL RUNTIME BLOCKER: unchanged live worker d2ba674 runs as karenseir_worker; explicit provision script REVOKEs reservations access. Logs42501/exit1, restart count150 observed. Reaper runs unconditionally every12 ticks; point-in-time healthy is misleading. SMS/push modes disabled. No DB privilege change permitted or performed.
+REVIEWABLE WORKER-ONLY RELEASE: branchfix/worker-reaper-boundary-20260929, worktree/tmp/karen-worker-guard-release, commit4d9f0c3 based exactly on live d2ba674. Only worker.py + boundary test + ADR differ. Image405be1f2db7f (full SHA in candidate.json). Explicit reaper opt-in defaultoff; outbox role remains restricted.11 live-base tests PASS; built image13 accelerated actual PG ticks under denied booking/finance role + actual HTTPhealth PASS; promoter injected health/rename failure rollback tests PASS. Build import-harness PYTHONPATH correction is QA environment only.
+Production Web/API/worker remains d2ba674/schema34; frontend/API/search images unchanged, existing rollbacks untouched. Worker correction is NOT deployed. Reaper automatic hold expiry remains NOT operationally enabled; do not grant broad bypass-role privileges or expire real holds.
+NEXT EXACT ACTION: obtain explicit approval for worker-only4d9f0c3 rollout using deploy/promote_worker_reaper_guard.py; exact proposal/evidence in docs/recovery/2026-09-29-worker-reaper-guard-approval.md. No migration35 bundled. After authorization: preserve old worker container, promote guard only, verify disabled reaper +210s/no restarts +unchanged other service fingerprints. Then resume Hotel2.1 remaining matrix (named guest/room mapping, discovery/failure and role/operations criteria); no new product and no whole-product PASS. Enterprise35 approval remains independently pending.
+
+## Active directive — Phase0 / Hotel2.1 / 2026-09-29
+User attachment c2d69d29 is governing execution; one product active: HOTEL. Current baseline reverified: Source b58b1a7 plus phase0 documentation; public d2ba674 Webd27e90f03dc9/API+worker73dc3430edb6/searcha0b0f86c7fa0, schema34, core services healthy. Assistant source Python hashes match live imagec93cca148186; anonymous live empty hotel search observed, not fake success. Candidate1e6ee5e/schema35 remains explicitly UNPUBLISHED with prior QA; user has not authorized migration35. Preserve rollbacks and backend/debug_voucher.py.
+Phase0 files linked from MASTER_GAP_MATRIX:72 page routes,229 source API declarations vs226 live,106 model tables, product matrix and independent states, gaps, hotel criterion/state matrix. Current desktop/mobile home/hotel/offer screenshots are evidence, not design approval. START_HERE/research appendix absent; V3.1 identity, lifecycle, supplier and legal separation read; original design protected. Research Booking.com primary occupancy docs is reference, not contracted provider.
+Confirmed hotel P1 in public frontend with fresh isolated fixture: rooms2/adults4 and dates become units1/no dates in price-check1440/390. No booking created. Old fixture expiration was QA environment, not product defect. WebKit unavailable; Chromium mobile is emulation, not real iPhone.
+NEXT EXACT ACTION: implement typed hotel stay/room allocation and server quote/snapshot integrity through affected customer/operations/document flow, preserving original visuals; continue hotel criterion matrix until internal coverage closes. Do not publish source including schema35 without specific authorization. Do not declare hotel SOFTWARE_VERIFIED from prior generic Offer or stay slices. Further phases queued, no new products silently added or removed.
+
+## Pending explicit approval — Enterprise Link Slice19 / 2026-09-29
+SOURCE package1e6ee5e; PREVIEW Web85884d44cd10/API candidatef24bb074a8c5, migration20260929_35. Targeted SQLite/PG1+1 PASS; disposable PG34→35→34→35 and actual RLS denial PASS; Desktop/Mobile request→approval→owned existing booking link→customer voucher/organization status/Trip timeline, dropped-response replay PASS. No new payment/SMS. Production remains d2ba674 Webd27e90f03dc9/API73dc3430edb6/schema34, four core services healthy; rollbacks untouched. Source/runtime delta is this explicitly unpublished candidate, not unexplained drift. User debug file preserved.
+NEXT EXACT ACTION: request explicit authorization for backup+restore proof, additive migration35 and package1e6ee5e publication under AGENTS.md. Do not run migration/deploy until given. Reviewable plan: docs/recovery/2026-09-29-enterprise35-release-approval.md. All earlier P0/P1 retained. Assistant live empty search was honest; service source Python hashes match runtime, no arbitrary assistant rewrite. User requires minimal tokens.
+
+## Latest runtime checkpoint — Major Saved Selection Slice18 / 2026-09-29
+Web/API/worker d2ba674be607a5908bac15a46d385a0b63b26b10; imagesd27e90f03dc9/73dc3430edb6. Search/schema34 unchanged. Search→saved selection→refresh→party-preserving detail/recheck→booking replay→isolated payment/voucher→same saved selection tracking/Trip timeline/My Trips PASS1440/390. Owned item/offer binding and duplicate booking rejection; bounded saved criteria and same-command payload receipt. Notes truthfully non-bookable. Targeted API2 PASS, final receipt regression1 PASS. Public anonymous login and actual public frontend+isolated owned tracking/timeline PASS1440/390. Rollbacks pre-visible-slice18-saved-selection and API/worker pre-saved-selection-d2ba674 retained. No migration or real financial/SMS action. User debug file untouched.
+Next exact action: targeted live Assistant journey (higher discovery priority), existing /assistant and upstream karenseir-assistant; establish current service fingerprint before any service change. app/page.tsx holds actual chat; ContextAssistant is not established as live. Inspect only current customer gap, retain all prior matrix scope. User latest explicitly requires very low token use.
+
+## Latest runtime checkpoint — Major Host Content Slice17 / 2026-09-29
+Web/API/worker d8d0311050055fd65a69cdc234f51491003364ea; images9a26ce51a37d/48f13c5cd5bf. Search32f2a68/schema34 unchanged. Assigned host content→customer facts/gallery→quote→request→host acceptance→isolated payment→voucher/My Trips PASS1440/390. Optimistic revision, strict presentation fields, immutable financial policy, durable save replay and permissions verified. API focused1 PASS; browser storage/conflict/draft recovery PASS. Actual public anonymous login and public frontend+isolated host/customer reads PASS1440/390. Rollbacks pre-visible-slice17-host-content and API/worker pre-host-content-d8d0311 preserved. No migration/real financial/SMS action. User debug file untouched.
+Next exact action: saved selection→recheck→booking→tracking journey. Actual SavedTravelView currently renders saved offers as text without booking/detail link, and saved selection drops searched party criteria. Verify public build with isolated saved offer, then close whole journey; do not confuse with already-completed saved-search criteria. Earlier P0/P1 retained; public-catalog selling entitlement remains a distinct unresolved boundary.
+
+## Latest runtime checkpoint — Major Restaurant Admission Slice16 / 2026-09-29
+Web/API/worker a8c4f26418a30eed667a344a7f70d3edfb52638d; images5220e337ff7f/3e71ef157382. Search32f2a68/schema34 unchanged. Mixed-ticket search→booking replay→checkout→isolated payment→voucher/QR→supplier validation→lost redemption response→revalidation→customer used state/Trip timeline PASS1440/390. POST validation and checked-ticket binding prevent edit races and token URLs; admission context is the immutable booked group, not invented per-person QR. Backend focused1 PASS; storage/expiry/QR retry browser PASS. Public build/anonymous empty and public frontend with isolated owned-record reads PASS1440/390. Rollbacks frontend pre-visible-slice16-admission and API/worker pre-admission-journey-a8c4f26 retained. No migration/real payment/SMS/redemption. User debug file untouched.
+Next exact action: close host-content→customer decision/booking journey, an existing higher-priority Accommodation P0. Current supplier UI manages rates/requests only; no supplied content editing workflow. Preserve dedicated public-catalog boundary and do not create cross-tenant selling entitlement or publish private inventory. All prior P0/P1 remain.
+
+## Latest runtime checkpoint — Major Train Slice15 / 2026-09-29
+Web ea0c79b855241abe48601cef8fd229499963b62f /75aa64583809; API+worker551ea0ac678a7f782cfda6b13328e82c178ccaa6 /2a770835bb3b; search32f2a68/schema34 unchanged. Component difference is frontend-only; backend diff551..ea empty. Train searched adult party→quoted/booked seats→distinct travellers→checkout→isolated payment/voucher→My Trips/customer requests/Ops review/timeline PASS1440/390. Initial full E2E exposed results defaulting absent Train trip_type to flight round_trip; corrected in37f4b9e, full final run passed. Final rendering ea0c79b and public1440/390 checks passed; no raw manual_supplier/irrelevant airline label. Rollback frontend pre-visible-slice15-train-release and API/worker pre-train-journey-551ea0a preserved. No migration/real financial/SMS operation; debug user file untouched.
+Next exact action: major Restaurant scheduled-admission journey through booking→QR→supplier validation/redemption→customer timeline. Targeted inspection found supplier validation can race a token edit and lacks place/product context; customer QR fetch fails the entire list on one QR error. Reproduce in isolated browser using public frontend before changes. Do not invent table inventory or blanket restaurant reservation support. Existing public-selling/host-content and broader P0/P1 retained.
+
+## Latest runtime checkpoint — Major Tour Slice14 / 2026-09-29
+Web/API/worker3874c60f03a80c71255890ccdd335a158031589d; images c30a03c7d0c9 /47666c633b7d. Search32f2a68/schema34 unchanged. Public catalog-only program discovery; declared room prices; expired departures hidden; durable Tour booking recovery. Targeted API2 PASS; QA1440/390 complete two-traveller journey through payment test adapter, supplier QA voucher, My Trips, cancellation/refund request recovery, Ops review and timeline PASS. Edge1440/390 privacy/expiry/storage/changed price PASS. Actual public anonymous empty catalog and public frontend+QA program/issued timeline PASS, screenshots reviewed. No real payment/refund/SMS/migration. Rollbacks pre-visible-slice14-tour and API/worker pre-tour-journey-3874c60 preserved. Debug user file untouched.
+Next exact action: complete major Train group journey; inline recheck still quotes one seat regardless of searched adults and detail defaults1. Verify affected journey before closing all internal group/quote/traveller/checkout/voucher/trip/after-sales states. Prior P0/P1 retained, including host metadata UI and cross-tenant public selling contract. Do not claim all product complete.
+
+## Latest runtime checkpoint — Major Accommodation Slice13 / 2026-09-29
+Web/API/worker a9bb68e989b3075a8a421590fa3b7760519bb019; images aa733c97543a /08fd7d924899; search32f2a68/schema34 unchanged. Public catalog-only read discovery/detail, supplied gallery/host and durable stay booking. QA1440/390: discovery→quote→lost-response replay→host acceptance→checkout→isolated payment→voucher→My Trips PASS. Public1440/390 anonymous real empty catalog and public frontend+QA detail/issued timeline PASS. Targeted tenant/projection test1 PASS; expiry/storage/changed-price edge browser PASS. No real financial/SMS operation or migration. Rollbacks frontend pre-visible-slice13-stay and API/worker pre-stay-journey-a9bb68e retained. User debug_voucher.py untouched.
+Limitations retained: gallery requires supplied content; host metadata editor and public-catalog-to-consumer purchase entitlement are NOT implemented by a read-only public endpoint. Private inventory never exposed or copied. Next major slice: Tour discovery→departure/room/party→quote→travellers→checkout→voucher→trip/after-sales; inspect real journey first. Existing P0/P1 remain in master matrix.
+
+## Latest runtime checkpoint — Major Flight Slice12 / 2026-09-29
+Web3eb83aa /f51d8972c70c; API+worker674ebaa /c76bdc233fdf; search32f2a68 /a0b0f86c7fa0; schema34 unchanged. Component commit differences are intentional: later frontend-only fixes; backend diff674..3eb empty. One-way adult flight journey QA1440/390 PASS through search, saved criteria, seat quote, distinct travellers, durable booking, isolated payment, manual QA supplier voucher, My Trips/timeline and durable customer after-sales request/authorized Ops review. Final frontend edge regression1440/390 PASS; public anonymous and public frontend+isolated authenticated read API PASS. No real payment/refund/SMS, no migration. Rollbacks pre-visible-slice12-release2 and API/worker pre-flight-journey-674ebaa retained. User debug_voucher.py untouched.
+Next exact action: major Hotel/Accommodation discovery→detail→availability→booking→tracking slice; inspect public catalog privacy and live journey first. Saved-search criteria closed inside Flight, not standalone next slice. Remaining product scope not complete. Detailed evidence: docs/recovery/2026-09-28-visible-marketplace.md.
+
+## Latest runtime checkpoint — Slice 11 / 2026-09-28
+Web30ee296 /0a0fb7ccfba7; API+workerec49978 /67365993f67b; search32f2a68 /a0b0f86c7fa0; schema34 unchanged. Rental validation/return continuity preview+public1440/390 PASS. Rollback pre-visible-slice11-rental and prior API pre-ops-reply-ec49978 retained. User debug_voucher.py untouched. No migration, real financial/SMS operation. Next exact action: verify saved-search date/party/filter replay using isolated QA, then fix missing persisted criteria. Cumulative scope is not complete.
+
+## Latest runtime checkpoint — Slice 10 / 2026-09-28
+Web/API/worker ec49978; images d189371d6db1 /67365993f67b. Search32f2a68/schema34 unchanged. QA reply response-loss/replay/storage1440/390 and public BackOffice login PASS. Rollbacks pre-visible-slice10-reply/pre-ops-reply-ec49978 retained. No new migration or real SMS/payment. Next exact action: public car-rental date validation and criteria continuity. Entire cumulative product remains incomplete; see master gap matrix.
+
+## Latest runtime checkpoint — Slice 9 / 2026-09-28
+Web b901e02/facb9dc89b6e; API/worker e295c0c/a4e0c852533c; search32f2a68/schema34 unchanged. QA/provider-clock and public login/back1440/390 PASS. Rollback pre-visible-slice9-times retained. Next exact action: durable Ops human reply + customer storage-failure guard. No real SMS/payment/migration.
+
+## Latest runtime checkpoint — Slice 8 / 2026-09-28
+Web/API/worker e295c0c; images b79c77046942 / a4e0c852533c. Search 32f2a68, schema34 unchanged. QA notification journey and public login 1440/390 PASS; rollback pre-visible-slice8-final / pre-notification-e295c0c retained. Next: readable supplied transport times and scoped offer login styling. No SMS/payment/migration. Older checkpoints below superseded.
+
+## Latest runtime checkpoint — Slice 6 / 2026-09-28
+Source/runtime application commit c9ee7ab. Frontend eecc82aa6589, API/worker ee73e4754f2a, search a0b0f86c7fa0 (32f2a68), DB34 unchanged. Public support login and isolated customer conversation E2E PASS at 1440/390; see recovery/2026-09-28-visible-marketplace.md. Rollbacks frontend pre-visible-slice6-permission and API/worker pre-case-reply-c9ee7ab retained. No financial/SMS operation. Next exact action: durable generic offer/results pending booking and preserved search back-link; scoped heading sizing. Other historical states below are superseded.
+
+## Current autonomous visible-product checkpoint — 2026-09-28
+Source HEAD: 72536d6 (plus pending documentation evidence only). Public frontend: 7258e1f / sha256:02afc993b963; API/worker: 72536d6 / sha256:513d5edd2436; search: 32f2a68 / sha256:a0b0f86c7fa0. These are intentional per-component releases; frontend unchanged by backend-only follow-up. DB migration remains 20260928_34. Rollbacks: frontend pre-visible-slice5d-final, API/worker pre-inquiry-72536d6; all earlier backups preserved. Source user file backend/debug_voucher.py remains untracked and excluded.
+Completed slices: home, flight, stay, tour/rail, restaurant, pool, attraction, event/venue inquiry. Public anonymous and isolated authenticated QA evidence: docs/recovery/2026-09-28-visible-marketplace.md and evidence/visible-slice*. Supplier/OTP/payment live sale NOT proven. No real SMS/payment/credit operations. Latest support inquiry contract+retry tests 2 PASS; event booking and inquiry→BackOffice reply→customer browser PASS at 1440/390. Four external dependencies unchanged.
+Next exact action: customer account support cards have no case navigation and raw statuses. Complete scoped case detail and customer reply on existing tables, targeted QA + release. Do not repeat deployment forensics or prior suites. Historical checkpoints below are retained; they are not current deployment truth.
+
+# KarenSeir Checkpoint
+
+
+
+### 2026-08-23 booking → payment → financial journey: DEMO → REAL
+
+- Timestamp: `2026-08-23T18:30:00Z`; branch `main`; HEAD `1114634e0ff7c0edec824a91c752053a7b883b3a` → committed as `<see git log>`. Migration head: `20260823_19` (`financial_ledger_entries.wallet_id` nullable + `credit_account_id` FK+index), applied to production with full backup/verify evidence.
+- Audit found the read/write infra for Payment/Invoice/Installment already excellent and real (server-side authoritative recheck, idempotent booking, real ZarinPal + generic signed-webhook payment state machine, real invoice numbering with fail-closed tax policy, real org-scoped installment plans/schedule/decision). Two real gaps closed:
+  1. **Organization Credit** was completely dead code: `CreditAccount` model existed with zero references anywhere in `main.py`; checkout's `funding` step hard-rejected any `credit_amount>0` unconditionally. Wired a full real implementation reusing the exact ledger PATTERN Wallet already uses (`credit_balances()`/`apply_organization_credit_command()` in `operations.py`, mirroring `wallet_balances()`/`apply_credit_command()`) without merging the two concepts — a ledger entry now references exactly one of `wallet_id`/`credit_account_id` (migration `20260823_19`). New endpoints: `GET /me/organization-credit`, `POST /organizations/{id}/credit-accounts`, `POST /organization-credit/{id}/commands`. Checkout `funding` step now accepts real `credit_amount`, org-scoped via `EmployeeAssignment` (same pattern as `InstallmentPlan`), fails closed over the real `limit_amount`.
+  2. **Wallet reserve was never captured or released** — a real, previously-silent financial-integrity bug: money reserved at checkout funding stayed "reserved" forever, even after successful fulfillment or cancellation, since nothing ever called `entry_type="capture"`/`"release"`. Fixed via a new `settle_reservation_funding()` helper wired into the already-shared `transition_reservation()` (capture on `confirmed`/`issued`, release on `cancelled`/`failed`/`expired`) — covers both Wallet and the new Organization Credit for free.
+  3. Payment capture/failure/refund events were invisible on the real Trip Timeline (only booking/reservation-status events showed). Added `_record_payment_trip_event()`, wired into both the ZarinPal-specific and generic signed-webhook callback paths.
+  4. Invoice issuance was staff-only and never auto-triggered — a customer who completed payment never actually got an invoice. Extracted `_issue_invoice_for_reservation()` and wired it into `fulfill_reservation()` (the natural existing trigger point where a reservation first becomes invoice-eligible), reused (not duplicated) by the existing manual `invoice:manage` endpoint.
+  5. `CheckoutView.tsx`'s funding step hardcoded `wallet_amount:0`/no input field, so a real user could never actually fund from wallet or credit through the UI even though the backend supported it. Added real number inputs showing real live balances, no visual redesign.
+- **Real deployment-drift bug found again this phase, same class as before**: after editing `EcosystemViews.tsx` for the funding UI, only the API container was rebuilt/redeployed — the frontend kept serving the pre-edit bundle for ~40 minutes of "verification" until caught by insisting on live-DOM proof (`input[type="number"]` count, not just text-substring matching) rather than trusting a screenshot's superficial text match. Frontend rebuilt (`karenseir-frontend-prod:financial-journey`) and redeployed; re-verified live afterward.
+- Production migration executed under the exact approved gate: backup `/home/ubuntu/backups/karenseir_pre_org_credit_20260823181055.dump` (sha256 `0be416ffd4c6aaadffd304be66c40f6450a7c74a1f47a032273fe532e111c01f`), readability PASS, pre-migration row counts (reservations=2, financial_ledger_entries=0, wallets=0, credit_accounts=0, users=4) preserved exactly post-migration, `alembic current`==`heads`==`20260823_19`, `alembic check` zero drift, `wallet_id`/`credit_account_id` both nullable as designed, new FK+index present, RLS/FORCE unchanged (`t/t`), `karenseir_api` role confirmed still `NOBYPASSRLS`.
+- Verified live on `http://95.38.184.209/` with a real seeded test account (no dev-login/OTP bypass — tokens minted server-side via the app's own `token_for()`, matching the established non-public-surface pattern): real supplier/offer/authoritative-recheck/booking, real traveller, real wallet top-up (admin allocate) + real organization credit account created via the real endpoint, tenant isolation confirmed (other tenant sees zero credit accounts), real funding reserve with correct live balances, fail-closed over-limit (409, no partial application), real payment intent, real gateway-initiate correctly fails closed (503, `درگاه پرداخت معتبر در دسترس نیست`, no fabricated redirect — EXTERNAL BLOCKER, exactly as required), real cancel-request producing a real `reservation.cancel_requested` Trip Timeline event alongside the earlier `booking.created` one. Desktop + mobile UI confirmed showing real live balances. Homepage/Search/My Trips/Support spot-checked unchanged.
+- Wallet/credit **capture** (on fulfillment) and **release** (on explicit cancellation) and **auto-invoice-issuance** are verified via the automated Postgres/SQLite-independent test suite only (`test_booking_financial_journey.py`, 2 new tests) — not via a live capture on production, since that requires a genuinely captured payment which correctly cannot happen without a real ZarinPal merchant credential. This is an honest, deliberate scope boundary, not a gap: fabricating a payment capture on production to force-test this would violate the explicit "never fabricate payment states" constraint.
+- Tests: 92 passed, 6 skipped, 0 failed.
+- Production changed: 1 additive schema migration + 1 API container swap + 1 frontend container swap, all with intact rollback chains, all verified.
+
+### 2026-08-23 post-booking journey: DEMO → REAL
+
+- Timestamp: `2026-08-23T17:20:00Z`; branch `main`; HEAD `1114634e0ff7c0edec824a91c752053a7b883b3a` (prior `80b860ba89bdecc34a907c05c9fc99d2339bf952`). Migration head: `20260823_18` (`reservations.trip_id` FK+index).
+- Starting point was a real-journey audit (read-only, zero changes, confirmed via `git status --short`) which found the read-side of the post-booking journey (Trip/TripEventRecord/SupportCase/NotificationRecord models, `/me/trips`, `/trips/{id}/timeline`, `/reservations/{id}/history`, `/reservations/{id}/cancellation-quote`, `/support/cases`, `/me/notifications` endpoints, and the frontend `ConnectedTrips`/`ConnectedTripTimeline`/`ConnectedManageBooking`/`SupportComposer` components) was already fully built and wired — the single gap was that no code path ever wrote a `Trip` or `TripEventRecord` row.
+- Fix: added `reservations.trip_id` (migration `20260823_18`, verified upgrade/downgrade/upgrade on the real Postgres RC clone before applying to production), `ensure_trip_for_reservation()`/`record_trip_event()` helpers in `operations.py`, wired into `transition_reservation()` (the single shared status-transition function, so every cancel/change/refund/confirm/issue transition now produces a real, correctly-sourced timeline event for free) and into the 3 real booking-creation endpoints (`book_vacation_unit`, `book_tour`, `orchestrate_booking`).
+- Discovered and reused a pre-existing, fully-built, but never-called `ingest_trip_event()` that also raises a real `NotificationRecord` (+ delivery attempts, respecting `NotificationPreference` opt-outs) for every customer-visible trip event. Refactored `record_trip_event()` to delegate to it instead of duplicating logic — closed Priority 8 (Notifications + Deep Links) with zero new endpoints.
+- Support landing (`/support` with no `?booking=`) was the one page still unconditionally static (hardcoded `book1`/`mock-shiraz-1405` links) even for authenticated users with real bookings; `SupportComposer` itself (`/support?booking=<real-uuid>`) was already fully real. Added `SupportLanding` client component: fetches the user's real trip/reservation and points every CTA at it, falls back to the exact original static markup unchanged when there's no session or no real booking yet. No UI redesign.
+- **Two real infra bugs found and fixed during production verification** (not caught by any test suite, only surfaced by insisting on live public-browser proof):
+  1. Host nginx (`/etc/nginx/sites-available/karenseir`) was proxying the public site to port **3100** (`karenseir-ui-preview`, a leftover container from an earlier session's "temporary preview deploy" phase), not port 3000 (`karenseir-frontend-1`, the docker-compose-managed container every frontend rebuild this session actually targets). This is why My Trips/Trip Detail/Manage Booking verified correctly earlier (that older container happened to already have the Connected* components from a prior session) while the brand-new Support page never appeared publicly no matter how many times the frontend was rebuilt. Fixed after a 7-point read-only verification (confirmed new build, homepage, search, `SupportLanding` present, real API URL baked in) + explicit approval: config backed up to `/home/ubuntu/backups/nginx-karenseir-<ts>.bak`, `nginx -t` passed, `nginx -s reload` (no downtime). Old port-3100 container left running, untouched, as rollback.
+  2. The running `karenseir-api-1` container was still serving the *pre-refactor* `operations.py` (direct `TripEventRecord` insert, no notification) because editing the file on disk was never followed by an image rebuild+swap — caught by testing that a real new booking actually produced a visible `/me/notifications` entry live, not just by re-running the local pytest suite (which uses source directly, so it couldn't have caught a stale-container drift). Rebuilt `karenseir-api-prod:trip-link-wip2`, swapped in (old container renamed+stopped, kept for rollback), reverified.
+- Verified on the real public site `http://95.38.184.209/` after both fixes, real user session (minted via the app's own `token_for()` for the pre-existing seeded test accounts — no dev-login/OTP bypass added, both stay exactly as strict as before): real villa booking → My Trips shows it → Trip Detail/Timeline shows a real `system`-sourced `booking.created` event → cancellation request adds a real `reservation.cancel_requested` event to the same timeline → Manage Booking shows the real reference and status → Support landing CTAs use the real reservation/trip IDs → a real notification with the correct `deep_link` appears on `/trips`. Desktop + mobile. Cross-tenant isolation confirmed at both the API (404s) and UI (`/me/trips` empty) layers. No mock/`نمونه` markers on any of the verified pages.
+- Tests: `90 passed, 6 skipped` (SQLite, `ENVIRONMENT=development`), including a new `test_post_booking_journey.py` proving a real booking produces a real tenant-isolated Trip + timeline + notification, and that cancellation extends the same timeline.
+- Production changed: 1 additive schema migration (`reservations.trip_id`, nullable FK+index; row counts, FK/index counts, RLS/FORCE all verified unchanged apart from the +1/+1 expected), 1 API container swap, 2 frontend container image builds (only the second, with the `MockNotice` import fix, is what's actually live), 1 nginx `proxy_pass` port correction. Old API and frontend containers from before this work remain stopped-but-present for rollback; the port-3100 preview container remains untouched and running.
+- Not yet started: none of the 8 requested priorities remain demo. Remaining lower-priority items from the original full-journey audit (cosmetic RSC-prefetch 404s on stale mock demo-page prefetches, e.g. `/trips/mock-shiraz-1405`) are unchanged and were explicitly out of scope this round.
+## PRODUCTION GATES + RC RESUME FROM HERE
+
+### 2026-08-23 closure update
+
+- Timestamp: `2026-08-23T04:20:00Z`; branch `main`; HEAD `3589b24e419749a640719a363544890983d97d71` (prior HEAD `4debabe369f77f6532621695e3e698118c8cdc6a`).
+- Migration head: `20260822_17`. Full chain verified twice on real PostgreSQL 16: once on a fresh disposable DB, once restored from an actual `pg_dump` of the live production database (checksum `98decea27ac242de9e5a83b0176fc71429fa8f0569ca125271ee03172904c400`) — data preserved exactly, rollback/re-upgrade clean, zero drift both times. Production database itself was never written to.
+- Found and fixed a real bug in migration `20260821_15`'s `downgrade()` (dropped a hardcoded FK constraint name that only matched one of two possible creation paths; SQLite-only testing had masked it — surfaced by real Postgres rollback validation).
+- Villa vacation-rental pricing completed: seasonal/weekend/min-stay pricing (`migration 20260822_16`, `_villa_stay_pricing` in `app/main.py`) and cancellation-quote wiring reusing the existing generic `_verified_cancellation_quote`/`/reservations/{id}/cancellation-quote` pipeline — no new endpoints needed. Dedicated test added and passing on real Postgres.
+- Search results page (`UnifiedSearchView.tsx`) now surfaces `ranking_explanation`, recent searches (`GET /search/recent`), and saved searches (`GET/DELETE /search/saved`) — all backend contracts already existed and were tested, frontend never consumed them until now. Homepage/Hero/Search visual identity untouched; diff is scoped to the results component + additive-only CSS.
+- **Production Gate 1 (public API routing)** — CLOSED. Same-origin `/api` nginx routing proven end-to-end on an isolated stack: `location /api/ { proxy_pass http://<api>:8000/; }` alongside the existing `location /`. Frontend built with `NEXT_PUBLIC_API_URL=/api` (relative, same-origin, no CORS needed for the primary path). Verified: `curl` through nginx to `/`, `/api/health`, `/api/search/v2`; client bundle contains no `localhost:8000` and does contain `/api`.
+- **Gate 2 (CORS/HTTPS)** — MECHANISM CLOSED, deploy blocked externally. CORS_ORIGINS enforces exact-match allowlist (not wildcard) — verified via curl: matching Origin gets echoed back in `Access-Control-Allow-Origin`, non-matching Origin gets no header at all (browser then blocks it). **External blocker**: this host has no domain/TLS at all (only port 80 listening; confirmed via `ss -ltnp`), and current source's `validate_production_config()` requires HTTPS-only CORS origins in `ENVIRONMENT=production` — a real, correct guardrail, not a bug. The currently-live `karenseir-api-1` never hits this check only because it's a stale Aug-15 image built before the check existed. A true production-mode deploy of current source needs a domain + TLS cert (e.g. Let's Encrypt) first; cannot be fabricated.
+- **Gate 3 (identity lookup / RLS)** — CLOSED. `dev-login`'s cross-tenant email lookup (the only such unscoped lookup in the codebase — `/auth/otp/request` was already correctly tenant-scoped) now goes through `find_login_identity(email)`, a `SECURITY DEFINER` SQL function owned by a new `karenseir_identity_resolver` role that is `NOLOGIN BYPASSRLS` (nobody can connect as it) with an explicit, minimal `GRANT SELECT ON users` — `BYPASSRLS` alone does not grant table access, that was the first fix needed. Function returns only `id/tenant_id/name/role`. `EXECUTE` granted only to `karenseir_api` via `deploy/provision-api-role.sql`. `dev_login` now also calls `set_tenant_context()` after resolving identity, fixing a second latent bug (refresh-session insert was failing RLS because tenant context was never set for this unauthenticated path). Verified: valid lookup works, unknown email fails closed (no error, no leak), cross-tenant emails resolve to their own correct tenant only, direct `SELECT * FROM users` by `karenseir_api` still returns 0 rows without context (general RLS unweakened). Permanent test added: `test_identity_lookup_function_is_narrow_and_does_not_weaken_rls` in `test_production_controls.py`.
+- Also fixed (found via real Postgres testing this session, not previously exercised): `Dockerfile` never accepted `NEXT_PUBLIC_API_URL` as a build arg (Next.js inlines `NEXT_PUBLIC_*` at build time; docker-compose was passing it at runtime, which does nothing) — every prior frontend image, including the currently-live public one, has `localhost:8000` baked into its client bundle and cannot reach any API from a real visitor's browser. `playwright.config.ts` had a macOS-only `/private/tmp` path and a hardcoded port that collided with an unrelated running container on this Linux host, both blocking E2E here.
+- Tests: local backend `88 passed, 6 skipped` (6th skip is the new identity-lookup test's own Postgres-only gate, same pattern as the existing 5); RLS matrix `85/85` + generic RLS/worker suite `4/4`, run on both a fresh disposable DB and the real production-clone; focused travel-commerce `4/4` on real Postgres (incl. new villa pricing test); full E2E `17/17` on a fresh dev-server DB, `15/17` on the repeatedly-reused RC clone (2 failures root-caused precisely to the RC clone's own repeated-run contamination — a hardcoded `suffix='manage'` default in the E2E fixture, not a code defect); lint/typecheck/build clean; `git diff --check` clean.
+- **Production deployment**: NOT executed. Explicitly held per instruction. Full controlled deploy plan written (backup → migrate → API → frontend → nginx switch → smoke tests → rollback conditions) and awaiting explicit approval. Rollback tag `karenseir-ui-preview:rollback-pre-20260822` created; production backup + checksum saved at `/home/ubuntu/release-candidate-evidence/production_backup_20260822.dump`.
+- Remaining internal: none blocking a production deploy once HTTPS exists. Supplier operational mutation UI, Trip Operations/Timeline projection for linked tour/visa, and provider fan-out performance/cache certification remain documented-incomplete but are not gates.
+- External blockers: **domain name + TLS certificate** (new, specific, blocking finding this session — needed for `ENVIRONMENT=production` CORS to start at all); ZarinPal sandbox merchant; contracted Flight/Hotel/Tour/Cruise provider credentials; SMS/OTP; Secret Manager; monitoring/alerting collector.
+- Completion: ecosystem ~95% by internal implementation gates (up from 94%); all three internally-controllable production gates closed; Production remains **NO-GO** pending the TLS/domain external dependency and explicit deploy approval.
+- NEXT EXACT ACTION: obtain a domain name pointed at `95.38.184.209` and a TLS certificate (e.g. via `certbot --nginx`), OR get explicit approval to proceed with the written deploy plan once that exists. No further internal work blocks deployment.
+
+
+## KARENSEIR TRAVEL COMMERCE RESUME FROM HERE
+
+### 2026-08-21 closure update
+
+- Search UI visibly upgraded inside the existing Hero Search component: eight vertical tabs, context-aware labels/descriptions, responsive tab layout, and fresh Browser evidence for default/autocomplete/date/passenger/villa/tour/results desktop/mobile. Homepage identity remains unchanged.
+- Incremental migration `20260821_15` links tenant-owned `VisaApplication.tour_reservation_id` to `TourReservation`; isolated SQLite upgrade/check/downgrade/re-upgrade to head PASS. Direct PostgreSQL Head 14/15 validation remains blocked because no PostgreSQL runtime is available on this host.
+- Tour detail/reservation now expose explicit visa status and visa applications can be linked to the caller-owned tour reservation; a `tour_linked` timeline event is recorded. Cross-tenant/foreign ownership is denied.
+- Tests: backend `87 passed, 5 skipped`; travel-commerce `3/3`; full Chromium `17/17`; Search interaction focused PASS; lint/typecheck/build and migration check PASS.
+- Remaining internal: direct PostgreSQL RLS/backup/restore evidence; villa seasonal/weekend/min-stay/cancellation settlement; supplier operational mutation UI; full Trip Operations event projection for linked tour/visa. External: ZarinPal merchant, contracted travel/cruise providers, SMS/OTP, Secret Manager, monitoring, DNS/TLS and target deployment/security certification.
+- NEXT EXACT ACTION: provision isolated PostgreSQL 16, back up before `20260821_15`, run RLS/FORCE/missing-context/own/cross-tenant/concurrency checks, then implement villa pricing/settlement and supplier mutations.
+
+- Timestamp: `2026-08-21T15:14:00Z`; branch `main`; HEAD `214b2bd2ea1cd6357c61eba93a611689735f7757`.
+- Migration head: `20260821_15`. Isolated SQLite upgrade/current/check, downgrade to `20260821_14`, and re-upgrade PASS. Direct PostgreSQL validation for the new tenant tables is **not claimed** because this host has neither Docker nor a PostgreSQL runtime.
+- Search state: Browser-visible Search Box/results flow remains PASS and mock-free; autocomplete/date/passengers/trip type/filter/sort/compare/save/recheck work. Homepage identity remains unchanged.
+- Villa state: property/unit catalog، date-range reservation، overlap/double-booking protection، idempotency، tenant ownership، Reservation/Checkout handoff and list/detail UI PASS.
+- Tour state: product/departure inventory، capacity/deadline، room surcharge، oversell prevention، Reservation/Checkout handoff and list/detail/booking UI PASS. Unpaid voucher remains null by design.
+- Cruise state: catalog/domain/API/UI foundation PASS; live booking returns fail-closed `LIVE_PROVIDER_UNAVAILABLE` until a contracted Provider is configured.
+- Visa state: timestamped source، application، multiple applicants، hashed passport reference، documents، human-only review and system/human timeline PASS. Embassy/VAC submission and decision are external.
+- Tests: local backend `87 passed, 5 existing infrastructure skips`; Travel Commerce `3/3`; ESLint/strict type/build PASS; isolated Alembic PASS; Chromium `17/17`; Homepage Desktop/Mobile PASS; screenshots saved under `artifacts/search-ux/` and `artifacts/travel-commerce/`.
+- Remaining internal: disposable PostgreSQL head-14 RLS/FORCE/backup/restore/rollback validation; seasonal rental calendar and cancellation settlement; supplier management UI; deeper Tour↔Visa↔Trip Timeline linkage.
+- Credentials required: ZarinPal sandbox merchant، Flight/Hotel/Tour/Cruise Provider contracts، SMS/OTP، Map، external Secret Manager and monitoring collector.
+- Completion: ecosystem `94%` by internal implementation gates; Production **NO-GO**.
+- NEXT EXACT ACTION: provision an isolated PostgreSQL 16 runtime, backup it, upgrade to `20260821_14`, then run missing-context/own/cross-tenant/write/FORCE-RLS and concurrency tests for all twelve new tables before any provider credential work.
+
+
+## SEARCH UX RESUME FROM HERE — operational browser gate
+
+- Timestamp: `2026-08-21T13:49:55Z`; branch `main`; baseline HEAD `ecbfae349a5a9cd4384ede22b42b09cb71aa9ef1`; final source/evidence commits are recorded below after save.
+- Migration: unchanged `20260820_13`. This UI phase did not mutate PostgreSQL or weaken RLS/RBAC.
+- Search UX: **PASS**. No Mock/demo success remains inside the Search Box/results flow. Autocomplete, Persian typo UX, date flexibility, trip type, passengers, URL-restorable submit, results, filters, sort, selected-Offer comparison, Wishlist/Trip Basket and authoritative recheck are Browser-visible.
+- PASS: focused backend `15/15`; local backend `84 passed`; frontend lint/strict type/build; npm audit 0; Search UX focused E2E; full Chromium `16/16`; nine screenshots manually reviewed; Homepage Desktop/Mobile identity unchanged; `git diff --check`.
+- Infrastructure note: five local backend tests are environment gates and were skipped because live isolated Redis/PostgreSQL/worker URLs were unavailable. No new skip exists; last real PostgreSQL/Redis evidence remains `87/87` and RLS/FORCE `67/67` at this migration head.
+- Screenshots: `homepage-search-desktop.png`, `homepage-autocomplete.png`, `destination-autocomplete.png`, `date-picker.png`, `passenger-picker.png`, `search-results-desktop.png`, `filter-panel.png`, `comparison.png`, `search-results-mobile.png` under `artifacts/search-ux/`.
+- External blockers: authorized Flight/Hotel/Tour/rail Provider credentials and contracts; ZarinPal merchant; SMS/OTP; map; public DNS/TLS; Secret Manager; monitoring/alerting collector; target deployment and independent security certification.
+- Remaining internal: no blocker for the requested Search UX gate. Provider fan-out performance/price-calendar/alerts cannot be certified without real authorized transports.
+- NEXT EXACT ACTION: inject one authorized sandbox travel-provider credential through the external Secret Manager, then run provider timeout/partial-failure and Search/provider P50/P95 certification without changing Homepage.
+
+
+## SEARCH UX RESUME FROM HERE
+
+- Timestamp: `2026-08-21T12:49:21Z`; branch `main`; source implementation commit `8e7bfe04b630392f5d231d9ac844bb0663a1ab07`.
+- Search UX: **PASS**. Homepage layout/hero/header/sections/identity remain unchanged; only the existing Search Box interaction and its dedicated results route were enhanced.
+- Visible flows PASS: typed public-safe autocomplete with city/airport/IATA/typo recovery; round-trip/one-way/multi-city entry; exact/±1/±3 date selection; adult/child/infant/room/cabin picker; URL-restorable structured submit; edit/filter/sort/compare/save on results; loading/zero/error/unauthorized/stale/mobile states.
+- Security: public autocomplete contains no tenant Offer/entity data; results remain authenticated and tenant-aware. Price, availability and refundability come only from backend Offer data.
+- Evidence: six screenshots under `artifacts/search-ux/`; Chromium `16/16`; focused Search backend `6/6`; full local backend `83 passed, 5 infrastructure-skipped`; prior real PostgreSQL/Redis evidence remains `87/87`, now plus the isolated public-autocomplete test.
+- Frontend: ESLint, strict TypeScript and 32-route production build PASS; npm audit `0 vulnerabilities`; Python compile and `git diff --check` PASS.
+- Migration head unchanged: `20260820_13`.
+- NEXT EXACT ACTION: obtain an authorized sandbox travel-provider credential and run Search provider fan-out/P50/P95 certification; then add a real price calendar only when the Provider exposes dated fares.
+
+## SEARCH ENGINE RESUME FROM HERE
+
+- Timestamp: `2026-08-21T12:02:00Z`; branch `main`; implementation commit `83a49b8` (final evidence commit follows).
+- Search version: `unified-search-v2`; migration head: `20260820_13`.
+- Completion: Search `88%`; expanded ecosystem `92%`; Production remains **NO-GO**.
+- Completed: Persian/Arabic digit/character/punctuation normalization; safe Tehran/Shiraz/IATA aliases and typo matching; typed autocomplete ranking; fourteen-vertical shared Offer contract; normalized price/freshness/availability output; deterministic entity deduplication; explainable ranking; flexible-date intent; filters/map bounds; zero-result recovery; tenant-scoped recent/saved searches; deterministic natural-language structuring; live-inventory-only budget candidates; price tamper recheck; dedicated `/search/results`; session resume; Search metrics; review/checkout/ZarinPal credential-independent foundations; public SEO routes.
+- PostgreSQL: empty disposable PostgreSQL 16 upgraded through head 13 after backup checksum `9339362ef26582d7142fea14c0f72337fd43d6c12161d8951ca0b741ea7c4211`; Alembic current/check PASS; `67/67` tenant tables RLS+FORCE RLS. API NOBYPASSRLS, missing context, own/cross-tenant and worker least privilege PASS.
+- Tests PASS: backend `87/87`, focused Search/Checkout/ZarinPal `14/14`, Chromium E2E `15/15`, lint, strict TypeScript, 32-route build, Python compile, npm audit 0, and Homepage Desktop/Mobile visual regression.
+- External blockers: contracted Flight/Hotel/Tour/rail/destination providers, ZarinPal sandbox merchant, SMS/OTP, map provider, public DNS/TLS, Secret Manager, monitoring collector/alerting, target deployment and independent certification.
+- Remaining internal: bounded concurrent live-provider fan-out/load benchmark with real adapters; distributed provider-result cache hit telemetry; real price-calendar feed; price/availability alert scheduler after notification transport; broader city/station/POI catalog ingestion. No fabricated offers or alerts exist.
+- NEXT EXACT ACTION: obtain an authorized sandbox travel-provider credential and execute provider timeout/partial-failure/P50/P95 contract certification against `/search/v2`.
+
+### RESUME FROM HERE
+
+- Last work: Unified Search v2, real PostgreSQL migration/RLS validation, Review/Checkout/ZarinPal internal adapter and independent results route.
+- Last Git HEAD: `83a49b8` before final evidence commit.
+- Last migration: `20260820_13`.
+- PASS: backend 87/87, PostgreSQL/RLS 67/67, frontend lint/type/build, Search focused 14/14, Chromium E2E 15/15, Homepage regression, npm audit.
+- BLOCKED: external live provider latency/caching benchmarks and ZarinPal sandbox purchase require credentials; Production dependencies remain absent.
+- Completion: Search 88%, ecosystem 92%.
+- First next action: provide an authorized sandbox travel-provider credential; then run the provider contract certification suite against `/search/v2`.
+
+## Saved-travel ecosystem checkpoint
+
+- Timestamp: `2026-08-20T09:34:20Z`
+- Branch: `main`
+- Baseline commit: `08de094bc193b26ee8e3ee56c7b1062ff0d85ab8`
+- Migration head: `20260820_11`; isolated Alembic upgrade/current/check PASS. Direct PostgreSQL validation for this new head is not claimed because no PostgreSQL/Docker runtime is installed.
+- Completion: `84%`; phase gates passed `10/16`. Phases 7, 8 and 16 remain blocked on the direct PostgreSQL head-11 RLS gate; 13–15 retain documented work/credential gates.
+- Completed: saved trips/wishlist/basket domain and connected UI; verified-review anti-forgery and moderation domain; destination hierarchy/routes; editable itinerary lifecycle; deterministic vertical comparison awards; map/list credential-free fallback.
+- QA: backend `73 passed, 5 skipped`; lint/typecheck/build PASS (26 routes); Chromium `14/14`; Homepage Desktop/Mobile regression PASS; npm audit 0; Alembic no drift; diff check PASS.
+- UI Freeze: no Homepage/CSS/asset file changed and visual structural screenshot gate remained green.
+- Remaining internal: direct PostgreSQL migration/RLS validation head 11; review UI; unified resumable checkout; ZarinPal-specific request/verify adapter and tests; SEO/CWV/RTL matrix; final security suite and release evidence refresh after those gates.
+- External blockers: ZarinPal sandbox merchant, map provider, SMS/OTP, Flight/Hotel/Tour provider credentials, public DNS/TLS, Secret Manager, external monitoring/alerting, target deployment and independent security certification.
+- Production readiness: **NO-GO**.
+- Exact next action: run migration 11 on a disposable PostgreSQL staging with pre-backup, then execute missing-context/own/cross-tenant/FORCE RLS tests for all seven new tables and rerun backend with zero skips.
+- Source implementation commit: `29e114471262e1f9f407690f459a918f197f3f82`; final provenance commit is reported after saving this checkpoint.
+
+- Timestamp: `2026-08-20T09:07:00Z`
+- Branch: `main`
+- Baseline commit: `2054b84a29a14d18d28786c1220e2c0612496f18`
+- Migration head: `20260820_10` (unchanged)
+- Completion: `76%` of expanded Travel Ecosystem scope; prior production-hardening scope remains 97%.
+- Phases passed: `6/16` — Product Audit, Search 2.0 internal contract, Trip Operations/Timeline, Organizational Travel, Supplier/Agency ecosystem, Security/Financial QA.
+- Search: 14 verticals, Persian normalization, tenant-safe autocomplete/recent history, flexible-date intent, filters/map bounds/sorts, provider/timestamp/TTL/freshness, transparent totals and stale fail-closed.
+- UI Freeze: no Homepage, CSS, image or approved presentation file changed. Desktop 1440×1000 and mobile 390×844 structural screenshot render gate PASS.
+- QA: backend `70 passed, 5 skipped`; focused Search+booking `13/13`; frontend lint/typecheck/build PASS (22 routes); Chromium `13/13`; compile and npm audit 0 PASS.
+- Remaining internal: destination catalog/discovery routes; persisted review/moderation; editable itinerary; Trip Basket/wishlist/share; map/list route; vertical comparison awards; cohesive checkout; full RTL/date/CWV/SEO matrix.
+- External blockers: ZarinPal sandbox merchant credential (`PAYMENT TEST — BLOCKED BY CREDENTIAL`), map/places credential, travel provider credentials, SMS/OTP, public DNS/TLS, Secret Manager, monitoring, target deployment and security certification.
+- Production readiness: **NO-GO**; no sandbox/provider/payment success is claimed.
+- Exact next action: add an incremental tenant-RLS migration for Trip Basket/Wishlist and Verified Review, with PostgreSQL cross-tenant/idempotency tests, without touching Homepage.
+- Source checkpoint commit: `d5013e70116435b6d96cda1c0013c6f283d5cf22`; tree checksum is recorded in `RELEASE_MANIFEST.json`. Final provenance-doc HEAD is reported after commit.
+
+## PRODUCTION DB MIGRATION GATE — 2026-08-23
+
+- Backup path: /home/ubuntu/preview-deploy-evidence/production_backup_gate.dump
+- Backup checksum: 4c1d9f7e4af554096a8a031ad618eba36b53681a8288a9a2366db1dd63066df5
+- Backup readable: PASS (pg_restore --list, 63 TOC entries, 74 lines)
+- Current migration state: pre-Alembic baseline, no alembic_version table
+- Target migration head: 20260822_17
+- Row counts: tenants=2 users=3 hotels=3 bookings=1 ledger_entries=1 audit_events=2
+- Live API image: sha256:42390b86320a (container karenseir-api-1)
+- Live frontend image: karenseir-ui-preview:20260818 / sha256:7bf7a9e1ce5b (container karenseir-ui-preview)
+- Exact migration command: docker run --rm --network karenseir_default -v /home/ubuntu/karenseir-current/backend:/app -w /app -e DATABASE_URL=postgresql+psycopg://karenseir:REDACTED@db:5432/karenseir karenseir-api sh -lc "python -m alembic upgrade head"
+- Rollback application images ready: YES (karenseir-ui-preview:rollback-pre-20260822 = sha256:7bf7a9e1ce5b; karenseir-api-1 image sha256:42390b86320a untouched and unremoved)
+- Ready for approval: YES
+
+## PUBLIC SEARCH PREVIEW — 2026-08-23
+
+- Public URL http://95.38.184.209/ now serves the redesigned premium navy/turquoise Search box (verified via real Playwright screenshots against the actual public IP, not localhost/RC). Frontend container: karenseir-ui-preview:20260823-search4 (host image tag), NEXT_PUBLIC_API_URL=http://95.38.184.209:8000, ALLOW_HTTP_PREVIEW=1 baked in at build time.
+- Two real bugs found and fixed, both specific to HTTP-only (no-TLS) deployment: (1) production CSP always set upgrade-insecure-requests, silently breaking every asset request when no HTTPS exists; (2) crypto.randomUUID() is undefined outside secure contexts, crashing the app on first API call. Both fixed with narrow, explicit, documented opt-outs/fallbacks -- neither weakens a real HTTPS deployment.
+- Verified interactively on the public site: all 8 vertical tabs switch with correct context-specific fields, free-text destination entry works, search submit navigates to /search/results and correctly shows the designed fail-closed unauthorized gate (not a crash).
+- Autocomplete and full results still blocked: NEXT_PUBLIC_API_URL points at the OLD live API (Aug 15 build, unmigrated DB, CORS_ORIGINS=http://localhost:3000), which lacks /search/v2 etc. and rejects this origin. This is the same, previously-flagged, approval-pending API+DB deploy gap -- not new.
+- Rollback: karenseir-ui-preview-pre-uuid-fix (immediately prior working container) and the original karenseir-ui-preview:rollback-pre-20260822 (Aug 19 baseline) both retained, untouched.
+- Production database: UNCHANGED. Live karenseir-api-1: UNCHANGED. Only the frontend-serving container was swapped.
+- Source commits: 0f88daf (Search redesign + preview fixes), 56b92f9 (screenshots).
+- NEXT EXACT ACTION: your call -- approve the pending production DB migration (gate already evidenced) to unlock full Search results on the public preview, or leave as visual-only preview.
+
+## SEARCH VISUAL RESTORATION — 2026-08-23
+
+- Reverted the navy/turquoise redesign (0f88daf) on explicit instruction: the approved Search visual identity (plain white tabs, coral active underline, coral CTA -- matching the Homepage warm cream/coral/plum palette) is restored exactly, verified by git diff --stat (2 deletions, 0 insertions) against app/globals.css.
+- All functional work from 0f88daf and since is fully intact and untouched: CSP upgrade-insecure-requests fix, crypto.randomUUID() secure-context fallback, recent/saved search surfacing, ranking explanation, and all Gate 1/2/3 backend work.
+- Deployed to the public container (karenseir-ui-preview:20260823-restored) and verified via fresh Playwright screenshots against http://95.38.184.209/ itself -- desktop and mobile both confirmed matching the original approved appearance.
+- Rollback chain preserved: karenseir-ui-preview-navy-redesign-superseded (immediately prior), karenseir-ui-preview:rollback-pre-20260822 (Aug 19 baseline).
+- Production database and live karenseir-api-1: unchanged.
+- Commits: 6b96716 (CSS revert), plus screenshot update.
+
+## SEARCH CONTINUITY + VOICE/NL — 2026-08-23
+
+- /search/results restyled to the Homepage cream/coral/plum identity (was the old separate --ink/--ocean design system); breadcrumb added; edit-search dropdown and verticalLabels expanded to all 8 verticals. URL-based state round-trip was already solid, unchanged.
+- Added a deterministic Persian natural-language + voice Search entry ("با زبان خودت بگو") inside the existing approved HomeSearchExperience -- not a redesign, not a parallel Search engine. lib/domain/nl-intent.ts extracts origin/destination/passengers/nights/budget/approximate-dates/vertical via pattern matching (same approach as the backend's existing _structured_search_intent), shows a confirm/edit/retry chip state, then hands off to the existing /search/results route with normal URL params.
+- A real bug was found and fixed during verification: the origin regex matched the bare "از" substring, which also occurs inside the word "پرواز" itself, causing false origin extraction on flight-vertical sentences. Fixed with proper word-boundary anchoring. Verified against all 7 required example sentences after the fix, live on the public URL.
+- Voice: MediaRecorder/getUserMedia, 12s bounded recording, POSTs to new backend endpoint /search/voice/transcribe, which follows the existing fail-closed provider-adapter pattern (configured_mode("stt"), no credential configured returns 503 STT_PROVIDER_UNAVAILABLE, never fabricated). Browser SpeechRecognition used only as an explicit fallback on backend failure. Text entry always available; mic-permission denial fails gracefully.
+- Public deploy: karenseir-api-1 and karenseir-ui-preview both updated (images tagged ca9e6c1); verified live on http://95.38.184.209/ via Playwright against the real public URL -- NL confirm chips render correctly, confirm navigates to /search/results with full parsed state, Edit Search preserves state, back navigation returns to Homepage, zero localhost/127.0.0.1 requests, desktop+mobile both correct.
+- Production DB: unchanged this phase (already migrated to 20260822_17 in the prior phase). Rollback chain preserved (karenseir-api-1-pre-voice, karenseir-ui-preview-nl-origin-bug, and the full earlier chain back to the Aug-19/Aug-15 baselines).
+- Backend: 89 passed, 6 skipped (unchanged pattern). Frontend typecheck/lint clean.
+
+
+## SEARCH — EXPLICIT PRIORITY OVERRIDE / DEFERRED CLOSURE — 2026-08-26
+
+- Timestamp: `2026-08-26T18:10:00Z`; branch `main`; HEAD `7b7bf6f97a28f0d8cf9038474c761cbaec3b5732`.
+- A real, live infinite-request-loop bug was found and fixed this session: `UnifiedSearchView.tsx`'s `execute()` `useCallback` listed `localRecent` as a dependency while also calling `setLocalRecent(...)` on every successful anonymous search — each success created a new array reference, recreating `execute`'s identity, re-firing the `useEffect([execute])` that calls it, forever. Observed live: 77+ `POST /search/v2/public` requests and climbing, all `200 OK`, while the UI showed a false "connection failed" error. Fixed by switching to a functional `setLocalRecent(prev => ...)` update and dropping `localRecent` from the dependency array. Rebuilt (`karenseir-frontend-prod:7b7bf6f-fix1`, correct `ALLOW_HTTP_PREVIEW=1`/fingerprint build args), pre-swap verified (fingerprint, CSP, 200), swapped into production (old container kept as `karenseir-frontend-preswap-20260826175548` for rollback), reverified live: request count flat at 1-2 per search, no growth.
+- Root-caused a related finding: the `karenseir-public` tenant (created in an earlier session for anonymous discovery) had **zero real offers** — every anonymous search legitimately, honestly returned `EMPTY` (no fake data fabricated). This is a business decision (which real supplier/inventory to publish there), not a code defect — flagged to the user rather than fabricated.
+- With explicit user authorization, seeded a limited, clearly-marked TEST/DEMO dataset into `karenseir-public` only (never touching `aftab-bank`/`faraz-industries`): 2 suppliers (`status="sample"`, `[TEST]`-prefixed names) + 8 offers across 4 verticals (flight تهران→شیراز, hotel یزد, vacation_rental یزد, tour استانبول), every row carrying `attributes_json.test_data=true` / `data_source="qa_seed_20260826"` / `policy_json.test_data=true`. Baseline recorded before seeding (aftab-bank 1/2, faraz-industries 0/0, karenseir-public 0/0); post-seed counts verified (karenseir-public 8/2, others unchanged). End-to-end verified live on production: flight and hotel searches now return real `RESULTS` (titles, provider tags, live/fresh/refundable badges) rendered from the real API response; anonymous price-hiding still correctly enforced even with real data flowing through it. Cleanup script written and dry-run verified (`docker exec karenseir-api-1 python3 /tmp/cleanup_qa_test_data.py --apply`, scoped to exact offer/supplier IDs in `karenseir-public` only) but **not yet executed** — test data intentionally left live for continued QA.
+- **Decision (explicit, user's own, not an agent judgment call):** Search is `GOOD_ENOUGH_DEFERRED_CLOSURE` — good enough to stop being the sole priority and let a new phase (GRS hotel provider integration) begin. This is explicitly **not** a claim of COMPLETE. `CAPABILITY_REGISTRY.json` → `search_core` stays `status: "PARTIAL"` (per the registry's own enum) with a new `decision_status: "GOOD_ENOUGH_DEFERRED_CLOSURE"` field and a `deferred_work` list so none of the following is silently lost:
+  1. The benchmark-driven Search/Assistant UX rework requested this engagement (live competitor benchmark matrix, independently-defined target UX, "KARENSEIR — SEARCH & ASSISTANT FINAL RECOVERY MASTER PROMPT", and its execution) — live Alibaba.ir benchmark was completed, the rest was not.
+  2. Felt-experience/mobile browser verification of `search_core` — still never completed (mobile viewport tooling limitation, repeated across sessions).
+  3. `karenseir-public` real-inventory sourcing — business decision, still open.
+  4. A minor, bounded duplicate initial fetch (2 POSTs instead of 1 on first page load) — observed, not blocking, not yet root-caused.
+  5. The live `[TEST]` QA dataset — cleanup ready, not yet run.
+  6. Historical edit-form field-exposure gap — not re-checked this session.
+- Production changed: 1 frontend container swap (loop fix) + 8 test offers/2 test suppliers added to the `karenseir-public` tenant only. `aftab-bank`/`faraz-industries` (real tenants) unchanged. No migration, no schema change.
+
+## GRS HOTEL PROVIDER — PHASE START (AUDIT ONLY) — 2026-08-26
+
+- Timestamp: `2026-08-26T18:15:00Z`; branch `main`; HEAD `7b7bf6f97a28f0d8cf9038474c761cbaec3b5732`; migration head `20260823_19` (unchanged).
+- New, independent phase: real GRS (hotel provider) adapter integration, per user-supplied self-contained contract spec (GRS Agency API Document v1.18.4 as primary reference, Postman Collection v1.17.0 as secondary/example-only — v1.18.4 wins every conflict).
+- Explicit scope for this phase's first stage: **read-only audit, contract mapping, endpoint inventory, auth analysis, and scaffolding only.** No Reserve/Book/Modify/Cancel calls, no production write, no migration, no deploy, no operational state-changing calls to the real GRS endpoint (no real GRS credential exists yet in any case).
+- No prior GRS code exists anywhere in this repository (confirmed via `grep -rli grs`, hits only inside `node_modules`/`.venv` third-party packages, unrelated). Existing adapter convention to follow: `backend/app/providers.py`, `PROVIDER_INTEGRATION_GUIDE.md`, `docs/adr/ADR-011-provider-resilience.md`.
+- Governing rule for this phase, inherited from `AGENTS.md`: no provider/payment path activates without a valid credential and a fail-closed test; demo data always `Mock`-labeled; price/inventory/policy/credit/ledger are never frontend-authoritative.
+- Production changed: NO (audit phase only).
+- NEXT EXACT ACTION: execute audit steps 1-9 (repo/DB/docker read-only inspection, GRS Adapter/Registry placement decision) and produce the Contract Gap Matrix (PDF v1.18.4 vs Postman v1.17.0 vs current codebase conventions), then report `GRS AUDIT COMPLETE` and stop for explicit approval before any implementation.
+
+## GRS — SEARCH AGGREGATION WIRED — 2026-08-27
+
+- Timestamp: 2026-08-27; branch main; HEAD 98b83a202e1889b47a5e3a982add24359166976b (prior ab0b8cf7f9530d6502437272c768c9d2ca6e2674).
+- Connected GRS to the existing search_offers()/unified_search() aggregation - no parallel search path. New _grs_hotel_offers_for_search() extends the same results list Manual/Existing providers already populate, only for service_type=="hotel".
+- OfferSearchIn gained optional check_in/check_out (default None, purely additive). unified_search() threads them from its existing generic filters dict - no UnifiedSearchIn schema change.
+- Fail-closed/partial-failure: returns [] immediately when GRS is disabled (true everywhere in this environment - zero behavior change, confirmed via full suite); any failure/timeout/misconfiguration/missing-mapping/missing-dates/unconfirmed-money-unit is a partial provider failure (empty list + recorded business event), never a Search-wide error.
+- Two real bugs found and fixed by the new tests: config was always re-derived from env (ignoring an injected test adapter's own config); the disabled-provider short-circuit ran unconditionally on the global env setting before an injected adapter was even considered. Also fixed one deploy-blocking bug caught immediately by the full test suite: the new helper function was inserted between the `@app.post("/search/offers")` decorator and `search_offers()`, silently hijacking the route registration (FastAPI failed to boot at all until fixed).
+- Tests: 13 new (test_grs_search_aggregation.py) covering disabled/success/failure/timeout/aggregation/provider-independence/anonymous-price-hiding/closed-and-zero-inventory-exclusion/refundable-mapping/money-unit-gate/missing-dates/unmapped-destination. Full backend suite: 188 passed / 6 skipped / 2 pre-existing unrelated failures (test_outbox_worker.py, confirmed unrelated in the prior phase, unchanged here).
+- No frontend file touched (confirmed via git status before/after). No migration (Pydantic-only additive fields, no DB schema change).
+- NOT verified live: browser/E2E and the "no request loop" recheck against a running server require deploying this backend change to production, which is explicitly prohibited this phase. Verified instead via the full automated suite plus 13 dedicated fixture-driven tests.
+- Production changed: NO.
+- NEXT EXACT ACTION: tenant/RBAC/PII test matrix beyond the generic RLS check, frontend UI wiring to actually send check_in/check_out and render GRS-sourced offers, per-endpoint contract fixtures, then a real deploy + live browser/E2E verification once approved.
+
+## GRS — RBAC/PII MATRIX, FRONTEND WIRING, E2E VERIFICATION — 2026-08-27
+
+- Timestamp: 2026-08-27; branch main; HEAD (pending this commit, prior 98b83a202e1889b47a5e3a982add24359166976b).
+- Route-registration regression test added (test_route_registration_regression.py, 6 tests) - guards against the exact class of bug found last phase (a helper hijacking a route decorator, silently breaking app boot).
+- Real RBAC + tenant-ownership enforcement added to the booking lifecycle (grs_lifecycle.py): reserve/book/request_cancellation/accept_cancellation now require an `actor` and call a new `_authorize()` gate (tenant match + role_has_permission() against the EXISTING ROLE_PERMISSIONS table - no parallel permission system). `transition_reservation()` calls now use the real actor.id instead of the old actor_id=0 placeholder, giving real BookingStatusHistory audit attribution.
+- Tenant/RBAC/PII test matrix added (test_grs_tenant_rbac_pii.py, 9 tests) + 4 new RBAC tests in test_grs_lifecycle.py: finance_operator cannot cancel (no reservation:manage), backoffice action creates a real attributable audit row, cross-tenant actor cannot touch another tenant's reservation, agency-scoped GRS location mappings stay tenant-isolated, webhook processing never cross-contaminates two tenants, PII (phone/name/national_code) never persisted raw in the webhook inbox, national_code/passport never appear in the public offer projection.
+- Real-Postgres cross-tenant proof (not just the generic matrix check): seeded two tenants' reservations/location-mappings/reconciliation-cases on a disposable throwaway Postgres DB, connected as a genuine non-superuser/NOBYPASSRLS role (mirroring production's real karenseir_api role - the first attempt via the DB owner role gave a false negative because Postgres superusers always bypass RLS regardless of FORCE, caught and corrected before drawing any conclusion). Result: tenant B saw zero of tenant A's rows across all three tables; tenant A saw its own. DB dropped and role removed afterward.
+- Backend: OfferSearchIn/`_grs_hotel_offers_for_search` now thread the real traveller count (was hardcoded to 2) via a new `travellers` field on OfferSearchIn, populated from UnifiedSearchIn.travellers (already existed, previously unused past the schema).
+- Frontend: UnifiedSearchView.tsx now sends `filters.check_in`/`filters.check_out` (from the already-collected `depart`/`returnDate` state) for hotel/vacation_rental searches, and sends the live `adultsCount` instead of the stale `initial.adults` snapshot - the latter was a real, pre-existing bug (editing traveller count in the edit-search form didn't actually reach the request). No visual/UI change - pure data-plumbing inside execute()'s payload construction. Zero Figma/color/font/spacing/RTL/mobile/URL changes.
+- Frontend quality gates: lint clean, `tsc --noEmit` clean, `next build` succeeds (35 routes, `/` still static).
+- Backend regression: 206 passed / 6 skipped / 3 pre-existing unrelated failures in test_outbox_worker.py - confirmed via `git stash` (reproduces identically at the prior commit with ALL this phase's changes removed) to predate this phase entirely; a test-order/shared-state issue in that file's own design, not touched.
+- E2E/browser verification: completed without any production deploy/restart. Built a scratch frontend image from the current working tree, ran it + a throwaway same-origin nginx proxy (proxying `/` to the scratch frontend, `/api/` to the real, unchanged production API) on 127.0.0.1-only ports, tunneled locally, tested with real Chrome. Confirmed via `get_page_text` and a screenshot: hotel and flight searches both render real `[TEST]`-marked QA fixture data (provider names, provider counts, live/fresh badges, refundable/non-refundable badges correctly differentiated, anonymous price fully hidden), RTL layout and visual identity unchanged, recent-search chips preserving state across searches. No-loop and bounded-initial-fetch confirmed authoritatively via the real API's own request logs: exactly one OPTIONS + one POST per search, for both verticals, with no growth. All scratch containers/images/proxy config removed after verification; production containers (`karenseir-frontend-1`/`karenseir-api-1`) confirmed byte-identical (same image tags) before and after.
+- One observed, pre-existing, NOT fixed (out of this phase's scope): the non-refundable badge label ("قانون استرداد تأیید نشده" - "cancellation policy not verified") is reused for the genuine "refundable: false" case, which is a misleading copy choice (conflates "unverified" with "confirmed non-refundable") - predates this phase, not introduced by GRS work, flagged rather than silently patched given the no-UI-change constraint.
+- Production changed: NO.
+- NEXT EXACT ACTION: build the remaining lifecycle orchestration (extend_hold, modify/accept-modify/cancel-modify, request_service/create_activity, refund/reconciliation tie-in to the ledger), Rules/Promotions parsing, then a real deploy once explicitly approved.
+
+## FIGMA ACCESS GATE (Claude Code session) — 2026-10-03
+- HEAD c8b8c72 (candidate); Production frontend unchanged d2ba674/visible-slice18.
+- Claude Code session: no Figma MCP server configured (global/project mcpServers empty), no FIGMA token in env. Figma connector found only inside Codex app plugin (openai-curated-remote/figma) whose auth is held by that app; not reused, no credential extraction.
+- `GET api.figma.com/v1/files/Ei8MUR9VN2yCX6BLOpvTXm` unauthenticated → 403.
+- BLOCKER: Figma read access for this session. NEXT EXACT ACTION after access: inventory pages/frames of Ei8MUR9VN2yCX6BLOpvTXm → map to routes → fix candidate c8b8c72 → QA 360/390/430/768/1024/1366/1440/1920 → frontend-only deploy.
+
+## FIGMA HOMEPAGE CANDIDATE — SOURCE QA — 2026-10-03
+- HEAD c8b8c72 + uncommitted candidate (globals.css, HistoricalPresentation.tsx, MarketplaceHome.tsx, customer-catalog.ts, 7 images under public/images/figma). Environment: SOURCE only. Production frontend unchanged (karenseir-frontend-1, visible-slice18, healthy).
+- Fixed in this stage: (1) footer link `/manage-booking` → 404, removed (only `/manage-booking/[bookingId]` exists); (2) `.fh-trip footer` inherited the global `footer{padding;border-top;max-width}` rule so label overlapped the arrow button — reset inside the card; (3) at >=1101px the 620px search card clipped the service tabs (scrollWidth 675 vs 568, "بیشتر" unreachable without hidden scroll) — tab padding/gap tightened, now 568/568.
+- Verified: `next build --webpack` passes; local preview 127.0.0.1:3111 at 360/390/430/768/1024/1366/1440/1920 — no horizontal document overflow, 0/10 broken images, 0 console/page errors, 0 HTTP>=400; 56 homepage-linked paths all <400; 7 search tabs + 9-item "more" menu respond at 1440/390; trip card → /destinations/masuleh renders. Evidence: docs/recovery/evidence/figma-candidate-20261003/.
+- NOT verified: FIGMA_MATCH. Figma MCP is unreachable from this server (HTTP 451, sanctioned location) and the claude.ai Figma connector is unauthorized, so frames 44:3 / 75:435 could not be compared pixel-to-pixel. Visual check was done only at 1440 and 390 by eye; other widths are metric-only. Booking/search E2E not re-run (no change to those flows).
+- Observations left open: hero-yazd.jpeg looks soft/upscaled at 600x560; search card shows three helper lines (assistant link + two price notes); pre-existing lint errors in app/page.tsx (set-state-in-effect) untouched.
+- Build note: stale generated `.next/dev/types/app` (2026-09-24) broke typecheck; moved out of `.next` (gitignored cache), no source change.
+- Production changed: NO. Not committed.
+- NEXT EXACT ACTION: user compares candidate with Figma frames (or restores Figma access) → commit candidate → explicit approval → frontend-only production deploy with rollback image retained.
+
+---
+
+## فایل: docs/DEPLOY_DIAGNOSIS_2026-11-19.md
+
+# عیب‌یابی: چرا طراحی‌ها و فایل‌ها روی karentravel.ir دیده نمی‌شوند
+
+تاریخ: ۱۴۰۵/۰۸/۲۸ (2026-11-19) — بررسی فقط‌خواندنی؛ هیچ تغییری روی سرور داده نشد.
+
+## خلاصه
+فایل‌ها «بارگذاری» می‌شوند، اما به سایت نمی‌رسند، چون بین گیت‌هاب و سرور هیچ اتصال خودکاری نیست و کار در چند جای جدا از هم پخش شده است.
+
+## شواهد
+1. **گیت‌هاب سایت را دیپلوی نمی‌کند.** تنها workflow (`.github/workflows/quality-release.yml`) با push روی `main` فقط تست اجرا می‌کند. مرحلهٔ دیپلوی ندارد.
+2. **کد روی سرور به گیت‌هاب وصل نیست.** در `/opt/karenseir/app` یک checkout بدون remote هست که commitهای خاص خودش را دارد. سرور هیچ‌وقت از گیت‌هاب pull نمی‌کند.
+3. **طرح‌های Stitch فقط فایل‌اند.** ۵۵ صفحه در `design/stitch/` (HTML و PNG) و در فیگما گذاشته شده‌اند. این فایل‌ها کد سایت نیستند و تا به کامپوننت‌های Next.js تبدیل و build نشوند، ظاهر سایت عوض نمی‌شود. در `main` هیچ کدی از `app/` یا `components/` به Stitch اشاره نمی‌کند.
+4. **کار پیاده‌سازی روی شاخه‌های ادغام‌نشده مانده است.** PR #87 (`feat/inner-redesign-on-production`) ده commit پیاده‌سازی Stitch دارد (نتایج پرواز و هتل، ورود، checkout و غیره) و با `main` تداخل دارد (dirty). بخشی از آن مستقیم از یک شاخه با اسکریپت روی سرور دیپلوی شده است. در مخزن ۱۰۸ شاخه و ۹ PR باز هست.
+5. **سایت زنده با هیچ منبعی یکی نیست.** متن صفحهٔ `/flights` («شرکت‌های هواپیمایی»، «وب‌سایت رسمی») در `main` نیست. CSS طرح Stitch برای نتایج جست‌وجو روی سایت هست (`51554291e8b6186f.css`)، اما صفحهٔ `/flights` هنوز طرح قدیمی دارد. `RELEASE_MANIFEST.json` در مخزن مال 2026-08-24 است و endpointی برای دیدن نسخهٔ دیپلوی‌شده وجود ندارد.
+
+## نتیجه
+هر جلسه از `main` شروع می‌کند، که کار جلسه‌های قبلی را ندارد. کار روی شاخه‌ای جدا انجام می‌شود، بخشی از آن دستی روی سرور می‌رود و ادغام نمی‌شود. برای همین هر بار به نظر می‌رسد «هیچ چیز عوض نشده».
+
+## راه‌حل پیشنهادی (به ترتیب)
+1. از سرور snapshot بگیرید: commitهای `/opt/karenseir/app` و `git diff`، ایمیج‌های در حال اجرا و تاریخ build. این کار به دسترسی SSH نیاز دارد.
+2. کد سرور را به گیت‌هاب push کنید (شاخهٔ `server-snapshot-2026-11-19`) تا هیچ کاری گم نشود.
+3. کدهای سرور، PR #87 و `main` را در یک شاخه ادغام و تداخل‌ها را حل کنید، بعد این شاخه را در `main` merge کنید. از این به بعد `main` تنها منبع حقیقت است.
+4. به سرور remote اضافه کنید و یک اسکریپت دیپلوی بسازید (pull از `main` ← build ← restart ← health check ← manifest). در صورت تمایل بعداً یک GitHub Action برای دیپلوی اضافه شود.
+5. یک endpoint نسخه (`/api/release`) اضافه کنید که commit دیپلوی‌شده را نشان بدهد، تا همیشه معلوم باشد سایت روی کدام نسخه است.
+6. بعد از آن، طرح Stitch را صفحه‌به‌صفحه پیاده کنید و هر بار روی سایت زنده ببینید. اولین صفحه `/flights` است. در این صفحه لینک «وب‌سایت رسمی» ایرلاین‌ها هم مشتری را از سایت بیرون می‌فرستد و باید حذف شود.
+7. شاخه‌ها و PRهای قدیمی را بعد از ادغام ببندید.
+
+## باقی‌مانده
+مراحل ۱ تا ۵ به دسترسی SSH به سرور 188.121.123.218 نیاز دارند.
+
+## به‌روزرسانی: بررسی مستقیم سرور (کنسول ابرآروان، 2026-11-19 ساعت 17:02 UTC)
+- شاخهٔ کد روی سرور `release-20261108-1832` و HEAD آن `7fbc23f` است. `git remote -v` خالی است، یعنی سرور به گیت‌هاب وصل نیست. تغییر commitنشده‌ای هم وجود ندارد.
+- کمیت «Stitch redesign gallery + docs» سه بار پشت سر هم در تاریخچهٔ سرور آمده است (`9faee19`، `90bb525`، `7fbc23f`). از ۱۶ تا ۱۹ نوامبر دست‌کم ده بار `deploy-redesign-2026-11-*.log` اجرا شده و هر بار کار تکراری روی سرور رفته است.
+- کانتینرهای `karenseir-web-1` و `karenseir-api-1` حدود ۵ ساعت پیش (19 نوامبر، 12:20 UTC) با این کد بالا آمده‌اند. یعنی دیپلوی کار می‌کند و آخرین کار روی سایت هست.
+- **علت اصلی این‌که ظاهر سایت عوض نشده:** آنچه پیاده شد فقط رنگ و فرم دکمه و کارت در صفحه‌های قبلی بود (ADR-023 «refinement»). چیدمان صفحه‌های Stitch بازسازی نشد. مقایسهٔ تصویری صفحهٔ ورود زنده با `_17` و فهرست هتل زنده با `_35` فاصلهٔ زیادی نشان می‌دهد. Stitch ورود دوستونه، کد ۵ رقمی و مزیت‌ها را دارد. هتل‌ها در Stitch نوار فیلتر کامل، کارت تصویری، مرتب‌سازی و مقایسه دارند. صفحهٔ اصلی هم طبق قانون «صفحهٔ محافظت‌شده» عمداً دست نخورده است.
+
+## برنامهٔ اصلاح‌شده
+1. یک منبع واحد: شاخهٔ سرور `release-20261108-1832` به گیت‌هاب push و با `main` ادغام شود. PR #87 بسته شود (محتوایش روی سرور هست).
+2. به سرور remote و اسکریپت دیپلوی از `main` اضافه شود.
+3. پیاده‌سازی واقعی Stitch صفحه‌به‌صفحه با چیدمان کامل، نه رنگ‌آمیزی. هر صفحه کنار PNG طرح Stitch مقایسهٔ تصویری می‌شود و بعد دیپلوی. ترتیب پیشنهادی: ورود (`_17`)، نتایج هتل (`_35`)، نتایج پرواز (`_2`)، صفحهٔ `/flights`.
+
+## به‌روزرسانی ۲: سه خط جدا (کشف اصلی)
+- `main` در سپتامبر (`ac379c1`) از خط اصلی جدا شده و کار بعدی را ندارد. ۹ commit بعدی آن خروجی Stitch، دانش گروه و یک پیاده‌سازی VandaPay است.
+- `production` در GitHub ۴۰ PR دیپلوی‌نشده دارد (#45 تا #85). این‌ها شامل بلاگ، FAQ، جشنواره، تور قسطی، پنل‌ها، اصلاحات امنیتی و migrationهای ۷۰ تا ۷۶ است. روی سایت زنده `/blog` و `/faq` خطای 404 می‌دهند و دیتابیس روی migration 69 است.
+- سرور = `production` تا #44 به‌علاوهٔ patchهای ظاهری Stitch.
+- اسکریپت دیپلوی production برای اجرا از Mac با ssh نوشته شده بود. وقتی این دسترسی نبود، دیپلوی متوقف شد و جلسه‌های بعدی patch دستی زدند.
+
+## اصلاح (شاخهٔ `unify/main-2026-11-19`)
+- ادغام: `production` + PR #87 + `main`، بدون تکرار. VandaPay دوم، یعنی #88، برای انتقال روی `port/vandapay-hardening-88` نگه داشته شد.
+- `main` = تنها منبع. `deploy/karenseir-deploy-server.sh` دقیقاً `origin/main` را دیپلوی می‌کند و commit فقط-سروری ندارد. mirror پایتون در `pip.conf` است که در git نمی‌رود.
+- `AGENTS.md`: بخش «Release truth».
+
+## وضعیت پایان جلسه (2026-11-19، حدود 19:50 به وقت برلین): منتشر شد
+- `main` = `production` = `6a39d02` روی سرور، با `deploy/karenseir-deploy-server.sh` و از کنسول ابرآروان منتشر شد. مراحل: backup، build وب، API و worker، migration از `20261104_69` تا `20261111_76` بدون خطا، و health OK.
+- شواهد زنده: `/blog`، `/faq` و `/festival` جواب 200 می‌دهند (قبلاً 404). `/login` با طرح Stitch `_17` بالا آمد. `/flights` ۱۸ کارت ایرلاین دارد و هیچ لینک بیرونی ندارد. `/api/health` روی production جواب ok می‌دهد.
+- CI: build، lint، tsc و ۸۵۲ تست backend سبز. selectorهای e2e در `80adbb2` اصلاح شدند و نتیجهٔ CI روی `main` باید دوباره دیده شود.
+- **باقی‌مانده:** مقایسهٔ تصویری نتایج هتل (`_35`) و نتایج پرواز (`_2`) با داده‌های زنده و بازسازی هر جا که فاصله دارد. انتقال VandaPay #88 از `port/vandapay-hardening-88`. ارتقای Next.js (هشدار امنیتی build). `build_info.json` هنوز `unknown` است، چون compose سرور `GIT_COMMIT` را به build نمی‌دهد؛ تا اصلاح آن، مرجع `/opt/karenseir/DEPLOYED` است.
+
+---
+
+## فایل: docs/PERFORMANCE-FIXES-2026-11-10.md
+
+# اصلاح عملکرد (PR #75) — انتقال به main، ۲۰۲۶-۱۱-۲۳
+
+PR #75 روی main قدیمی (`ac379c1`) ساخته شده بود. پس از یکی‌شدن شاخه‌ها (۲۰۲۶-۱۱-۱۹) هر مورد جداگانه روی `origin/main` (`62db0d3`) دوباره بررسی شد. محیط: فقط Source؛ migration ندارد؛ بازگشت = revert همین commit.
+
+## منتقل‌شده
+- **پشتیبانی (`GET /support/cases`)**: پیام‌های همهٔ پرونده‌ها با یک کوئری، با همان شرط مجوز پرونده‌ها (tenant و مشتری)؛ به‌جای یک کوئری برای هر پرونده.
+- **مقصدها (`GET /destinations` و `/public/tenants/{slug}/destinations`)**: شمارش پیشنهادهای فعال با یک خواندن دوستونی در دسته‌های ۵۰۰تایی، به‌جای بارگذاری همهٔ Offerها برای هر مقصد.
+- **autocomplete**: `cache_policy` پاسخ tenant-دار از `private_tenant_30s` به `private_no_store`؛ مسیر عمومی قدیمی طول `q` را ۲ تا ۲۰۰ نویسه محدود می‌کند.
+- **صفحهٔ اصلی**: نمای نتایج جست‌وجو با `next/dynamic` جدا بارگذاری می‌شود (همان markup اسکلت خود نما)؛ بدون تغییر ظاهر.
+- **تصاویر**: `images.formats` = AVIF/WebP برای تصاویر `next/image`.
+- آزمون‌ها: `backend/tests/test_performance_fixes.py` (بودجهٔ تعداد SELECT برای ۱ و ۲۵ مقصد/پرونده، جداسازی tenant و مشتری، محدودیت طول).
+
+## کنار گذاشته‌شده
+- **تمدید نشست single-flight**: main خودش دارد (`refreshPending` در `lib/api/karenseir-client.ts`).
+- **رد پاسخ کهنهٔ جست‌وجو**: main با `searchGeneration` در `UnifiedSearchView` دارد.
+- **لغو و رد پاسخ کهنهٔ پیشنهادها**: main با مسیر تازهٔ `/search/autocomplete/v3/public` و پرچم `cancelled` دارد.
+- **کش پیشنهاد جغرافیایی (`public_autocomplete_cache.py`)**: فقط روی مسیر قدیمی `/search/autocomplete/public` بود که دیگر frontend از آن استفاده نمی‌کند؛ hash کل کاتالوگ در هر درخواست هم از خود محاسبه گران‌تر بود.
+- **جداسازی DB آزمون outbox**: main مشکل را با پاک‌کردن جدول‌ها در fixture حل کرده است.
+- لاگ‌های QA قدیمی (`docs/qa/performance-fixes-20261110/`) که مربوط به مبنای قدیمی بودند.
+
+## مانده (کار جدا برای frontend)
+- مهلت زمانی درخواست (شامل خواندن بدنه)، اشتراک GETهای هم‌زمان و لغو با `AbortSignal` در `karenseir-client.ts` هنوز در main نیست. client در main بسیار تغییر کرده است (حالت cookie، CSRF، logout با keepalive، آپلود صوت)؛ انتقال مکانیکی امن نبود و مهلت ۳۰ ثانیه برای آپلود صوت و دستیار باید جداگانه تعیین شود.
+- debounce ۳۰۰ میلی‌ثانیه برای جست‌وجوی نتایج (main فعلاً بلافاصله اجرا می‌کند و پاسخ کهنه را رد می‌کند).
+- صفحه‌بندی SQL جست‌وجوی تجمیعی، Redis عملیاتی، CDN و اندازه‌گیری واقعی سرعت.
+
+## QA
+- کل backend (SQLite): 879 passed، 7 skipped.
+- `npx tsc --noEmit`: بدون خطا؛ eslint روی `app/page.tsx` و `next.config.mjs`: بدون خطا؛ `npm run build`: موفق.
+- آزمون مرورگر و PostgreSQL برای این تغییر اجرا نشد.
+
+---
+
+## فایل: docs/PROGRESS_2026-11-19.md
+
+# گزارش پیشرفت کارن‌تراول — ۱۹ نوامبر ۲۰۲۶ (۲۸ آبان ۱۴۰۵)
+
+## انجام شد
+- **یک مسیر انتشار:** فقط main؛ اسکریپت `deploy/karenseir-deploy-server.sh` (بکاپ، تگ ایمیج قبلی، مایگریشن با rollback، health، نسخهٔ زنده در `/opt/karenseir/DEPLOYED` و `/build_info.json`).
+- **پایش هر دقیقه** (`deploy/karenseir-monitor.sh` + cron): صفحه‌ها، API، کانتینرها، سرآیند مایگریشن، **شمارش ردیف جداول حساس** (کاربر، رزرو، پرداخت، …) با هشدار اگر کم شود، و self-heal برای nginx.
+- صفحه‌های ورود، نتایج هتل، جزئیات هتل و پرواز طبق Stitch بازسازی و منتشر شدند.
+- برگرداندن Next.js 16.4.6 → 16.4.3 روی main (72261f8)، چون 16.4.6 صفحهٔ اول و هدر را به‌هم ریخت.
+- **رفع چپ‌به‌راست بودن صفحه‌های داخلی:** PR #92 (`dir="rtl"` روی محتوای JourneyShell، بدون دست زدن به CSS صفحهٔ اول). QA روی بیلد تمیز: صفحهٔ اول سالم، پرواز/هتل/قطار راست‌به‌چپ. تصاویر: `docs/qa/2026-11-19-rtl/`.
+- **انتقال کد تکراری ونداپی:** PR #91 (یک پیاده‌سازی، پیش‌فرض خاموش `VANDAPAY_MODE=disabled`، ۸۷۷ تست بک‌اند پاس، CI سبز، بدون مایگریشن، بدون تداخل با main).
+- مفاهیم لوگو (v1 رد شد، v2 شیک گردشگری) در `design/logo/`.
+
+## به‌روزرسانی ۲۰ نوامبر — انتشار main @ 4d62042
+- با اسکریپت رسمی منتشر شد (DEPLOY-OK، شاخهٔ release-20261120-172605؛ ایمیج‌های قبلی با تگ pre-20261120-172605 برای rollback).
+- Next 16.4.3؛ فایل استایل صفحهٔ اول (d987fcd7966d6e67.css، حاوی kh-bento) در HTML زندهٔ صفحهٔ اول لینک شده است.
+- مایگریشن تغییری نکرد (20261111_76). پایش ساعت 17:38 UTC: status=ok، problems=[]، شمارش‌ها سالم (users=14، tenants=3، reservations=7، payment_intents=2، bookings=1، catalog_hotels=20067).
+- درخواست از داخل سرور به https://karentravel.ir/ از طریق CDN ابرآروان: HTTP/2 200.
+- مرورگر کاربر با IP 91.107.186.2 خطای 504 (Server Code 6100) از لبهٔ CDN گرفت — همان مشکل مسیر VPN/لبه، نه سرور.
+- PR #90 (تور ۳۶۰) توسط کاربر ادغام شده بود و در همین انتشار رفت. PR #91 و #92 هنوز ادغام نشده‌اند.
+
+## به‌روزرسانی ۲۰ نوامبر (۲) — انتشار main @ de7aebd (ادغام PR #92)
+- DEPLOY-OK، شاخهٔ release-20261120-181735؛ ایمیج‌های قبلی با تگ pre-20261120-181735.
+- HTML زندهٔ /tours از مسیر CDN شامل `id="main-content" dir="rtl"` است (اصلاح چپ‌به‌راست صفحه‌های داخلی زنده شد).
+- پایش 18:24 UTC: status=ok، problems=[]، شمارش‌ها بدون تغییر. مایگریشن 20261111_76 بدون تغییر.
+- مرورگر کاربر پشت IP خارجی دوباره 504 از لبهٔ CDN گرفت؛ مشکل مسیر شبکه است، نه سرور.
+
+## به‌روزرسانی ۲۱ نوامبر — انتشار main @ b3c0d8f (Next.js 16.4.6، PR #94)
+- DEPLOY-OK، شاخهٔ release-20261121-171225؛ ایمیج‌های قبلی با تگ pre-20261121-171225.
+- گیت جدید استایل: «homepage stylesheet linked OK». مایگریشن 20261111_76 بدون تغییر.
+- بررسی چشمی زنده در مرورگر کاربر: صفحهٔ اول سالم (هدر، هیرو، جست‌وجو)، /tours و /flights راست‌به‌چپ و سالم، کاشی‌های مسیرهای پرطرفدار با عکس.
+- ارتقای امنیتی Next.js این بار بدون خرابی منتشر شد.
+
+## به‌روزرسانی ۲۱ نوامبر (۲) — انتشار main @ db58b6f (PR #95)
+- DEPLOY-OK، شاخهٔ release-20261121-172537؛ ایمیج‌های قبلی با تگ pre-20261121-172537؛ گیت استایل OK؛ مایگریشن بدون تغییر.
+- بررسی چشمی زنده: /support، /contact و /services در طراحی جدید و راست‌به‌چپ؛ صفحهٔ اول سالم.
+- مانده: PR #91 (ونداپی) و PR #93 (همین گزارش) هنوز ادغام نشده‌اند.
+
+## به‌روزرسانی ۲۱ نوامبر (۳) — انتشار main @ 35f1c76 (PR #91 ونداپی + PR #93)
+- PRهای #91 و #93 به درخواست کاربر («از همینجا انجام بده خودت») ادغام شدند.
+- DEPLOY-OK، شاخهٔ release-20261121-183316؛ ایمیج‌های قبلی با تگ pre-20261121-183316؛ گیت استایل OK؛ مایگریشن 20261111_76 بدون تغییر.
+- پایش 18:41 UTC: status=ok، problems=[]، شمارش‌ها بدون تغییر (users=14، reservations=7، payment_intents=2، bookings=1).
+- /support زنده از مسیر CDN شامل چیدمان جدید (hc-paths) است.
+- ونداپی با پیش‌فرض VANDAPAY_MODE=disabled منتشر شد؛ فعال‌سازی فقط با credential واقعی و تصمیم مالک.
+- همهٔ PRهای این دوره روی سایت هستند؛ چیزی در صف انتشار نمانده.
+
+## مانده
+1. ~~سایت زنده روی 16f82fb~~ — حل شد (۲۰ نوامبر، 4d62042). اصلاح RTL (#92) بعد از ادغام با یک انتشار دیگر می‌رود.
+2. ادغام PR #91 (ونداپی) و PR #92 — نیاز به تأیید شما (ادغام خودکار مجاز نشد).
+3. ارتقای امنیتی Next.js: فقط با مقایسهٔ تصویری قبل از انتشار.
+4. بازسازی بقیهٔ صفحه‌های داخلی طبق Stitch (پشتیبانی، خدمات، تماس؛ سفرها/حساب/پرداخت نیازمند ورود).
+5. انتخاب لوگو از v2 ← سپس SVG، فاوآیکن و قرار دادن در هدر/فوتر.
+6. PR #90 (تور ۳۶۰/سازندهٔ بسته) منتظر تصمیم شما.
+
+## قدم بعدی
+ادغام #92 و #91 → انتشار main با اسکریپت → بررسی زندهٔ صفحه‌ها (طراح + امنیت/یکپارچگی داده) → ادامهٔ Stitch.
+
+---
+
+## فایل: docs/PROGRESS_2026-11-23.md
+
+# گزارش پیشرفت کارن‌تراول — ۲۳ نوامبر ۲۰۲۶ (۲ آذر ۱۴۰۵)
+
+محیط: **Source** (همهٔ تغییرها در PR). روی Production فقط یک بررسی **فقط‌خواندنی** اجرا شد؛ هیچ انتشار، migration یا تغییری روی سرور انجام نشد.
+نسخهٔ زنده (از `/opt/karenseir/DEPLOYED` روی سرور، ۲۳ نوامبر): `35f1c76 main release-20261121-183316` — برابر با main (بعد از آن فقط PR مستندات #96).
+
+## انجام شد
+
+### ۴ — پیامک / کد ورود (کاوه‌نگار)
+- **PR #98** (`fix/sms-kavenegar-diagnose`): شش اصلاح — نگاشت درست کدهای خطای کاوه‌نگار، خواندن `return.status` از بدنهٔ خطا، ثبت‌نکردن پیام شکست‌خورده به‌عنوان «ارسال‌شده»، جلوگیری از قفل‌شدن پیامک ورود برای همهٔ کاربران با چند درخواست نامعتبر، پاک‌کردن نویسه‌های نامرئی از شماره، پذیرش کد با رقم فارسی. تست کامل بک‌اند: ۹۰۷ پاس، ۷ skip.
+- اسکریپت فقط‌خواندنی `deploy/karenseir-diagnose-sms.sh` و راهنمای `docs/integrations/kavenegar-sms.md`.
+- **نتیجهٔ اجرای اسکریپت روی سرور (۲۳ نوامبر، ۱۹:۱۵ UTC):**
+  - api و worker سالم (healthy).
+  - متغیرهای کاوه‌نگار در کانتینر api هستند (کلید، قالب). آداپتور انتخاب‌شده: `KavenegarSmsOtpProvider` (`KARENSEIR_SMS_PROVIDER=kavenegar` بر `OTP_PROVIDER_MODE=disabled` مقدم است).
+  - قالب فعلی: `karentest` — قالب آزمایشی؛ فقط به شمارهٔ صاحب حساب کاوه‌نگار می‌رسد.
+  - فراخوانی `account/info` از داخل api: **HTTP 430 / return.status 430** — کاوه‌نگار درخواست را رد می‌کند. معنی دقیق کد 430 باید از پنل یا پشتیبانی کاوه‌نگار تأیید شود (از این محیط سایت کاوه‌نگار در دسترس نبود).
+  - در ۴۸ ساعت گذشته هیچ لاگ OTP/پیامک ثبت نشده است.
+  - نتیجه: پیامک هنوز **زنده نیست**؛ `sms_notifications` همچنان READY_BLOCKED_EXTERNAL.
+
+### ۵ — PRهای پنل و سرعت
+- **PR #100** (`feat/phase2b-on-main`): انتقال فاز 2b (تسویهٔ آژانس، اختلاف‌ها، استرداد به اعتبار آژانس، تغییر/لغو چارتر) از #86 روی main. بدون تداخل. migration `20261112_77` بعد از `20261111_76` (یک head، downgrade دارد). شش اصلاح امنیتی/صحت طبق LESSONS. تست‌ها: SQLite ۸۸۶ پاس؛ Postgres مثل CI ۸۹۱ پاس.
+  - CI اول یک تست وابسته به ساعت روز داشت (`test_preview_shows_impact_and_writes_nothing`): زمان پرواز «الان + ۱۵ روز» بود و شب‌ها جابه‌جایی ۱.۵ ساعته از نیمه‌شب تهران رد می‌شد. زمان پرواز تست روی ظهر ثابت شد (fcb01fd).
+  - **نیاز به تأیید صریح مالک برای migration 77 پیش از انتشار.**
+- **PR #101** (`perf/verified-fixes-on-main`): بخش‌های هنوز لازمِ #75 (حذف N+1 در پشتیبانی و مقصدها، محدودیت طول جست‌وجوی خودکار، cache خصوصی، تقسیم کد نتایج، AVIF/WebP). موارد تکراری یا منسوخ حذف شدند. تست بک‌اند ۸۷۹ پاس، build سالم.
+- #86 و #75 باز ماندند با ارجاع به PRهای جدید.
+
+### ۶ — طراحی و پاک‌سازی
+- **PR #99** (`feat/stitch-account-pages`): سفرهای من، پروفایل، کیف پول، صفحهٔ پرداخت، نتیجهٔ پرداخت و تأیید رزرو طبق Stitch. بدون دست زدن به صفحهٔ اول/جست‌وجو/globals.css. فقط دادهٔ واقعی؛ بخش‌های طرح که API داده‌شان را ندارد نمایش داده نمی‌شوند. tsc، eslint و build سالم. ۱۴ تصویر QA در `docs/qa/2026-11-23-stitch-account/`.
+- PRهای قدیمی **#1، #2، #4، #42** با توضیح بسته شدند (جایگزین‌شده یا روی شاخهٔ منسوخ production).
+- لوگوی v2 برای انتخاب مالک ارسال شد.
+
+## مانده
+1. **پیامک:** روشن‌شدن معنی کد 430 از کاوه‌نگار و رفع آن؛ قالب تأییدشدهٔ تولیدی با `%token` به‌جای `karentest`؛ یک ارسال آزمایشی به شمارهٔ مجاز مالک → بعد LIVE.
+2. ادغام #98، #99، #101 (پس از سبز شدن CI) و #100 (پس از تأیید migration 77) → انتشار main با `deploy/karenseir-deploy-server.sh` (اول `--check`) → بررسی زندهٔ صفحه‌ها کنار PNG طرح.
+3. انتخاب لوگو (کانسپت ۱ تا ۴) → SVG، فاوآیکون، آیکون اپ، هدر/فوتر.
+4. اجرای e2e Playwright برای فاز 2b و صفحه‌های حساب (در این جلسه اجرا نشد).
+5. کارهای جداشده: timeout/لغو درخواست در `lib/api/karenseir-client.ts` و debounce جست‌وجوی نتایج (کار frontend جدا)؛ «پرداخت به شبای آژانس» در استرداد (تصمیم مالک).
+6. #97 (درگاه اینجاست) آماده و CI سبز؛ منتظر merchant_id و whitelist IP.
+
+## قدم بعد
+تأیید مالک برای ادغام و انتشار → انتشار یک‌باره با اسکریپت → QA زنده → پیگیری کاوه‌نگار (کد 430 و قالب).

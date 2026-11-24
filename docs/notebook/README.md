@@ -1,0 +1,19 @@
+# کارن تراول در Gemini Notebook
+
+این پوشه منابع نوت‌بوک «کارن تراول (KarenSeir)» در Gemini Notebook است (حساب mehdikazemi.9287@gmail.com).
+
+## منابع افزوده‌شده به نوت‌بوک (لینک raw گیت‌هاب، شاخه main)
+1. `karentravel-master-spec-v3.1-FROZEN.md` — مشخصات اصلی (Master Spec V3.1)
+2. `README.md` — معرفی و راه‌اندازی
+3. `PROJECT_STATUS.md` — وضعیت پروژه
+4. `AGENTS.md` — قواعد کار عامل‌ها
+5. `docs/notebook/01-product-and-business.md` — محصول، کسب‌وکار، برند، UX
+6. `docs/notebook/02-domain-specs.md` — مشخصات دامنه‌ها (رزرو، سفر، وایت‌لیبل…)
+7. `docs/notebook/03-architecture-integrations.md` — معماری، تأمین‌کننده‌ها، امنیت، درگاه‌ها
+8. `docs/notebook/04-adrs.md` — همهٔ تصمیم‌های معماری (ADR)
+9. `docs/notebook/05-operations.md` — استقرار، ران‌بوک، بکاپ، تست
+10. `docs/notebook/06-status-and-roadmap.md` — نقشهٔ راه، ممیزی، گزارش‌های پیشرفت
+
+## به‌روزرسانی
+فایل‌های `docs/notebook/0*.md` تجمیعی‌اند. پس از تغییر اسناد اصلی، دوباره ساخته و push شوند؛
+سپس در نوت‌بوک منبع مربوط را حذف و دوباره اضافه کنید (Gemini Notebook لینک را خودکار تازه نمی‌کند).
