@@ -34,7 +34,7 @@ from decimal import Decimal
 from typing import Any, Callable, Optional
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -610,6 +610,27 @@ def mahan_flight_router(get_db, current_user, role_has_permission, audit, signin
         if _is_staff(user):
             resp["record_locator"] = locator
         return finish(resp, {"stage": "book", "flights": flights, "record_locator": locator, **internal_price(price)})
+
+    @api.get("/flights/suppliers/mahan/holds")
+    def recent_holds(limit: int = Query(default=30, ge=1, le=100), user=Depends(current_user), db: Session = Depends(get_db)) -> dict:
+        """Staff-only list of this tenant's recent Mahan hold attempts, read from the idempotency records the hold endpoint
+        already writes (no new table). Only the stored public response is shown: no passenger data, no supplier cost."""
+        if not _is_staff(user):
+            raise HTTPException(403, "دسترسی ندارید")
+        rows = db.scalars(select(m.IdempotencyKey).where(m.IdempotencyKey.tenant_id == user.tenant_id, m.IdempotencyKey.scope == HOLD_SCOPE)
+                          .order_by(m.IdempotencyKey.created_at.desc()).limit(limit)).all()
+        items = []
+        for r in rows:
+            try:
+                stored = json.loads(r.response_json or "{}")
+            except ValueError:
+                stored = {}
+            err = stored.get("error") if isinstance(stored.get("error"), dict) else {}
+            items.append({"hold_id": r.id, "created_at": r.created_at.isoformat() if r.created_at else None, "status": stored.get("status") or "unknown",
+                          "record_locator": stored.get("record_locator"), "total_amount": stored.get("total_amount"), "currency": stored.get("currency"),
+                          "test_booking": stored.get("test_booking"), "error_code": err.get("code")})
+        db.rollback()
+        return {"provider": PROVIDER_KEY, "items": items}
 
     @api.post("/flights/suppliers/mahan/holds/{hold_id}/issue")
     def issue(hold_id: str, user=Depends(current_user)) -> dict:
