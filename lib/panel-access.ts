@@ -176,8 +176,13 @@ export function canOpen(area: Area, path: string, role: string): boolean {
   const item = itemFor(area, path);
   return allows(item ? item.rule : AREA_FALLBACK[area], role);
 }
-export function navFor(area: Area, role: string): NavItem[] {
-  const own = PANEL_ITEMS.filter(i => i.area === area && i.inNav && i.href !== '/panel/today' && allows(i.rule, role));
+/** Personal-panel pages about an organization (Launch V1 item 8.2). When the person has an organization panel
+ *  (membership or organization role), these leave the personal menu: organization data lives in the organization panel only. */
+export const ORG_LINKED_PERSONAL_PAGES = ['/account/benefits'];
+export type NavOptions = {orgPanel?: boolean};
+export function navFor(area: Area, role: string, opts: NavOptions = {}): NavItem[] {
+  const own = PANEL_ITEMS.filter(i => i.area === area && i.inNav && i.href !== '/panel/today' && allows(i.rule, role)
+    && !(area === 'customer' && opts.orgPanel && ORG_LINKED_PERSONAL_PAGES.includes(i.href)));
   const today = PANEL_ITEMS.find(i => i.href === '/panel/today');
   return ['ops', 'finance', 'admin'].includes(area) && today && allows(today.rule, role) && own.length ? [today, ...own] : own;
 }
@@ -200,8 +205,8 @@ export function staffAreasFor(role: string): Array<{area: Area; label: string; h
   }).filter((x): x is {area: Area; label: string; href: string} => x !== null);
 }
 /** Mobile bottom tabs: «امروز» (staff) or the area home, then the area's mobile destinations the role may open; «بیشتر» opens the full menu. */
-export function mobileTabsFor(area: Area, role: string): Array<{label: string; href: string; glyph: string}> {
-  const nav = navFor(area, role);
+export function mobileTabsFor(area: Area, role: string, opts: NavOptions = {}): Array<{label: string; href: string; glyph: string}> {
+  const nav = navFor(area, role, opts);
   const picked = nav.filter(i => i.mobile).sort((a, b) => (a.mobile ?? 9) - (b.mobile ?? 9)).slice(0, 4);
   const fill = nav.filter(i => !picked.includes(i)).slice(0, Math.max(0, 4 - picked.length));
   return [...picked, ...fill].map(i => ({label: i.label, href: i.href, glyph: i.glyph ?? '•'}));

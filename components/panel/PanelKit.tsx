@@ -69,15 +69,17 @@ export function PanelShell({area: declared, title, intro, children}: {area: Area
   const byRole = canOpen(area, path, role);
   const allowed = byRole || (area === 'organization' && orgAllows(path, orgs));
   const waiting = !!session && !byRole && area === 'organization' && ctx.state.kind === 'loading';
-  const roleNav = navFor(area, role); const byMembership = area === 'organization' ? orgPagesFor(orgs) : [];
-  const links = byMembership.length ? PANEL_ITEMS.filter(i => i.area === 'organization' && i.inNav && (roleNav.includes(i) || byMembership.includes(i.href))) : roleNav;
   const roleOrgHome = ['/organization', '/employee'].includes(homeFor(role)) ? homeFor(role) : null;
   const contexts = session && personalOrOrg ? panelContextsFor(roleOrgHome, orgs) : [];
+  // Item 8.2: with an organization panel, organization pages leave the personal menu (they live in the organization panel).
+  const navOpts = {orgPanel: contexts.length > 1};
+  const roleNav = navFor(area, role, navOpts); const byMembership = area === 'organization' ? orgPagesFor(orgs) : [];
+  const links = byMembership.length ? PANEL_ITEMS.filter(i => i.area === 'organization' && i.inNav && (roleNav.includes(i) || byMembership.includes(i.href))) : roleNav;
   const navTitle = AREA_FA[area];
   const nativeTitle = links.find(i => i.href === path)?.label ?? title;
   const staff = area === 'ops' || area === 'finance' || area === 'admin';
   const areas = staff && session ? staffAreasFor(role) : [];
-  const tabs = !session ? [] : byMembership.length ? [...links.filter(i => i.mobile).sort((a, b) => (a.mobile ?? 9) - (b.mobile ?? 9)), ...links.filter(i => !i.mobile)].slice(0, 4).map(i => ({label: i.label, href: i.href, glyph: i.glyph ?? '•'})) : mobileTabsFor(area, role);
+  const tabs = !session ? [] : byMembership.length ? [...links.filter(i => i.mobile).sort((a, b) => (a.mobile ?? 9) - (b.mobile ?? 9)), ...links.filter(i => !i.mobile)].slice(0, 4).map(i => ({label: i.label, href: i.href, glyph: i.glyph ?? '•'})) : mobileTabsFor(area, role, navOpts);
   const current = (href: string) => path === href || (href !== '/agency' && href !== '/admin' && href !== '/finance' && path.startsWith(href + '/'));
   return <div className="pn-page" data-figma-page="129:11966" data-area={area}><a className="skip-link" href="#main-content">پرش به محتوای اصلی</a>
     <header className="pn-page-header"><Link className="pn-page-brand" href="/">کارن تراول</Link>

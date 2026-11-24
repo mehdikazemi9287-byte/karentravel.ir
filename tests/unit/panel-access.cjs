@@ -81,4 +81,11 @@ assert.equal(A.canOpen('admin','/finance/refunds/agency-credit/x','finance_opera
 assert.equal(A.canOpen('admin','/backoffice/charter-blocks/x','backoffice_expert'),true);
 assert.ok(hrefs('agency','agency_partner').includes('/agency/settlements')&&hrefs('agency','agency_partner').includes('/agency/inventory/notices'));
 assert.equal(A.canOpen('agency','/agency/settlements/x','agency_partner'),true);assert.equal(A.canOpen('agency','/agency/settlements','customer'),false);
+// Launch V1 item 8.2: with an organization panel, «مزایای سازمانی» leaves the personal menu and its mobile tabs; without one it stays
+assert.ok(hrefs('customer','customer').includes('/account/benefits'));
+const withOrg=JSON.parse(JSON.stringify(A.navFor('customer','customer',{orgPanel:true}).map(i=>i.href)));
+assert.ok(!withOrg.includes('/account/benefits')&&withOrg.includes('/account/wallet')&&withOrg.length===hrefs('customer','customer').length-1);
+assert.ok(!A.mobileTabsFor('customer','customer',{orgPanel:true}).some(t=>t.href==='/account/benefits'));
+assert.deepEqual(JSON.parse(JSON.stringify(A.navFor('organization','organization_admin',{orgPanel:true}).map(i=>i.href))),hrefs('organization','organization_admin'));
+assert.equal(A.canOpen('customer','/account/benefits','customer'),true);  // the page itself only links to the organization panel
 console.log('panel-access: PASS');

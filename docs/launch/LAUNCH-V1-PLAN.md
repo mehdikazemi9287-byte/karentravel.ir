@@ -147,3 +147,13 @@
 - `node tests/unit/panel-context.cjs` ← PASS؛ `node tests/unit/panel-access.cjs` ← PASS (بدون تغییر رفتار نقش‌ها).
 - `tsc --strict` روی `lib/panel-context.ts` و `lib/panel-access.ts` ← بدون خطا. بررسی نحوی `PanelKit.tsx` ← ۰ خطا.
 - **اجرا نشد:** `tsc` کامل پروژه، `eslint` و `next build` (`node_modules` در این محیط نصب نیست)؛ e2e؛ بررسی بصری. باید در CI یا روی سرور پروژه اجرا شود.
+
+## ۸. شاخهٔ `feat/launch-v1-panels-requests` (روی همین شاخه، ۲۴ نوامبر ۲۰۲۶ / ۳ آذر ۱۴۰۵)
+
+محیط: **Source**. سرور Production دست نخورد. وضعیت: `DONE_IN_SOURCE` (روی سایت زنده دیده نشده).
+
+- **۸.۲ (پنل شخصی بدون دادهٔ سازمانی):** `lib/panel-access.ts` (`ORG_LINKED_PERSONAL_PAGES`، گزینهٔ `orgPanel` در `navFor`/`mobileTabsFor`): وقتی پنل سازمان برای کاربر وجود دارد «مزایای سازمانی» از منو و تب موبایل پنل شخصی حذف می‌شود. `components/panel/CustomerPanel.tsx`: `CustomerBenefits` فقط یک کارت با لینک پنل سازمان است؛ کارت «اعتبار سازمانی» از کیف پول شخصی هم برداشته شد. `/me/organization-credit` دیگر در پنل شخصی خوانده نمی‌شود (در میز کار کارمند `/employee` می‌ماند).
+- **۷ (فرم درخواست فروش آفلاین):** `components/customer/OfflineRequest.tsx` با پیام صریح «رزرو آنلاین … هنوز فعال نیست» روی `/hotels`، صفحهٔ هر هتل (فقط وقتی `request.online_booking` نیست)، `/villas`، `/flights`، `/car-rental`، `/tourist-transport`. سفر دریایی و ویزا از قبل فرم داشتند (`ServiceIntro`). `lib/trip-request.ts`: «درخواست رسید» فقط با پاسخ 2xx و `{received: true}`؛ 503 ← «ثبت آنلاین درخواست هنوز فعال نشده است — درخواست شما ثبت نشد» + تلفن پشتیبانی؛ مقادیر فرم در خطا پاک نمی‌شود.
+- صفحهٔ اول، صفحهٔ جست‌وجو، `globals.css`، `ApprovedFigmaHome.tsx` و بک‌اند تغییر نکرد.
+- **QA:** `node tests/unit/panel-access.cjs`، `panel-context.cjs`، `trip-request.cjs` (جدید) ← PASS؛ `npx tsc --noEmit` ← ۰ خطا؛ `npm run lint` ← ۰ خطا (فقط هشدارهای قبلی)؛ `npm run build` ← موفق؛ `pytest tests/test_sales_desk.py tests/test_panel_access_registry.py` ← ۸ PASS؛ `next start` محلی: `/hotels`، `/villas`، `/flights`، `/car-rental`، `/tourist-transport` ← 200 با بخش درخواست. **اجرا نشد:** e2e Playwright، بررسی بصری، آزمون سرتاسری با `SALES_DESK_PUBLIC_TENANT` روی سرور.
+- **منتظر مالک:** آیتم «پنل سازمان» بر اساس عضویت در منوی هدر مشترک (`AccountMenu` در `ApprovedFigmaHome.tsx`) و `roleLinks`؛ تنظیم `SALES_DESK_PUBLIC_TENANT` روی سرور (یا وجود tenant مشتری)؛ اپ مشتری (`components/customer-app/Screens.tsx`) و checkout هنوز اعتبار سازمانی را نشان می‌دهند — تصمیم جداگانه.
