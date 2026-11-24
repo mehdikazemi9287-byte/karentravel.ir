@@ -38,3 +38,14 @@ it is approved, and the rest of the protected surface stays as it was.
     airports are listed reads «همهٔ فرودگاه‌ها» without a duplicate code. Same dropdown, same styles otherwise.
 - Files: `components/search/HomeSearchExperience.tsx`, `app/globals.css` (two `.fs-pop--auto` rules).
 - Evidence: `docs/qa/2026-11-23-normal-ota/` (before/after 1440 + 390). Rollback: revert those hunks.
+
+## 1405-09-03 (2026-11-24) — APPROVED by the owner: «پنل سازمان» in the shared header account menu
+
+- Status: **approved by the owner** (Launch V1 item 8.3 decision, 2026-11-24), relayed by the supervisor.
+- Scope: one menu item only. `AccountMenu` in `components/marketplace/ApprovedFigmaHome.tsx` reads `/enterprise/context`
+  and passes the memberships to `roleLinks` (`lib/panel-access.ts`), which adds «پنل سازمان» (→ `/organization` for a
+  person with an organization-records grant, else `/employee`) only for a person with an organization membership or a
+  legacy organization role. A plain customer's menu is unchanged. No other change to that file, the homepage visuals,
+  the search page or `globals.css`.
+- Files: `components/marketplace/ApprovedFigmaHome.tsx` (`AccountMenu` + two imports), `lib/panel-access.ts` (`roleLinks`).
+- Evidence: `tests/unit/panel-context.cjs` (roleLinks cases). Rollback: revert those hunks.

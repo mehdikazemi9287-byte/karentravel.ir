@@ -13,19 +13,23 @@
  ],
  "manager": [
   "approval:decide",
+  "reservation:create",
+  "reservation:manage",
   "reservation:read",
   "trip:read"
  ],
  "welfare_manager": [
   "approval:decide",
   "credit:read",
+  "reservation:create",
+  "reservation:manage",
   "reservation:read",
   "trip:read"
  ],
  "organization_admin": [
   "approval:decide",
-  "credit:manage",
-  "member:manage",
+  "reservation:create",
+  "reservation:manage",
   "reservation:read",
   "trip:read"
  ],

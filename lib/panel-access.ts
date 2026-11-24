@@ -11,6 +11,7 @@
  * checks, so the guard runs in the panel shell, and the API keeps the authority.
  */
 import ROLE_PERMISSIONS from './role-permissions.json';
+import {orgAllows, orgHomeFor, type OrgMembership} from './panel-context';
 
 export type Area = 'customer' | 'organization' | 'agency' | 'supplier' | 'ops' | 'finance' | 'admin';
 export type Rule = {roles?: string[]; anyPermission?: string[]; notRoles?: string[]};
@@ -212,11 +213,18 @@ export function mobileTabsFor(area: Area, role: string, opts: NavOptions = {}): 
   return [...picked, ...fill].map(i => ({label: i.label, href: i.href, glyph: i.glyph ?? '•'}));
 }
 
-/** Account-menu links: the customer basics, the role's own panel, then every staff/partner tool the role may open. */
-export function roleLinks(role: string): Array<[string, string]> {
+/** Legacy organization roles (Launch V1 8.3): organization authority now comes from membership; these only count until re-login after the role migration. */
+export const ORG_ROLES = ['employee', 'manager', 'welfare_manager', 'organization_admin'];
+/** Account-menu links: the customer basics, «پنل سازمان» when the person has an organization (membership from
+ *  /enterprise/context, or a legacy organization role), the staff/partner panel of the role, then every tool the role or
+ *  the membership may open. A plain customer with no membership gets exactly the customer basics. */
+export function roleLinks(role: string, orgs: OrgMembership[] = []): Array<[string, string]> {
   const links: Array<[string, string]> = [['حساب من', '/account'], ['رزروها و سفرها', '/account/bookings'], ['درخواست‌های قطار', '/account/train-requests'], ['شهرشاد، پادویرا و سوغات', '/account/partner-requests'], ['اعلان‌ها', '/account/notifications'], ['امنیت ورود', '/account/security'], ['پشتیبانی', '/account/support']];
-  const home = roleHome[role]; if (home && home !== '/account') links.push(['پنل کاری من', home]);
-  for (const i of PANEL_ITEMS) if (i.menu && allows(i.rule, role)) links.push([i.label, i.href]);
+  const home = roleHome[role]; const legacyOrg = ORG_ROLES.includes(role);
+  if (home && home !== '/account' && !legacyOrg) links.push(['پنل کاری من', home]);
+  const orgHome = orgHomeFor(orgs) ?? (legacyOrg ? home : null);
+  if (orgHome) links.push(['پنل سازمان', orgHome]);
+  for (const i of PANEL_ITEMS) if (i.menu && (allows(i.rule, role) || (i.area === 'organization' && orgAllows(i.href, orgs)))) links.push([i.label, i.href]);
   if (allows(R.quotes, role)) links.push(['پیشنهادهای قیمت', '/quotes']);
   return links.filter((item, index, all) => all.findIndex(x => x[1] === item[1]) === index);
 }

@@ -9,6 +9,7 @@ from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session
 from . import operations as m
 from . import enterprise_models as e
+from . import org_access
 from .financial_amounts import FinancialInvariantError, payment_totals, supplier_liability, settlement_remaining
 
 
@@ -119,14 +120,8 @@ def ecosystem_finance_router(get_db, current_user, role_has_permission, price_ha
         tenant_manager = role_has_permission(user.role, "tenant:manage")
         if org is None or (member is None and not tenant_manager):
             raise HTTPException(403, "عضویت در این سازمان فعال تأیید نشده است")
-        if user.role != "organization_admin" and not tenant_manager:
-            grant = db.scalar(select(e.EnterpriseGrant).where(
-                e.EnterpriseGrant.tenant_id == user.tenant_id,
-                e.EnterpriseGrant.organization_id == organization_id,
-                e.EnterpriseGrant.user_id == user.id,
-            ))
-            if grant is None or "requests.read_all" not in json.loads(grant.permissions_json):
-                raise HTTPException(403, "مجوز مشاهده سفرهای سازمان را ندارید")
+        if not tenant_manager and "requests.read_all" not in org_access.granted(db, user, organization_id):
+            raise HTTPException(403, "مجوز مشاهده سفرهای سازمان را ندارید")
         return rows(db, user, organization_id, limit, offset)
 
     def permitted_booking(db, user, reservation_id):
@@ -140,8 +135,7 @@ def ecosystem_finance_router(get_db, current_user, role_has_permission, price_ha
             request = db.scalar(select(e.EnterpriseRequest).where(e.EnterpriseRequest.id == link.request_id, e.EnterpriseRequest.tenant_id == user.tenant_id))
             member = db.scalar(select(m.EmployeeAssignment.id).where(m.EmployeeAssignment.tenant_id == user.tenant_id, m.EmployeeAssignment.organization_id == request.organization_id, m.EmployeeAssignment.user_id == user.id)) if request is not None else None
             if member is not None and request is not None:
-                grant = db.scalar(select(e.EnterpriseGrant).where(e.EnterpriseGrant.organization_id == request.organization_id, e.EnterpriseGrant.tenant_id == user.tenant_id, e.EnterpriseGrant.user_id == user.id))
-                if user.role == "organization_admin" or (grant is not None and "requests.read_all" in json.loads(grant.permissions_json)): return booking
+                if "requests.read_all" in org_access.granted(db, user, request.organization_id): return booking
         raise HTTPException(403, "مجوز مشاهده اطلاعات مالی این رزرو را ندارید")
 
     @api.get("/me/financial-links")

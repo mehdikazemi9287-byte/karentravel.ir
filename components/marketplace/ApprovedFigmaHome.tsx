@@ -5,7 +5,8 @@ import {roleLinks} from '../../lib/role-navigation';
 import './approved-figma.css';
 import './approved-inner-2026-11.css';
 import {ApprovedHomeLower, ApprovedFooterLight, ApprovedHomeHero, ApprovedHomeBento} from './ApprovedHomeLower';
-import {Suspense, type ReactNode} from 'react';
+import {Suspense, useEffect, useState, type ReactNode} from 'react';
+import type {OrgMembership} from '../../lib/panel-context';
 import {HomeSearchExperience} from '../search/HomeSearchExperience';
 import {supportPhone} from '../../lib/site-contact';
 const imgIconInstagram = "/images/approved-figma/imgIconInstagram.svg";
@@ -87,13 +88,21 @@ type ComponentButtonProps = {
 };
 
 export function AccountMenu({variant = "site"}: {variant?: "site" | "panel"}) {
-  const {session, logout} = useAuth();
+  const {session, logout, api} = useAuth();
+  // «پنل سازمان» only for a person with an organization membership (Launch V1 8.3, owner-approved 2026-11-24); plain customers see no change.
+  const [orgs, setOrgs] = useState<OrgMembership[]>([]);
+  useEffect(() => {
+    if (!session?.user) return;
+    let active = true;
+    api.get<{organizations: OrgMembership[]}>('/enterprise/context').then(d => {if (active) setOrgs(d.organizations ?? []);}).catch(() => {if (active) setOrgs([]);});
+    return () => {active = false;};
+  }, [api, session]);
   if (!session?.user) return null;
   return <details className={variant === "panel" ? "kh-account-menu pn-account" : "kh-account-menu"} dir="rtl">
     <summary className={variant === "panel" ? "pn-account-label" : "bg-[#ef5b3d] px-[20px] py-[12px] rounded-[100px] text-white font-[Vazirmatn] font-semibold text-[15px]"}>حساب کاربری</summary>
     <div className="kh-account-popover">
       <p>{session.user.name}</p>
-      {roleLinks(session.user.role).map(([label, href]) => <Link key={href} href={href}>{label}</Link>)}
+      {roleLinks(session.user.role, orgs).map(([label, href]) => <Link key={href} href={href}>{label}</Link>)}
       <button type="button" onClick={() => {void logout();}}>خروج از حساب</button>
     </div>
   </details>;

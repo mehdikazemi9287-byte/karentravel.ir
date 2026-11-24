@@ -16,10 +16,12 @@ export type OrgMembership = {id: string; name: string; permissions: string[]};
 const RECORDS = ['requests.read_all', 'policy.manage', 'roles.manage'];
 /** enterprise.py: GET /organizations/{org}/members. */
 const MEMBERS = ['roles.manage', 'policy.manage', 'requests.on_behalf', 'benefits.manage'];
+/** backend/app/org_access.py::PASSENGERS — saved passengers of the organization. */
+const PASSENGERS = ['roles.manage', 'requests.read_all', 'requests.on_behalf'];
 
 /** Organization pages a member may open by membership; null = any active membership is enough.
- *  Pages missing here (structure, passengers, financial-context) read endpoints guarded by the global
- *  role, so they keep the role rule from lib/panel-access.ts only. */
+ *  Since Launch V1 8.3 (owner decision 2026-11-24) every organization page is opened by membership + grant;
+ *  the global role only still counts for legacy organization roles and for the company's own staff. */
 export const ORG_PAGE_PERMISSIONS: Record<string, string[] | null> = {
   '/employee': null,                    // /enterprise/context + /enterprise/requests (own requests)
   '/organization/requests': null,       // /enterprise/requests filters to own / approver / read_all
@@ -31,6 +33,9 @@ export const ORG_PAGE_PERMISSIONS: Record<string, string[] | null> = {
   '/organization/billing': RECORDS,     // org_reader (/statement)
   '/organization/audit': RECORDS,       // org_reader
   '/organization/members': MEMBERS,
+  '/organization/structure': RECORDS,   // GET /organization/overview (scoped to these orgs); editing needs roles.manage
+  '/organization/passengers': PASSENGERS, // panel_ops._scope_access (org_access.PASSENGERS)
+  '/organization/financial-context': ['requests.read_all'], // ecosystem_finance.organization_links
 };
 
 function clean(path: string): string {return (path || '/').replace(/\/+$/, '') || '/';}

@@ -33,6 +33,7 @@ from sqlalchemy.orm import Mapped, Session, mapped_column
 from . import after_sales as asl
 from . import approvals
 from . import operations as m
+from . import org_access
 from . import traveller_identity as ti
 from .database import Base
 from .operations import OperationalMixin
@@ -42,7 +43,6 @@ PHASE1_REST_TABLES = ("ops_sla_policies", "tax_rate_periods", "price_change_prop
 APPEND_ONLY = ("settlement_import_lines", "bank_payout_items")
 
 _DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
-ORG_MANAGER_ROLES = ("manager", "welfare_manager", "organization_admin")
 
 
 def utcnow() -> datetime:
@@ -643,9 +643,8 @@ def panel_ops_router(get_db, current_user, role_has_permission, User, audit: Cal
                 raise HTTPException(404, "سازمان در دسترس این حساب نیست")
             if has(user, "tenant:manage"):
                 return
-            member = db.scalar(select(m.EmployeeAssignment.id).where(m.EmployeeAssignment.tenant_id == user.tenant_id, m.EmployeeAssignment.organization_id == org.id,
-                                                                     m.EmployeeAssignment.user_id == user.id))
-            if member is None or user.role not in ORG_MANAGER_ROLES:
+            # Organization authority comes from membership + grant in this organization (org_access), not from the global role.
+            if not org_access.has_org_permission(db, user, org.id, org_access.PASSENGERS):
                 raise HTTPException(404, "سازمان در دسترس این حساب نیست")
             return
         if scope_type == "agency":

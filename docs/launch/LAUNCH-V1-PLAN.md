@@ -110,7 +110,7 @@
 2. **[S] QA زنده پس از انتشار:** HTTPS (گواهی، ریدایرکت)، `build_info.json` = HEAD، صفحه‌های Stitch کنار PNG.
 3. **[S] پیامک:** پیگیری کد 430 و قالب تولیدی (مالک) ← یک ارسال آزمایشی ← `sms_notifications` = LIVE.
 4. **[S] مورد ۸.۲:** پاک‌کردن سازمان از پنل شخصی + لینک پنل سازمان در منو.
-5. **[M] مورد ۸.۳:** مجوز خرید شخصی برای نقش‌های سازمانی + گاردهای سازمانی بک‌اند + آزمون‌ها.
+5. **[M] مورد ۸.۳:** مجوز خرید شخصی برای نقش‌های سازمانی + گاردهای سازمانی بک‌اند + آزمون‌ها. — **در Source انجام شد (بخش ۹)؛ migration 78 منتظر تأیید مالک.**
 6. **[S] مورد ۷:** فرم درخواست روی صفحهٔ هتل‌ها و صفحه‌های بدون تأمین‌کننده؛ تنظیم `SALES_DESK_PUBLIC_TENANT`؛ آزمون سرتاسری.
 7. **[M] مورد ۶:** با رسیدن merchant_id اینجاست: تنظیم env، تراکنش واقعی کوچک با تأیید مالک، تطبیق.
 8. **[M] مورد ۵:** ثبت آژانس‌های قراردادی و تورها؛ خرید تور با درگاه زنده یا درخواست.
@@ -157,3 +157,20 @@
 - صفحهٔ اول، صفحهٔ جست‌وجو، `globals.css`، `ApprovedFigmaHome.tsx` و بک‌اند تغییر نکرد.
 - **QA:** `node tests/unit/panel-access.cjs`، `panel-context.cjs`، `trip-request.cjs` (جدید) ← PASS؛ `npx tsc --noEmit` ← ۰ خطا؛ `npm run lint` ← ۰ خطا (فقط هشدارهای قبلی)؛ `npm run build` ← موفق؛ `pytest tests/test_sales_desk.py tests/test_panel_access_registry.py` ← ۸ PASS؛ `next start` محلی: `/hotels`، `/villas`، `/flights`، `/car-rental`، `/tourist-transport` ← 200 با بخش درخواست. **اجرا نشد:** e2e Playwright، بررسی بصری، آزمون سرتاسری با `SALES_DESK_PUBLIC_TENANT` روی سرور.
 - **منتظر مالک:** آیتم «پنل سازمان» بر اساس عضویت در منوی هدر مشترک (`AccountMenu` در `ApprovedFigmaHome.tsx`) و `roleLinks`؛ تنظیم `SALES_DESK_PUBLIC_TENANT` روی سرور (یا وجود tenant مشتری)؛ اپ مشتری (`components/customer-app/Screens.tsx`) و checkout هنوز اعتبار سازمانی را نشان می‌دهند — تصمیم جداگانه.
+
+## ۹. شاخهٔ `feat/role-model-org-grants` — مورد ۸.۳ (۲۴ نوامبر ۲۰۲۶ / ۳ آذر ۱۴۰۵)
+
+محیط: **Source**. Production دست نخورد. وضعیت: `DONE_IN_SOURCE` (merge و دیپلوی نشده).
+
+**تصمیم مالک (۲۰۲۶-۱۱-۲۴):** «همه مشتری عادی‌اند + اختیار سازمانی جدا می‌آید». نقش سراسری هر شخص `customer` است (کارکنان خود مجموعه — عملیات، مالی، ادمین، آژانس، تأمین‌کننده — بدون تغییر). مدیریت سازمان فقط از عضویت (`employee_assignments`) + مجوز همان سازمان (`enterprise_grants`) می‌آید.
+
+- **بک‌اند:** `backend/app/org_access.py` (جدید) — تنها منبع: عضویت + مجوز در همان سازمان و همان tenant. نقش سازمانی قدیمی فقط درون سازمانی که عضوش است معادل مجوزهایش حساب می‌شود (سازگاری تا ورود دوباره): `manager` → `requests.read_all, requests.approve`؛ `welfare_manager` → + `benefits.manage`؛ `organization_admin` → همهٔ مجوزها.
+  - `POST /organizations/{org}/departments|cost-centers|approval-templates`: کارکنان مجموعه (`tenant:manage`) یا عضو دارای `roles.manage` در همان سازمان (قبلاً `member:manage` سراسری، بدون محدودیت سازمان).
+  - `GET /organization/overview`: فقط سازمان‌هایی که شخص در آن‌ها مجوز سوابق دارد (قبلاً همهٔ سازمان‌های tenant برای هر نقش سازمانی).
+  - مسافران سازمان (`/scopes/organization/{id}/passengers`): عضو با `roles.manage | requests.read_all | requests.on_behalf`.
+  - `ecosystem_finance`، `enterprise.permissions()` و فهرست اعضا: از همان helper.
+  - گردش تأیید قدیمی (`/approvals/{id}/decision|escalate`): مرحلهٔ سازمانی با `requests.approve` / `roles.manage` در سازمانِ الگو.
+  - `ROLE_PERMISSIONS` (≡ `lib/role-permissions.json`): نقش‌های سازمانی قدیمی مجوز خرید شخصی (`reservation:create/manage`) گرفتند و `member:manage` / `credit:manage` سراسری از `organization_admin` برداشته شد.
+- **Migration داده `20261124_78`** (head تکی بعد از `20261112_77`): برای هر حساب با نقش سازمانی، مجوز معادل در سازمان‌های عضو (اجتماع با مجوز موجود) ← پشتیبان در `org_role_migration_backups` ← نقش `customer`. حساب مدیر بدون عضویت دست نمی‌خورد (در لاگ شمرده می‌شود). idempotent؛ downgrade دقیقاً برمی‌گرداند. **قبل از دیپلوی تأیید صریح مالک لازم است.**
+- **فرانت:** `lib/panel-context.ts` (ساختار، مسافران، تعهد مالی با مجوز سازمانی)، `lib/panel-access.ts::roleLinks` (لینک «پنل سازمان» بر اساس عضویت)، `AccountMenu` در هدر مشترک (تأیید مالک، ثبت در `docs/product/approvals.md`).
+- **QA:** `pytest tests` ← 953 PASS / 7 skip؛ آزمون جدید «مشتری + کارمند الف + مدیر ب» (`tests/test_org_role_model.py`) و migration (`tests/test_org_role_migration.py`)؛ `alembic upgrade 20261112_77 → head`، اجرای دوباره، `downgrade` و `alembic check` روی PostgreSQL 16 محلی با کاربر غیر superuser (RLS فعال) ← درست؛ `npx tsc --noEmit` ← ۰ خطا؛ `npm run lint` ← ۰ خطا (۴۴ هشدار قبلی)؛ `npm run build` ← موفق؛ `tests/unit/*.cjs` ← PASS. **اجرا نشد:** e2e Playwright (۸.۴)، بررسی بصری، اجرا روی سرور.

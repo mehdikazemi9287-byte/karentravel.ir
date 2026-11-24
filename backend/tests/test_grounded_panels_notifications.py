@@ -7,7 +7,7 @@ from sqlalchemy import select
 
 import app.main as main_module
 from app.main import SessionLocal, User
-from app.operations import NotificationDeliveryAttempt, NotificationRecord, Offer, Organization, PaymentIntent, RefundRecord, Reservation, Supplier, Trip
+from app.operations import EmployeeAssignment, NotificationDeliveryAttempt, NotificationRecord, Offer, Organization, PaymentIntent, RefundRecord, Reservation, Supplier, Trip
 
 
 def auth(token): return {"Authorization": f"Bearer {token}"}
@@ -125,7 +125,10 @@ def test_authenticated_frontend_read_models_are_tenant_and_role_scoped(client):
         own_notice = NotificationRecord(tenant_id=aftab_user.tenant_id, user_id=aftab_user.id, topic="trip_changes", title="تغییر معتبر", message="جزئیات", status="pending")
         hidden_notice = NotificationRecord(tenant_id=faraz_user.tenant_id, user_id=faraz_user.id, topic="trip_changes", title="اعلان فراز", message="محرمانه", status="pending")
         organization = Organization(tenant_id=aftab_user.tenant_id, name="سازمان آفتاب", status="active")
-        db.add_all([own_trip, hidden_trip, own_notice, hidden_notice, organization]); db.commit()
+        db.add_all([own_trip, hidden_trip, own_notice, hidden_notice, organization]); db.flush()
+        # The organization overview is scoped to the organizations the viewer manages (Launch V1 8.3).
+        admin_user = db.scalar(select(User).where(User.email == "org-admin@aftab.test"))
+        db.add(EmployeeAssignment(tenant_id=aftab_user.tenant_id, user_id=admin_user.id, organization_id=organization.id)); db.commit()
     trips = client.get("/me/trips", headers=auth(employee["access_token"]))
     trip_titles = [row["title"] for row in trips.json()]
     # Bookings elsewhere in this test session now auto-create real Trip rows for this same seeded

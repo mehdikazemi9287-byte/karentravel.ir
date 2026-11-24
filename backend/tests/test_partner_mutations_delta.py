@@ -22,7 +22,9 @@ def test_partner_retries_do_not_duplicate_rows_or_override_payload(client):
 def test_organization_structure_retry_conflict_and_permission(client):
     email='org-'+uuid.uuid4().hex+'@qa.invalid'
     with SessionLocal() as db:
-        owner=db.scalar(select(User).where(User.email=='employee@aftab.test'));org=m.Organization(tenant_id=owner.tenant_id,name='Mock QA organization');db.add(org);db.add(User(tenant_id=owner.tenant_id,email=email,name='Mock QA org admin',role='organization_admin'));db.commit();oid=org.id
+        owner=db.scalar(select(User).where(User.email=='employee@aftab.test'));org=m.Organization(tenant_id=owner.tenant_id,name='Mock QA organization');db.add(org);admin_user=User(tenant_id=owner.tenant_id,email=email,name='Mock QA org admin',role='organization_admin');db.add(admin_user);db.flush()
+        # Organization authority comes from membership (Launch V1 8.3): both are members; only the admin holds the organization grants.
+        db.add_all([m.EmployeeAssignment(tenant_id=owner.tenant_id,user_id=u.id,organization_id=org.id) for u in (owner,admin_user)]);db.commit();oid=org.id
     admin=login(client,email);employee=login(client,'employee@aftab.test');faraz=login(client,'employee@faraz.test')
     for endpoint in ['departments','cost-centers']:
         url='/organizations/'+oid+'/'+endpoint;payload={'name':'Mock QA unit','code':'QA-'+uuid.uuid4().hex,'budget_amount':0}

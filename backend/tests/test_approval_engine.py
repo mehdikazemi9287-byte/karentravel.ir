@@ -1,7 +1,7 @@
 from sqlalchemy import select
 
 from app.main import SessionLocal, User
-from app.operations import ApprovalInstanceStep, Organization, Reservation
+from app.operations import ApprovalInstanceStep, EmployeeAssignment, Organization, Reservation
 
 
 def auth(token): return {"Authorization": f"Bearer {token}"}
@@ -18,8 +18,22 @@ def create_context():
         employee = db.scalar(select(User).where(User.email == "employee@aftab.test"))
         organization = Organization(tenant_id=employee.tenant_id, name="سازمان گردش تأیید", status="active")
         reservation = Reservation(tenant_id=employee.tenant_id, user_id=employee.id, service_type="flight", status="reserved", price_snapshot_json='{"total_amount":1000000,"currency":"IRR"}', policy_at_booking_json='{"verified":true}')
-        db.add_all([organization, reservation]); db.commit()
+        db.add_all([organization, reservation]); db.flush()
+        # Organization authority comes from membership (Launch V1 8.3): the organization's managers are members of it.
+        for email in ("org-admin@aftab.test", "welfare@aftab.test"):
+            member = db.scalar(select(User).where(User.email == email))
+            db.add(EmployeeAssignment(tenant_id=employee.tenant_id, user_id=member.id, organization_id=organization.id))
+        db.commit()
         return organization.id, reservation.id
+
+
+def test_structure_of_an_organization_needs_membership(client):
+    with SessionLocal() as db:
+        employee = db.scalar(select(User).where(User.email == "employee@aftab.test"))
+        other = Organization(tenant_id=employee.tenant_id, name="سازمان بدون عضویت مدیر", status="active"); db.add(other); db.commit(); other_id = other.id
+    org_admin = login(client, "org-admin@aftab.test")
+    response = client.post(f"/organizations/{other_id}/departments", headers=auth(org_admin["access_token"]), json={"name": "فروش", "code": "SALES"})
+    assert response.status_code == 404
 
 
 def test_configurable_multistep_approval_sla_escalation_and_audit(client):
