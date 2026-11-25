@@ -38,6 +38,7 @@ from . import approvals  # maker-checker requests (H-1); registers maker_checker
 from .observability import configure_logging, prometheus_metrics, record_business_event, record_request
 from .rate_limit import InMemoryRateLimiter, RedisRateLimiter, fingerprint
 from .security import role_has_permission
+from . import org_access
 from . import sms_guard  # noqa: E402  global per-destination SMS cap (table registered on Base)
 from .providers import configured_adapter, validate_provider_modes
 from .version import read_build_info
@@ -1614,15 +1615,32 @@ approvals.register("wallet.fund", can_check=lambda actor, payload: role_has_perm
 approvals.register("credit_account.create", can_check=lambda actor, payload: role_has_permission(actor.role, "credit:fund"), execute=_execute_credit_account_create, label="ایجاد حساب اعتباری سازمان")
 
 
+def _org_step_approver(db: Session, user: User, workflow, step) -> bool:
+    """An organization step (manager / welfare_manager / organization_admin) is decided by a member of the template's organization
+    holding requests.approve there (org_access), whatever their global role."""
+    if step.required_role not in org_access.LEGACY_ORG_ROLES or not workflow.template_id: return False
+    template = db.scalar(select(operational_models.ApprovalTemplate).where(operational_models.ApprovalTemplate.id == workflow.template_id, operational_models.ApprovalTemplate.tenant_id == user.tenant_id))
+    return template is not None and org_access.has_org_permission(db, user, template.organization_id, {"requests.approve"})
+
+
+def _approval_decider(user: User = Depends(current_user), db: Session = Depends(get_db)) -> User:
+    """approval:decide by a staff role, or a member holding requests.approve in some organization (checked again, per step and
+    per organization, in approval_decision)."""
+    if role_has_permission(user.role, "approval:decide") or org_access.org_ids_with(db, user, {"requests.approve"}): return user
+    raise HTTPException(status_code=403, detail="مجوز لازم برای این اقدام وجود ندارد")
+
+
 @app.post("/approvals/{approval_id}/decision")
-def approval_decision(approval_id: str, data: ApprovalDecisionIn, user: User = Depends(require_permission("approval:decide")), db: Session = Depends(get_db)) -> dict:
+def approval_decision(approval_id: str, data: ApprovalDecisionIn, user: User = Depends(_approval_decider), db: Session = Depends(get_db)) -> dict:
     workflow = db.scalar(select(operational_models.ApprovalWorkflow).where(operational_models.ApprovalWorkflow.id == approval_id, operational_models.ApprovalWorkflow.tenant_id == user.tenant_id).with_for_update())
     if workflow is None: raise HTTPException(status_code=404, detail="درخواست تأیید در این سازمان وجود ندارد")
     if workflow.status != "pending": raise HTTPException(status_code=409, detail="درخواست قبلاً تعیین تکلیف شده است")
     if workflow.template_id:
         step = db.scalar(select(operational_models.ApprovalInstanceStep).where(operational_models.ApprovalInstanceStep.workflow_id == workflow.id, operational_models.ApprovalInstanceStep.tenant_id == user.tenant_id, operational_models.ApprovalInstanceStep.step_order == workflow.current_step_order).with_for_update())
         if step is None or step.status != "pending": raise HTTPException(status_code=409, detail="مرحله فعال تأیید وجود ندارد")
-        if user.role != step.required_role and user.role != "platform_admin": raise HTTPException(status_code=403, detail="این مرحله به نقش دیگری اختصاص دارد")
+        org_step = step.required_role in org_access.LEGACY_ORG_ROLES
+        allowed = user.role == "platform_admin" or (_org_step_approver(db, user, workflow, step) if org_step else (user.role == step.required_role and role_has_permission(user.role, "approval:decide")))
+        if not allowed: raise HTTPException(status_code=403, detail="این مرحله به نقش دیگری اختصاص دارد")
         now = datetime.now(timezone.utc)
         if data.decision == "reject":
             if not data.rejection_reason or len(data.rejection_reason.strip()) < 3: raise HTTPException(status_code=422, detail="دلیل رد الزامی است")
@@ -1650,6 +1668,7 @@ def approval_decision(approval_id: str, data: ApprovalDecisionIn, user: User = D
                     pass
         db.commit()
         return {"id": workflow.id, "status": workflow.status, "current_step_order": workflow.current_step_order, "step_status": step.status}
+    if not role_has_permission(user.role, "approval:decide"): raise HTTPException(status_code=403, detail="مجوز لازم برای این اقدام وجود ندارد")
     workflow.status = "approved" if data.decision == "approve" else "rejected"
     workflow.approver_user_id = user.id
     db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="approval", aggregate_id=workflow.id, event_type=f"approval.{workflow.status}", payload_json="{}", correlation_id=str(uuid.uuid4()), idempotency_key=f"approval:{workflow.id}:{workflow.status}"))
@@ -4858,9 +4877,9 @@ def reissue_voucher(reservation_id: str, data: VoucherReissueIn, user: User = De
 
 
 @app.post("/organizations/{organization_id}/departments", status_code=status.HTTP_201_CREATED)
-def create_department(organization_id: str, data: OrganizationDimensionIn, user: User = Depends(require_permission("member:manage")), db: Session = Depends(get_db)) -> dict:
-    organization = db.scalar(select(operational_models.Organization).where(operational_models.Organization.id == organization_id, operational_models.Organization.tenant_id == user.tenant_id).with_for_update())
-    if organization is None: raise HTTPException(status_code=404, detail="سازمان وجود ندارد")
+def create_department(organization_id: str, data: OrganizationDimensionIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    # Tenant staff, or a member of THIS organization holding roles.manage (org_access; never the global role alone).
+    organization = org_access.require_org(db, user, organization_id, org_access.STRUCTURE_MANAGE, lock=True)
     existing=db.scalar(select(operational_models.Department).where(operational_models.Department.tenant_id==user.tenant_id,operational_models.Department.organization_id==organization.id,operational_models.Department.code==data.code))
     if existing:
         if existing.name!=data.name:raise HTTPException(409,"این کد قبلاً با اطلاعات متفاوت ثبت شده است")
@@ -4871,9 +4890,9 @@ def create_department(organization_id: str, data: OrganizationDimensionIn, user:
 
 
 @app.post("/organizations/{organization_id}/cost-centers", status_code=status.HTTP_201_CREATED)
-def create_cost_center(organization_id: str, data: OrganizationDimensionIn, user: User = Depends(require_permission("member:manage")), db: Session = Depends(get_db)) -> dict:
-    organization = db.scalar(select(operational_models.Organization).where(operational_models.Organization.id == organization_id, operational_models.Organization.tenant_id == user.tenant_id).with_for_update())
-    if organization is None: raise HTTPException(status_code=404, detail="سازمان وجود ندارد")
+def create_cost_center(organization_id: str, data: OrganizationDimensionIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    # Tenant staff, or a member of THIS organization holding roles.manage (org_access; never the global role alone).
+    organization = org_access.require_org(db, user, organization_id, org_access.STRUCTURE_MANAGE, lock=True)
     existing=db.scalar(select(operational_models.CostCenter).where(operational_models.CostCenter.tenant_id==user.tenant_id,operational_models.CostCenter.organization_id==organization.id,operational_models.CostCenter.code==data.code))
     if existing:
         if existing.name!=data.name or existing.budget_amount!=(data.budget_amount or 0):raise HTTPException(409,"این کد قبلاً با اطلاعات متفاوت ثبت شده است")
@@ -4884,9 +4903,8 @@ def create_cost_center(organization_id: str, data: OrganizationDimensionIn, user
 
 
 @app.post("/organizations/{organization_id}/approval-templates", status_code=status.HTTP_201_CREATED)
-def create_approval_template(organization_id: str, data: ApprovalTemplateIn, user: User = Depends(require_permission("member:manage")), db: Session = Depends(get_db)) -> dict:
-    organization = db.scalar(select(operational_models.Organization).where(operational_models.Organization.id == organization_id, operational_models.Organization.tenant_id == user.tenant_id))
-    if organization is None: raise HTTPException(status_code=404, detail="سازمان وجود ندارد")
+def create_approval_template(organization_id: str, data: ApprovalTemplateIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    organization = org_access.require_org(db, user, organization_id, org_access.STRUCTURE_MANAGE)
     template = operational_models.ApprovalTemplate(tenant_id=user.tenant_id, organization_id=organization.id, name=data.name, version=data.version)
     db.add(template); db.flush()
     for order, item in enumerate(data.steps, 1):
@@ -4896,11 +4914,24 @@ def create_approval_template(organization_id: str, data: ApprovalTemplateIn, use
 
 
 @app.get("/organization/overview")
-def organization_overview(user: User = Depends(require_role("manager", "welfare_manager", "organization_admin", "finance_operator", "tenant_admin", "platform_admin")), db: Session = Depends(get_db)) -> dict:
-    organizations = db.scalars(select(operational_models.Organization).where(operational_models.Organization.tenant_id == user.tenant_id).order_by(operational_models.Organization.name)).all()
-    departments = db.scalars(select(operational_models.Department).where(operational_models.Department.tenant_id == user.tenant_id).order_by(operational_models.Department.name)).all()
-    cost_centers = db.scalars(select(operational_models.CostCenter).where(operational_models.CostCenter.tenant_id == user.tenant_id).order_by(operational_models.CostCenter.name)).all()
-    workflows = db.scalars(select(operational_models.ApprovalWorkflow).where(operational_models.ApprovalWorkflow.tenant_id == user.tenant_id).order_by(operational_models.ApprovalWorkflow.created_at.desc()).limit(50)).all()
+def organization_overview(user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    """Tenant staff (and finance) see every organization of the tenant; anyone else sees only the organizations in which they
+    hold an organization-records grant (org_access.RECORDS). Without any, 403."""
+    om = operational_models
+    if org_access.is_tenant_staff(user) or user.role == "finance_operator":
+        scope = None
+    else:
+        scope = org_access.org_ids_with(db, user, org_access.RECORDS)
+        if not scope: raise HTTPException(status_code=403, detail="مجوز مشاهدهٔ ساختار سازمان را ندارید")
+    def scoped(q, column):
+        return q if scope is None else q.where(column.in_(scope))
+    organizations = db.scalars(scoped(select(om.Organization).where(om.Organization.tenant_id == user.tenant_id), om.Organization.id).order_by(om.Organization.name)).all()
+    departments = db.scalars(scoped(select(om.Department).where(om.Department.tenant_id == user.tenant_id), om.Department.organization_id).order_by(om.Department.name)).all()
+    cost_centers = db.scalars(scoped(select(om.CostCenter).where(om.CostCenter.tenant_id == user.tenant_id), om.CostCenter.organization_id).order_by(om.CostCenter.name)).all()
+    wq = select(om.ApprovalWorkflow).where(om.ApprovalWorkflow.tenant_id == user.tenant_id)
+    if scope is not None:
+        wq = wq.join(om.ApprovalTemplate, om.ApprovalTemplate.id == om.ApprovalWorkflow.template_id).where(om.ApprovalTemplate.tenant_id == user.tenant_id, om.ApprovalTemplate.organization_id.in_(scope))
+    workflows = db.scalars(wq.order_by(om.ApprovalWorkflow.created_at.desc()).limit(50)).all()
     return {
         "tenant_id": user.tenant_id,
         "organizations": [{"id": row.id, "name": row.name, "status": row.status} for row in organizations],
@@ -4933,8 +4964,13 @@ def start_approval_workflow(reservation_id: str, data: ApprovalStartIn, user: Us
 
 
 @app.post("/approvals/{approval_id}/escalate")
-def escalate_approval(approval_id: str, data: EscalationIn, user: User = Depends(require_permission("member:manage")), db: Session = Depends(get_db)) -> dict:
+def escalate_approval(approval_id: str, data: EscalationIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
     workflow = db.scalar(select(operational_models.ApprovalWorkflow).where(operational_models.ApprovalWorkflow.id == approval_id, operational_models.ApprovalWorkflow.tenant_id == user.tenant_id).with_for_update())
+    if not role_has_permission(user.role, "member:manage"):
+        # Not tenant staff: only a member holding roles.manage in the workflow template's organization.
+        template = db.scalar(select(operational_models.ApprovalTemplate).where(operational_models.ApprovalTemplate.id == workflow.template_id, operational_models.ApprovalTemplate.tenant_id == user.tenant_id)) if workflow is not None and workflow.template_id else None
+        if template is None or not org_access.has_org_permission(db, user, template.organization_id, org_access.STRUCTURE_MANAGE):
+            raise HTTPException(status_code=403, detail="مجوز لازم برای این اقدام وجود ندارد")
     if workflow is None or workflow.status != "pending": raise HTTPException(status_code=404, detail="گردش فعال وجود ندارد")
     step = db.scalar(select(operational_models.ApprovalInstanceStep).where(operational_models.ApprovalInstanceStep.workflow_id == workflow.id, operational_models.ApprovalInstanceStep.tenant_id == user.tenant_id, operational_models.ApprovalInstanceStep.step_order == workflow.current_step_order).with_for_update())
     if step is None: raise HTTPException(status_code=409, detail="مرحله فعال وجود ندارد")

@@ -9,10 +9,11 @@ from sqlalchemy import select,func
 from sqlalchemy.orm import Session
 from . import operations as m
 from . import enterprise_models as e
+from . import org_access
 
 USE_CASES=('business_travel','workforce_accommodation','relocation','team_retreat','incentive','organizational_guests','employee_welfare','organizational_event','travel_credit')
 SERVICES=('flight','hotel','train','tour','vacation_rental','car_rental','restaurant','event_hall','pool_sport','attraction','travel_guide','tourist_transportation')
-PERMISSIONS={'requests.read_all','requests.on_behalf','requests.approve','policy.manage','roles.manage','rfq.manage','benefits.manage'}
+PERMISSIONS=set(org_access.ORG_PERMISSIONS)
 
 def aware(value):return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
 
@@ -102,10 +103,9 @@ def router(current_user,get_db,User,AuditEvent):
     def membership(db,user,org):
         return db.scalar(select(m.EmployeeAssignment).where(m.EmployeeAssignment.tenant_id==user.tenant_id,m.EmployeeAssignment.user_id==user.id,m.EmployeeAssignment.organization_id==org))
     def permissions(db,user,org):
+        # Organization authority = membership + grant in THIS organization (org_access); a legacy organization role counts as its grant set.
         if not membership(db,user,org):raise HTTPException(403,'عضویت در این سازمان تأیید نشده است')
-        if user.role=='organization_admin':return PERMISSIONS
-        grant=db.scalar(select(e.EnterpriseGrant).where(e.EnterpriseGrant.tenant_id==user.tenant_id,e.EnterpriseGrant.organization_id==org,e.EnterpriseGrant.user_id==user.id))
-        return set(json.loads(grant.permissions_json)) if grant else set()
+        return org_access.granted(db,user,org)
     def require(db,user,org,permission):
         if permission not in permissions(db,user,org):raise HTTPException(403,'مجوز سازمانی این عملیات را ندارید')
     def org_lock(db,user,org):
@@ -426,7 +426,8 @@ def router(current_user,get_db,User,AuditEvent):
     def member_list(db,user,org):
         users=db.scalars(select(User).join(m.EmployeeAssignment,m.EmployeeAssignment.user_id==User.id).where(User.tenant_id==user.tenant_id,m.EmployeeAssignment.tenant_id==user.tenant_id,m.EmployeeAssignment.organization_id==org).order_by(User.name)).all()
         grants=dict(db.execute(select(e.EnterpriseGrant.user_id,e.EnterpriseGrant.permissions_json).where(e.EnterpriseGrant.tenant_id==user.tenant_id,e.EnterpriseGrant.organization_id==org)).all())
-        return [{'id':u.id,'name':u.name,'email':u.email,'role':u.role,'permissions':sorted(PERMISSIONS) if u.role=='organization_admin' else json.loads(grants.get(u.id,'[]'))} for u in users]
+        legacy=org_access.LEGACY_ORG_ROLE_GRANTS
+        return [{'id':u.id,'name':u.name,'email':u.email,'role':u.role,'permissions':sorted((set(json.loads(grants.get(u.id,'[]')))&PERMISSIONS)|set(legacy.get(u.role,())))} for u in users]
     @api.get('/organizations')
     def organizations(user=Depends(current_user),db:Session=Depends(get_db)):
         if user.role not in TENANT_ADMINS:raise HTTPException(403,'فهرست همهٔ سازمان‌ها فقط برای مدیر مجموعه است')

@@ -11,9 +11,12 @@ from typing import FrozenSet
 ROLE_PERMISSIONS: dict[str, FrozenSet[str]] = {
     "employee": frozenset({"reservation:read", "reservation:create", "reservation:manage", "trip:read"}),
     "customer": frozenset({"reservation:read", "reservation:create", "reservation:manage", "trip:read"}),
-    "manager": frozenset({"reservation:read", "approval:decide", "trip:read"}),
-    "welfare_manager": frozenset({"reservation:read", "approval:decide", "credit:read", "trip:read"}),
-    "organization_admin": frozenset({"reservation:read", "approval:decide", "credit:manage", "member:manage", "trip:read"}),
+    # Legacy organization roles (Launch V1 8.3, owner decision 2026-11-24): organization authority now comes from membership +
+    # enterprise_grants (app/org_access.py) and migration 20261124_78 moves these accounts to `customer`. Until then they keep
+    # the customer's personal permissions plus approval:decide; no tenant-wide member/credit management.
+    "manager": frozenset({"reservation:read", "reservation:create", "reservation:manage", "approval:decide", "trip:read"}),
+    "welfare_manager": frozenset({"reservation:read", "reservation:create", "reservation:manage", "approval:decide", "credit:read", "trip:read"}),
+    "organization_admin": frozenset({"reservation:read", "reservation:create", "reservation:manage", "approval:decide", "trip:read"}),
     "agency_partner": frozenset({"inventory:read", "reservation:fulfill", "agency:manage", "credit:read"}),
     "supplier": frozenset({"inventory:manage", "reservation:fulfill"}),
     "backoffice_expert": frozenset({"reservation:read", "reservation:manage", "approval:decide", "support:manage", "trip:event:create", "backoffice:read", "invoice:manage", "service_request:decide", "license:verify", "inventory:publish"}),

@@ -48,7 +48,10 @@ def test_password_hash_and_role_permissions_are_fail_closed():
     assert encoded != "a-long-development-password"
     assert verify_password("a-long-development-password", encoded)
     assert not verify_password("wrong-password", encoded)
-    assert role_has_permission("organization_admin", "credit:manage")
+    # Launch V1 8.3: organization roles carry no tenant-wide credit or member management; personal purchase like a customer.
+    assert not role_has_permission("organization_admin", "credit:manage") and not role_has_permission("organization_admin", "member:manage")
+    assert role_has_permission("organization_admin", "reservation:create")
+    assert role_has_permission("tenant_admin", "credit:manage")
     assert not role_has_permission("employee", "credit:manage")
     assert not role_has_permission("unknown-role", "reservation:read")
 

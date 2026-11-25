@@ -89,7 +89,7 @@ def test_recipient_feed_isolation(client):
 
 
 def test_admin_template_versioning(client):
-    admin = login(client, "org-admin@aftab.test")        # organization_admin has member:manage
+    admin = login(client, "tenant-admin@aftab.test")     # tenant-wide templates: member:manage (tenant staff)
     base = client.get("/admin/notification-templates", headers=admin)
     assert base.status_code == 200 and len(base.json()) > 0
     up = client.put("/admin/notification-templates", headers=admin, json={
@@ -116,7 +116,7 @@ def test_admin_template_forbidden_for_plain_user(client):
 
 
 def test_new_active_template_used_by_emit(client):
-    admin = login(client, "org-admin@aftab.test")
+    admin = login(client, "tenant-admin@aftab.test")
     client.put("/admin/notification-templates", headers=admin, json={
         "event_type": "refund_completed", "channel": "web", "locale": "fa",
         "title_template": "استرداد شد", "body_template": "CUSTOM {amount}"})

@@ -10,6 +10,7 @@ import {homeFor, type Area} from '../../../lib/panel-access';
 import {FundingApprovals} from '../FundingApprovals';
 import {AgencyScope} from '../AgencyPanel';
 import {OrgScope} from '../OrganizationPanel';
+import {ORG_PAGE_PERMISSIONS} from '../../../lib/panel-context';
 import {PanelShell, useLoad} from '../PanelKit';
 import {ConfirmMoney, DataTable, EmptyState, Loaded, Ref, StatusChip, Unavail, jDate, jDateTime, newKey, rial, toman} from '../aftersales/kit';
 import {DateField, Feedback, Field, digitsLatin, parseRial, pct, useAction} from '../b2b/B2BKit';
@@ -306,5 +307,5 @@ function PassengersBody({scope, id, canEdit = true}: {scope: 'organization' | 'a
     <Feedback error={act.error} done={act.done}/>
   </>;
 }
-export function OrgPassengers() {return <OrgScope>{org => <PassengersBody scope="organization" id={org.id}/>}</OrgScope>;}
+export function OrgPassengers() {return <OrgScope need={ORG_PAGE_PERMISSIONS['/organization/passengers'] ?? undefined}>{org => <PassengersBody scope="organization" id={org.id}/>}</OrgScope>;}
 export function AgencyPassengers() {return <AgencyScope>{a => <PassengersBody scope="agency" id={a.id}/>}</AgencyScope>;}

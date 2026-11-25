@@ -94,3 +94,12 @@ class EnterpriseOnBehalfBooking(OperationalMixin, Base):
     beneficiary_user_id: Mapped[int]=mapped_column(ForeignKey('users.id'),index=True)
     traveller_id: Mapped[Optional[str]]=mapped_column(ForeignKey('travellers.id'),nullable=True)
     __table_args__=(UniqueConstraint('tenant_id','reservation_id',name='uq_enterprise_on_behalf_reservation'),)
+
+class OrgRoleMigrationBackup(OperationalMixin, Base):
+    """Written only by migration 20261124_78 (legacy organization role -> customer + organization grants) so its downgrade can
+    restore each account exactly: the previous global role and, per organization, the grant as it was before (null = none)."""
+    __tablename__='org_role_migration_backups'
+    user_id: Mapped[int]=mapped_column(ForeignKey('users.id'),index=True)
+    previous_role: Mapped[str]=mapped_column(String(48))
+    previous_grants_json: Mapped[str]=mapped_column(Text,default='{}')
+    __table_args__=(UniqueConstraint('tenant_id','user_id',name='uq_org_role_migration_backup_user'),)

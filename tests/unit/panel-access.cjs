@@ -1,7 +1,8 @@
 // Role-filtered panel navigation and route guard (lib/panel-access.ts). Run: node tests/unit/panel-access.cjs
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),ts=require('typescript');
 const src=ts.transpileModule(fs.readFileSync('lib/panel-access.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,esModuleInterop:true}}).outputText;
-const scope={exports:{},require:p=>p.endsWith('.json')?JSON.parse(fs.readFileSync(path.join('lib',p),'utf8')):require(p)};scope.module={exports:scope.exports};
+const tsModule=file=>{const out=ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,esModuleInterop:true}}).outputText;const sc={exports:{}};sc.module={exports:sc.exports};vm.runInNewContext(out,sc);return sc.exports;};
+const scope={exports:{},require:p=>p.endsWith('.json')?JSON.parse(fs.readFileSync(path.join('lib',p),'utf8')):p==='./panel-context'?tsModule('lib/panel-context.ts'):require(p)};scope.module={exports:scope.exports};
 vm.runInNewContext(src,scope);const A=scope.exports;
 const hrefs=(area,role)=>JSON.parse(JSON.stringify(A.navFor(area,role).map(i=>i.href)));
 // staff pages are split into three areas (ops / finance / admin); a role's staff menu is the union of the areas it can open

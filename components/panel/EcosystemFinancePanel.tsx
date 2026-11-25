@@ -2,6 +2,7 @@
 import {useState} from 'react';
 import {EcosystemFinancialDossier} from './EcosystemFinancialDossier';
 import {OrgScope} from './OrganizationPanel';
+import {ORG_PAGE_PERMISSIONS} from '../../lib/panel-context';
 import {Async, Badge, Card, Stats, Table, fa, serviceFa, useLoad} from './PanelKit';
 
 type LinkRow = {
@@ -53,4 +54,4 @@ export function EcosystemFinancialLinks({organizationId}: {organizationId?: stri
   </>}</Async>;
 }
 
-export function OrganizationFinancialLinks() {return <OrgScope>{org => <EcosystemFinancialLinks key={org.id} organizationId={org.id}/>}</OrgScope>;}
+export function OrganizationFinancialLinks() {return <OrgScope need={ORG_PAGE_PERMISSIONS['/organization/financial-context'] ?? undefined}>{org => <EcosystemFinancialLinks key={org.id} organizationId={org.id}/>}</OrgScope>;}

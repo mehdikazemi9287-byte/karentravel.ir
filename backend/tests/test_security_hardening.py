@@ -184,7 +184,7 @@ def test_dev_login_disabled_outside_development(client, monkeypatch):
 
 @pytest.mark.parametrize("link", ["javascript:alert(1)", "//evil.example/x", "https://evil.example", "/\\evil.example", " /trips", "data:text/html,x"])
 def test_notification_template_rejects_unsafe_deep_links(client, link):
-    admin = login(client, "org-admin@aftab.test")
+    admin = login(client, "tenant-admin@aftab.test")
     r = client.put("/admin/notification-templates", headers=auth(admin["access_token"]), json={
         "event_type": "payment_success", "channel": "web", "locale": "fa",
         "title_template": "t", "body_template": "b", "deep_link_template": link})
@@ -192,7 +192,7 @@ def test_notification_template_rejects_unsafe_deep_links(client, link):
 
 
 def test_notification_template_accepts_internal_link(client):
-    admin = login(client, "org-admin@aftab.test")
+    admin = login(client, "tenant-admin@aftab.test")
     r = client.put("/admin/notification-templates", headers=auth(admin["access_token"]), json={
         "event_type": "payment_success", "channel": "web", "locale": "fa",
         "title_template": "t", "body_template": "b", "deep_link_template": "/trips/{trip_id}?tab=timeline"})
