@@ -1,6 +1,7 @@
 import { expect, test, type APIRequestContext, type Browser, type Page } from '@playwright/test';
 import { execFileSync } from 'child_process';
 import { existsSync } from 'fs';
+import { orgAllows } from '../../lib/panel-context';
 
 /* Launch V1 item 8.4 — one person, two panels. A plain `customer` account that is also a member of organization A
    (no management permission) and a manager of organization B. Checks, against the real development API:
@@ -9,30 +10,57 @@ import { existsSync } from 'fs';
    switching back to the personal account keeps the same session and browser storage; a plain customer sees no switcher.
 
    Seeding: the API has no endpoint that creates a `customer` inside the seed tenant (registration puts customers in the
-   consumer tenant, which cannot hold organizations), so the two accounts are inserted into the e2e SQLite file
-   (E2E_DATABASE_FILE, set by playwright.config.ts). Organizations, memberships and grants go through the real API. */
+   consumer tenant, which cannot hold organizations), so the accounts are inserted into the e2e SQLite file
+   (E2E_DATABASE_FILE, set by playwright.config.ts). Organizations and memberships go through the real API (tenant admin).
+   Organization B gets its own manager for this run: a member whose `roles.manage` comes from a grant in B (the
+   membership + grant model; no API creates an organization's first manager, so that one grant row is a fixture). That
+   manager then grants the dual user through the real, permission-checked API. The shared seed account
+   org-admin@aftab.test is not used: other specs (charter-block, charter-change) turn it into an `agency_partner`, after
+   which it holds no organization authority (that is what failed in CI, where all specs share one database). */
 const API = process.env.E2E_API_URL || 'http://127.0.0.1:8100';
 const DB = process.env.E2E_DATABASE_FILE || '';
 const PY = process.env.E2E_PYTHON || '.venv/bin/python';
 const SFX = String(Date.now()).slice(-7);
-const DUAL = `dual-${SFX}@aftab.test`, PLAIN = `plain-${SFX}@aftab.test`;
+const DUAL = `dual-${SFX}@aftab.test`, PLAIN = `plain-${SFX}@aftab.test`, MANAGER_B = `org-b-manager-${SFX}@aftab.test`;
 const ORG_A = `سازمان آزمون الف ${SFX}`, ORG_B = `سازمان آزمون ب ${SFX}`;
 type Session = { access_token: string; refresh_token: string; token_type: string; user: { name: string; role: string; tenant: string } };
 
-const ALLOWED = ['/organization', '/organization/requests', '/organization/policy', '/organization/members', '/organization/credit', '/organization/billing', '/organization/reports', '/organization/audit', '/organization/bookings'];
-// Role-only pages (lib/panel-context.ts): their endpoints are guarded by the global role, so membership does not open them.
-const DENIED = ['/organization/structure', '/organization/passengers', '/organization/financial-context'];
+// The dual user's grant in B (A: membership only). Which organization pages that opens is read from the panel's own
+// registry (lib/panel-context.ts), so the spec follows the access model instead of a frozen list: before Launch V1 8.3
+// structure / passengers / financial-context stay role-only (expected «دسترسی ندارید»); with 8.3 (PR #110, authority
+// from membership + grants) they open by this grant too. Either way the API must not answer 403 on an allowed page.
+const DUAL_GRANT_B = ['requests.read_all', 'roles.manage', 'policy.manage'];
+const ORG_PAGES = ['/organization', '/organization/requests', '/organization/policy', '/organization/members', '/organization/credit', '/organization/billing', '/organization/reports', '/organization/audit', '/organization/bookings', '/organization/structure', '/organization/passengers', '/organization/financial-context'];
+const DUAL_ORGS = [{ id: 'A', name: 'A', permissions: [] as string[] }, { id: 'B', name: 'B', permissions: DUAL_GRANT_B }];
+const ALLOWED = ORG_PAGES.filter(p => orgAllows(p, DUAL_ORGS));
+const DENIED = ORG_PAGES.filter(p => !orgAllows(p, DUAL_ORGS));
 
+function py(script: string, args: string[]) {
+  execFileSync(PY, ['-I', '-c', script, DB, ...args], { stdio: 'pipe' });
+}
 function seedCustomers() {
-  const script = [
+  py([
     'import sqlite3, sys',
     'db = sqlite3.connect(sys.argv[1])',
     "tenant = db.execute(\"select id from tenants where slug='aftab-bank'\").fetchone()[0]",
-    'for email, name in [(sys.argv[2], "مسافر دوزمینه‌ای آزمون"), (sys.argv[3], "مشتری سادهٔ آزمون")]:',
+    'for email, name in [(sys.argv[2], "مسافر دوزمینه‌ای آزمون"), (sys.argv[3], "مشتری سادهٔ آزمون"), (sys.argv[4], "مدیر سازمان ب آزمون")]:',
     "    db.execute('insert or ignore into users (tenant_id, email, name, role) values (?, ?, ?, ?)', (tenant, email, name, 'customer'))",
     'db.commit()',
-  ].join('\n');
-  execFileSync(PY, ['-I', '-c', script, DB, DUAL, PLAIN], { stdio: 'pipe' });
+  ].join('\n'), [DUAL, PLAIN, MANAGER_B]);
+}
+/** Bootstrap grant: every organization permission for `email` in organization `org` (the member must already exist). */
+function seedManagerGrant(org: string, email: string) {
+  py([
+    'import json, sqlite3, sys, uuid, datetime',
+    'db = sqlite3.connect(sys.argv[1])',
+    'org, email = sys.argv[2], sys.argv[3]',
+    "tenant, uid = db.execute('select tenant_id, id from users where email=?', (email,)).fetchone()",
+    "assert db.execute('select 1 from employee_assignments where tenant_id=? and organization_id=? and user_id=?', (tenant, org, uid)).fetchone(), 'not a member'",
+    "now = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')",
+    "perms = json.dumps(sorted(['requests.read_all', 'requests.on_behalf', 'requests.approve', 'policy.manage', 'roles.manage', 'rfq.manage', 'benefits.manage']))",
+    "db.execute('insert into enterprise_grants (id, tenant_id, organization_id, user_id, permissions_json, created_at, updated_at) values (?, ?, ?, ?, ?, ?, ?)', (str(uuid.uuid4()), tenant, org, uid, perms, now, now))",
+    'db.commit()',
+  ].join('\n'), [org, email]);
 }
 async function login(request: APIRequestContext, email: string): Promise<Session> {
   const r = await request.post(`${API}/auth/dev-login`, { data: { email } });
@@ -72,12 +100,14 @@ test.beforeAll(async ({ request }) => {
   const a = await call(request, admin, 'post', '/enterprise/organizations', { name: ORG_A });
   const b = await call(request, admin, 'post', '/enterprise/organizations', { name: ORG_B });
   await call(request, admin, 'post', `/enterprise/organizations/${a.id}/members`, { email: DUAL });
-  await call(request, admin, 'post', `/enterprise/organizations/${b.id}/members`, { email: 'org-admin@aftab.test' });
+  await call(request, admin, 'post', `/enterprise/organizations/${b.id}/members`, { email: MANAGER_B });
   const members = await call(request, admin, 'post', `/enterprise/organizations/${b.id}/members`, { email: DUAL }) as { id: number; email: string }[];
   const dualId = members.find(m => m.email === DUAL)!.id;
-  // organization_admin holds every enterprise permission in an organization it belongs to; it grants the manager set to the dual user in B only.
-  const orgAdmin = await login(request, 'org-admin@aftab.test');
-  await call(request, orgAdmin, 'put', `/enterprise/organizations/${b.id}/grants`, { command_id: `e2e-dual-grant-${SFX}`, user_id: dualId, permissions: ['requests.read_all', 'roles.manage', 'policy.manage'] });
+  // B's own manager (membership + grant in B) grants the manager set to the dual user in B only, through the real API.
+  seedManagerGrant(b.id, MANAGER_B);
+  const managerB = await login(request, MANAGER_B);
+  expect(managerB.user.role).toBe('customer');
+  await call(request, managerB, 'put', `/enterprise/organizations/${b.id}/grants`, { command_id: `e2e-dual-grant-${SFX}`, user_id: dualId, permissions: DUAL_GRANT_B });
   dual = await login(request, DUAL); plain = await login(request, PLAIN);
   expect(dual.user.role).toBe('customer'); expect(plain.user.role).toBe('customer');
   // next dev compiles a route on first visit; compile the pages once so the checks below measure the page, not the compiler.
