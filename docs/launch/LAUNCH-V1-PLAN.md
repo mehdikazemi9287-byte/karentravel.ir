@@ -157,3 +157,12 @@
 - صفحهٔ اول، صفحهٔ جست‌وجو، `globals.css`، `ApprovedFigmaHome.tsx` و بک‌اند تغییر نکرد.
 - **QA:** `node tests/unit/panel-access.cjs`، `panel-context.cjs`، `trip-request.cjs` (جدید) ← PASS؛ `npx tsc --noEmit` ← ۰ خطا؛ `npm run lint` ← ۰ خطا (فقط هشدارهای قبلی)؛ `npm run build` ← موفق؛ `pytest tests/test_sales_desk.py tests/test_panel_access_registry.py` ← ۸ PASS؛ `next start` محلی: `/hotels`، `/villas`، `/flights`، `/car-rental`، `/tourist-transport` ← 200 با بخش درخواست. **اجرا نشد:** e2e Playwright، بررسی بصری، آزمون سرتاسری با `SALES_DESK_PUBLIC_TENANT` روی سرور.
 - **منتظر مالک:** آیتم «پنل سازمان» بر اساس عضویت در منوی هدر مشترک (`AccountMenu` در `ApprovedFigmaHome.tsx`) و `roleLinks`؛ تنظیم `SALES_DESK_PUBLIC_TENANT` روی سرور (یا وجود tenant مشتری)؛ اپ مشتری (`components/customer-app/Screens.tsx`) و checkout هنوز اعتبار سازمانی را نشان می‌دهند — تصمیم جداگانه.
+
+## ۹. شاخهٔ `feat/org-panel-stitch` (روی #105 ← #104، ۲۴ نوامبر ۲۰۲۶ / ۳ آذر ۱۴۰۵)
+
+محیط: **Source**. سرور Production دست نخورد. وضعیت: `DONE_IN_SOURCE`.
+
+- **Stitch پنل سازمان:** داشبورد `/organization` (`b2b_1`/`b2b_2`)، اعتبار `/organization/credit` و صورتحساب `/organization/billing` (`_23`)، تأیید سریع `/organization/requests?request=<id>` (`_26`). فقط دادهٔ API؛ بخش‌هایی که API ندارد حذف شده‌اند. شرح و تصویرها: `docs/qa/2026-11-24-org-panel/`.
+- **۸.۴ (انجام شد در Source):** `e2e/panels/dual-context.spec.ts` ← ۴ PASS.
+- رفع: «سوابق و گردش تأیید» برای مدیرِ با عضویت دیگر `/organization/overview` (گارد نقش) را صدا نمی‌زند؛ `OrgScope` پیش‌فرض را سازمانی با مجوز لازم می‌گذارد.
+- **مانده:** مقایسهٔ صفحهٔ زنده کنار PNG پس از انتشار؛ بازطراحی `/employee` (طرح Stitch جدا ندارد)؛ ۸.۳ بک‌اند.

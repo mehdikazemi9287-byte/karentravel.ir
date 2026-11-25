@@ -80,7 +80,7 @@ export function PanelShell({area: declared, title, intro, children}: {area: Area
   const staff = area === 'ops' || area === 'finance' || area === 'admin';
   const areas = staff && session ? staffAreasFor(role) : [];
   const tabs = !session ? [] : byMembership.length ? [...links.filter(i => i.mobile).sort((a, b) => (a.mobile ?? 9) - (b.mobile ?? 9)), ...links.filter(i => !i.mobile)].slice(0, 4).map(i => ({label: i.label, href: i.href, glyph: i.glyph ?? '•'})) : mobileTabsFor(area, role, navOpts);
-  const current = (href: string) => path === href || (href !== '/agency' && href !== '/admin' && href !== '/finance' && path.startsWith(href + '/'));
+  const current = (href: string) => path === href || (href !== '/agency' && href !== '/admin' && href !== '/finance' && href !== '/organization' && path.startsWith(href + '/'));
   return <div className="pn-page" data-figma-page="129:11966" data-area={area}><a className="skip-link" href="#main-content">پرش به محتوای اصلی</a>
     <header className="pn-page-header"><Link className="pn-page-brand" href="/">کارن تراول</Link>
       {session?.user ? <AccountMenu variant="panel"/> : <Link className="pn-page-login" href="/login">ورود / ثبت‌نام</Link>}

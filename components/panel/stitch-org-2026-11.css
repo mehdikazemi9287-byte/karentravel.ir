@@ -1,0 +1,178 @@
+/*
+  Karen Travel — Google Stitch 2026-11, organization panel: management dashboard (b2b_1 / b2b_2),
+  organizational credit & finance (_23), quick request approval & official invoice (_26).
+  Presentation only: every figure on these pages comes from the API; sections the API cannot fill are omitted.
+  Every selector is scoped to .so-* classes that exist only inside the organization panel content, because Next.js keeps
+  a stylesheet loaded after client navigation; the homepage, search and the shared panel shell carry none of them.
+  Rollback: remove the imports of this file (components/panel/OrganizationPanel.tsx, components/operational/EnterpriseWorkspace.tsx)
+  and revert the markup commit.
+*/
+.so{--so-plum:#2a1530;--so-plum2:#5b3a5f;--so-red:#ad2c12;--so-coral:#ef5b3d;--so-gold:#7a5200;--so-gold-bg:#fff1dc;--so-paper:#fffaf4;--so-cream:#faf3e9;--so-line:#f0e2d8;--so-muted:#6a5370;--so-ok:#1d6f45;--so-ok-bg:#e3f5eb;--so-bad:#a3260f;--so-bad-bg:#fde7e2;display:grid;gap:20px;min-width:0}
+
+/* ---------- hero (b2b_1 / b2b_2 header card, _23 title card) ---------- */
+.so-hero{display:flex;gap:18px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:#fff;border:1px solid var(--so-line);border-radius:28px;padding:22px 24px;box-shadow:0 1px 8px rgba(42,21,48,.04)}
+.so-hero-id{display:flex;gap:16px;align-items:center;min-width:0}
+.so-hero-ic{display:grid;place-items:center;flex:0 0 auto;width:60px;height:60px;border-radius:20px;background:var(--so-red);color:#fff;font-size:26px;box-shadow:0 10px 22px rgba(173,44,18,.22)}
+.so-hero-ic.plum{background:var(--so-plum2);box-shadow:0 10px 22px rgba(91,58,95,.22)}
+.so-hero h2{margin:0;font-size:clamp(20px,2.4vw,26px);font-weight:900;color:var(--so-plum);line-height:1.5}
+.so-hero p{margin:2px 0 0;color:var(--so-muted);font-size:13px;line-height:1.9}
+.so-hero-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.so-hero-act{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+/* ---------- chips & buttons ---------- */
+.so-chip{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;border-radius:999px;padding:4px 12px;font-size:12px;font-weight:800;background:#f3e9f5;color:var(--so-plum2)}
+.so-chip.gold{background:var(--so-gold-bg);color:var(--so-gold)}
+.so-chip.ok{background:var(--so-ok-bg);color:var(--so-ok)}
+.so-chip.bad{background:var(--so-bad-bg);color:var(--so-bad)}
+.so-chip.soft{background:#f4ede3;color:var(--so-plum)}
+.so-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:10px 22px;border-radius:999px;border:0;background:var(--so-red);color:#fff!important;font:inherit;font-weight:800;font-size:14px;text-decoration:none;cursor:pointer;box-shadow:0 10px 22px rgba(173,44,18,.2)}
+.so-btn:hover{background:#921f0a}
+.so-btn:disabled,.so-btn[aria-disabled=true]{opacity:.55;cursor:not-allowed;box-shadow:none}
+.so-btn.ghost{background:#f4ede3;color:var(--so-plum)!important;box-shadow:none;border:1px solid var(--so-line)}
+.so-btn.ghost:hover{background:#efe4d7}
+.so-btn.plum{background:var(--so-plum2);box-shadow:0 10px 22px rgba(91,58,95,.2)}
+.so-btn.danger{background:var(--so-bad-bg);color:var(--so-bad)!important;box-shadow:none}
+.so-btn.sm{min-height:36px;padding:6px 16px;font-size:13px}
+
+/* ---------- KPI cards (four across in b2b_1 / _23) ---------- */
+.so-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.so-kpi{background:#fff;border:1px solid var(--so-line);border-radius:24px;padding:18px 20px;display:grid;gap:10px;align-content:start;min-width:0;box-shadow:0 1px 8px rgba(42,21,48,.04)}
+.so-kpi-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.so-kpi-top small{font-size:13px;font-weight:700;color:var(--so-muted)}
+.so-kpi-ic{display:grid;place-items:center;flex:0 0 auto;width:40px;height:40px;border-radius:14px;background:var(--so-gold-bg);font-size:18px}
+.so-kpi-ic.red{background:#fde9e2}.so-kpi-ic.plum{background:#f3e9f5}.so-kpi-ic.cream{background:#f4ede3}
+.so-kpi strong{font-size:clamp(20px,2.2vw,28px);font-weight:900;color:var(--so-plum);line-height:1.3;word-break:break-word}
+.so-kpi strong.red{color:var(--so-red)}
+.so-kpi strong small{display:inline-block;white-space:nowrap;font-size:12px;font-weight:700;color:var(--so-muted);margin-inline-start:4px}
+.so-kpi-foot{font-size:12px;color:var(--so-muted);line-height:1.8}
+.so-kpi-foot.alert{color:var(--so-bad);font-weight:700}
+.so-bar{height:8px;border-radius:999px;background:#f1e8dc;overflow:hidden}
+.so-bar>span{display:block;height:100%;border-radius:inherit;background:var(--so-red)}
+.so-bar.gold>span{background:#a8740f}.so-bar.plum>span{background:var(--so-plum2)}
+
+/* ---------- section cards ---------- */
+.so-grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:20px;align-items:start}
+.so-col{display:grid;gap:20px;min-width:0}
+.so-card{background:#fff;border:1px solid var(--so-line);border-radius:28px;padding:22px 24px;display:grid;gap:16px;min-width:0;box-shadow:0 1px 8px rgba(42,21,48,.04)}
+.so-card-head{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.so-card-head h2,.so-card-head h3{margin:0;font-size:18px;font-weight:900;color:var(--so-plum);display:flex;gap:10px;align-items:center}
+.so-card-head h2::before{content:"";width:6px;height:22px;border-radius:4px;background:var(--so-red)}
+.so-card-sub{margin:-8px 0 0;color:var(--so-muted);font-size:12px;line-height:1.9}
+.so-empty{border:1.5px dashed #d9cdc0;border-radius:20px;padding:18px;font-size:13px;color:var(--so-muted);background:var(--so-paper);line-height:1.9}
+
+/* ---------- approval kanban items (b2b_1 / b2b_2) ---------- */
+.so-req{background:var(--so-cream);border:1px solid var(--so-line);border-radius:22px;padding:16px 18px;display:grid;gap:12px}
+.so-req-head{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+.so-req-who{display:flex;gap:12px;align-items:center;min-width:0}
+.so-av{display:grid;place-items:center;flex:0 0 auto;width:44px;height:44px;border-radius:50%;background:#efe4f1;color:var(--so-plum2);font-weight:900;font-size:15px}
+.so-req-who div>b{display:block;font-size:15px;color:var(--so-plum);font-weight:900}
+.so-req-who div>span{display:block;font-size:12px;color:var(--so-muted)}
+.so-req-trip{background:#fff;border:1px solid var(--so-line);border-radius:16px;padding:12px 14px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center}
+.so-req-trip .so-glyph{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;background:#fde9e2;color:var(--so-red);font-size:18px}
+.so-req-trip b{display:block;font-size:14px;color:var(--so-plum)}
+.so-req-trip span{display:block;font-size:12px;color:var(--so-muted)}
+.so-req-amt{text-align:left}
+.so-req-amt small{display:block;font-size:11px;color:var(--so-muted)}
+.so-req-amt strong{font-size:16px;font-weight:900;color:var(--so-plum)}
+.so-req-reasons{margin:0;padding:10px 14px;list-style:none;border-radius:14px;background:var(--so-gold-bg);color:var(--so-gold);font-size:12px;font-weight:700;display:grid;gap:4px}
+.so-req-act{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;align-items:center}
+
+/* ---------- policy list (b2b_1 «پالیسی‌های فعال») ---------- */
+.so-rules{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.so-rules li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:start;background:var(--so-cream);border:1px solid var(--so-line);border-radius:18px;padding:12px 14px}
+.so-rules li::before{content:"✓";display:grid;place-items:center;width:24px;height:24px;border-radius:50%;border:1.5px solid var(--so-ok);color:var(--so-ok);font-size:12px;font-weight:900}
+.so-rules b{display:block;font-size:13px;color:var(--so-plum)}
+.so-rules span{display:block;font-size:12px;color:var(--so-muted);line-height:1.8}
+
+/* ---------- breakdown bars (b2b «تحلیل هزینه‌ها», _23 «تفکیک مخارج») ---------- */
+.so-split{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+.so-split li{display:grid;gap:6px}
+.so-split-row{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--so-plum);font-weight:700}
+.so-split-row span:last-child{color:var(--so-muted);font-weight:600}
+.so-total{background:var(--so-cream);border-radius:18px;padding:14px 16px;display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+.so-total small{font-size:12px;color:var(--so-muted)}
+.so-total strong{font-size:18px;font-weight:900;color:var(--so-plum)}
+
+/* ---------- tables (b2b «جدول مأموریت‌ها», _23 «صورت‌حساب‌ها») ---------- */
+.so-tabs{display:flex;gap:6px;flex-wrap:wrap;background:var(--so-cream);border-radius:999px;padding:4px}
+.so-tabs button{border:0;background:transparent;border-radius:999px;padding:6px 16px;font:inherit;font-size:13px;font-weight:700;color:var(--so-plum);cursor:pointer}
+.so-tabs button[aria-pressed=true]{background:var(--so-plum2);color:#fff}
+.so-table-wrap{display:block;width:100%;overflow-x:auto;border-radius:20px}
+.so .so-table{display:table;width:100%;max-width:none;border-collapse:collapse;font-size:13px}
+.so-table thead th{background:var(--so-cream);color:var(--so-plum);font-weight:800;font-size:12px;text-align:right;padding:14px 16px;white-space:nowrap}
+.so-table thead th:first-child{border-start-start-radius:16px;border-end-start-radius:16px}
+.so-table thead th:last-child{border-start-end-radius:16px;border-end-end-radius:16px}
+.so-table td{padding:14px 16px;border-bottom:1px solid #f3eae1;color:var(--so-plum);vertical-align:middle}
+.so-table tr:last-child td{border-bottom:0}
+.so-table td small{display:block;color:var(--so-muted);font-size:11px}
+.so-amt{font-weight:900;white-space:nowrap}
+.so-ltr{direction:ltr;unicode-bidi:isolate;display:inline-block}
+
+/* ---------- transaction rows (_23 «گردش ریز تراکنش‌ها») ---------- */
+.so-tx{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.so-tx li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:center;background:var(--so-cream);border:1px solid var(--so-line);border-radius:22px;padding:14px 18px}
+.so-tx .so-glyph{display:grid;place-items:center;width:44px;height:44px;border-radius:14px;background:#fff;border:1px solid var(--so-line);color:var(--so-red);font-size:20px}
+.so-tx b{font-size:14px;color:var(--so-plum);font-weight:900}
+.so-tx-meta{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:12px;color:var(--so-muted);margin-top:4px}
+.so-tx-amt{text-align:left;display:grid;gap:2px;justify-items:end}
+.so-tx-amt strong{font-size:18px;font-weight:900;color:var(--so-plum);white-space:nowrap}
+.so-tx-amt small{font-size:11px;color:var(--so-muted);white-space:nowrap}
+
+/* ---------- quick approval (_26) ---------- */
+.so-appr{background:#fff;border:1px solid var(--so-line);border-radius:32px;padding:24px;display:grid;gap:18px;box-shadow:0 18px 40px rgba(42,21,48,.08)}
+.so-appr-head{display:flex;gap:14px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+.so-appr-head h3{margin:0;font-size:20px;font-weight:900;color:var(--so-plum)}
+.so-appr-meta{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:12px;color:var(--so-muted);margin-top:4px}
+.so-policy{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:start;border-radius:20px;padding:14px 16px;background:var(--so-ok-bg);color:var(--so-ok)}
+.so-policy.warn{background:var(--so-gold-bg);color:var(--so-gold)}
+.so-policy.bad{background:var(--so-bad-bg);color:var(--so-bad)}
+.so-policy b{display:block;font-size:14px}
+.so-policy ul{margin:4px 0 0;padding:0 18px 0 0;font-size:12px;line-height:1.9}
+.so-appr-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.so-box{background:var(--so-cream);border:1px solid var(--so-line);border-radius:22px;padding:16px 18px;display:grid;gap:10px;align-content:start}
+.so-box h4{margin:0;font-size:15px;font-weight:900;color:var(--so-plum)}
+.so-kv{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:8px 16px;margin:0;font-size:13px}
+.so-kv dt{color:var(--so-muted)}
+.so-kv dd{margin:0;font-weight:800;color:var(--so-plum);text-align:left}
+.so-sum{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:#fff;border-radius:16px;padding:12px 14px}
+.so-sum span{font-weight:800;color:var(--so-plum)}
+.so-sum strong{font-size:22px;font-weight:900;color:var(--so-red)}
+.so-appr-actions{background:var(--so-cream);border-radius:24px;padding:16px;display:grid;gap:12px}
+.so-appr-actions form{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+.so-appr-actions label{display:grid;gap:4px;font-size:12px;font-weight:700;color:var(--so-muted);flex:1 1 240px}
+.so-appr-actions input,.so-appr-actions select{border:1px solid #d9cdc0;border-radius:14px;padding:10px 12px;font:inherit;font-size:14px;background:#fff;color:var(--so-plum);min-width:0}
+.so-timeline{list-style:none;margin:0;padding:0;display:grid;gap:8px;font-size:12px;color:var(--so-muted)}
+.so-timeline li{display:flex;gap:10px;align-items:center}
+.so-timeline li::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--so-coral);flex:0 0 auto}
+
+/* ---------- request workspace forms ---------- */
+.so-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px}
+.so-form label{display:grid;gap:4px;font-size:12px;font-weight:700;color:var(--so-muted)}
+.so-form input,.so-form select,.so-form textarea{border:1px solid #d9cdc0;border-radius:14px;padding:10px 12px;font:inherit;font-size:14px;background:#fff;color:var(--so-plum);min-width:0}
+.so-form .so-wide{grid-column:1/-1}
+.so-form fieldset{grid-column:1/-1;border:1px solid var(--so-line);border-radius:16px;padding:10px 14px;display:flex;gap:8px 16px;flex-wrap:wrap}
+.so-form fieldset label{display:flex;gap:6px;align-items:center;font-weight:600;color:var(--so-plum)}
+.so-note{border-radius:16px;padding:10px 14px;font-size:13px;font-weight:700;background:#f3e9f5;color:var(--so-plum2)}
+.so-note.ok{background:var(--so-ok-bg);color:var(--so-ok)}.so-note.error{background:var(--so-bad-bg);color:var(--so-bad)}
+.so-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.so-list li{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--so-cream);border:1px solid var(--so-line);border-radius:18px;padding:12px 16px}
+.so-list li[aria-current=true]{border-color:var(--so-coral);box-shadow:0 0 0 2px rgba(239,91,61,.18)}
+.so-list b{font-size:14px;color:var(--so-plum)}
+.so-list span{font-size:12px;color:var(--so-muted)}
+
+/* ---------- responsive ---------- */
+@media (max-width:1100px){.so-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.so-grid{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:640px){
+  .so{gap:14px}
+  .so-hero,.so-card,.so-appr{border-radius:22px;padding:16px}
+  .so-hero-act{width:100%}.so-hero-act .so-btn{flex:1 1 auto}
+  .so-kpis{gap:10px}.so-kpi{padding:14px;border-radius:20px}
+  .so-req-trip{grid-template-columns:auto minmax(0,1fr)}.so-req-amt{grid-column:1/-1;text-align:right}
+  .so-appr-grid,.so-form{grid-template-columns:minmax(0,1fr)}
+  .so-tx li{grid-template-columns:auto minmax(0,1fr)}.so-tx-amt{grid-column:1/-1;justify-items:start;text-align:right}
+  .so-table thead{display:none}
+  .so-table tr{display:grid;gap:4px;padding:12px 0;border-bottom:1px solid #f3eae1}
+  .so-table td{border:0;padding:2px 4px;display:flex;justify-content:space-between;gap:10px}
+  .so-table td::before{content:attr(data-label);color:var(--so-muted);font-size:12px;flex:0 0 auto}
+  .so-act-hide-sm{display:none}
+}
