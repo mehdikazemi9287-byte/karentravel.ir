@@ -291,6 +291,29 @@ def test_hold_books_once_is_idempotent_and_never_issues(client, qaa, markup):
         assert detail["vat_on_commission"] == 100000 and "Testa" not in ev.detail and "T1234567" not in ev.detail   # VAT on commission only; no PII
 
 
+def test_recent_holds_list_is_staff_only_tenant_scoped_and_has_no_passenger_data(client, qaa, markup):
+    qaa(AvailFake({"FareQuote": (200, quote(64000000)), "Res/Book": (200, BOOK_OK)}))
+    h = _login(client, "backoffice@aftab.test")
+    ref = _search(client, h).json()["offers"][0]["offer_ref"]
+    held = _hold(client, h, ref, f"hold-{uuid.uuid4().hex}").json()
+    changed = _hold(client, h, ref, f"hold-{uuid.uuid4().hex}", total=1).json()["detail"]
+    r = client.get("/flights/suppliers/mahan/holds", headers=h)
+    assert r.status_code == 200
+    items = {i["hold_id"]: i for i in r.json()["items"]}
+    assert items[held["hold_id"]]["status"] == "held" and items[held["hold_id"]]["record_locator"] == "TST001"
+    assert items[held["hold_id"]]["total_amount"] == 65000000 and items[held["hold_id"]]["test_booking"] is True
+    assert items[changed["hold_id"]]["status"] == "price_changed"
+    assert "Testa" not in r.text and "T1234567" not in r.text and "net_total" not in r.text and "margin" not in r.text
+    assert client.get("/flights/suppliers/mahan/holds", headers=_login(client, "employee@aftab.test")).status_code == 403
+    with SessionLocal() as db:                                   # another tenant's hold is never listed
+        other = db.scalar(select(User.tenant_id).where(User.tenant_id != markup))
+        assert other is not None
+        db.add(m.IdempotencyKey(tenant_id=other, scope=mf.HOLD_SCOPE, key=f"foreign-{uuid.uuid4().hex}", request_hash="x",
+                                response_json=json.dumps({"status": "held", "record_locator": "FOREIGN"})))
+        db.commit()
+    assert "FOREIGN" not in client.get("/flights/suppliers/mahan/holds?limit=100", headers=h).text
+
+
 def test_hold_price_changed_does_not_book(client, qaa, markup):
     fake = qaa(AvailFake({"FareQuote": (200, quote(70000000)), "Res/Book": (200, BOOK_OK)}))
     h = _login(client, "backoffice@aftab.test")
