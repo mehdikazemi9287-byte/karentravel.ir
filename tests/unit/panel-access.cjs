@@ -7,8 +7,9 @@ vm.runInNewContext(src,scope);const A=scope.exports;
 const hrefs=(area,role)=>JSON.parse(JSON.stringify(A.navFor(area,role).map(i=>i.href)));
 // staff pages are split into three areas (ops / finance / admin); a role's staff menu is the union of the areas it can open
 const staffHrefs=role=>[...new Set(['ops','finance','admin'].flatMap(a=>hrefs(a,role)))];
-assert.equal(staffHrefs('platform_admin').length,48);
+assert.equal(staffHrefs('platform_admin').length,49);
 const bo=staffHrefs('backoffice_expert'),fin=staffHrefs('finance_operator'),ta=staffHrefs('tenant_admin');
+assert.ok(bo.includes('/admin/suppliers/mahan')&&ta.includes('/admin/suppliers/mahan')&&!fin.includes('/admin/suppliers/mahan')&&A.staffArea('/admin/suppliers/mahan')==='ops');
 assert.ok(bo.includes('/admin/ops')&&bo.includes('/backoffice')&&bo.includes('/admin/catalog'));
 assert.ok(!bo.includes('/finance/ledger')&&!bo.includes('/finance')&&!bo.includes('/admin')&&!bo.includes('/admin/tenants'));
 assert.ok(fin.includes('/finance')&&fin.includes('/finance/ledger')&&fin.includes('/admin/ops'));
