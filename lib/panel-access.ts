@@ -46,6 +46,7 @@ const R = {
   catalog: {roles: ['platform_admin', 'backoffice_expert']},                                          // catalog_admin guard
   safarsazStaff: {anyPermission: ['reservation:manage', 'tenant:manage'], notRoles: PARTNERS_AND_PUBLIC}, // safarsaz._is_staff
   backoffice: {anyPermission: ['backoffice:read']},
+  mahanStaff: {anyPermission: ['backoffice:read']},                                                   // mahan_flight._is_staff (STAFF_PERMISSION)
   support: {anyPermission: ['support:manage']},
   tripOps: {anyPermission: ['trip:event:create', 'support:manage', 'backoffice:read']},               // platform_ops.STAFF_READ
   tripChanges: {anyPermission: ['trip:event:create']},
@@ -89,7 +90,7 @@ const I = (area: Area, label: string, href: string, rule?: Rule, extra: Partial<
   ({area, label, href, rule, inNav: true, ...(MOBILE[href] ? {mobile: MOBILE[href][0], glyph: MOBILE[href][1]} : {}), ...extra});
 /* Staff pages live in three areas with their own sidebar (spec §1.1): operations, finance and tenant administration. */
 const OPS_ADMIN_PAGES = new Set(['/admin/ops', '/admin/train-desk', '/admin/partner-requests', '/admin/sales-desk', '/admin/documents', '/admin/contracts', '/admin/safarsaz',
-  '/admin/catalog', '/admin/catalog/reference', '/admin/tours', '/admin/inventory']);
+  '/admin/catalog', '/admin/catalog/reference', '/admin/tours', '/admin/inventory', '/admin/suppliers/mahan']);
 export function staffArea(href: string): Area {
   if (href.startsWith('/finance') || href === '/admin/ecosystem') return 'finance';
   if (href.startsWith('/backoffice') || OPS_ADMIN_PAGES.has(href)) return 'ops';
@@ -136,6 +137,7 @@ export const PANEL_ITEMS: NavItem[] = [
     ['میز گفتگو و فروش', '/admin/sales-desk', R.desk], ['حلقه‌ی همسفران', '/admin/loyalty', R.tenantAdmin], ['کمپین پیامکی', '/admin/sms-campaigns', R.tenantAdmin],
     ['عملیات و پشتیبانی', '/backoffice', R.backoffice], ['مالی', '/finance', R.ledger], ['صندوق و حساب‌ها', '/finance/treasury', R.financeRead],
     ['قوانین فروش', '/admin/commerce', R.tenantAdmin], ['پرواز و موجودی', '/admin/inventory', R.inventoryStaff], ['سهمیه‌ی همکاران', '/admin/charter-quotas', R.inventoryAdmin],
+    ['آزمون اتصال ماهان', '/admin/suppliers/mahan', R.mahanStaff],
     ['گزارش فروش', '/finance/reports', R.inventoryStaff], ['سود و کمیسیون فروش', '/finance/markup-revenue', R.financeRead], ['خروجی فرانگر', '/finance/journal-export', R.financeRead],
     ['مطالبات سازمان‌ها', '/finance/receivables', R.financeRead], ['دفتر کل و بستن دوره', '/finance/ledger', R.financeRead],
     ['عملکرد و تطبیق تأمین‌کنندگان', '/finance/suppliers', R.supplierFinance], ['روابط مالی اکوسیستم', '/admin/ecosystem', R.financeRead],

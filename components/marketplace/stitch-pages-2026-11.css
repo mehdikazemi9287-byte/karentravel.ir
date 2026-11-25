@@ -104,7 +104,7 @@
   .stay-marketplace .cat .cat-amen{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0}
   .stay-marketplace .cat .cat-amen li{background:#f5eee4;border:0;border-radius:999px;padding:4px 12px;font-size:12px}
   .stay-marketplace .cat .cat-price{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px dashed #f0e2d8;padding-top:12px;font-size:14px}
-  .stay-marketplace .cat .cat-price::after{content:"مشاهده اتاق‌ها و رزرو ←";background:#a8321d;color:#fff;border-radius:14px;padding:10px 18px;font-size:13px;font-weight:800;white-space:nowrap}
+  .stay-marketplace .cat .cat-price::after{content:"انتخاب تاریخ و مشاهدهٔ اتاق‌ها ←";background:#a8321d;color:#fff;border-radius:14px;padding:10px 18px;font-size:13px;font-weight:800;white-space:nowrap}
   .stay-marketplace .cat .cat-card:hover .cat-price::after{background:#8f2716}
 }
 @media(min-width:1000px){
@@ -339,3 +339,11 @@ input.ks-otp:focus{outline:none;border-color:#cf4429;box-shadow:0 0 0 3px rgba(2
 .hc-section form input:focus,.hc-section form select:focus{outline:none;border-color:#ef5b3d;box-shadow:0 0 0 3px rgba(239,91,61,.15)}
 .hc-section form>button{grid-column:1/-1;justify-self:start;min-height:48px;padding:0 28px;border-radius:14px}
 .hc-section .panel>h2,.hc-section .panel>h3{margin:0;color:#2a1530}
+/* 2026-11-23: airline tiles — Persian name first, IATA code small; plane icon when the logo is unavailable */
+.fl-airlines li small{font-size:11px;font-weight:600;color:#7f6d79;letter-spacing:.5px}
+.fl-airlines .cat-logo-icon{background:#fff0e8;color:#ef5b3d;border-radius:50%}
+/* 2026-11-23: phones get the same card CTA as desktop, full width under the price note */
+@media(max-width:999px){
+  .stay-marketplace .cat .cat-price{display:flex;flex-direction:column;align-items:stretch;gap:10px}
+  .stay-marketplace .cat .cat-price::after{content:"انتخاب تاریخ و مشاهدهٔ اتاق‌ها ←";display:block;text-align:center;background:#a8321d;color:#fff;border-radius:14px;padding:11px 16px;font-size:13px;font-weight:800}
+}

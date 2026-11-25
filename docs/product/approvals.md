@@ -27,3 +27,14 @@ it is approved, and the rest of the protected surface stays as it was.
   are unchanged: https://www.figma.com/design/Ei8MUR9VN2yCX6BLOpvTXm/KarenSeir?node-id=214-1278
 - Evidence (local, not committed): Playwright 1440/390 before/after screenshots; one-way flow
   reached `/search/results?…&trip_type=one_way` with no `return` param and no calendar popup.
+
+## 1405-09-02 (2026-11-23) — PROPOSED, pending owner confirmation: one-way default + suggestion rows
+
+- Status: **pending owner confirmation** (requested by the supervisor after the owner's «مثل علی‌بابا / مستربلیط» complaint; not yet approved by the owner).
+- Scope (behaviour only, no visual redesign):
+  - Flight trip type defaults to **یک‌طرفه** instead of رفت‌وبرگشت (changes the D11 line «Default stays رفت‌وبرگشت»).
+    A link that already carries `return` still opens as round trip. Segmented control order and style unchanged.
+  - Origin/destination suggestion rows: city name primary, «فرودگاه …» secondary, IATA code small at the end; a city whose
+    airports are listed reads «همهٔ فرودگاه‌ها» without a duplicate code. Same dropdown, same styles otherwise.
+- Files: `components/search/HomeSearchExperience.tsx`, `app/globals.css` (two `.fs-pop--auto` rules).
+- Evidence: `docs/qa/2026-11-23-normal-ota/` (before/after 1440 + 390). Rollback: revert those hunks.

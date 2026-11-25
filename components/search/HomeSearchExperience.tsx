@@ -103,8 +103,18 @@ function EntityInput({kind,label,value,onChange,onSelect,open,setOpen,vertical}:
       <span className="fs-field-label">{label}</span>
       <input className="fs-field-input" aria-label={label} role="combobox" aria-expanded={open} aria-controls={`${kind}-suggestions`} autoComplete="off" aria-activedescendant={highlight>=0?`${kind}-option-${highlight}`:undefined} value={value} onKeyDown={event=>{if(event.key==='ArrowDown'||event.key==='ArrowUp'){event.preventDefault();setOpen();setHighlight(current=>items.length?(current+(event.key==='ArrowDown'?1:items.length-1)+items.length)%items.length:-1)}else if(event.key==='Enter'&&open&&highlight>=0&&items[highlight]){event.preventDefault();onSelect(items[highlight])}}} onFocus={event=>{event.currentTarget.select();setOpen()}} onClick={setOpen} onChange={event=>{setHighlight(-1);onChange(event.target.value);setOpen()}}/>
     </label>
-    {open&&<div className="fs-pop fs-pop--auto" id={`${kind}-suggestions`} role="listbox" aria-label={`پیشنهادهای ${label}`}>{loading?<div className="fs-sug-msg">در حال یافتن مقصد…</div>:items.length?<>{items.map((item,index)=><button type="button" role="option" id={`${kind}-option-${index}`} aria-selected={highlight===index} key={item.id} onClick={()=>onSelect(item)}><i aria-hidden="true"><Icon name={item.entity_type==='airport'?'flight':item.entity_type==='city'?'destination':'dot'}/></i><span><b>{item.title}</b><small>{[entityLabels[item.entity_type]??item.entity_type,item.code,item.city||item.country].filter(Boolean).join(' · ')}</small></span></button>)}</>:<div className="fs-sug-msg">{failed?'دریافت پیشنهادها انجام نشد؛ دوباره تلاش کنید.':value.trim().length<2?'حداقل دو حرف بنویس؛ شهر، فرودگاه یا کد IATA را جست‌وجو می‌کنیم.':'پیشنهادی برای این عبارت پیدا نشد.'}</div>}</div>}
+    {open&&<div className="fs-pop fs-pop--auto" id={`${kind}-suggestions`} role="listbox" aria-label={`پیشنهادهای ${label}`}>{loading?<div className="fs-sug-msg">در حال یافتن مقصد…</div>:items.length?<>{items.map((item,index)=><button type="button" role="option" id={`${kind}-option-${index}`} aria-selected={highlight===index} key={item.id} onClick={()=>onSelect(item)}><i aria-hidden="true"><Icon name={item.entity_type==='airport'?'flight':item.entity_type==='city'?'destination':'dot'}/></i><SuggestionText item={item} all={items}/></button>)}</>:<div className="fs-sug-msg">{failed?'دریافت پیشنهادها انجام نشد؛ دوباره تلاش کنید.':value.trim().length<2?'حداقل دو حرف بنویس؛ شهر، فرودگاه یا کد IATA را جست‌وجو می‌کنیم.':'پیشنهادی برای این عبارت پیدا نشد.'}</div>}</div>}
   </div>;
+}
+
+/* Suggestion row like Alibaba / MrBilit: the city is the primary line; an airport shows its name as the second line and its
+   IATA code small. A city whose airports are also listed reads «همهٔ فرودگاه‌ها» and carries no code, so Tehran (city) and
+   Mehrabad (THR) never both show «THR». */
+function SuggestionText({item,all}:{item:Suggestion;all:Suggestion[]}){
+  if(item.entity_type==='airport'){const name=item.title.replace(/^فرودگاه\s+/,'');return <><span className="fs-sug-text"><b>{item.city||name}</b><small>فرودگاه {name}</small></span>{item.code&&<em className="fs-sug-code" dir="ltr">{item.code}</em>}</>}
+  if(item.entity_type==='city'){const airports=all.filter(other=>other.entity_type==='airport'&&other.city===item.title);const clash=!!item.code&&all.some(other=>other!==item&&other.code===item.code);
+    return <><span className="fs-sug-text"><b>{item.title}</b><small>{airports.length>1?'همهٔ فرودگاه‌ها':['شهر',item.country].filter(Boolean).join(' · ')}</small></span>{item.code&&!clash&&<em className="fs-sug-code" dir="ltr">{item.code}</em>}</>}
+  return <span className="fs-sug-text"><b>{item.title}</b><small>{[entityLabels[item.entity_type]??item.entity_type,item.city||item.country].filter(Boolean).join(' · ')}</small></span>;
 }
 
 const defaultDestinationFor=(vertical:string)=>vertical==='hotel'||vertical==='vacation_rental'?'یزد':vertical==='cruise'?'دبی':vertical==='visa'?'فرانسه':vertical==='car_rental'?'شیراز':vertical==='tour'?'استانبول':vertical==='attraction'?'شیراز':vertical==='pool_sport'||vertical==='restaurant'||vertical==='event_hall'?'تهران':'شیراز';
@@ -127,7 +137,8 @@ export function HomeSearchExperience({defaultVertical="flight",presentation}:{de
       depart:params.get('depart')||todayIso(),
       returnDate:params.get('return')||'',
       flexibility:params.get('flexibility')||'exact',
-      tripType:(params.get('trip_type') as TripType|null)||'round_trip',
+      // One-way is the default (like Alibaba / MrBilit); an old link that carries a return date stays round trip.
+      tripType:(params.get('trip_type') as TripType|null)||(params.get('return')?'round_trip':'one_way'),
       adults:Number(params.get('adults')||1),
       children:Number(params.get('children')||0),
       infants:Number(params.get('infants')||0),
