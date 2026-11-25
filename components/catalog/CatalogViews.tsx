@@ -9,6 +9,7 @@ import {useEffect, useState, type ReactNode} from 'react';
 import {useAuth} from '../../lib/api/auth-context';
 import {ApiError, newId} from '../../lib/api/karenseir-client';
 import {StayBooking} from './StayBooking';
+import {OfflineRequest} from '../customer/OfflineRequest';
 import {supportPhone} from '../../lib/site-contact';
 
 type Brief = {id: string; name: string; name_en?: string | null} | null;
@@ -230,6 +231,7 @@ export function HotelDetail({slug}: {slug: string}) {
         <InquiryRequest subject={`استعلام اقامت: ${h.name}`} context={`درخواست استعلام نرخ و موجودی برای «${h.name}»${h.city ? ` در ${h.city.name}` : ''} (شناسهٔ فهرست: ${h.id}).`} reason={h.request?.reason ?? 'نرخ تأییدشده‌ای ثبت نشده است.'}/>
         <a className="hd-call" href={supportPhone.href}><span aria-hidden="true">☎</span> مشاورهٔ رزرو هتل <b dir="ltr">{supportPhone.display}</b></a></aside>
     </div>
+    {!h.request?.online_booking && <OfflineRequest service="این اقامتگاه" trip={`اقامت در ${h.name}${h.city ? ` (${h.city.name})` : ''}`}/>}
     {h.provenance && <p className="cat-attrib">منبع دادهٔ این صفحه: {h.provenance.source === 'openstreetmap' ? <a href={`https://www.openstreetmap.org/${h.provenance.source_ref}`} target="_blank" rel="noreferrer">OpenStreetMap</a> : h.provenance.source} — {h.provenance.license}{h.provenance.retrieved_on ? ` — دریافت: ${h.provenance.retrieved_on}` : ''}. این صفحه اطلاعات مرجع است و قیمت یا موجودی را نشان نمی‌دهد.</p>}
   </main>;
 }

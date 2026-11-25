@@ -1,3 +1,4 @@
+import {OfflineRequest} from '../../components/customer/OfflineRequest';
 import {Suspense} from 'react';
 import {JourneyShell} from '../../components/journey/JourneyShell';
 import {HomeSearchExperience} from '../../components/search/HomeSearchExperience';
@@ -16,5 +17,6 @@ export default function Page() {
     <FlightLanding/>
     <details className="fl-dir"><summary>فهرست کامل ایرلاین‌ها</summary><AirlineDirectory/></details>
     <details className="fl-dir"><summary>فهرست فرودگاه‌ها</summary><AirportDirectory/></details>
+    <OfflineRequest service="بلیت هواپیما" trip="بلیت هواپیما"/>
   </main></JourneyShell>;
 }

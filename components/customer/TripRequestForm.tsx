@@ -4,8 +4,10 @@ import {JalaliDateInput} from '../forms/JalaliDateInput';
 import {useState, type FormEvent} from 'react';
 import {useAuth} from '../../lib/api/auth-context';
 import {ApiError} from '../../lib/api/karenseir-client';
+import {INACTIVE_TEXT, INACTIVE_TITLE, requestOutcome, type RequestOutcome} from '../../lib/trip-request';
+import {supportPhone} from '../../lib/site-contact';
 
-type State = {kind: 'idle' | 'sending' | 'done'} | {kind: 'error'; message: string};
+type State = {kind: 'idle' | 'sending'} | RequestOutcome;
 const blank = {customer_name: '', mobile: '', trip: '', travel_date: '', travellers: '1', description: '', consent: false, website: ''};
 
 type Initial = Partial<Pick<typeof blank, 'trip' | 'travel_date' | 'travellers' | 'description'>>;
@@ -18,11 +20,12 @@ export function TripRequestForm({compact = false, initial, title = 'درخواس
   async function submit(e: FormEvent) {
     e.preventDefault(); setState({kind: 'sending'});
     try {
-      await api.publicPost('/public/sales-desk/requests', {...v, travellers: Number(v.travellers) || 1, travel_date: v.travel_date || null, description: v.description || null, website: v.website || null});
-      setState({kind: 'done'}); setV({...blank, ...initial});
+      const body = await api.publicPost<unknown>('/public/sales-desk/requests', {...v, travellers: Number(v.travellers) || 1, travel_date: v.travel_date || null, description: v.description || null, website: v.website || null});
+      const outcome = requestOutcome({status: 200, body});
+      setState(outcome); if (outcome.kind === 'done') setV({...blank, ...initial});
     } catch (x) {
-      const status = x instanceof ApiError ? x.status : 0;
-      setState({kind: 'error', message: status === 503 ? 'ثبت آنلاین درخواست فعلاً فعال نیست؛ لطفاً با پشتیبانی تماس بگیرید.' : status === 422 ? 'نام، شماره‌ی موبایل و سفر موردنظر را درست وارد کنید و رضایت تماس را تأیید کنید.' : status === 429 ? 'درخواست‌ها زیاد بوده؛ کمی بعد دوباره تلاش کنید.' : 'ارسال انجام نشد؛ اتصال را بررسی کنید.'});
+      // The entered values stay in the form on every failure, so nothing has to be typed again.
+      setState(requestOutcome({status: x instanceof ApiError ? x.status : 0}));
     }
   }
   if (state.kind === 'done') return <article className="panel" role="status"><h2>درخواست شما رسید</h2><p>کارشناس فروش برای پیشنهاد گزینه‌ها با شماره‌ی شما تماس می‌گیرد. این پیام به معنی رزرو یا تأیید قیمت نیست.</p><button className="button secondary" onClick={() => setState({kind: 'idle'})}>ثبت درخواست دیگر</button></article>;
@@ -40,5 +43,6 @@ export function TripRequestForm({compact = false, initial, title = 'درخواس
       <button className="button primary" disabled={state.kind === 'sending'}>{state.kind === 'sending' ? 'در حال ارسال…' : 'ارسال درخواست'}</button>
     </form>
     {state.kind === 'error' && <p role="alert" style={{color: '#b3261e'}}>{state.message}</p>}
+    {state.kind === 'inactive' && <div role="alert" data-request-state="inactive"><p><b>{INACTIVE_TITLE}</b></p><p>{INACTIVE_TEXT}</p><a className="button secondary" href={supportPhone.href}>تماس با پشتیبانی <span dir="ltr">{supportPhone.display}</span></a></div>}
   </article>;
 }

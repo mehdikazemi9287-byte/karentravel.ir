@@ -2,8 +2,11 @@
 /* Customer / passenger panel. Every list is the signed-in user's own records from /me/* and /support/*. */
 import Link from 'next/link';
 import {useEffect, useState} from 'react';
-import {type Load, Async, Badge, Card, Empty, Stats, Table, Unavailable, dateFa, errorOf, fa, money, serviceFa, useLoad} from './PanelKit';
+import {type Load, Async, Badge, Card, Empty, Loading, Stats, Table, Unavailable, dateFa, errorOf, fa, money, serviceFa, useLoad} from './PanelKit';
 import { safeHref } from '../../lib/safe-href';
+import {useAuth} from '../../lib/api/auth-context';
+import {homeFor} from '../../lib/panel-access';
+import {panelContextsFor, type OrgMembership} from '../../lib/panel-context';
 
 type Reservation = {id: string; booking_reference: string | null; service_type: string; status: string; price_snapshot?: {total_amount?: number; currency?: string} | null; created_at: string; manage_link: string; provider_connected?: boolean};
 type Trip = {id: string; title: string; destination: string | null; starts_at: string | null; status: string; timeline_link: string};
@@ -13,7 +16,6 @@ type Installment = {id: string; reservation_id: string; principal_amount: number
 type Notification = {id: string; topic: string; title: string; message: string; deep_link: string | null; status: string; created_at: string};
 type Case = {id: string; subject: string; status: string; priority: string; case_type: string; sla_due_at: string | null};
 type Wallet = {id: string; owner_type: string; currency: string; available: number; reserved: number; consumed: number};
-type Credit = {id: string; organization_id: string | null; currency: string; limit_amount: number; available: number; reserved: number; consumed: number};
 const isCancelled = (s: string) => /cancel|refund|void/i.test(s);
 const reservationCols = [
   {label: 'کد پیگیری', cell: (r: Reservation) => <span className="pn-ltr">{r.booking_reference ?? r.id.slice(0, 8)}</span>},
@@ -79,7 +81,7 @@ export function CustomerRefunds() {
 }
 
 export function CustomerWallet() {
-  const wallets = useLoad<Wallet[]>('/me/wallets'); const credit = useLoad<Credit[]>('/me/organization-credit'); const [note, setNote] = useState<{ok: boolean; text: string} | null>(null); const [busy, setBusy] = useState(false);
+  const wallets = useLoad<Wallet[]>('/me/wallets'); const [note, setNote] = useState<{ok: boolean; text: string} | null>(null); const [busy, setBusy] = useState(false);
   async function create() {
     setBusy(true); setNote(null);
     try {await wallets.api.post('/me/wallets', {currency: 'IRR'}, `wallet-${crypto.randomUUID()}`); wallets.reload(); setNote({ok: true, text: 'کیف پول ریالی ایجاد شد.'});} catch (e) {setNote({ok: false, text: errorOf(e).message});} finally {setBusy(false);}
@@ -89,7 +91,7 @@ export function CustomerWallet() {
     {note && <div className={`pn-note ${note.ok ? 'ok' : 'error'}`} role={note.ok ? 'status' : 'alert'}>{note.text}</div>}
     <Card title="کیف پول"><Async state={wallets.state}>{rows => rows.length === 0 ? <Empty>برای این حساب کیف پولی ساخته نشده است. موجودی کیف پول فقط از تراکنش‌های واقعی (شارژ، استرداد) تشکیل می‌شود.<div><button type="button" className="pn-btn" disabled={busy} onClick={() => void create()}>{busy ? 'در حال ایجاد…' : 'ایجاد کیف پول ریالی'}</button></div></Empty>
       : <>{rows.map(w => <div key={w.id}>{balance(w)}</div>)}<Unavailable title="شارژ آنلاین">شارژ کیف پول به درگاه پرداخت فعال نیاز دارد که هنوز متصل نشده است.</Unavailable></>}</Async></Card>
-    <Card title="اعتبار سازمانی"><Async state={credit.state}>{rows => rows.length === 0 ? <Empty>اعتبار سازمانی برای این حساب تعریف نشده است.</Empty> : <>{rows.map(c => <div key={c.id}><dl className="pn-dl"><dt>سقف اعتبار</dt><dd>{money(c.limit_amount, c.currency)}</dd></dl>{balance(c)}</div>)}</>}</Async></Card>
+    <OrgPanelCard quiet/>
   </>;
 }
 
@@ -146,12 +148,25 @@ export function CustomerSaved() {
   </>;
 }
 
+/* Launch V1 item 8.2: the personal panel shows no organization credit or records. A person with an organization panel
+ * (membership from /enterprise/context, or an organization role) gets one card that leads to it; nothing else. */
+function useOrgPanel() {
+  const {session} = useAuth(); const role = (session as {user?: {role?: string}} | null)?.user?.role ?? '';
+  const ctx = useLoad<{organizations: OrgMembership[]}>(session ? '/enterprise/context' : null);
+  const roleOrgHome = ['/organization', '/employee'].includes(homeFor(role)) ? homeFor(role) : null;
+  const orgs = ctx.state.kind === 'ready' ? ctx.state.data.organizations : [];
+  // A failed lookup still leads an organization role to its panel; it never shows organization data here.
+  const org = ctx.state.kind === 'loading' ? null : panelContextsFor(roleOrgHome, orgs).find(c => c.kind === 'organization') ?? null;
+  return {loading: ctx.state.kind === 'loading', org};
+}
+function OrgPanelCard({quiet = false}: {quiet?: boolean}) {
+  const {loading, org} = useOrgPanel();
+  if (loading) return quiet ? null : <Card title="پنل سازمان"><Loading/></Card>;
+  if (!org) return quiet ? null : <Card title="مزایای سازمانی"><Empty>حساب شما به سازمانی متصل نیست. مزایا، اعتبار و درخواست سفر سازمانی فقط برای اعضای سازمان‌ها و در پنل سازمان فعال می‌شود.</Empty></Card>;
+  return <Card title="مزایا و اعتبار سازمانی"><p>اعتبار، مزایا و درخواست‌های سفر سازمانی در پنل سازمان نمایش داده می‌شوند و در حساب شخصی شما نمی‌آیند. حساب شخصی و پنل سازمان جدا هستند و جابه‌جایی بین آن‌ها نشست شما را تغییر نمی‌دهد.</p>
+    <div><Link className="pn-btn" href={org.href} data-org-panel-link="">رفتن به {org.label}</Link></div></Card>;
+}
+
 export function CustomerBenefits() {
-  const ctx = useLoad<{organizations: {id: string; name: string; permissions: string[]}[]}>('/enterprise/context'); const credit = useLoad<Credit[]>('/me/organization-credit');
-  return <>
-    <Card title="سازمان‌های من"><Async state={ctx.state}>{c => c.organizations.length === 0 ? <Empty>حساب شما به سازمانی متصل نیست؛ مزایا و اعتبار سازمانی فقط برای اعضای سازمان‌ها فعال می‌شود.</Empty>
-      : <ul className="pn-list">{c.organizations.map(o => <li key={o.id}><span><b>{o.name}</b></span><span><Link className="pn-link" href="/employee">درخواست سفر و مزایا</Link> · <Link className="pn-link" href="/organization/policy">سیاست سفر</Link></span></li>)}</ul>}</Async></Card>
-    <Card title="اعتبار سازمانی من"><Async state={credit.state}>{rows => rows.length === 0 ? <Empty>اعتباری به نام شما تخصیص داده نشده است.</Empty>
-      : <>{rows.map(c => <dl className="pn-dl" key={c.id}><dt>سقف اعتبار</dt><dd>{money(c.limit_amount, c.currency)}</dd><dt>قابل استفاده</dt><dd>{money(c.available, c.currency)}</dd><dt>مصرف‌شده</dt><dd>{money(c.consumed, c.currency)}</dd></dl>)}</>}</Async></Card>
-  </>;
+  return <OrgPanelCard/>;
 }

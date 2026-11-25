@@ -46,6 +46,7 @@ const R = {
   catalog: {roles: ['platform_admin', 'backoffice_expert']},                                          // catalog_admin guard
   safarsazStaff: {anyPermission: ['reservation:manage', 'tenant:manage'], notRoles: PARTNERS_AND_PUBLIC}, // safarsaz._is_staff
   backoffice: {anyPermission: ['backoffice:read']},
+  mahanStaff: {anyPermission: ['backoffice:read']},                                                   // mahan_flight._is_staff (STAFF_PERMISSION)
   support: {anyPermission: ['support:manage']},
   tripOps: {anyPermission: ['trip:event:create', 'support:manage', 'backoffice:read']},               // platform_ops.STAFF_READ
   tripChanges: {anyPermission: ['trip:event:create']},
@@ -89,7 +90,7 @@ const I = (area: Area, label: string, href: string, rule?: Rule, extra: Partial<
   ({area, label, href, rule, inNav: true, ...(MOBILE[href] ? {mobile: MOBILE[href][0], glyph: MOBILE[href][1]} : {}), ...extra});
 /* Staff pages live in three areas with their own sidebar (spec §1.1): operations, finance and tenant administration. */
 const OPS_ADMIN_PAGES = new Set(['/admin/ops', '/admin/train-desk', '/admin/partner-requests', '/admin/sales-desk', '/admin/documents', '/admin/contracts', '/admin/safarsaz',
-  '/admin/catalog', '/admin/catalog/reference', '/admin/tours', '/admin/inventory']);
+  '/admin/catalog', '/admin/catalog/reference', '/admin/tours', '/admin/inventory', '/admin/suppliers/mahan']);
 export function staffArea(href: string): Area {
   if (href.startsWith('/finance') || href === '/admin/ecosystem') return 'finance';
   if (href.startsWith('/backoffice') || OPS_ADMIN_PAGES.has(href)) return 'ops';
@@ -136,6 +137,7 @@ export const PANEL_ITEMS: NavItem[] = [
     ['میز گفتگو و فروش', '/admin/sales-desk', R.desk], ['حلقه‌ی همسفران', '/admin/loyalty', R.tenantAdmin], ['کمپین پیامکی', '/admin/sms-campaigns', R.tenantAdmin],
     ['عملیات و پشتیبانی', '/backoffice', R.backoffice], ['مالی', '/finance', R.ledger], ['صندوق و حساب‌ها', '/finance/treasury', R.financeRead],
     ['قوانین فروش', '/admin/commerce', R.tenantAdmin], ['پرواز و موجودی', '/admin/inventory', R.inventoryStaff], ['سهمیه‌ی همکاران', '/admin/charter-quotas', R.inventoryAdmin],
+    ['آزمون اتصال ماهان', '/admin/suppliers/mahan', R.mahanStaff],
     ['گزارش فروش', '/finance/reports', R.inventoryStaff], ['سود و کمیسیون فروش', '/finance/markup-revenue', R.financeRead], ['خروجی فرانگر', '/finance/journal-export', R.financeRead],
     ['مطالبات سازمان‌ها', '/finance/receivables', R.financeRead], ['دفتر کل و بستن دوره', '/finance/ledger', R.financeRead],
     ['عملکرد و تطبیق تأمین‌کنندگان', '/finance/suppliers', R.supplierFinance], ['روابط مالی اکوسیستم', '/admin/ecosystem', R.financeRead],
@@ -176,8 +178,13 @@ export function canOpen(area: Area, path: string, role: string): boolean {
   const item = itemFor(area, path);
   return allows(item ? item.rule : AREA_FALLBACK[area], role);
 }
-export function navFor(area: Area, role: string): NavItem[] {
-  const own = PANEL_ITEMS.filter(i => i.area === area && i.inNav && i.href !== '/panel/today' && allows(i.rule, role));
+/** Personal-panel pages about an organization (Launch V1 item 8.2). When the person has an organization panel
+ *  (membership or organization role), these leave the personal menu: organization data lives in the organization panel only. */
+export const ORG_LINKED_PERSONAL_PAGES = ['/account/benefits'];
+export type NavOptions = {orgPanel?: boolean};
+export function navFor(area: Area, role: string, opts: NavOptions = {}): NavItem[] {
+  const own = PANEL_ITEMS.filter(i => i.area === area && i.inNav && i.href !== '/panel/today' && allows(i.rule, role)
+    && !(area === 'customer' && opts.orgPanel && ORG_LINKED_PERSONAL_PAGES.includes(i.href)));
   const today = PANEL_ITEMS.find(i => i.href === '/panel/today');
   return ['ops', 'finance', 'admin'].includes(area) && today && allows(today.rule, role) && own.length ? [today, ...own] : own;
 }
@@ -200,8 +207,8 @@ export function staffAreasFor(role: string): Array<{area: Area; label: string; h
   }).filter((x): x is {area: Area; label: string; href: string} => x !== null);
 }
 /** Mobile bottom tabs: «امروز» (staff) or the area home, then the area's mobile destinations the role may open; «بیشتر» opens the full menu. */
-export function mobileTabsFor(area: Area, role: string): Array<{label: string; href: string; glyph: string}> {
-  const nav = navFor(area, role);
+export function mobileTabsFor(area: Area, role: string, opts: NavOptions = {}): Array<{label: string; href: string; glyph: string}> {
+  const nav = navFor(area, role, opts);
   const picked = nav.filter(i => i.mobile).sort((a, b) => (a.mobile ?? 9) - (b.mobile ?? 9)).slice(0, 4);
   const fill = nav.filter(i => !picked.includes(i)).slice(0, Math.max(0, 4 - picked.length));
   return [...picked, ...fill].map(i => ({label: i.label, href: i.href, glyph: i.glyph ?? '•'}));
