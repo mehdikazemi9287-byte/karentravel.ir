@@ -15,7 +15,8 @@ from app.main import SessionLocal
 
 from test_agency_b2b import _user, activate, flight_offer, fund, key, login, make_agency, price_check
 
-TODAY = date.today().isoformat()
+# Statement periods are Tehran calendar days (S.TEHRAN); the machine UTC date differs from ~20:30 UTC to midnight.
+TODAY = datetime.now(S.TEHRAN).date().isoformat()
 
 
 @pytest.fixture()
@@ -183,7 +184,7 @@ def test_vat_comes_from_the_dated_table_at_the_sale_date(client, sw, monkeypatch
 
 def test_draft_rules_and_isolation(client, sw):
     a = sw["agency_id"]
-    tomorrow = (date.today() + timedelta(days=1)).isoformat()
+    tomorrow = (datetime.now(S.TEHRAN).date() + timedelta(days=1)).isoformat()
     assert draft(client, sw, end=tomorrow).status_code == 422
     assert client.post("/finance/agency-settlements", headers=sw["ops"], json={"agency_id": a, "period_start": TODAY, "period_end": TODAY}).status_code == 403
     first = draft(client, sw).json()
