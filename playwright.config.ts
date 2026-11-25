@@ -16,6 +16,8 @@ const searchOrigin = `http://127.0.0.1:${searchPort}`;
 // service; that service reads offers back from the API with a shared internal token.
 const searchToken = randomBytes(24).toString('hex');
 process.env.E2E_API_URL ||= apiOrigin; // specs read this; workers inherit the runner env
+// The e2e SQLite file: specs that need an account the API cannot create (a plain `customer` inside a seed tenant) add it here.
+process.env.E2E_DATABASE_FILE ||= e2eDatabase;
 
 export default defineConfig({
   testDir: './e2e',
@@ -31,7 +33,7 @@ export default defineConfig({
   use: { baseURL: webOrigin, trace: 'retain-on-failure', ...devices['Desktop Chrome'], channel: process.env.PLAYWRIGHT_CHANNEL || 'chrome' },
   webServer: [
     {
-      command: `DATABASE_URL=sqlite:///${e2eDatabase} ENVIRONMENT=development PAYMENT_PROVIDER=sandbox SANDBOX_PAYMENT_BASE_URL=${apiOrigin} CORS_ORIGINS=${webOrigin} SEARCH_SERVICE_URL=${searchOrigin} SEARCH_INTERNAL_TOKEN=${searchToken} ${e2ePython} -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port ${apiPort}`,
+      command: `DATABASE_URL=sqlite:///${process.env.E2E_DATABASE_FILE} ENVIRONMENT=development PAYMENT_PROVIDER=sandbox SANDBOX_PAYMENT_BASE_URL=${apiOrigin} CORS_ORIGINS=${webOrigin} SEARCH_SERVICE_URL=${searchOrigin} SEARCH_INTERNAL_TOKEN=${searchToken} ${e2ePython} -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port ${apiPort}`,
       url: `${apiOrigin}/ready`,
       timeout: 120_000,
       reuseExistingServer: false,
