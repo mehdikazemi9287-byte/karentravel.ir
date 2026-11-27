@@ -26,7 +26,7 @@ ssh karen@188.121.123.218 'cd /opt/karenseir && docker compose run --rm -T -e MA
 | `live` | Production ماهان. **دسترسی هنوز داده نشده**؛ بدون کلید، بسته می‌ماند (`missing_credentials`). |
 
 API (همه با ورود):
-- `POST /flights/suppliers/mahan/search` — قیمت «تقریبی هر بزرگسال» از Availability (فقط کلاس باز، قیمت‌دار، با ساعت رسیدن)؛ `offer_ref` امضاشده (HMAC) بدون قیمت.
+- `POST /flights/suppliers/mahan/search` — قیمت «تقریبی فروش هر بزرگسال»: نرخ Availability (فقط کلاس باز، قیمت‌دار، با ساعت رسیدن) + قاعدهٔ مارک‌آپ commerce با `flight_type=system` و محدودهٔ داخلی/خارجی (`backend/app/flight_pricing.py`، مشترک با نیرا)؛ نرخ خالص به مشتری نمی‌رود. `offer_ref` امضاشده (HMAC) بدون قیمت.
 - `POST /flights/suppliers/mahan/revalidate` — FareQuote (قیمت مرجع) + قاعدهٔ markup ماژول commerce + سقف نرخ سازمان هواپیمایی (`charter_price_caps`، بزرگسال) → `ok` یا `price_changed`.
 - `POST /flights/suppliers/mahan/hold` با هدر `Idempotency-Key` — دوباره FareQuote؛ اگر مبلغ با `expected_total` یکی نبود `PRICE_CHANGED` و Book انجام نمی‌شود؛ وگرنه یک بار Book. پاسخ گم‌شده (timeout) هرگز تکرار نمی‌شود: وضعیت `unknown` و بررسی دستی با NRSRT.
 - `POST /flights/suppliers/mahan/holds/{id}/issue` — **همیشه 423**: صدور بلیت تا تأیید کتبی مالک و اتصال پرداخت خاموش است (TODO در کد).

@@ -28,6 +28,25 @@ export function Note({msg}: {msg: {ok: boolean; text: string} | null}) {
   return msg ? <p className={`pn-note ${msg.ok ? '' : 'error'}`} role={msg.ok ? 'status' : 'alert'}>{msg.text}</p> : null;
 }
 
+/* Percent entry: the user types 15 (or ۱۵ or 7.5) and the stored value is basis points (1500, 750).
+   Local text keeps a half-typed "7." visible; anything that is not a number is ignored, never sent as NaN. */
+const toLatin = (t: string) => t.replace(/[۰-۹]/g, d => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))).replace(/[٫،,]/g, '.');
+function PercentInput({id, required, value, onChange}: {id: string; required?: boolean; value: any; onChange: (bps: number) => void}) {
+  const shown = value === undefined || value === null || value === '' ? '' : String(Number(value) / 100);
+  const [text, setText] = useState(shown);
+  const [seen, setSeen] = useState(value);
+  if (seen !== value) {                       // value changed from outside (another row opened): show it, keep a matching half-typed text
+    setSeen(value);
+    if (Math.round(Number(text === '' || text === '.' ? 0 : text) * 100) !== Number(value ?? 0)) setText(shown);
+  }
+  return <input id={id} required={required} inputMode="decimal" dir="ltr" value={text} onChange={e => {
+    const t = toLatin(e.target.value).replace(/[^\d.]/g, '');
+    if (!/^\d*\.?\d{0,2}$/.test(t)) return;
+    setText(t);
+    onChange(t === '' || t === '.' ? 0 : Math.round(Number(t) * 100));
+  }}/>;
+}
+
 export function FormFields({fields, value, set}: {fields: Field[]; value: Row; set: (v: Row) => void}) {
   return <>{fields.map(f => {
     const v = value[f.key];
@@ -37,7 +56,7 @@ export function FormFields({fields, value, set}: {fields: Field[]; value: Row; s
     if (f.type === 'select') input = <select {...common} value={v ?? ''} onChange={e => on(e.target.value)}>{f.options!.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>;
     else if (f.type === 'bool') input = <select {...common} value={v ? '1' : '0'} onChange={e => on(e.target.value === '1')}><option value="1">بله</option><option value="0">خیر</option></select>;
     else if (f.type === 'textarea') input = <textarea {...common} rows={3} value={v ?? ''} onChange={e => on(e.target.value)} style={{border: '1px solid #d9cdc0', borderRadius: 12, padding: 9, font: 'inherit'}}/>;
-    else if (f.type === 'percent') input = <input {...common} inputMode="decimal" value={v === undefined || v === null ? '' : String(v / 100)} onChange={e => on(e.target.value === '' ? 0 : Math.round(Number(e.target.value) * 100))}/>;
+    else if (f.type === 'percent') input = <PercentInput id={common.id} required={f.required} value={v} onChange={on}/>;
     else if (f.type === 'number' || f.type === 'money') input = <input {...common} inputMode="numeric" value={v ?? ''} onChange={e => {const t = e.target.value.replace(/[^\d]/g, ''); on(t === '' ? null : Number(t));}}/>;
     else input = <input {...common} type={f.type === 'date' ? 'date' : 'text'} value={v ?? ''} onChange={e => on(e.target.value)} dir={f.type === 'date' ? 'ltr' : undefined}/>;
     return <label key={f.key} htmlFor={`f-${f.key}`} style={f.wide ? {flexBasis: '100%'} : undefined}>{f.label}{f.hint && <small style={{fontWeight: 400}}> — {f.hint}</small>}{input}</label>;
@@ -45,7 +64,7 @@ export function FormFields({fields, value, set}: {fields: Field[]; value: Row; s
 }
 
 /* Generic list + create/edit for one rule collection. */
-export function Crud({path, title, fields, cols, blank, toPayload, fromRow, extra}: {path: string; title: string; fields: Field[]; cols: {label: string; cell: (r: Row) => ReactNode}[];
+export function Crud({path, title, fields, cols, blank, toPayload, fromRow, extra}: {path: string; title: string; fields: Field[] | ((v: Row) => Field[]); cols: {label: string; cell: (r: Row) => ReactNode}[];
   blank: Row; toPayload?: (v: Row) => Row; fromRow?: (r: Row) => Row; extra?: (r: Row) => ReactNode}) {
   const {state, reload, api} = useLoad<{items: Row[]}>(path);
   const [edit, setEdit] = useState<Row | null>(null);
@@ -60,7 +79,7 @@ export function Crud({path, title, fields, cols, blank, toPayload, fromRow, extr
   return <Card title={title} action={<button className="pn-btn" onClick={() => {setEdit({...blank}); setMsg(null);}}>افزودن</button>}>
     <Note msg={msg}/>
     {edit && <form className="pn-form" onSubmit={save} style={{marginBottom: 16, padding: 12, border: '1px dashed #d9cdc0', borderRadius: 14}}>
-      <FormFields fields={fields} value={edit} set={setEdit}/>
+      <FormFields fields={typeof fields === 'function' ? fields(edit) : fields} value={edit} set={setEdit}/>
       <span style={{display: 'flex', gap: 8}}><button className="pn-btn" disabled={busy}>{edit.id ? 'ذخیره‌ی تغییرات' : 'ثبت'}</button><button type="button" className="pn-btn ghost" onClick={() => setEdit(null)}>انصراف</button></span>
     </form>}
     <Async state={state}>{d => <Table rows={d.items} rowKey={r => r.id} empty="هنوز موردی ثبت نشده است."
@@ -99,23 +118,35 @@ function GroupSelect(): Opt {
   return [['', 'همه‌ی کاربران'], ...(state.kind === 'ready' ? state.data.items.map(g => [g.id, g.name] as [string, string]) : [])];
 }
 
+/* Supplier of a markup rule: all, the two scheduled-flight connections, then suppliers registered in inventory.
+   If /inventory/suppliers is loading or not permitted, the fixed choices still work. */
+function SupplierSelect(): Opt {
+  const {state} = useLoad<{items: Row[]}>('/inventory/suppliers');
+  const fixed: Opt = [['', 'همه‌ی تأمین‌کنندگان'], ['mahan', 'ماهان (وب‌سرویس)'], ['nira', 'نیرا (وب‌سرویس ایرلاین‌ها)']];
+  return [...fixed, ...(state.kind === 'ready' ? state.data.items.filter(s => !fixed.some(f => f[0] === s.id)).map(s => [s.id, s.name] as [string, string]) : [])];
+}
+
 function Markups() {
   const groups = GroupSelect();
+  const suppliers = SupplierSelect();
+  const supplierOpts = (v: string): Opt => v && !suppliers.some(o => o[0] === v) ? [...suppliers, [v, `${v} (ثبت‌شده)`]] : suppliers;
+  const amount = (calc: string, key: string, lbl: string): Field => calc === 'fixed' ? {key, label: `${lbl} (ریال)`, type: 'money'} : {key, label: `${lbl} (درصد)`, type: 'percent', hint: key === 'adult' ? 'مثلاً ۱۵ یعنی ۱۵٪' : undefined};
   const pct = (r: Row, k: string) => r.calc === 'percent' ? `${fa(r[k] / 100)}٪` : money(r[k], 'IRR');
   return <Crud path="/commerce/markup-rules" title="مارک‌آپ و تخفیف"
     blank={{title: '', service_type: 'flight', group_id: '', scope: 'any', flight_type: 'any', effect: 'markup', calc: 'percent', basis: 'total', adult: 0, child: 0, infant: 0, round_to: 0, priority: 100, status: 'active'}}
-    toPayload={v => ({...v, group_id: v.group_id || null, cap_amount: v.cap_amount || null, min_stars: v.min_stars || null, valid_from: v.valid_from || null, valid_to: v.valid_to || null})}
-    fromRow={r => ({...r, group_id: r.group_id ?? ''})}
-    fields={[{key: 'title', label: 'عنوان', required: true}, {key: 'service_type', label: 'خدمت', type: 'select', options: SERVICES}, {key: 'group_id', label: 'گروه کاربری', type: 'select', options: groups},
+    toPayload={v => ({...v, adult: v.adult ?? 0, child: v.child ?? 0, infant: v.infant ?? 0, group_id: v.group_id || null, supplier_id: v.supplier_id || null, cap_amount: v.cap_amount || null, min_stars: v.min_stars || null, valid_from: v.valid_from || null, valid_to: v.valid_to || null})}
+    fromRow={r => ({...r, group_id: r.group_id ?? '', supplier_id: r.supplier_id ?? ''})}
+    fields={v => [{key: 'title', label: 'عنوان', required: true}, {key: 'service_type', label: 'خدمت', type: 'select', options: SERVICES}, {key: 'group_id', label: 'گروه کاربری', type: 'select', options: groups},
       {key: 'effect', label: 'نوع', type: 'select', options: [['markup', 'افزایش (مارک‌آپ)'], ['discount', 'تخفیف']]}, {key: 'calc', label: 'محاسبه', type: 'select', options: [['percent', 'درصدی'], ['fixed', 'مبلغ ثابت (ریال)']]},
       {key: 'basis', label: 'مبنا', type: 'select', options: [['total', 'قیمت کل'], ['base', 'نرخ پایه']]},
-      {key: 'adult', label: 'بزرگسال', type: 'number', hint: 'درصد: ۱۰۰ = ۱٪'}, {key: 'child', label: 'کودک', type: 'number'}, {key: 'infant', label: 'نوزاد', type: 'number'},
+      amount(v.calc, 'adult', 'بزرگسال'), amount(v.calc, 'child', 'کودک'), amount(v.calc, 'infant', 'نوزاد'),
       {key: 'scope', label: 'محدوده', type: 'select', options: SCOPE}, {key: 'flight_type', label: 'نوع پرواز', type: 'select', options: FTYPE},
       {key: 'airline_code', label: 'کد ایرلاین', hint: 'مثلاً IR'}, {key: 'origin', label: 'مبدأ (IATA)'}, {key: 'destination', label: 'مقصد (IATA)'},
-      {key: 'city_id', label: 'شهر هتل (شناسه)'}, {key: 'min_stars', label: 'حداقل ستاره', type: 'number'}, {key: 'supplier_id', label: 'تأمین‌کننده (شناسه)'},
+      {key: 'city_id', label: 'شهر هتل (شناسه)'}, {key: 'min_stars', label: 'حداقل ستاره', type: 'number'}, {key: 'supplier_id', label: 'تأمین‌کننده', type: 'select', options: supplierOpts(v.supplier_id ?? '')},
       {key: 'round_to', label: 'گرد کردن به بالا (ریال)', type: 'money'}, {key: 'cap_amount', label: 'سقف مبلغ (ریال)', type: 'money'}, {key: 'priority', label: 'اولویت', type: 'number', hint: 'عدد کمتر = مقدم'},
       {key: 'valid_from', label: 'از تاریخ', type: 'date'}, {key: 'valid_to', label: 'تا تاریخ', type: 'date'}, {key: 'status', label: 'وضعیت', type: 'select', options: STATUS}, {key: 'note', label: 'یادداشت', type: 'textarea', wide: true}]}
     cols={[{label: 'عنوان', cell: r => r.title}, {label: 'خدمت', cell: r => label(SERVICES, r.service_type)}, {label: 'گروه', cell: r => label(groups, r.group_id ?? '')},
+      {label: 'تأمین‌کننده', cell: r => r.supplier_id ? label(suppliers, r.supplier_id) : 'همه'},
       {label: 'شرط', cell: r => [r.airline_code, r.origin && r.destination ? `${r.origin}→${r.destination}` : r.origin || r.destination, r.scope !== 'any' && label(SCOPE, r.scope), r.flight_type !== 'any' && label(FTYPE, r.flight_type), r.min_stars && `${fa(r.min_stars)}★+`].filter(Boolean).join('، ') || 'عمومی'},
       {label: 'بزرگسال/کودک/نوزاد', cell: r => <span>{r.effect === 'discount' ? '−' : '+'}{pct(r, 'adult')} / {pct(r, 'child')} / {pct(r, 'infant')}</span>}, {label: 'اولویت', cell: r => fa(r.priority)}, {label: 'وضعیت', cell: r => <Badge status={r.status}/>}]}/>;
 }

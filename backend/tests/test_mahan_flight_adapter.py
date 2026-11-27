@@ -378,3 +378,66 @@ def test_adapter_port_surface_and_passenger_mapping():
         mf.mahan_passengers([mf.PassengerIn(**inf).model_dump()], segs)
     with pytest.raises(MahanError):
         mf.priced_quote(parse_quote({**quote(), "result": {**quote()["result"], "Currency": "USD"}}), {"adult": 1})
+
+
+# ---------------------------------------------------------------- system-flight markup (flight_pricing, PR-1)
+def _rules(tenant_id, *specs):
+    """Test markup rules for supplier 'mahan'; returns ids for cleanup."""
+    with SessionLocal() as db:
+        rows = [MarkupRule(tenant_id=tenant_id, service_type="flight", supplier_id="mahan", calc="percent", **s) for s in specs]
+        db.add_all(rows)
+        db.commit()
+        return [r.id for r in rows]
+
+
+def _drop_rules(ids):
+    with SessionLocal() as db:
+        db.execute(delete(MarkupRule).where(MarkupRule.id.in_(ids)))
+        db.commit()
+
+
+def _tenant():
+    with SessionLocal() as db:
+        return db.scalar(select(User.tenant_id).where(User.email == "backoffice@aftab.test"))
+
+
+def test_system_domestic_rule_applies_to_mahan_and_charter_rule_does_not():
+    from app.flight_pricing import flight_scope
+    tenant_id = _tenant()
+    with SessionLocal() as db:
+        for code in ("THR", "MHD"):
+            if db.get(CatalogAirport, code) is None:
+                db.add(CatalogAirport(id=code, name_en=f"{code} test airport", country_code="IR", latitude=0.0, longitude=0.0, timezone="Asia/Tehran", source="test"))
+        db.commit()
+    ids = _rules(tenant_id,
+                 {"title": "test system domestic 15%", "scope": "domestic", "flight_type": "system", "adult": 1500},
+                 {"title": "test charter 40% (must not match)", "scope": "domestic", "flight_type": "charter", "adult": 4000, "priority": 1},
+                 {"title": "test international 30% (must not match domestic)", "scope": "international", "flight_type": "system", "adult": 3000, "priority": 1})
+    try:
+        pq = mf.PricedQuote(currency="IRR", net_total=20000000, net_unit={"adult": 20000000}, counts={"adult": 1}, cabin="Y")
+        sel = {"segs": [{"o": "THR", "d": "MHD", "dt": DAY}]}
+        with SessionLocal() as db:
+            assert flight_scope(db, ["THR", "MHD"]) == "domestic" and flight_scope(db, ["IKA", "BKK"]) == "international"
+            assert flight_scope(db, ["THR", "ZZZ"]) == "international"                 # unknown airport is never assumed domestic
+            p = mf.sell_price(db, tenant_id, None, sel, pq)
+        assert p["scope"] == "domestic" and p["sell_total"] == 23000000 and p["sell_unit"] == {"adult": 23000000} and p["margin"] == 3000000
+        assert ids[0] == p["rule_id"]
+        assert mf.public_price(p) == {"total_amount": 23000000, "currency": "IRR", "per_passenger": [{"type": "adult", "count": 1, "unit_amount": 23000000}]}
+    finally:
+        _drop_rules(ids)
+
+
+def test_system_international_rule_changes_search_and_revalidate_and_hides_net(client, qaa):
+    fake = qaa(AvailFake({"FareQuote": (200, quote(64000000))}))
+    ids = _rules(_tenant(), {"title": "test system intl 10%", "scope": "international", "flight_type": "system", "adult": 1000},
+                 {"title": "test domestic 50% (must not match IKA-BKK)", "scope": "domestic", "flight_type": "system", "adult": 5000, "priority": 1})
+    try:
+        h = _login(client, "backoffice@aftab.test")
+        body = _search(client, h).json()
+        assert [o["indicative_adult_fare"] for o in body["offers"]] == [55000000, 99000000]     # 50M / 90M net + 10%
+        assert "50000000" not in json.dumps(body) and "90000000" not in json.dumps(body)
+        r = client.post("/flights/suppliers/mahan/revalidate", headers=h, json={"offer_ref": body["offers"][0]["offer_ref"]}).json()
+        assert r["total_amount"] == 70400000 and "64000000" not in json.dumps(r) and "net_total" not in r
+        assert fake.count("AvailabilityFareJS") == 1
+    finally:
+        _drop_rules(ids)

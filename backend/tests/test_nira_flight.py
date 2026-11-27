@@ -194,3 +194,104 @@ def test_offer_ref_signing_and_guarded_writes():
     for call in (lambda: adapter.create_pnr(None, [], "k"), lambda: adapter.issue("X", "k"), lambda: adapter.void("X", "k"), lambda: adapter.refund("X", "k")):
         with pytest.raises(FlightContractViolation):
             call()
+
+
+# ---------------------------------------------------------------- markup + CAO cap on Niira (flight_pricing, PR-3)
+def _nira_rule(**kw):
+    from sqlalchemy import select
+    from app.commerce import MarkupRule
+    from app.main import User
+    with SessionLocal() as db:
+        tenant_id = db.scalar(select(User.tenant_id).where(User.email == "backoffice@aftab.test"))
+        rule = MarkupRule(tenant_id=tenant_id, service_type="flight", supplier_id="nira", calc="percent", **kw)
+        db.add(rule)
+        db.commit()
+        return tenant_id, rule.id
+
+
+def _drop(model, row_id):
+    from sqlalchemy import delete
+    with SessionLocal() as db:
+        db.execute(delete(model).where(model.id == row_id))
+        db.commit()
+
+
+def test_live_search_applies_system_domestic_markup_and_never_sends_net(client, monkeypatch, transport):
+    from app.commerce import MarkupRule
+    monkeypatch.setenv("NIRA_MODE", "live")
+    monkeypatch.setenv("NIRA_AIRLINES", "VR")
+    creds(monkeypatch, "VR")
+    transport(Mock({"api.vareshair.ir": avail(fn="2001", price="30000000")}))
+    _, rid = _nira_rule(title="test nira VR domestic system 12%", airline_code="VR", scope="domestic", flight_type="system", adult=1200)
+    _, other = _nira_rule(title="test nira charter 50% (must not match)", flight_type="charter", adult=5000, priority=1)
+    try:
+        for email in ("employee@aftab.test", "backoffice@aftab.test"):
+            body = _search(client, _login(client, email)).json()
+            assert [(o["indicative_adult_fare"], o["price_cap"]) for o in body["offers"]] == [(33600000, "none")]
+            text = json.dumps(body)
+            assert "30000000" not in text and "net" not in text and "margin" not in text
+    finally:
+        _drop(MarkupRule, rid)
+        _drop(MarkupRule, other)
+
+
+def test_no_rule_means_sell_equals_net_and_cap_is_annotated(client, monkeypatch, transport):
+    from sqlalchemy import select
+    from app.charter_blocks import PriceCap
+    from app.commerce import MarkupRule
+    from app.main import User
+    monkeypatch.setenv("NIRA_MODE", "live")
+    monkeypatch.setenv("NIRA_AIRLINES", "VR")
+    creds(monkeypatch, "VR")
+    transport(Mock({"api.vareshair.ir": avail(fn="2001", price="25000000")}))
+    h = _login(client, "employee@aftab.test")
+    assert [o["indicative_adult_fare"] for o in _search(client, h).json()["offers"]] == [25000000]
+    tenant_id, rid = _nira_rule(title="test nira 10%", adult=1000)
+    with SessionLocal() as db:
+        uid = db.scalar(select(User.id).where(User.email == "backoffice@aftab.test"))
+        cap = PriceCap(tenant_id=tenant_id, origin="THR", destination="MHD", valid_from=date.today(), valid_to=date.today() + timedelta(days=30),
+                       cap_unit_irr=27000000, legal_reference="TEST-CAP", created_by_user_id=uid)
+        db.add(cap)
+        db.commit()
+        cap_id = cap.id
+    try:
+        offers = _search(client, h).json()["offers"]
+        assert [(o["indicative_adult_fare"], o["price_cap"]) for o in offers] == [(27500000, "exceeded")]   # annotated, not hidden
+    finally:
+        _drop(PriceCap, cap_id)
+        _drop(MarkupRule, rid)
+
+
+def test_no_db_transaction_is_open_while_airlines_are_called(client, monkeypatch, transport):
+    from sqlalchemy import event
+    from sqlalchemy.orm import Session as OrmSession
+    from app.commerce import MarkupRule
+    monkeypatch.setenv("NIRA_MODE", "live")
+    monkeypatch.setenv("NIRA_AIRLINES", "VR")
+    creds(monkeypatch, "VR")
+    open_tx: set = set()
+    seen: list = []
+
+    def began(session, transaction, connection):
+        open_tx.add(id(session))
+
+    def ended(session, transaction):
+        if transaction.parent is None:
+            open_tx.discard(id(session))
+
+    def answer(request):
+        seen.append(len(open_tx))
+        return avail(fn="2001", price="30000000")
+    transport(Mock({"api.vareshair.ir": answer}))
+    _, rid = _nira_rule(title="test nira tx 5%", adult=500)
+    h = _login(client, "employee@aftab.test")
+    event.listen(OrmSession, "after_begin", began)
+    event.listen(OrmSession, "after_transaction_end", ended)
+    try:
+        body = _search(client, h).json()
+        assert body["offers"][0]["indicative_adult_fare"] == 31500000
+        assert seen == [0]                                                # the only airline call ran with no open DB transaction
+    finally:
+        event.remove(OrmSession, "after_begin", began)
+        event.remove(OrmSession, "after_transaction_end", ended)
+        _drop(MarkupRule, rid)
