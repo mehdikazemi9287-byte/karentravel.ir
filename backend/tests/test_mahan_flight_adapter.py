@@ -441,3 +441,35 @@ def test_system_international_rule_changes_search_and_revalidate_and_hides_net(c
         assert fake.count("AvailabilityFareJS") == 1
     finally:
         _drop_rules(ids)
+
+
+def test_no_db_transaction_is_open_while_mahan_is_called(client, qaa):
+    from sqlalchemy import event
+    from sqlalchemy.orm import Session as OrmSession
+    open_tx: set = set()
+    seen: list = []
+
+    class Watch(AvailFake):
+        def __call__(self, method, url, json=None, headers=None):
+            seen.append(len(open_tx))
+            return super().__call__(method, url, json, headers)
+
+    def began(session, transaction, connection):
+        open_tx.add(id(session))
+
+    def ended(session, transaction):
+        if transaction.parent is None:
+            open_tx.discard(id(session))
+    qaa(Watch({"FareQuote": (200, quote(64000000))}))
+    ids = _rules(_tenant(), {"title": "test system intl 10% (tx)", "scope": "international", "flight_type": "system", "adult": 1000})
+    h = _login(client, "backoffice@aftab.test")
+    event.listen(OrmSession, "after_begin", began)
+    event.listen(OrmSession, "after_transaction_end", ended)
+    try:
+        ref = _search(client, h).json()["offers"][0]["offer_ref"]
+        assert client.post("/flights/suppliers/mahan/revalidate", headers=h, json={"offer_ref": ref}).json()["total_amount"] == 70400000
+        assert seen and all(n == 0 for n in seen)                         # search + FareQuote ran with no open DB transaction
+    finally:
+        event.remove(OrmSession, "after_begin", began)
+        event.remove(OrmSession, "after_transaction_end", ended)
+        _drop_rules(ids)
