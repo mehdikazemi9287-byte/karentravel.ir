@@ -6844,6 +6844,8 @@ app.include_router(charter_quotas_router(get_db, current_user, role_has_permissi
 
 from .mahan_flight import mahan_flight_router  # noqa: E402  Mahan (W5) flight supplier: search/revalidate/hold; MAHAN_MODE, default disabled; no issuance
 app.include_router(mahan_flight_router(get_db, current_user, role_has_permission, _platform_audit, JWT_SECRET))
+from .nira_flight import nira_flight_router  # noqa: E402  Niira NRS airlines: status/search/staff console; NIRA_MODE, default off; no reserve/issue endpoints
+app.include_router(nira_flight_router(get_db, current_user, role_has_permission, JWT_SECRET))
 
 from .ops_console import ops_console_router  # noqa: E402  unified ops dashboard, contract file, Moadian readiness
 app.include_router(ops_console_router(get_db, current_user, role_has_permission, User, _platform_audit))
