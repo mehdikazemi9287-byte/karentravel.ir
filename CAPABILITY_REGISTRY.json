@@ -266,6 +266,13 @@
       "last_verified_at": "2026-11-24",
       "evidence": "backend/app/mahan_flight.py; backend/tests/test_mahan_flight_adapter.py; docs/integrations/mahan/README.md"
     },
+    "flight_supplier_nira": {
+      "status": "READY_BLOCKED_EXTERNAL",
+      "reason": "SOURCE only (branch feat/nira-nrs-adapter): Niira NRS client for many Iranian airlines + supplier behind flight_port with API /flights/suppliers/nira/{status,search,console/availability}; NIRA_MODE default off (zero network calls). sandbox = Niira test airline A1 only, staff-only. Reserve/issue/cancel/refund implemented in the client and unit-tested but not exposed over HTTP. Tested only with httpx.MockTransport; never run against Niira.",
+      "blocker": "No Niira/airline web-service (WS) credentials in Source; parameter spellings (Airline/Email, edtAge, Command) unverified on a real host; server IP whitelisting per airline; owner approval needed for reservation/issuance; server compose must pass NIRA_* env to the api container.",
+      "last_verified_at": "2026-11-27",
+      "evidence": "backend/app/nira_nrs.py; backend/app/nira_flight.py; backend/tests/test_nira_nrs.py; backend/tests/test_nira_flight.py; docs/integrations/NIRA_NRS_WEBSERVICE.md"
+    },
     "tour_customer_journey": {
       "status": "PARTIAL",
       "reason": "Slice14 3874c60: public catalog-only program, explicit room pricing, durable owned booking, two travellers and isolated payment/voucher/trips/after-sales Ops timeline PASS1440/390. Actual public empty recovery verified. Real provider/financial operations and public-catalog selling entitlement not established.",
