@@ -346,3 +346,32 @@ def test_credentials_never_appear_in_logs_or_errors(caplog):
 def test_redact_helper():
     s = nn.redact(f"OfficeUser={USER}&OfficePass={PASS}&x=1 {{\"OfficePass\": \"{PASS}\"}}", PASS)
     assert PASS not in s and USER not in s and "x=1" in s
+
+
+def test_json_error_echoing_bare_user_and_password_is_scrubbed():
+    c, _ = client({"AvailabilityFareJS.jsp": {"Error": f"Invalid User Name {USER} / {PASS}"}, "ETRefundJS": {"AirNRSRefund": [{"Done": "-1", "Desc": f"denied for {USER}"}]}})
+    errs = []
+    for call in (lambda: c.availability_fare("THR", "MHD", DAY), lambda: c.refund("0991234567890", nn.RefundInputs(1, 0, 0, 0))):
+        with pytest.raises(NiraError) as e:
+            call()
+        errs.append(e.value)
+    assert errs[0].code == "INVALID_USER"
+    assert all(USER not in f"{e}{e.nrs_text}" and PASS not in f"{e}{e.nrs_text}" for e in errs)
+
+
+def test_reserve_success_without_pnr_is_ambiguous_and_rule_text_is_not_an_error():
+    c, _ = client({"AvailabilityFareJS.jsp": AVAIL, "ReservJS": {"AirReserve": [{"Error": "No Err", "PNR": ""}]}})
+    f = c.availability_fare("THR", "MHD", DAY).flights[0]
+    with pytest.raises(NiraError) as e:
+        c.reserve(f, "Y", [ADULT], "09120000000")
+    assert e.value.ambiguous
+    fare = {**FARE, "CRCNRules": [{"Description": "if FLIGHT CLOSED by airline, full refund"}]}
+    assert nn.parse_fare(fare).adult.total == 23500000
+
+
+def test_custom_read_retry_codes_skip_timeouts():
+    mock = Mock({"AvailabilityFareJS.jsp": httpx.ReadTimeout("t")})
+    c = NiraClient("sandbox", cfg(), http=httpx.Client(transport=httpx.MockTransport(mock)), sleep=lambda s: None, read_retry_codes=frozenset({"NETWORK"}))
+    with pytest.raises(NiraError):
+        c.availability_fare("THR", "MHD", DAY)
+    assert mock.count("AvailabilityFareJS") == 1

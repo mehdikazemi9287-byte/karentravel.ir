@@ -109,7 +109,7 @@ EP آسمان `restapi.iaa.ir` · FP فلای‌پرشیا `api.flypersiaairline
 | `NIRA_<CODE>_USER` / `NIRA_<CODE>_PASS` | The airline's web-service (WS) office user and password. |
 | `NIRA_<CODE>_HOST` | Optional override of the built-in host table (`https://host` or `host`, no path). **Required for `W5`.** |
 | `NIRA_<CODE>_CGI` | Optional override of the WS2 cgi name (for example `NRSWebWS.cgi`). |
-| `NIRA_<CODE>_ROUTES` | Optional route table (`THR-MHD,MHD-THR`). If set, only those routes are queried for that airline; if unset, every search asks that airline. |
+| `NIRA_<CODE>_ROUTES` | Optional route table (`THR-MHD,MHD-THR`). If set, only those routes are queried for that airline; if unset, every search asks that airline. There is no airline route table in the code (`inv_flight_routes`/`inv_flight_series` is the tenant's own charter inventory, not airline schedules), so this env list is the route table for now. |
 
 **Modes**
 - **off:** nothing is built and no HTTP call is made. Search answers `unavailable/off` with no offers, and the rest of the site works as before.
@@ -158,7 +158,7 @@ EP آسمان `restapi.iaa.ir` · FP فلای‌پرشیا `api.flypersiaairline
 - همهٔ متدهای سند در کد پیاده شده‌اند: جست‌وجو، نرخ، رزرو، صدور، بازیابی، ابطال، جریمه، استرداد و اعتبار.
 - جست‌وجو و صفحهٔ آزمون کارشناس (`/admin/suppliers/nira`) باز شده‌اند. رزرو و صدور بلیت از سایت هنوز ممکن نیست.
 - رمز و نام کاربری ایرلاین در هیچ لاگ، پیام خطا یا پاسخی دیده نمی‌شود و این با آزمون خودکار بررسی شده است.
-- ۵۵ آزمون خودکار نوشته شد؛ همه با پاسخ‌های ساختگی و بدون تماس واقعی با ایرلاین اجرا می‌شوند.
+- ۵۸ آزمون خودکار نوشته شد؛ همه با پاسخ‌های ساختگی و بدون تماس واقعی با ایرلاین اجرا می‌شوند.
 
 **مانده:**
 - هیچ تماس واقعی با نیرا یا ایرلاین‌ها انجام نشده، چون رمزی در این محیط نیست. چند نام پارامتر هنوز با سرور واقعی تأیید نشده‌اند (فهرستشان در بخش Caveats بالاست).

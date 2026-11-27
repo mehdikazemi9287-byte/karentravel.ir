@@ -86,7 +86,8 @@ def build_clients() -> tuple[dict[str, NiraClient], dict]:
         if a["enabled"]:
             cfg, _, _ = airline_config(a["code"], st["mode"])
             if cfg is not None:
-                clients[a["code"]] = NiraClient(st["mode"], cfg, http=_http(), sleep=time.sleep)
+                # search: a read timeout (20 s) plus a retry cannot finish inside the 25 s deadline — retry only network/503 here
+                clients[a["code"]] = NiraClient(st["mode"], cfg, http=_http(), sleep=time.sleep, read_retry_codes=frozenset({"NETWORK", "UNAVAILABLE"}))
     return clients, st
 
 

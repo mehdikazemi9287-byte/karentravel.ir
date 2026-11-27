@@ -225,7 +225,7 @@ MESSAGES_FA = {
 }
 
 _SUCCESS_TEXT = re.compile(r"^\s*(no\s*err(or)?\b|success\b|ok\s*$)", re.I)
-_ERR_KEY = re.compile(r"error|err$|desc|message|msg|reason", re.I)
+_ERR_KEY = re.compile(r"^(error|err|errors|errormessage|errordesc|message|msg|desc|description_en)$", re.I)   # error fields only, not rule texts
 
 
 def map_error(text: str) -> Optional[str]:
@@ -282,6 +282,17 @@ def _get(d: Any, *keys: str) -> Any:
         if v not in (None, ""):
             return v
     return None
+
+
+def scrub(value: Any, secrets: tuple[str, ...]) -> Any:
+    """Known secret values removed from every string (keys included) of a parsed answer, before anything reads it."""
+    if isinstance(value, dict):
+        return {scrub(k, secrets): scrub(v, secrets) for k, v in value.items()}
+    if isinstance(value, list):
+        return [scrub(v, secrets) for v in value]
+    if isinstance(value, str):
+        return redact(value, *secrets)
+    return value
 
 
 def _rows(data: Any, *wrappers: str) -> list[dict]:
@@ -724,10 +735,11 @@ class NiraClient:
     """One airline on one NRS host. Build with `NiraClient(mode, config)`; `http` lets tests inject an httpx.Client with a
     MockTransport (the real httpx code path, logging included, still runs)."""
 
-    def __init__(self, mode: str, config: AirlineConfig, *, http: Optional[httpx.Client] = None, sleep: Callable[[float], None] = time.sleep):
+    def __init__(self, mode: str, config: AirlineConfig, *, http: Optional[httpx.Client] = None, sleep: Callable[[float], None] = time.sleep,
+                 read_retry_codes: frozenset = frozenset(RETRYABLE)):
         if mode not in ("sandbox", "live"):
             raise ValueError("NiraClient needs sandbox or live mode")
-        self.mode, self.cfg, self._http, self._sleep = mode, config, http, sleep
+        self.mode, self.cfg, self._http, self._sleep, self.read_retry_codes = mode, config, http, sleep, read_retry_codes
 
     def __repr__(self) -> str:
         return f"NiraClient(mode={self.mode!r}, airline={self.cfg.code!r}, host={self.cfg.host!r})"
@@ -778,6 +790,7 @@ class NiraClient:
             if text_ok and not code:
                 return redact(strip_query(text), *secrets)                      # NRSCommand answers terminal text
             raise NiraError(code or "BAD_RESPONSE", redact(strip_query(text), *secrets)[:120], airline=self.cfg.code)
+        data = scrub(data, secrets)                                              # an NRS echo of the user/password never travels further
         if isinstance(data, str):
             code = map_error(data)
             if code:
@@ -790,7 +803,7 @@ class NiraClient:
             try:
                 return self._send(op, url, params, **kw)
             except NiraError as exc:
-                if exc.code not in RETRYABLE or attempt == READ_RETRIES:
+                if exc.code not in self.read_retry_codes or attempt == READ_RETRIES:
                     raise
                 self._sleep(min(0.5 * (2 ** attempt), 2.0))
         raise AssertionError("unreachable")
@@ -835,8 +848,10 @@ class NiraClient:
         data = self._send("ReservJS", self.cfg.ws2("ReservJS"), params)
         row = (_rows(data, "AirReserve") or [{}])[0]
         err, pnr = str(_get(row, "Error") or "").strip(), str(_get(row, "PNR") or "").strip()
-        if err.lower() in ("no err", "success") and re.fullmatch(r"[A-Z0-9]{5,8}", pnr.upper()):
-            return {"pnr": pnr.upper(), "time_limit": _get(row, "TimeLimit")}
+        if err.lower() in ("no err", "success"):
+            if re.fullmatch(r"[A-Z0-9]{5,8}", pnr.upper()):
+                return {"pnr": pnr.upper(), "time_limit": _get(row, "TimeLimit")}
+            raise NiraError("RESERVATION_FAILURE", "success without a readable PNR", airline=self.cfg.code, ambiguous=True)   # a PNR may exist
         raise NiraError(map_error(err) or "RESERVATION_FAILURE", redact(err, self.cfg.user, self.cfg.password)[:300], airline=self.cfg.code)
 
     def issue(self, pnr: str, email: str) -> list[tuple[str, str]]:
