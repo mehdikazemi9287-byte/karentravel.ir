@@ -43,6 +43,7 @@ class SearchIn(BaseModel):
     page_size: int = Field(default=20, ge=1, le=100)
     public: bool = True
     tenant_ref: str | None = Field(default=None, max_length=120)
+    price_group: str | None = Field(default=None, max_length=64)   # resolved by the monolith gateway; hashed into the cache key
 
 
 class QueryPlanIn(BaseModel):
@@ -189,6 +190,7 @@ def v1_search(data: SearchIn = Body(...), x_correlation_id: str | None = Header(
         travellers=data.travellers, flexibility=data.flexibility, sort=data.sort, filters=data.filters or {},
         include_stale=data.include_stale, page=data.page, page_size=data.page_size,
         public=data.public, tenant_ref=data.tenant_ref, correlation_id=corr,
+        price_group=None if data.public else data.price_group,
     )
 
     # Central Search Orchestrator (orchestrator.py): fan-out -> normalize ->

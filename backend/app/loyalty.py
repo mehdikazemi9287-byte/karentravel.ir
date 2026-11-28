@@ -133,16 +133,16 @@ def sync_level_group(db: Session, tenant_id: int, user_id: int, earned: int, lev
     groups = {g.code: g.id for g in db.scalars(select(CustomerGroup).where(CustomerGroup.tenant_id == tenant_id, CustomerGroup.code.in_(codes))).all()}
     target = groups.get(level_for(levels, earned)[0].get("group_code") or "")
     member = db.scalar(select(CustomerGroupMember).where(CustomerGroupMember.tenant_id == tenant_id, CustomerGroupMember.user_id == user_id))
-    if member is not None and member.group_id not in set(groups.values()):
+    if member is not None and member.status == "active" and member.group_id not in set(groups.values()):
         return None
     if target is None:
         if member is not None:
-            db.delete(member)
+            member.status = "disabled"   # never deleted: the row is kept and ignored by pricing
         return None
     if member is None:
-        db.add(CustomerGroupMember(tenant_id=tenant_id, user_id=user_id, group_id=target))
+        db.add(CustomerGroupMember(tenant_id=tenant_id, user_id=user_id, group_id=target, status="active"))
     else:
-        member.group_id = target
+        member.group_id, member.status = target, "active"
     return target
 
 

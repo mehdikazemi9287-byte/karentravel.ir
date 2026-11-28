@@ -3845,7 +3845,8 @@ def _grs_hotel_offers_for_search(*, tenant_id: int, query: str, min_price: Optio
 
 
 @app.post("/search/offers")
-def search_offers(data: OfferSearchIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
+def search_offers(data: OfferSearchIn, user: User = Depends(current_user), db: Session = Depends(get_db), response: Response = None) -> list[dict]:  # type: ignore[assignment]
+    """`response` is injected by FastAPI on POST /search/offers; /search/v2 calls this directly without it."""
     if data.min_price is not None and data.max_price is not None and data.min_price > data.max_price:
         raise HTTPException(status_code=422, detail="بازه قیمت معتبر نیست")
     bounds = data.map_bounds
@@ -3860,6 +3861,7 @@ def search_offers(data: OfferSearchIn, user: User = Depends(current_user), db: S
     rows = db.scalars(statement).all()
     normalized_query = _normalize_search_text(data.query or "")
     results: list[dict] = []
+    hidden_over_cap, caps = 0, {}
     for row in rows:
         attrs = json.loads(row.attributes_json or "{}")
         policy = json.loads(row.policy_json or "{}")
@@ -3884,6 +3886,9 @@ def search_offers(data: OfferSearchIn, user: User = Depends(current_user), db: S
         taxes = max(0, int(attrs.get("taxes", 0) or 0)); fees = max(0, int(attrs.get("fees", 0) or 0)); discounts = max(0, int(attrs.get("discounts", 0) or 0))
         final_price = max(0, row.amount + taxes + fees - discounts)
         final_price, _commercial = _commercial_unit_price(db, user.tenant_id, user.id, row, attrs, final_price)
+        if row.service_type == "flight" and _over_price_cap(db, user.tenant_id, attrs, final_price, caps):
+            hidden_over_cap += 1                                       # owner decision (PR #119): never listed; the offer row is untouched
+            continue
         entity_id = attrs.get("entity_id") or hashlib.sha256(f"{row.service_type}:{_normalize_search_text(row.title)}:{_normalize_search_text(str(attrs.get('city', '')))}".encode()).hexdigest()[:24]
         result = {"id": row.id, "offer_id": row.id, "entity_id": entity_id, "service_type": row.service_type, "title": row.title, "provider": row.provider_key, "provider_status": "supplier_verified" if row.fulfillment_mode == "manual_supplier" else "provider_required", "last_updated_at": observed_at.isoformat(), "observed_at": observed_at.isoformat(), "availability_checked_at": _search_datetime(attrs.get("availability_checked_at"), observed_at).isoformat(), "price_checked_at": _search_datetime(attrs.get("price_checked_at"), observed_at).isoformat(), "freshness_ttl_seconds": ttl_seconds, "freshness": "stale" if stale else "live", "freshness_state": "STALE" if stale else "LIVE", "amount": row.amount, "base_price": row.amount, "taxes": taxes, "fees": fees, "discounts": discounts, "total_amount": final_price, "final_price": final_price, "currency": row.currency, "available": not stale, "availability_state": "REQUIRES_RECHECK" if stale else "CONFIRMED", "inventory_status": "available" if not stale else "stale_unknown", "available_units": row.available_units if not stale else None, "cancellation_policy": cancellation, "policy_verified": policy.get("verified") is True, "quality_score": attrs.get("quality_score", attrs.get("quality")), "review_score": review_score or None, "location": {key: attrs.get(key) for key in ("city", "province", "latitude", "longitude") if attrs.get(key) is not None}, "attributes": attrs, "valid_until": _aware(row.valid_until).isoformat()}
         breakdown = {"price": round(1000000000 / max(result["total_amount"], 1), 4), "reviews": review_score * 10, "flexibility": 10 if cancellation and cancellation.get("refundable") else 0, "policy": 5 if attrs.get("organization_policy_compliant") else 0, "freshness": 0 if stale else 15, "provider_reliability": float(attrs.get("provider_reliability", 5))}
@@ -3894,10 +3899,43 @@ def search_offers(data: OfferSearchIn, user: User = Depends(current_user), db: S
         results.extend(_grs_hotel_offers_for_search(tenant_id=user.tenant_id, query=data.query or "", min_price=data.min_price, max_price=data.max_price, min_review_score=data.min_review_score, refundable=data.refundable, instant_booking=data.instant_booking, check_in=data.check_in, check_out=data.check_out, travellers=data.travellers, db=db))
     sorters = {"price_asc": lambda item: (item["total_amount"], -item["ranking_score"]), "price_desc": lambda item: (-item["total_amount"], -item["ranking_score"]), "review_desc": lambda item: (-(item["review_score"] or 0), item["total_amount"]), "freshness": lambda item: (item["freshness"] != "live", item["last_updated_at"]), "recommended": lambda item: (-item["ranking_score"], item["total_amount"])}
     results.sort(key=sorters[data.sort])
-    criteria = data.model_dump(); criteria["normalized_query"] = normalized_query; criteria["result_count"] = len(results)
+    if not role_has_permission(getattr(user, "role", "") or "", "backoffice:read"):
+        results = [_customer_offer(item) for item in results]   # same shape as the search-service pool: sell price only
+    criteria = data.model_dump(); criteria["normalized_query"] = normalized_query; criteria["result_count"] = len(results); criteria["hidden_over_cap"] = hidden_over_cap
     db.add(operational_models.SearchRequest(tenant_id=user.tenant_id, user_id=user.id, service_type=data.service_type, criteria_json=json.dumps(criteria, sort_keys=True), correlation_id=str(uuid.uuid4())))
     db.commit()
+    if response is not None and role_has_permission(getattr(user, "role", "") or "", "backoffice:read"):
+        response.headers["X-Hidden-Over-Cap"] = str(hidden_over_cap)  # staff only; customers get no hint
     return results
+
+
+# Net-side figures that must never reach a customer: with a markup rule, net + these components lets anyone compute the margin.
+_MARGIN_ATTRIBUTE_KEYS = ("net", "net_amount", "net_unit", "net_price", "net_total", "margin", "markup", "commission", "cost", "supplier_amount")
+_NET_ATTRIBUTE_KEYS = _MARGIN_ATTRIBUTE_KEYS + ("taxes", "fees", "discounts")
+_NET_OFFER_KEYS = ("base_price", "taxes", "fees", "discounts", "net", "net_amount", "net_unit", "margin", "markup", "commercial_rule")
+
+
+def _strip_net_attributes(attrs: dict, keys: tuple = _NET_ATTRIBUTE_KEYS) -> dict:
+    return {key: value for key, value in (attrs or {}).items() if key not in keys}
+
+
+def _customer_offer(result: dict) -> dict:
+    """A /search/offers (and /search/v2) result as a customer sees it: `amount` is the sell price (same as final_price,
+    like the pool's `amount`), net components and margin keys are removed, attributes are cleaned. Staff keep the full row."""
+    out = {key: value for key, value in result.items() if key not in _NET_OFFER_KEYS}
+    out["amount"] = result["final_price"]
+    out["attributes"] = _strip_net_attributes(result.get("attributes") or {})
+    return out
+
+
+def _over_price_cap(db: Session, tenant_id: int, attrs: dict, sell_unit: int, memo: dict) -> bool:
+    """True when the sell price per unit is above the CAO cap for the flight's route and date (same rule as price-check)."""
+    from .charter_blocks import applicable_cap
+    key = (str(attrs.get("origin_code") or attrs.get("origin") or "").upper()[:3], str(attrs.get("destination_code") or attrs.get("destination") or "").upper()[:3],
+           str(attrs.get("flight_date") or attrs.get("departure_time") or "")[:10])
+    if key not in memo:
+        memo[key] = applicable_cap(db, tenant_id, attrs)[0]
+    return memo[key] is not None and sell_unit > memo[key]
 
 
 # ---------------------------------------------------------------------------
@@ -3915,6 +3953,28 @@ class _OfferPoolIn(BaseModel):
     service_type: str = Field(pattern=ECOSYSTEM_SERVICE_PATTERN)
     public: bool = True
     tenant_ref: Optional[str] = Field(default=None, max_length=120)
+    price_group: Optional[str] = Field(default=None, max_length=64)
+
+
+def _sell_side_pool_offer(db: Session, tenant_id: int, group_id: Optional[str], row, caps: dict) -> Optional[dict]:
+    """Same pricing as /search/offers: commerce markup on the unit price, flights above the CAO cap are dropped
+    (owner decision, PR #119). The returned `amount` is sell-side, so the net never leaves the monolith."""
+    attrs = json.loads(row.attributes_json or "{}")
+    taxes = max(0, int(attrs.get("taxes", 0) or 0)); fees = max(0, int(attrs.get("fees", 0) or 0)); discounts = max(0, int(attrs.get("discounts", 0) or 0))
+    net_final = max(0, row.amount + taxes + fees - discounts)
+    sell_final, _commercial = _commercial_unit_price(db, tenant_id, None, row, attrs, net_final, group_id=group_id)
+    if row.service_type == "flight" and _over_price_cap(db, tenant_id, attrs, sell_final, caps):
+        return None
+    attrs = _strip_net_attributes(attrs, _MARGIN_ATTRIBUTE_KEYS)   # taxes/fees/discounts stay: search-service adds them to the sell `amount`
+    return {
+        "id": row.id, "service_type": row.service_type, "title": row.title, "amount": row.amount + (sell_final - net_final),
+        "currency": row.currency, "available_units": row.available_units, "provider_key": row.provider_key,
+        "fulfillment_mode": row.fulfillment_mode,
+        "attributes": attrs, "policy": json.loads(row.policy_json or "{}"),
+        "valid_until": _aware(row.valid_until).isoformat(),
+        "created_at": _aware(row.created_at).isoformat() if row.created_at else None,
+        "updated_at": _aware(row.updated_at).isoformat() if row.updated_at else None,
+    }
 
 
 @app.post("/internal/search/offer-pool")
@@ -3939,15 +3999,16 @@ def internal_search_offer_pool(data: _OfferPoolIn, x_internal_token: str = Heade
         operational_models.Offer.available_units > 0,
         operational_models.Offer.valid_until > now,
     )).all()
-    offers = [{
-        "id": r.id, "service_type": r.service_type, "title": r.title, "amount": r.amount,
-        "currency": r.currency, "available_units": r.available_units, "provider_key": r.provider_key,
-        "fulfillment_mode": r.fulfillment_mode,
-        "attributes": json.loads(r.attributes_json or "{}"), "policy": json.loads(r.policy_json or "{}"),
-        "valid_until": _aware(r.valid_until).isoformat(),
-        "created_at": _aware(r.created_at).isoformat() if r.created_at else None,
-        "updated_at": _aware(r.updated_at).isoformat() if r.updated_at else None,
-    } for r in rows]
+    from .commerce import CustomerGroup, user_group_id
+    group_id = None
+    if not data.public and data.price_group:   # resolved by the /search/v3 gateway from the JWT; must be a group of this tenant
+        # No status filter: user_group_id() returns a direct membership whatever the group's status, and /search/offers
+        # prices with that group too. The tenant match is the boundary.
+        group_id = db.scalar(select(CustomerGroup.id).where(CustomerGroup.id == data.price_group, CustomerGroup.tenant_id == tenant_id))
+    if group_id is None:
+        group_id = user_group_id(db, tenant_id, None)   # the tenant's default group (or none)
+    caps: dict = {}
+    offers = [item for item in (_sell_side_pool_offer(db, tenant_id, group_id, r, caps) for r in rows) if item is not None]
     if data.service_type=="tour":
         pairs=db.execute(select(operational_models.TourProduct,operational_models.TourDeparture).join(operational_models.TourDeparture,operational_models.TourDeparture.tour_id==operational_models.TourProduct.id).join(operational_models.Supplier,operational_models.Supplier.id==operational_models.TourProduct.supplier_id).where(operational_models.TourProduct.tenant_id==tenant_id,operational_models.TourDeparture.tenant_id==tenant_id,operational_models.Supplier.tenant_id==tenant_id,operational_models.Supplier.status=="active",operational_models.TourProduct.status=="published",operational_models.TourDeparture.status=="active",operational_models.TourDeparture.booking_deadline>now,operational_models.TourDeparture.remaining>0)).all()
         for tour,departure in pairs:
@@ -3968,7 +4029,7 @@ def internal_search_offer_pool(data: _OfferPoolIn, x_internal_token: str = Heade
     return {"service_type": data.service_type, "public": data.public, "offers": offers}
 
 
-async def _search_service_call(data: UnifiedSearchIn, *, public: bool, tenant_ref: Optional[str]) -> dict:
+async def _search_service_call(data: UnifiedSearchIn, *, public: bool, tenant_ref: Optional[str], price_group: Optional[str] = None) -> dict:
     """Shared gateway to karenseir-search. The service NEVER receives a raw JWT
     or user record -- only a resolved, minimal SearchContext (tenant slug,
     public flag). Falls closed to a truthful error, never a fabricated result."""
@@ -3979,6 +4040,8 @@ async def _search_service_call(data: UnifiedSearchIn, *, public: bool, tenant_re
         "sort": data.sort, "filters": data.filters, "include_stale": data.include_stale,
         "page": data.page, "page_size": data.page_size, "public": public, "tenant_ref": tenant_ref,
     }
+    if price_group:   # part of the search-service cache key, so one group's prices are never served to another
+        payload["price_group"] = price_group
     corr = str(uuid.uuid4())
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
@@ -4006,7 +4069,11 @@ async def search_v3_authenticated_gateway(data: UnifiedSearchIn, user: User = De
     tenant = db.get(Tenant, user.tenant_id)
     if tenant is None:
         raise HTTPException(status_code=404, detail={"code": "TENANT_UNRESOLVED"})
-    return await _search_service_call(data, public=False, tenant_ref=tenant.slug)
+    from .commerce import user_group_id
+    price_group = user_group_id(db, user.tenant_id, user.id)   # group id only; no user identity reaches the search service
+    tenant_slug = tenant.slug                                   # read before rollback: an expired row would reopen a transaction
+    db.rollback()                                               # no DB transaction is open while the search service is called
+    return await _search_service_call(data, public=False, tenant_ref=tenant_slug, price_group=price_group)
 
 
 _ASSISTANT_SERVICE_URL = os.getenv("ASSISTANT_SERVICE_URL", "http://karenseir-assistant:8080")
@@ -4236,15 +4303,16 @@ def offer_detail(offer_id: str, user: User = Depends(current_user), db: Session 
     return {"booking_detail_url":("/experience-products/"+str(attrs["leisure_product_id"])) if attrs.get("leisure_product_id") else None,"id": offer.id, "title": offer.title, "service_type": offer.service_type, "amount": amount, "currency": offer.currency, "policy": json.loads(offer.policy_json), "attributes": safe_attributes, "valid_until": offer.valid_until.isoformat(), "provider_required": offer.fulfillment_mode == "provider", "available": offer.status == "active" and offer.available_units > 0 and _aware(offer.valid_until) > datetime.now(timezone.utc), "max_units": offer.available_units}
 
 
-def _commercial_unit_price(db: Session, tenant_id: int, user_id: Optional[int], offer, attrs: dict, net_unit: int) -> tuple[int, Optional[dict]]:
-    """Apply the admin's markup/discount rule (commerce module) to one unit; no rule -> net price unchanged."""
+def _commercial_unit_price(db: Session, tenant_id: int, user_id: Optional[int], offer, attrs: dict, net_unit: int, **group) -> tuple[int, Optional[dict]]:
+    """Apply the admin's markup/discount rule (commerce module) to one unit; no rule -> net price unchanged.
+    `group_id=` (optional) is an already-resolved price group, used by the search-service offer pool."""
     from .commerce import quote as _commerce_quote
     airline = attrs.get("airline_code") or (str(attrs.get("flight_number") or "")[:2] or None)
     ctx = {"service_type": "package" if offer.service_type == "flight_hotel" else offer.service_type, "supplier_id": offer.supplier_id,
            "airline_code": airline, "origin": attrs.get("origin_code") or attrs.get("origin"), "destination": attrs.get("destination_code") or attrs.get("destination"),
            "scope": attrs.get("scope") or ("international" if attrs.get("international") else None), "flight_type": attrs.get("flight_type") or attrs.get("fare_type"),
            "city_id": attrs.get("city_id"), "stars": attrs.get("stars")}
-    result = _commerce_quote(db, tenant_id, ctx, {"adult": {"count": 1, "total": net_unit}}, user_id=user_id)
+    result = _commerce_quote(db, tenant_id, ctx, {"adult": {"count": 1, "total": net_unit}}, user_id=user_id, **group)
     if not result["rule"] or not result["lines"]:
         return net_unit, None
     return result["lines"][0]["sell"], {"rule_id": result["rule"]["id"], "net_unit": net_unit, "adjustment": result["lines"][0]["adjustment"]}
@@ -5606,6 +5674,153 @@ def change_user_role(target_user_id: int, data: AdminRoleIn, user: User = Depend
     if user.role == "organization_admin" and data.role not in {"employee", "customer", "manager", "welfare_manager"}: raise HTTPException(status_code=403, detail="مدیر سازمان مجاز به اعطای نقش سطح tenant نیست")
     previous = target.role; target.role = data.role; db.add(AuditEvent(tenant_id=user.tenant_id, actor_id=user.id, action="user.role_changed", entity="user", entity_id=target.id, detail=json.dumps({"from": previous, "to": target.role, "reason": data.reason}, sort_keys=True))); db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="user", aggregate_id=str(target.id), event_type="admin.user_role.changed", payload_json=json.dumps({"from": previous, "to": target.role, "actor_id": user.id}, sort_keys=True), correlation_id=str(uuid.uuid4()), idempotency_key=f"role:{target.id}:{uuid.uuid4()}")); db.commit(); return {"id": target.id, "name": target.name, "email": target.email, "role": target.role}
 
+
+
+# ---- /admin user management (PR-9): search + paging, invite by mobile (OTP login, no password), reversible deactivation,
+# price group. GET /admin/users above keeps its old list shape for existing callers.
+class AdminUserCreateIn(BaseModel):
+    name: str = Field(min_length=2, max_length=160)
+    mobile: str = Field(min_length=10, max_length=20)
+    role: str = Field(default="customer", pattern="^(employee|customer|manager|welfare_manager|organization_admin|agency_partner|supplier|backoffice_expert|finance_operator|tenant_admin)$")
+    reason: Optional[str] = Field(default=None, max_length=500)   # required for administrative roles (_ADMIN_INVITE_ROLES)
+
+
+# Roles that manage people, money, approvals or the back office (security.py: tenant:/member:manage, ledger/settlement,
+# backoffice:read or approval:decide): inviting someone straight into one of them needs a written reason, kept in the
+# audit trail (same rule as PUT /admin/users/{id}/role, which always needs one).
+_ADMIN_INVITE_ROLES = frozenset({"manager", "welfare_manager", "organization_admin", "backoffice_expert", "finance_operator", "tenant_admin"})
+_INVITE_MOBILE_TAKEN = "این شماره موبایل قابل ثبت نیست؛ اگر صاحب شماره حساب دارد، با همان شماره و رمز یک‌بار مصرف وارد شود"
+
+
+class AdminUserStatusIn(BaseModel):
+    active: bool
+    reason: str = Field(min_length=3, max_length=500)
+
+
+class AdminUserGroupIn(BaseModel):
+    group_id: Optional[str] = Field(default=None, max_length=36)
+
+
+def _tenant_admin_only(user: User) -> None:
+    if user.role not in {"tenant_admin", "platform_admin"}: raise HTTPException(status_code=403, detail="مدیریت سراسری کاربران فقط برای مدیر مجموعه مجاز است")
+
+
+def _admin_user_row(row: User, me: User, groups: dict) -> dict:
+    group = groups.get(row.id)
+    return {"id": row.id, "name": row.name, "email": None if row.email.endswith("@mobile.karenseir.local") else row.email, "mobile": row.mobile_e164,
+            "role": row.role, "active": row.disabled_at is None, "disabled_at": row.disabled_at.isoformat() if row.disabled_at else None,
+            "price_group": {"id": group[0], "name": group[1]} if group else None,
+            "mutable": row.role not in {"platform_admin", _PUBLIC_SEARCH_IDENTITY_ROLE} and row.id != me.id}
+
+
+def _admin_target(db: Session, user: User, target_user_id: int) -> User:
+    target = db.scalar(select(User).where(User.id == target_user_id, User.tenant_id == user.tenant_id).with_for_update())
+    if target is None: raise HTTPException(status_code=404, detail="کاربر در این مجموعه وجود ندارد")
+    if target.id == user.id: raise HTTPException(status_code=409, detail="تغییر حساب خودتان از این مسیر مجاز نیست")
+    if target.role in {"platform_admin", _PUBLIC_SEARCH_IDENTITY_ROLE}: raise HTTPException(status_code=403, detail="این حساب از پیشخوان مجموعه قابل تغییر نیست")
+    return target
+
+
+def _user_groups(db: Session, tenant_id: int, user_ids: list[int]) -> dict:
+    from .commerce import CustomerGroup, CustomerGroupMember
+    if not user_ids: return {}
+    rows = db.execute(select(CustomerGroupMember.user_id, CustomerGroup.id, CustomerGroup.name).join(CustomerGroup, CustomerGroup.id == CustomerGroupMember.group_id)
+                      .where(CustomerGroupMember.tenant_id == tenant_id, CustomerGroup.tenant_id == tenant_id, CustomerGroupMember.user_id.in_(user_ids),
+                             CustomerGroupMember.status == "active")).all()
+    return {uid: (gid, name) for uid, gid, name in rows}
+
+
+@app.get("/admin/users/search")
+def admin_users_search(q: Optional[str] = Query(default=None, max_length=80), status_filter: str = Query(default="all", alias="status", pattern="^(all|active|disabled)$"),
+                       page: int = Query(default=1, ge=1, le=10000), page_size: int = Query(default=25, ge=5, le=100),
+                       user: User = Depends(require_permission("member:manage")), db: Session = Depends(get_db)) -> dict:
+    _tenant_admin_only(user)
+    stmt = select(User).where(User.tenant_id == user.tenant_id, User.role != _PUBLIC_SEARCH_IDENTITY_ROLE)
+    term = (q or "").strip()
+    if term:
+        from .kavenegar_adapter import normalize_iranian_mobile as _normalize_mobile_receptor
+        mobile = _normalize_mobile_receptor(term)
+        like = "%" + term.replace("%", "").replace("_", "") + "%"
+        conditions = [User.name.ilike(like), User.email.ilike(like)]
+        latin = term.translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹", "0123456789"))
+        if mobile: conditions.append(User.mobile_e164 == f"+{mobile}")
+        elif latin.isdigit(): conditions.append(User.mobile_e164.like("%" + latin.lstrip("0") + "%"))
+        from sqlalchemy import or_ as _or
+        stmt = stmt.where(_or(*conditions))
+    if status_filter == "active": stmt = stmt.where(User.disabled_at.is_(None))
+    elif status_filter == "disabled": stmt = stmt.where(User.disabled_at.is_not(None))
+    total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
+    rows = db.scalars(stmt.order_by(User.id.desc()).offset((page - 1) * page_size).limit(page_size)).all()
+    groups = _user_groups(db, user.tenant_id, [r.id for r in rows])
+    return {"items": [_admin_user_row(r, user, groups) for r in rows], "total": total, "page": page, "page_size": page_size}
+
+
+@app.post("/admin/users", status_code=status.HTTP_201_CREATED)
+def admin_create_user(data: AdminUserCreateIn, user: User = Depends(require_permission("member:manage")), db: Session = Depends(get_db)) -> dict:
+    """Invite by mobile: no password is set; the person signs in with the existing OTP login of this tenant."""
+    _tenant_admin_only(user)
+    from .kavenegar_adapter import normalize_iranian_mobile as _normalize_mobile_receptor
+    receptor = _normalize_mobile_receptor(data.mobile)
+    if receptor is None: raise HTTPException(status_code=422, detail="شماره موبایل معتبر نیست")
+    reason = (data.reason or "").strip()
+    if data.role in _ADMIN_INVITE_ROLES and len(reason) < 3:
+        raise HTTPException(status_code=422, detail="برای ساختن کاربر با نقش مدیریتی، دلیل (حداقل ۳ نویسه) لازم است")
+    if db.scalar(select(User.id).where(User.tenant_id == user.tenant_id, User.mobile_e164 == f"+{receptor}")):
+        raise HTTPException(status_code=409, detail=_INVITE_MOBILE_TAKEN)   # same answer as another tenant's number below
+    row = User(tenant_id=user.tenant_id, email=f"{receptor}@mobile.karenseir.local", name=data.name.strip(), role=data.role, mobile_e164=f"+{receptor}")
+    db.add(row)
+    try:
+        db.flush()
+    except IntegrityError:
+        db.rollback()   # mobile_e164 / email are globally unique; another tenant may hold this number (not revealed which)
+        raise HTTPException(status_code=409, detail=_INVITE_MOBILE_TAKEN)
+    detail = {"role": row.role, **({"reason": reason} if reason else {})}
+    db.add(AuditEvent(tenant_id=user.tenant_id, actor_id=user.id, action="user.invited", entity="user", entity_id=row.id, detail=json.dumps(detail, sort_keys=True, ensure_ascii=False)))
+    if row.role in _ADMIN_INVITE_ROLES:
+        db.add(AuditEvent(tenant_id=user.tenant_id, actor_id=user.id, action="user.admin_role_granted", entity="user", entity_id=row.id,
+                          detail=json.dumps({"to": row.role, "via": "invite", "reason": reason}, sort_keys=True, ensure_ascii=False)))
+    db.commit()
+    return _admin_user_row(row, user, {})
+
+
+@app.put("/admin/users/{target_user_id}/status")
+def admin_user_status(target_user_id: int, data: AdminUserStatusIn, user: User = Depends(require_permission("member:manage")), db: Session = Depends(get_db)) -> dict:
+    """Deactivate / reactivate (users.disabled_at). Never deletes; a disabled account cannot log in, refresh or use a token."""
+    _tenant_admin_only(user)
+    target = _admin_target(db, user, target_user_id)
+    was_active = target.disabled_at is None
+    if was_active != data.active:
+        target.disabled_at = None if data.active else datetime.now(timezone.utc)
+        db.add(AuditEvent(tenant_id=user.tenant_id, actor_id=user.id, action="user.enabled" if data.active else "user.disabled", entity="user", entity_id=target.id,
+                          detail=json.dumps({"reason": data.reason}, sort_keys=True, ensure_ascii=False)))
+    db.commit()
+    return _admin_user_row(target, user, _user_groups(db, user.tenant_id, [target.id]))
+
+
+@app.put("/admin/users/{target_user_id}/price-group")
+def admin_user_price_group(target_user_id: int, data: AdminUserGroupIn, user: User = Depends(require_permission("member:manage")), db: Session = Depends(get_db)) -> dict:
+    """Direct price-group membership. Membership rows are moved or disabled, never deleted. group_id=null disables the
+    direct membership (status=disabled, row kept): the user's organization/agency link, else the tenant's default group,
+    prices them again. Choosing a group later reactivates the same row."""
+    from .commerce import CustomerGroup, CustomerGroupMember
+    _tenant_admin_only(user)
+    target = _admin_target(db, user, target_user_id)
+    gid = data.group_id
+    if gid is not None and db.scalar(select(CustomerGroup.id).where(CustomerGroup.id == gid, CustomerGroup.tenant_id == user.tenant_id, CustomerGroup.status == "active")) is None:
+        raise HTTPException(status_code=422, detail="گروه قیمتی فعال در این مجموعه پیدا نشد")
+    member = db.scalar(select(CustomerGroupMember).where(CustomerGroupMember.tenant_id == user.tenant_id, CustomerGroupMember.user_id == target.id))
+    previous = member.group_id if member is not None and member.status == "active" else None
+    if gid is None:
+        if member is not None and member.status == "active":
+            member.status = "disabled"
+    elif member is None:
+        db.add(CustomerGroupMember(tenant_id=user.tenant_id, user_id=target.id, group_id=gid, status="active"))
+    else:
+        member.group_id, member.status = gid, "active"
+    if previous != gid:
+        db.add(AuditEvent(tenant_id=user.tenant_id, actor_id=user.id, action="user.price_group_changed", entity="user", entity_id=target.id, detail=json.dumps({"from": previous, "to": gid}, sort_keys=True)))
+    db.commit()
+    return _admin_user_row(target, user, _user_groups(db, user.tenant_id, [target.id]))
 
 def _saved_trip_output(db: Session, row: operational_models.SavedTrip) -> dict:
     items = db.scalars(select(operational_models.SavedTripItem).where(operational_models.SavedTripItem.tenant_id == row.tenant_id, operational_models.SavedTripItem.saved_trip_id == row.id).order_by(operational_models.SavedTripItem.state, operational_models.SavedTripItem.position, operational_models.SavedTripItem.created_at)).all()

@@ -5,7 +5,12 @@ Switch: NIRA_MODE = off (default) | sandbox | live, airlines in NIRA_AIRLINES, p
 * sandbox → Niira's test airline A1 only, and only for staff (`backoffice:read`); customers get `sandbox_test_only`.
 * live    → every enabled airline that has credentials (and, if NIRA_<CODE>_ROUTES is set, flies that route).
 
-Exposed now: status, search (indicative prices from AvailabilityFare) and the staff test console (one airline, one call).
+Exposed now: status, search and the staff test console (one airline, one call).
+Search price = indicative SELL price per adult: AvailabilityFare net + the tenant markup rule (commerce, supplier_id="nira",
+airline, scope, flight_type="system", origin/destination; shared logic in flight_pricing.py, same as Mahan). With no matching
+rule the sell price equals the net. Each offer carries the CAO adult cap state (`price_cap`); offers whose sell price is above
+the cap are never listed (owner decision, PR #119) — staff see only their count (`hidden_over_cap`). Net prices are never
+sent to customers — only the staff console shows them.
 Reservation, ticket issue, cancel and refund are implemented in `NiraClient` and unit-tested, but NOT exposed over HTTP:
 like Mahan, issuing is financial and stays a guarded, disabled path until the owner approves it and payment capture,
 idempotency records and reconciliation are wired.
@@ -275,6 +280,20 @@ def _sanitize(value: Any, secrets: tuple[str, ...]) -> Any:
     return value
 
 
+def _sell_prices(db: Session, user, offers: list[FareOffer]) -> list[tuple[int, str]]:
+    """(indicative adult SELL price, CAO cap state) per offer — markup per carrier/route (flight_pricing), then the adult cap
+    per leg and local departure date. Rolls back so nothing stays open."""
+    from .flight_pricing import IndicativePricer
+    pricer = IndicativePricer(db, user.tenant_id, user.id, PROVIDER_KEY)
+    out = []
+    for x in offers:
+        segs = x.segments
+        sell = pricer.adult_sell(segs[0].carrier, [segs[0].origin, segs[0].destination] + [s.destination for s in segs[1:]], x.total_amount)
+        out.append((sell, pricer.cap([(s.origin, s.destination, s.departs_at.date()) for s in segs], sell)["cap_state"]))
+    db.rollback()
+    return out
+
+
 def nira_flight_router(get_db, current_user, role_has_permission, signing_secret: str) -> APIRouter:
     api = APIRouter(tags=["flight-supplier-nira"])
 
@@ -288,8 +307,9 @@ def nira_flight_router(get_db, current_user, role_has_permission, signing_secret
         return provider_status()
 
     def _airports(db: Session, codes: set[str]) -> dict:
+        """code → timezone (or None). Plain values are copied before the rollback: an expired ORM row would reopen a transaction."""
         from .catalog import CatalogAirport
-        rows = {a.id: a for a in db.scalars(select(CatalogAirport).where(CatalogAirport.id.in_(codes)))}
+        rows = {a.id: a.timezone for a in db.scalars(select(CatalogAirport).where(CatalogAirport.id.in_(codes)))}
         db.rollback()                                                     # no transaction is open while airlines are called
         return rows
 
@@ -306,7 +326,7 @@ def nira_flight_router(get_db, current_user, role_has_permission, signing_secret
             return _unavailable(st["reason"] if st["reason"] != "ok" else "no_airline")
         o, d = data.origin.upper(), data.destination.upper()
         airports = _airports(db, {o, d})
-        tz = {k: a.timezone for k, a in airports.items() if a.timezone}
+        tz = {k: z for k, z in airports.items() if z}
         midday = lambda day: datetime(day.year, day.month, day.day, 12, tzinfo=ZoneInfo(tz.get(o) or "Asia/Tehran"))  # noqa: E731
         q = FlightSearchQuery(o, d, midday(data.depart_on), {"ADT": data.adults, "CHD": data.children, "INF": data.infants},
                               midday(data.return_on) if data.return_on else None)
@@ -321,18 +341,22 @@ def nira_flight_router(get_db, current_user, role_has_permission, signing_secret
             return _unavailable("no_airline_for_route")
         offers = adapter.search(q, tz)
         offers = validate_fares(q, offers, lambda code: code in clients, airports.__contains__)   # drop, never repair
+        priced = _sell_prices(db, user, offers)                          # DB reads only, after every airline call
+        hidden_over_cap = sum(1 for p in priced if p[1] == "exceeded")
+        kept = [(x, p) for x, p in zip(offers, priced) if p[1] != "exceeded"]   # owner decision (PR #119): above the CAO cap is never listed
         if not offers and adapter.last_airlines and all(a["status"] == "error" for a in adapter.last_airlines):
             out = _unavailable("provider_error")
             out["retryable"] = True
         else:
             out = {"provider": PROVIDER_KEY, "status": "ok", "test_inventory": st["mode"] == "sandbox", "price_state": "INDICATIVE",
-                   "price_note": "قیمت تقریبی از جدول پرواز ایرلاین (هر بزرگسال)؛ قیمت قطعی پس از استعلام نهایی نمایش داده می‌شود.",
-                   "offers": [{"offer_ref": x.provider_offer_ref, "indicative_adult_fare": x.total_amount, "currency": x.currency, "booking_class": x.fare_basis,
-                               "expires_at": x.expires_at.isoformat(), "refundable": x.refundable,
+                   "price_note": "قیمت تقریبی فروش (هر بزرگسال)؛ قیمت قطعی پس از استعلام نهایی نمایش داده می‌شود.",
+                   "offers": [{"offer_ref": x.provider_offer_ref, "indicative_adult_fare": p[0], "price_cap": p[1], "currency": x.currency,
+                               "booking_class": x.fare_basis, "expires_at": x.expires_at.isoformat(), "refundable": x.refundable,
                                "segments": [{"carrier": s.carrier, "flight_number": s.flight_number, "origin": s.origin, "destination": s.destination,
-                                             "departs_at": s.departs_at.isoformat(), "arrives_at": s.arrives_at.isoformat()} for s in x.segments]} for x in offers]}
+                                             "departs_at": s.departs_at.isoformat(), "arrives_at": s.arrives_at.isoformat()} for s in x.segments]} for x, p in kept]}
         if _is_staff(user):
             out["airlines"] = adapter.last_airlines                       # per-airline outcome: codes and counts only
+            out["hidden_over_cap"] = hidden_over_cap                      # staff only: offers withheld because sell > CAO cap
         return out
 
     @api.post("/flights/suppliers/nira/console/availability")

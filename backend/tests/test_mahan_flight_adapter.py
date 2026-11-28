@@ -10,7 +10,7 @@ from datetime import date, datetime, timedelta, timezone
 
 import httpx
 import pytest
-from sqlalchemy import delete, select
+from sqlalchemy import select, update
 
 from app import mahan_flight as mf
 from app import operations as m
@@ -117,7 +117,7 @@ def airports():
 
 @pytest.fixture()
 def markup():
-    """A fixed 1,000,000 IRR/adult markup for supplier 'mahan' (test rule, removed afterwards)."""
+    """A fixed 1,000,000 IRR/adult markup for supplier 'mahan' (test rule, disabled afterwards)."""
     with SessionLocal() as db:
         tenant_id = db.scalar(select(User.tenant_id).where(User.email == "backoffice@aftab.test"))
         rule = MarkupRule(tenant_id=tenant_id, title="test mahan markup", service_type="flight", supplier_id="mahan", calc="fixed", adult=1_000_000, child=500_000)
@@ -126,7 +126,7 @@ def markup():
         rid = rule.id
     yield tenant_id
     with SessionLocal() as db:
-        db.execute(delete(MarkupRule).where(MarkupRule.id == rid))
+        db.execute(update(MarkupRule).where(MarkupRule.id == rid).values(status="disabled"))
         db.commit()
 
 
@@ -258,7 +258,27 @@ def test_cao_cap_blocks_price_above_cap(client, qaa, markup):
         assert r.status_code == 409 and r.json()["detail"]["code"] == "PRICE_CAP_EXCEEDED"
     finally:
         with SessionLocal() as db:
-            db.execute(delete(PriceCap).where(PriceCap.id == cap_id))
+            db.execute(update(PriceCap).where(PriceCap.id == cap_id).values(status="disabled"))
+            db.commit()
+
+
+def test_search_hides_offers_above_cao_cap(client, qaa, markup):
+    qaa(AvailFake({}))
+    with SessionLocal() as db:
+        uid = db.scalar(select(User.id).where(User.email == "backoffice@aftab.test"))
+        cap = PriceCap(tenant_id=markup, origin="IKA", destination="BKK", valid_from=date.today(), valid_to=date.today() + timedelta(days=60),
+                       cap_unit_irr=60000000, legal_reference="TEST-CAP", created_by_user_id=uid)
+        db.add(cap)
+        db.commit()
+        cap_id = cap.id
+    try:
+        staff = _search(client, _login(client, "backoffice@aftab.test")).json()
+        assert [o["indicative_adult_fare"] for o in staff["offers"]] == [51000000] and staff["hidden_over_cap"] == 1   # 91,000,000 > cap
+        customer = _search(client, _login(client, "employee@aftab.test"))
+        assert customer.status_code == 200 and "hidden_over_cap" not in customer.json()
+    finally:
+        with SessionLocal() as db:
+            db.execute(update(PriceCap).where(PriceCap.id == cap_id).values(status="disabled"))
             db.commit()
 
 
@@ -378,3 +398,99 @@ def test_adapter_port_surface_and_passenger_mapping():
         mf.mahan_passengers([mf.PassengerIn(**inf).model_dump()], segs)
     with pytest.raises(MahanError):
         mf.priced_quote(parse_quote({**quote(), "result": {**quote()["result"], "Currency": "USD"}}), {"adult": 1})
+
+
+# ---------------------------------------------------------------- system-flight markup (flight_pricing, PR-1)
+def _rules(tenant_id, *specs):
+    """Test markup rules for supplier 'mahan'; returns ids for cleanup."""
+    with SessionLocal() as db:
+        rows = [MarkupRule(tenant_id=tenant_id, service_type="flight", supplier_id="mahan", calc="percent", **s) for s in specs]
+        db.add_all(rows)
+        db.commit()
+        return [r.id for r in rows]
+
+
+def _drop_rules(ids):
+    """Disable (never delete) the test rules so later tests are not priced by them."""
+    with SessionLocal() as db:
+        db.execute(update(MarkupRule).where(MarkupRule.id.in_(ids)).values(status="disabled"))
+        db.commit()
+
+
+def _tenant():
+    with SessionLocal() as db:
+        return db.scalar(select(User.tenant_id).where(User.email == "backoffice@aftab.test"))
+
+
+def test_system_domestic_rule_applies_to_mahan_and_charter_rule_does_not():
+    from app.flight_pricing import flight_scope
+    tenant_id = _tenant()
+    with SessionLocal() as db:
+        for code in ("THR", "MHD"):
+            if db.get(CatalogAirport, code) is None:
+                db.add(CatalogAirport(id=code, name_en=f"{code} test airport", country_code="IR", latitude=0.0, longitude=0.0, timezone="Asia/Tehran", source="test"))
+        db.commit()
+    ids = _rules(tenant_id,
+                 {"title": "test system domestic 15%", "scope": "domestic", "flight_type": "system", "adult": 1500},
+                 {"title": "test charter 40% (must not match)", "scope": "domestic", "flight_type": "charter", "adult": 4000, "priority": 1},
+                 {"title": "test international 30% (must not match domestic)", "scope": "international", "flight_type": "system", "adult": 3000, "priority": 1})
+    try:
+        pq = mf.PricedQuote(currency="IRR", net_total=20000000, net_unit={"adult": 20000000}, counts={"adult": 1}, cabin="Y")
+        sel = {"segs": [{"o": "THR", "d": "MHD", "dt": DAY}]}
+        with SessionLocal() as db:
+            assert flight_scope(db, ["THR", "MHD"]) == "domestic" and flight_scope(db, ["IKA", "BKK"]) == "international"
+            assert flight_scope(db, ["THR", "ZZZ"]) == "international"                 # unknown airport is never assumed domestic
+            p = mf.sell_price(db, tenant_id, None, sel, pq)
+        assert p["scope"] == "domestic" and p["sell_total"] == 23000000 and p["sell_unit"] == {"adult": 23000000} and p["margin"] == 3000000
+        assert ids[0] == p["rule_id"]
+        assert mf.public_price(p) == {"total_amount": 23000000, "currency": "IRR", "per_passenger": [{"type": "adult", "count": 1, "unit_amount": 23000000}]}
+    finally:
+        _drop_rules(ids)
+
+
+def test_system_international_rule_changes_search_and_revalidate_and_hides_net(client, qaa):
+    fake = qaa(AvailFake({"FareQuote": (200, quote(64000000))}))
+    ids = _rules(_tenant(), {"title": "test system intl 10%", "scope": "international", "flight_type": "system", "adult": 1000},
+                 {"title": "test domestic 50% (must not match IKA-BKK)", "scope": "domestic", "flight_type": "system", "adult": 5000, "priority": 1})
+    try:
+        h = _login(client, "backoffice@aftab.test")
+        body = _search(client, h).json()
+        assert [o["indicative_adult_fare"] for o in body["offers"]] == [55000000, 99000000]     # 50M / 90M net + 10%
+        assert "50000000" not in json.dumps(body) and "90000000" not in json.dumps(body)
+        r = client.post("/flights/suppliers/mahan/revalidate", headers=h, json={"offer_ref": body["offers"][0]["offer_ref"]}).json()
+        assert r["total_amount"] == 70400000 and "64000000" not in json.dumps(r) and "net_total" not in r
+        assert fake.count("AvailabilityFareJS") == 1
+    finally:
+        _drop_rules(ids)
+
+
+def test_no_db_transaction_is_open_while_mahan_is_called(client, qaa):
+    from sqlalchemy import event
+    from sqlalchemy.orm import Session as OrmSession
+    open_tx: set = set()
+    seen: list = []
+
+    class Watch(AvailFake):
+        def __call__(self, method, url, json=None, headers=None):
+            seen.append(len(open_tx))
+            return super().__call__(method, url, json, headers)
+
+    def began(session, transaction, connection):
+        open_tx.add(id(session))
+
+    def ended(session, transaction):
+        if transaction.parent is None:
+            open_tx.discard(id(session))
+    qaa(Watch({"FareQuote": (200, quote(64000000))}))
+    ids = _rules(_tenant(), {"title": "test system intl 10% (tx)", "scope": "international", "flight_type": "system", "adult": 1000})
+    h = _login(client, "backoffice@aftab.test")
+    event.listen(OrmSession, "after_begin", began)
+    event.listen(OrmSession, "after_transaction_end", ended)
+    try:
+        ref = _search(client, h).json()["offers"][0]["offer_ref"]
+        assert client.post("/flights/suppliers/mahan/revalidate", headers=h, json={"offer_ref": ref}).json()["total_amount"] == 70400000
+        assert seen and all(n == 0 for n in seen)                         # search + FareQuote ran with no open DB transaction
+    finally:
+        event.remove(OrmSession, "after_begin", began)
+        event.remove(OrmSession, "after_transaction_end", ended)
+        _drop_rules(ids)

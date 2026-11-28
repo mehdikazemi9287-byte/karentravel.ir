@@ -123,3 +123,153 @@ def test_supplier_account_settlement_and_reports(client):
     assert row["payable"] == 6_000_000 and row["credit_used_pct"] == 12 and not row["over_limit"]
     gw = client.get("/commerce/reports/gateway", headers=fin).json()
     assert "by_status" in gw and isinstance(gw["items"], list)
+
+
+# ---------------------------------------------------------------- price group of an organization / agency (PR-2) and the standard set
+def _tenant_user(email):
+    from sqlalchemy import select
+    from app.main import SessionLocal, User
+    with SessionLocal() as db:
+        u = db.scalar(select(User).where(User.email == email))
+        return u.tenant_id, u.id
+
+
+def _group(client, admin, name):
+    r = client.post("/commerce/groups", json={"code": "g" + uuid.uuid4().hex[:8], "name": name}, headers=admin)
+    assert r.status_code == 201, r.text
+    return r.json()["id"]
+
+
+def test_group_links_resolution_order_and_disable(client):
+    from sqlalchemy import select
+    from app import operations as m
+    from app.commerce import CustomerGroupMember, user_group_id
+    from app.main import SessionLocal
+    admin = _h(client, "platform-admin@aftab.test")
+    tid, uid = _tenant_user("agency@aftab.test")            # a user who is both an org employee and an agency member
+    with SessionLocal() as db:
+        org = m.Organization(tenant_id=tid, name="سازمان آزمون " + uuid.uuid4().hex[:6], status="active")
+        agency = m.Agency(tenant_id=tid, display_name="آژانس آزمون " + uuid.uuid4().hex[:6], status="active")
+        db.add_all([org, agency]); db.flush()
+        db.add_all([m.EmployeeAssignment(tenant_id=tid, user_id=uid, organization_id=org.id), m.AgencyMembership(tenant_id=tid, user_id=uid, agency_id=agency.id)])
+        db.commit()
+        org_id, agency_id = org.id, agency.id
+    g_org, g_agency, g_direct = _group(client, admin, "گروه سازمان"), _group(client, admin, "گروه آژانس"), _group(client, admin, "گروه مستقیم")
+
+    def resolved():
+        with SessionLocal() as db:
+            return user_group_id(db, tid, uid)
+    before = resolved()
+    assert client.post(f"/commerce/groups/{g_agency}/links", json={"party_type": "agency", "party_id": agency_id}, headers=admin).status_code == 201
+    assert resolved() == g_agency
+    link = client.post(f"/commerce/groups/{g_org}/links", json={"party_type": "organization", "party_id": org_id}, headers=admin)
+    assert link.status_code == 201 and link.json()["party_name"].startswith("سازمان آزمون")
+    assert resolved() == g_org                                   # organization beats agency
+    assert client.put(f"/commerce/groups/{g_direct}/members", json={"user_ids": [uid]}, headers=admin).status_code == 200
+    assert resolved() == g_direct                                # direct membership beats both
+    with SessionLocal() as db:                                  # disable (never delete) the direct membership: the links apply again
+        row = db.scalar(select(CustomerGroupMember).where(CustomerGroupMember.tenant_id == tid, CustomerGroupMember.user_id == uid))
+        row.status = "disabled"; db.commit()
+    assert resolved() == g_org
+    off = client.post(f"/commerce/group-links/{link.json()['id']}/disable", headers=admin)
+    assert off.status_code == 200 and off.json()["status"] == "disabled"
+    assert resolved() == g_agency                                # disabled link falls through, row kept
+    items = client.get(f"/commerce/groups/{g_org}/links", headers=admin).json()["items"]
+    assert [(i["party_id"], i["status"]) for i in items] == [(org_id, "disabled")]
+    # relinking the same organization reactivates the same row
+    again = client.post(f"/commerce/groups/{g_org}/links", json={"party_type": "organization", "party_id": org_id}, headers=admin)
+    assert again.json()["id"] == link.json()["id"] and again.json()["status"] == "active" and resolved() == g_org
+    # an inactive organization gives no group
+    with SessionLocal() as db:
+        db.get(m.Organization, org_id).status = "suspended"; db.commit()
+    assert resolved() == g_agency
+    for lk in client.get(f"/commerce/groups/{g_agency}/links", headers=admin).json()["items"] + client.get(f"/commerce/groups/{g_org}/links", headers=admin).json()["items"]:
+        client.post(f"/commerce/group-links/{lk['id']}/disable", headers=admin)
+    assert resolved() == before
+    assert client.get(f"/commerce/groups/{g_org}/links", headers=_h(client, "employee@aftab.test")).status_code == 403
+
+
+def test_group_link_never_crosses_tenants(client):
+    from app import operations as m
+    from app.commerce import user_group_id
+    from app.main import SessionLocal
+    admin = _h(client, "platform-admin@aftab.test")
+    tid_a, _ = _tenant_user("platform-admin@aftab.test")
+    tid_b, uid_b = _tenant_user("employee@faraz.test")
+    assert tid_a != tid_b
+    with SessionLocal() as db:
+        org_a = m.Organization(tenant_id=tid_a, name="سازمان الف " + uuid.uuid4().hex[:6], status="active")
+        org_b = m.Organization(tenant_id=tid_b, name="سازمان ب " + uuid.uuid4().hex[:6], status="active")
+        db.add_all([org_a, org_b]); db.flush()
+        # a (corrupt) cross-tenant assignment: tenant-B user pointed at tenant-A organization
+        db.add(m.EmployeeAssignment(tenant_id=tid_b, user_id=uid_b, organization_id=org_a.id)); db.commit()
+        org_a_id, org_b_id = org_a.id, org_b.id
+    g = _group(client, admin, "گروه الف")
+    # tenant A cannot link tenant B's organization
+    assert client.post(f"/commerce/groups/{g}/links", json={"party_type": "organization", "party_id": org_b_id}, headers=admin).status_code == 404
+    ok = client.post(f"/commerce/groups/{g}/links", json={"party_type": "organization", "party_id": org_a_id}, headers=admin)
+    assert ok.status_code == 201
+    try:
+        with SessionLocal() as db:
+            assert user_group_id(db, tid_b, uid_b) != g           # the tenant-A link has no effect in tenant B
+            assert user_group_id(db, tid_a, uid_b) != g           # nor through tenant A for a user who is not assigned there
+    finally:
+        client.post(f"/commerce/group-links/{ok.json()['id']}/disable", headers=admin)
+
+
+def test_standard_groups_are_created_once_without_rules(client):
+    admin = _h(client, "platform-admin@aftab.test")
+    rules_before = len(client.get("/commerce/markup-rules", headers=admin).json()["items"])
+    first = client.post("/commerce/groups/standard-set", headers=admin)
+    assert first.status_code == 200, first.text
+    names = {g["name"]: g for g in client.get("/commerce/groups", headers=admin).json()["items"]}
+    for n in ("عمومی", "سازمانی", "وامی‌پی", "اعتباری وچک", "طبیعت"):
+        assert n in names and names[n]["status"] == "active"
+    assert sum(1 for g in names.values() if g["is_default"]) <= 1
+    second = client.post("/commerce/groups/standard-set", headers=admin).json()
+    assert second["created"] == [] and len(second["skipped"]) == 5
+    assert len(client.get("/commerce/groups", headers=admin).json()["items"]) == len(names)
+    assert len(client.get("/commerce/markup-rules", headers=admin).json()["items"]) == rules_before   # no markup rule invented
+    assert client.post("/commerce/groups/standard-set", headers=_h(client, "employee@aftab.test")).status_code == 403
+
+
+# ---------------------------------------------------------------- flights above the CAO cap are not listed (PR-4)
+def test_inventory_search_hides_flight_above_cap(client):
+    import json as _json
+    from datetime import date, datetime, timedelta, timezone
+    from sqlalchemy import update
+    from app import operations as m
+    from app.charter_blocks import PriceCap
+    from app.main import SessionLocal
+    tid, uid = _tenant_user("backoffice@aftab.test")
+    day = (date.today() + timedelta(days=10)).isoformat()
+    tag = "CAPTEST" + uuid.uuid4().hex[:6]
+    with SessionLocal() as db:
+        sup = m.Supplier(tenant_id=tid, supplier_type="airline", display_name="ت " + tag, status="active")
+        db.add(sup); db.flush()
+        attrs = {"origin": "SYZ", "destination": "KIH", "departure_time": day + "T08:00:00+03:30", "airline": tag}
+        mk = lambda title, amount: m.Offer(tenant_id=tid, supplier_id=sup.id, service_type="flight", title=title, amount=amount, available_units=5, status="active",  # noqa: E731
+                                           attributes_json=_json.dumps(attrs), policy_json="{}", valid_until=datetime.now(timezone.utc) + timedelta(days=5))
+        low, high = mk(tag + " low", 20_000_000), mk(tag + " high", 40_000_000)
+        cap = PriceCap(tenant_id=tid, origin="SYZ", destination="KIH", valid_from=date.today(), valid_to=date.today() + timedelta(days=30),
+                       cap_unit_irr=30_000_000, legal_reference="TEST-CAP", created_by_user_id=uid)
+        db.add_all([low, high, cap]); db.commit()
+        ids, cap_id, high_id = {low.id, high.id}, cap.id, high.id
+    try:
+        for email, staff in (("employee@aftab.test", False), ("backoffice@aftab.test", True)):
+            r = client.post("/search/offers", json={"service_type": "flight", "query": tag}, headers=_h(client, email))
+            assert r.status_code == 200, r.text
+            mine = [o["title"] for o in r.json() if o["id"] in ids]
+            assert mine == [tag + " low"]
+            assert (r.headers.get("X-Hidden-Over-Cap") == "1") if staff else ("X-Hidden-Over-Cap" not in r.headers)
+        v2 = client.post("/search/v2", json={"query": tag, "verticals": ["flight"]}, headers=_h(client, "employee@aftab.test"))
+        assert v2.status_code == 200 and tag + " high" not in _json.dumps(v2.json(), ensure_ascii=False)
+        # price-check keeps its 409 for the hidden offer when called by id
+        pc = client.post(f"/offers/{high_id}/price-check", json={"units": 1, "command_id": "cap-" + uuid.uuid4().hex}, headers=_h(client, "employee@aftab.test"))
+        assert pc.status_code == 409 and pc.json()["detail"]["code"] == "PRICE_CAP_EXCEEDED"
+    finally:
+        with SessionLocal() as db:                              # test fixture cleanup (shared test DB)
+            db.execute(update(PriceCap).where(PriceCap.id == cap_id).values(status="disabled"))
+            for o in db.query(m.Offer).filter(m.Offer.id.in_(ids)):
+                o.status = "inactive"
+            db.commit()

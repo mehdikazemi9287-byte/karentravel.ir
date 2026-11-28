@@ -38,6 +38,7 @@ def test_level_group_sync(client):
     assert ga == silver_id and gb == org_id
     assert client.post("/loyalty/adjust", json={"user_id": a_id, "points": -200, "reason": "برگشت"}, headers=admin).status_code == 201
     with SessionLocal() as db:
-        assert db.scalar(select(CustomerGroupMember.group_id).where(CustomerGroupMember.user_id == a_id)) is None
+        row = db.scalar(select(CustomerGroupMember).where(CustomerGroupMember.user_id == a_id))
+        assert row is not None and row.status == "disabled"           # leaving the level disables the membership; the row is kept
     client.put("/loyalty/settings", json={"enabled": False, "irr_per_point": 100_000, "referral_bonus_points": 0,
                                           "levels": [{"key": "bronze", "name": "برنزی", "min_points": 0}]}, headers=admin)

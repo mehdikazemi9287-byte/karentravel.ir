@@ -361,46 +361,23 @@ def mahan_passengers(passengers: list[dict], segs: list[dict]) -> list[dict]:
 
 # ------------------------------------------------------------------------------------------------ pricing (short DB reads)
 def sell_price(db: Session, tenant_id: int, user_id: Optional[int], selection: dict, pq: PricedQuote) -> dict:
-    """Tenant markup rule (commerce) on per-passenger net amounts, then the CAO adult cap per route/date. Returns internal
-    figures too (net, margin, VAT on commission) — callers must only pass `public_price()` to customers."""
-    from .agency_b2b import bps_of, vat_rate_on
-    from .catalog import CatalogAirport
-    from .charter_blocks import cap_for
-    from .commerce import quote as commerce_quote
-    segs = selection["segs"]
-    countries = {a.id: a.country_code for a in db.scalars(select(CatalogAirport).where(CatalogAirport.id.in_({s["o"] for s in segs} | {s["d"] for s in segs})))}
-    scope = "domestic" if countries and all(c == "IR" for c in countries.values()) else "international"
-    ctx = {"service_type": "flight", "supplier_id": PROVIDER_KEY, "airline_code": AIRLINE, "origin": segs[0]["o"], "destination": segs[0]["d"], "scope": scope}
-    fares = {p: {"count": pq.counts[p], "total": pq.net_unit[p]} for p in pq.counts}
-    result = commerce_quote(db, tenant_id, ctx, fares, user_id=user_id)
-    lines = {ln["pax"]: ln for ln in result["lines"]}
-    sell_unit = {p: lines[p]["sell"] for p in pq.counts}
-    sell_total = sum(sell_unit[p] * pq.counts[p] for p in pq.counts)
-    caps = [cap_for(db, tenant_id, s["o"], s["d"], date.fromisoformat(s["dt"])) for s in segs]
-    cap_state, cap_total = "none", None
-    if any(c[0] is not None for c in caps):
-        if not all(c[0] is not None for c in caps):
-            cap_state = "unverifiable"                                    # a cap on one leg only cannot be split from a combined fare
-        else:
-            cap_total = sum(c[0] for c in caps)
-            cap_state = "exceeded" if sell_unit.get("adult", 0) > cap_total else "ok"
-    margin = sell_total - pq.net_total
-    try:
-        rate = vat_rate_on(date.today(), db, tenant_id)
-        vat = {"vat_on_commission": bps_of(max(margin, 0), rate.rate_bps), "vat_rate_bps": rate.rate_bps, "vat_reference": rate.legal_reference}
-    except Exception:  # an uncovered date is an error in vat_rate_on, never a guess
-        vat = {"vat_on_commission": None, "vat_rate_bps": None, "vat_reference": "unavailable"}
-    return {"currency": "IRR", "sell_total": sell_total, "sell_unit": sell_unit, "counts": pq.counts, "cabin": pq.cabin,
-            "cap_state": cap_state, "cap_unit_irr": cap_total, "cap_refs": [c[1] for c in caps if c[1]],
-            "net_total": pq.net_total, "net_unit": pq.net_unit, "margin": margin, "rule_id": (result.get("rule") or {}).get("id"), **vat}
+    """Tenant markup rule (commerce, flight_type=system) on per-passenger net amounts, then the CAO adult cap per route/date.
+    Shared with Niira in flight_pricing.py. Returns internal figures too (net, margin, VAT on commission) — callers must only
+    pass `public_price()` to customers."""
+    from .flight_pricing import sell_quote
+    legs = [(s["o"], s["d"], date.fromisoformat(s["dt"])) for s in selection["segs"]]
+    return sell_quote(db, tenant_id, user_id, supplier_id=PROVIDER_KEY, airline_code=AIRLINE, legs=legs, counts=pq.counts,
+                      net_unit=pq.net_unit, net_total=pq.net_total, cabin=pq.cabin)
 
 
 def public_price(p: dict) -> dict:
-    return {"total_amount": p["sell_total"], "currency": p["currency"], "per_passenger": [{"type": k, "count": p["counts"][k], "unit_amount": p["sell_unit"][k]} for k in p["counts"]]}
+    from .flight_pricing import public_price as _public
+    return _public(p)
 
 
 def internal_price(p: dict) -> dict:
-    return {k: p[k] for k in ("net_total", "net_unit", "sell_total", "margin", "rule_id", "vat_on_commission", "vat_rate_bps", "vat_reference", "cap_state", "cap_unit_irr", "cap_refs")}
+    from .flight_pricing import internal_price as _internal
+    return _internal(p)
 
 
 # ------------------------------------------------------------------------------------------------ API
@@ -498,8 +475,8 @@ def mahan_flight_router(get_db, current_user, role_has_permission, audit, signin
             return _unavailable(st)
         o, d = data.origin.upper(), data.destination.upper()
         airports = {a.id: a for a in db.scalars(select(CatalogAirport).where(CatalogAirport.id.in_({o, d})))}
+        tz = {k: a.timezone for k, a in airports.items() if a.timezone}   # read before rollback: expired rows would reopen a transaction
         db.rollback()
-        tz = {k: a.timezone for k, a in airports.items() if a.timezone}
         midday = lambda day: datetime(day.year, day.month, day.day, 12, tzinfo=ZoneInfo(tz.get(o) or "Asia/Tehran"))  # noqa: E731
         q = FlightSearchQuery(o, d, midday(data.depart_on), {"ADT": data.adults, "CHD": data.children, "INF": data.infants},
                               midday(data.return_on) if data.return_on else None)
@@ -514,12 +491,22 @@ def mahan_flight_router(get_db, current_user, role_has_permission, audit, signin
         except MahanError as exc:
             return {**_unavailable({"reason": "provider_error"}), "retryable": exc.code in RETRYABLE}
         offers = validate_fares(q, offers, lambda code: code == AIRLINE, airports.__contains__)   # drop, never repair
-        return {"provider": PROVIDER_KEY, "status": "ok", "test_inventory": st["mode"] == "qaa", "price_state": "INDICATIVE",
-                "price_note": "قیمت تقریبی از جدول پرواز ماهان (هر بزرگسال)؛ قیمت قطعی پس از استعلام نهایی نمایش داده می‌شود.",
-                "offers": [{"offer_ref": x.provider_offer_ref, "indicative_adult_fare": x.total_amount, "currency": x.currency, "booking_class": x.fare_basis,
+        from .flight_pricing import IndicativePricer
+        pricer = IndicativePricer(db, user.tenant_id, user.id, PROVIDER_KEY)                    # DB reads only, after the Mahan call
+        sell = [pricer.adult_sell(AIRLINE, [x.segments[0].origin, x.segments[0].destination] + [s.destination for s in x.segments[1:]], x.total_amount)
+                for x in offers]
+        caps = [pricer.cap([(s.origin, s.destination, s.departs_at.date()) for s in x.segments], sell[i])["cap_state"] for i, x in enumerate(offers)]
+        db.rollback()
+        kept = [(x, sell[i]) for i, x in enumerate(offers) if caps[i] != "exceeded"]   # owner decision (PR #119): above the CAO cap is never listed
+        out = {"provider": PROVIDER_KEY, "status": "ok", "test_inventory": st["mode"] == "qaa", "price_state": "INDICATIVE",
+                "price_note": "قیمت تقریبی فروش (هر بزرگسال)؛ قیمت قطعی پس از استعلام نهایی نمایش داده می‌شود.",
+                "offers": [{"offer_ref": x.provider_offer_ref, "indicative_adult_fare": fare, "currency": x.currency, "booking_class": x.fare_basis,
                             "expires_at": x.expires_at.isoformat(), "refundable": x.refundable,
                             "segments": [{"carrier": s.carrier, "flight_number": s.flight_number, "origin": s.origin, "destination": s.destination,
-                                          "departs_at": s.departs_at.isoformat(), "arrives_at": s.arrives_at.isoformat()} for s in x.segments]} for x in offers]}
+                                          "departs_at": s.departs_at.isoformat(), "arrives_at": s.arrives_at.isoformat()} for s in x.segments]} for x, fare in kept]}
+        if _is_staff(user):
+            out["hidden_over_cap"] = len(offers) - len(kept)              # staff only: offers withheld because sell > CAO cap
+        return out
 
     @api.post("/flights/suppliers/mahan/revalidate")
     def revalidate(data: RevalidateIn, user=Depends(current_user), db: Session = Depends(get_db)) -> dict:

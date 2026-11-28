@@ -221,3 +221,39 @@ def test_malformed_row_missing_service_type_is_skipped(monkeypatch):
     r = client.post("/v1/search", json={"verticals": ["flight"], "public": True})
     assert r.status_code == 200
     assert r.json()["pagination"]["total"] == 0
+
+
+# ---- sell-side price group (monolith-resolved) ----
+
+def test_price_group_reaches_the_pool_and_splits_the_cache(monkeypatch):
+    seen = []
+
+    def fake_fetch(vertical, req):
+        seen.append(req.price_group)
+        return [_offer("flight", 3_300_000 if req.price_group == "g-org" else 3_000_000, "پرواز تهران کیش")]
+    monkeypatch.setattr(providers._POOL, "fetch", fake_fetch)
+    monkeypatch.setattr(providers._POOL, "status", lambda: {"provider": "karenseir_supplier_pool", "status": "available", "offer_count": 0})
+    body = {"verticals": ["flight"], "public": False, "tenant_ref": "aftab-bank"}
+    plain = client.post("/v1/search", json=body).json()
+    grouped = client.post("/v1/search", json={**body, "price_group": "g-org"}).json()
+    client.post("/v1/search", json={**body, "public": True, "tenant_ref": None, "price_group": "g-org"})
+    price = lambda r: r["entities"][0]["best_offer"]["total_amount"]
+    assert (price(plain), price(grouped)) == (3_000_000, 3_300_000)
+    assert seen == [None, "g-org", None]          # no cache reuse across groups; public never carries a group
+
+
+def test_pool_payload_carries_price_group(monkeypatch):
+    sent = {}
+
+    class _Resp:
+        status_code = 200
+        def raise_for_status(self): pass
+        def json(self): return {"offers": []}
+
+    def fake_post(path, json, headers):
+        sent.update(json)
+        return _Resp()
+    monkeypatch.setattr(providers._POOL._client, "post", fake_post)
+    from app.domain import SearchRequest
+    providers._POOL.fetch("flight", SearchRequest(verticals=("flight",), public=False, tenant_ref="aftab-bank", price_group="g-org"))
+    assert sent["price_group"] == "g-org" and sent["tenant_ref"] == "aftab-bank"

@@ -10,6 +10,7 @@ type Note = {ok: boolean; text: string} | null;
 const QUOTE_FA: Record<string, string> = {sent: 'ارسال‌شده', accepted: 'پذیرفته‌شده', declined: 'ردشده', expired: 'منقضی', cancelled: 'لغوشده', booked: 'رزروشده'};
 const COMMISSION_FA: Record<string, string> = {accrued: 'ثبت‌شده', approved: 'تأییدشده', settled: 'تسویه‌شده', reversed: 'برگشت‌خورده'};
 const values = (form: HTMLFormElement) => Object.fromEntries(new FormData(form)) as Record<string, string>;
+const MODE_FA: Record<string, string> = {dedicated: 'اختصاصی (حساب خود ما)', shared: 'اشتراکی (از سامانهٔ همکار)'};
 
 function useAction(reload: () => void) {
   const [notice, setNotice] = useState<Note>(null); const [busy, setBusy] = useState(false);
@@ -22,7 +23,7 @@ function useAction(reload: () => void) {
 
 /* ------------------------------------------------------------------ Partners administration */
 type Member = {user_id: number; name: string | null};
-type Partners = {suppliers: {id: string; name: string; type: string; status: string; lifecycle_status: string; members: Member[]; hotels: {hotel_id: string; name: string | null}[]}[];
+type Partners = {suppliers: {id: string; name: string; type: string; status: string; lifecycle_status: string; provider_key?: string | null; connection_mode?: string | null; external_ref?: string | null; members: Member[]; hotels: {hotel_id: string; name: string | null}[]}[];
   agencies: {id: string; name: string; status: string; commission_bps: number; markup_bps: number; sales_channel_id: string | null; credit_account_id: string | null; supplier_id?: string | null; members: Member[]}[];
   sales_channels: {id: string; name: string; type: string; agency_id: string | null}[]; credit_accounts: {id: string; currency: string; limit_amount: number}[]; agency_users: Member[]; supplier_users: Member[]};
 
@@ -50,11 +51,18 @@ export function PartnersAdmin() {
           <form className="flex flex-wrap items-end gap-2" aria-label={`برگزارکنندهٔ تور ${ag.name}`} onSubmit={e => submit(e, v => api.put(`/admin/partners/agencies/${ag.id}/tour-organiser`, {supplier_id: v.supplier_id || null}), 'برگزارکنندهٔ تورهای آژانس به‌روز شد.')}>
             <label className="grow">برگزارکنندهٔ تورهای آژانس (برای «تورهای من»)<select name="supplier_id" className={field} defaultValue={ag.supplier_id ?? ''}><option value="">ثبت نشده</option>{d.suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label><button className="button secondary" disabled={a.busy}>ثبت</button></form>
         </article>)}</div>}</>)(p.state.data) : (d => <>
-        <form className="my-3 grid gap-2 rounded-2xl bg-white p-4 sm:grid-cols-[2fr_1fr_auto]" aria-label="تأمین‌کنندهٔ جدید" onSubmit={e => submit(e, v => api.post('/admin/partners/suppliers', {display_name: v.display_name, supplier_type: v.supplier_type}), 'تأمین‌کننده ایجاد شد.')}>
+        <form className="my-3 grid gap-2 rounded-2xl bg-white p-4 sm:grid-cols-[2fr_1fr_auto]" aria-label="تأمین‌کنندهٔ جدید" onSubmit={e => submit(e, v => api.post('/admin/partners/suppliers', {display_name: v.display_name, supplier_type: v.supplier_type, provider_key: v.provider_key || null, connection_mode: v.provider_key ? v.connection_mode || null : null, external_ref: v.external_ref.trim() || null}), 'تأمین‌کننده ایجاد شد.')}>
           <label className="text-sm">نام تأمین‌کننده<input name="display_name" required minLength={2} maxLength={180} className={field}/></label>
-          <label className="text-sm">نوع<select name="supplier_type" className={field} defaultValue="hotel">{Object.entries({hotel: 'هتل', tour: 'تور', transport: 'حمل‌ونقل', experience: 'تجربه', flight: 'پرواز', other: 'سایر'}).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label><button className="button primary self-end" disabled={a.busy}>ایجاد تأمین‌کننده</button></form>
+          <label className="text-sm">نوع<select name="supplier_type" className={field} defaultValue="hotel">{Object.entries({hotel: 'هتل', tour: 'تور', transport: 'حمل‌ونقل', experience: 'تجربه', flight: 'پرواز', other: 'سایر'}).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+          <label className="text-sm">وب‌سرویس<select name="provider_key" className={field} defaultValue=""><option value="">بدون وب‌سرویس (دستی)</option><option value="mahan">ماهان</option><option value="nira">نیرا</option></select></label>
+          <label className="text-sm">نوع اتصال<select name="connection_mode" className={field} defaultValue="dedicated">{Object.entries(MODE_FA).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+          <label className="text-sm">کد زیرسیستم (اختیاری)<input name="external_ref" maxLength={40} pattern="[A-Za-z0-9_\-]{1,40}" dir="ltr" placeholder="مثلاً 1256" className={field}/></label>
+          <button className="button primary self-end" disabled={a.busy}>ایجاد تأمین‌کننده</button></form>
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-2xl bg-white p-4 text-sm"><span className="grow text-slate-600">ردیف تأمین‌کنندهٔ ماهان و نیرا اگر ساخته نشده باشد ساخته می‌شود؛ ردیف موجود تغییر نمی‌کند.</span>
+          <button type="button" className="button secondary" disabled={a.busy} onClick={() => void a.run(() => api.post('/admin/partners/suppliers/system-connections', {}), 'ردیف‌های ماهان و نیرا آماده است.')}>ساخت ردیف ماهان و نیرا</button></div>
         {d.suppliers.length === 0 ? <Empty>تأمین‌کننده‌ای تعریف نشده است.</Empty> : <div className="grid gap-3">{d.suppliers.map(s => <article key={s.id} className="grid gap-2 rounded-2xl bg-white p-4 text-sm" data-supplier={s.name}>
           <h2 className="font-bold">{s.name} <span className="text-xs font-normal text-slate-500" dir="ltr">{s.type} · {s.status} · {s.lifecycle_status}</span></h2>
+          {s.provider_key && <p className="text-xs text-slate-600">وب‌سرویس: <b dir="ltr">{s.provider_key}</b> · {MODE_FA[s.connection_mode ?? ''] ?? 'نوع اتصال ثبت نشده'}{s.external_ref ? <> · کد زیرسیستم <b dir="ltr">{s.external_ref}</b></> : null}</p>}
           <div><span className="text-slate-500">اعضا: </span>{s.members.length ? s.members.map(mb => <span key={mb.user_id} className="mr-1 inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5">{mb.name}
             <button type="button" aria-label={`حذف ${mb.name}`} className="text-rose-700" onClick={() => void a.run(() => api.delete(`/admin/partners/suppliers/${s.id}/members/${mb.user_id}`, {}), 'عضویت حذف شد.')}>×</button></span>) : 'بدون عضو'}</div>
           <form className="flex flex-wrap items-end gap-2" aria-label={`عضو جدید ${s.name}`} onSubmit={e => submit(e, v => api.post(`/admin/partners/suppliers/${s.id}/members`, {user_id: Number(v.user_id)}), 'عضو اضافه شد.')}>

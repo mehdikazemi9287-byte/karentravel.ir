@@ -97,6 +97,7 @@ EP آسمان `restapi.iaa.ir` · FP فلای‌پرشیا `api.flypersiaairline
 **Files**
 - `backend/app/nira_nrs.py` — the NRS client: config from env, host table, parsers, typed errors with Persian messages, edtID builder, redaction.
 - `backend/app/nira_flight.py` — supplier behind `flight_port` (same pattern as `mahan_flight.py`) and API `/flights/suppliers/nira/{status,search,console/availability}`.
+- Search price (PR-3, `backend/app/flight_pricing.py`, shared with Mahan): `indicative_adult_fare` is the **sell** price per adult = AvailabilityFare net + the tenant markup rule chosen by `commerce` with ctx `supplier_id="nira"`, `airline_code`, `scope` (domestic only when every airport is known and in Iran), `flight_type="system"`, origin/destination. No matching rule ⇒ sell = net (no invented margin; the Niira markup percentage is still an owner decision). Each offer has `price_cap` (`none` / `ok` / `exceeded` / `unverifiable`) from the CAO adult cap (`charter_price_caps`); offers whose sell price is above the cap are not listed (owner decision, PR #119); staff see only their count (`hidden_over_cap`). The net price reaches staff only through the test console.
 - `app/admin/suppliers/nira` + `components/panel/NiraConsolePanel.tsx` — staff-only test console (`backoffice:read`).
 - Tests: `backend/tests/test_nira_nrs.py` and `backend/tests/test_nira_flight.py`. HTTP is mocked with `httpx.MockTransport`; no network.
 

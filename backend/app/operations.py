@@ -156,6 +156,61 @@ class Supplier(OperationalMixin, Base):
     display_name: Mapped[str] = mapped_column(String(180))
     status: Mapped[str] = mapped_column(String(32), default="sample")
     lifecycle_status: Mapped[str] = mapped_column(String(32), default="UNSELECTED", index=True)
+    # Web-service connection of the supplier (migration 80). provider_key is what markup rules and flight adapters use
+    # ("mahan", "nira"); connection_mode: dedicated (our own account) | shared (through another agency's system);
+    # external_ref: the supplier-side subsystem/account code (e.g. a Niira subsystem number). All optional.
+    provider_key: Mapped[Optional[str]] = mapped_column(String(40), nullable=True, index=True)
+    connection_mode: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
+    external_ref: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+
+
+# Scheduled-flight web services that exist in code (mahan_flight.PROVIDER_KEY, nira_flight); rows are made on request only.
+SYSTEM_CONNECTIONS = {
+    "mahan": {"display_name": "ماهان (وب‌سرویس)", "supplier_type": "airline"},
+    "nira": {"display_name": "نیرا (وب‌سرویس ایرلاین‌ها)", "supplier_type": "airline"},
+}
+
+
+class DuplicateSupplier(ValueError):
+    pass
+
+
+def supplier_dict(row: "Supplier") -> dict:
+    return {"id": row.id, "name": row.display_name, "type": row.supplier_type, "status": row.status, "lifecycle_status": row.lifecycle_status,
+            "provider_key": row.provider_key, "connection_mode": row.connection_mode, "external_ref": row.external_ref}
+
+
+def create_supplier(db: Session, *, tenant_id: int, display_name: str, supplier_type: str, provider_key: Optional[str] = None,
+                    connection_mode: Optional[str] = None, external_ref: Optional[str] = None, lifecycle_status: str = "ACTIVE",
+                    reject_duplicate_name: bool = False) -> "Supplier":
+    """The one way a supplier row is made (POST /inventory/suppliers and POST /admin/partners/suppliers both call this).
+    Flushes, does not commit; the caller audits and commits."""
+    name = display_name.strip()
+    if reject_duplicate_name and db.scalar(select(Supplier.id).where(Supplier.tenant_id == tenant_id, Supplier.display_name == name)):
+        raise DuplicateSupplier("تأمین‌کننده‌ای با این نام وجود دارد")
+    key = (provider_key or "").strip().lower() or None
+    ref = (external_ref or "").strip() or None
+    if key and db.scalar(select(Supplier.id).where(Supplier.tenant_id == tenant_id, Supplier.provider_key == key,
+                                                   Supplier.external_ref.is_(None) if ref is None else Supplier.external_ref == ref)):
+        raise DuplicateSupplier("این اتصال (کلید وب‌سرویس و کد زیرسیستم) قبلاً ثبت شده است")
+    row = Supplier(tenant_id=tenant_id, display_name=name, supplier_type=supplier_type, status="active", lifecycle_status=lifecycle_status,
+                   provider_key=key, connection_mode=connection_mode if key else None, external_ref=ref)
+    db.add(row)
+    db.flush()
+    return row
+
+
+def ensure_system_suppliers(db: Session, tenant_id: int, connection_mode: str = "dedicated") -> list[tuple["Supplier", bool]]:
+    """Idempotent: one row per SYSTEM_CONNECTIONS key without a subsystem code. Existing rows are returned untouched."""
+    out = []
+    for key, spec in SYSTEM_CONNECTIONS.items():
+        row = db.scalar(select(Supplier).where(Supplier.tenant_id == tenant_id, Supplier.provider_key == key, Supplier.external_ref.is_(None))
+                        .order_by(Supplier.created_at).limit(1))
+        if row is not None:
+            out.append((row, False))
+            continue
+        out.append((create_supplier(db, tenant_id=tenant_id, provider_key=key, connection_mode=connection_mode, **spec), True))
+    return out
 
 
 class SupplierMembership(OperationalMixin, Base):

@@ -5,6 +5,7 @@ import {useState, type FormEvent, type ReactNode} from 'react';
 import {Async, Badge, Card, Empty, Stats, Table, dateFa, errorOf, fa, money, useLoad} from './PanelKit';
 import {FundingApprovals} from './FundingApprovals';
 import {newId} from '../../lib/api/karenseir-client';
+import {MarkupImport} from './MarkupImport';
 
 export type Opt = [string, string][];
 export type Field = {key: string; label: string; type?: 'text' | 'number' | 'select' | 'bool' | 'textarea' | 'date' | 'percent' | 'money'; options?: Opt; hint?: string; required?: boolean; wide?: boolean};
@@ -28,6 +29,25 @@ export function Note({msg}: {msg: {ok: boolean; text: string} | null}) {
   return msg ? <p className={`pn-note ${msg.ok ? '' : 'error'}`} role={msg.ok ? 'status' : 'alert'}>{msg.text}</p> : null;
 }
 
+/* Percent entry: the user types 15 (or ۱۵ or 7.5) and the stored value is basis points (1500, 750).
+   Local text keeps a half-typed "7." visible; anything that is not a number is ignored, never sent as NaN. */
+const toLatin = (t: string) => t.replace(/[۰-۹]/g, d => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))).replace(/[٫،,]/g, '.');
+function PercentInput({id, required, value, onChange}: {id: string; required?: boolean; value: any; onChange: (bps: number) => void}) {
+  const shown = value === undefined || value === null || value === '' ? '' : String(Number(value) / 100);
+  const [text, setText] = useState(shown);
+  const [seen, setSeen] = useState(value);
+  if (seen !== value) {                       // value changed from outside (another row opened): show it, keep a matching half-typed text
+    setSeen(value);
+    if (Math.round(Number(text === '' || text === '.' ? 0 : text) * 100) !== Number(value ?? 0)) setText(shown);
+  }
+  return <input id={id} required={required} inputMode="decimal" dir="ltr" value={text} onChange={e => {
+    const t = toLatin(e.target.value).replace(/[^\d.]/g, '');
+    if (!/^\d*\.?\d{0,2}$/.test(t)) return;
+    setText(t);
+    onChange(t === '' || t === '.' ? 0 : Math.round(Number(t) * 100));
+  }}/>;
+}
+
 export function FormFields({fields, value, set}: {fields: Field[]; value: Row; set: (v: Row) => void}) {
   return <>{fields.map(f => {
     const v = value[f.key];
@@ -37,7 +57,7 @@ export function FormFields({fields, value, set}: {fields: Field[]; value: Row; s
     if (f.type === 'select') input = <select {...common} value={v ?? ''} onChange={e => on(e.target.value)}>{f.options!.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>;
     else if (f.type === 'bool') input = <select {...common} value={v ? '1' : '0'} onChange={e => on(e.target.value === '1')}><option value="1">بله</option><option value="0">خیر</option></select>;
     else if (f.type === 'textarea') input = <textarea {...common} rows={3} value={v ?? ''} onChange={e => on(e.target.value)} style={{border: '1px solid #d9cdc0', borderRadius: 12, padding: 9, font: 'inherit'}}/>;
-    else if (f.type === 'percent') input = <input {...common} inputMode="decimal" value={v === undefined || v === null ? '' : String(v / 100)} onChange={e => on(e.target.value === '' ? 0 : Math.round(Number(e.target.value) * 100))}/>;
+    else if (f.type === 'percent') input = <PercentInput id={common.id} required={f.required} value={v} onChange={on}/>;
     else if (f.type === 'number' || f.type === 'money') input = <input {...common} inputMode="numeric" value={v ?? ''} onChange={e => {const t = e.target.value.replace(/[^\d]/g, ''); on(t === '' ? null : Number(t));}}/>;
     else input = <input {...common} type={f.type === 'date' ? 'date' : 'text'} value={v ?? ''} onChange={e => on(e.target.value)} dir={f.type === 'date' ? 'ltr' : undefined}/>;
     return <label key={f.key} htmlFor={`f-${f.key}`} style={f.wide ? {flexBasis: '100%'} : undefined}>{f.label}{f.hint && <small style={{fontWeight: 400}}> — {f.hint}</small>}{input}</label>;
@@ -45,7 +65,7 @@ export function FormFields({fields, value, set}: {fields: Field[]; value: Row; s
 }
 
 /* Generic list + create/edit for one rule collection. */
-export function Crud({path, title, fields, cols, blank, toPayload, fromRow, extra}: {path: string; title: string; fields: Field[]; cols: {label: string; cell: (r: Row) => ReactNode}[];
+export function Crud({path, title, fields, cols, blank, toPayload, fromRow, extra}: {path: string; title: string; fields: Field[] | ((v: Row) => Field[]); cols: {label: string; cell: (r: Row) => ReactNode}[];
   blank: Row; toPayload?: (v: Row) => Row; fromRow?: (r: Row) => Row; extra?: (r: Row) => ReactNode}) {
   const {state, reload, api} = useLoad<{items: Row[]}>(path);
   const [edit, setEdit] = useState<Row | null>(null);
@@ -60,7 +80,7 @@ export function Crud({path, title, fields, cols, blank, toPayload, fromRow, extr
   return <Card title={title} action={<button className="pn-btn" onClick={() => {setEdit({...blank}); setMsg(null);}}>افزودن</button>}>
     <Note msg={msg}/>
     {edit && <form className="pn-form" onSubmit={save} style={{marginBottom: 16, padding: 12, border: '1px dashed #d9cdc0', borderRadius: 14}}>
-      <FormFields fields={fields} value={edit} set={setEdit}/>
+      <FormFields fields={typeof fields === 'function' ? fields(edit) : fields} value={edit} set={setEdit}/>
       <span style={{display: 'flex', gap: 8}}><button className="pn-btn" disabled={busy}>{edit.id ? 'ذخیره‌ی تغییرات' : 'ثبت'}</button><button type="button" className="pn-btn ghost" onClick={() => setEdit(null)}>انصراف</button></span>
     </form>}
     <Async state={state}>{d => <Table rows={d.items} rowKey={r => r.id} empty="هنوز موردی ثبت نشده است."
@@ -71,26 +91,81 @@ export function Crud({path, title, fields, cols, blank, toPayload, fromRow, extr
 /* ------------------------------------------------------------------ admin: commercial rules */
 function GroupMembers({group}: {group: Row}) {
   const {state, reload, api} = useLoad<{items: Row[]}>(`/commerce/groups/${group.id}/members`);
-  const [ids, setIds] = useState(''); const [msg, setMsg] = useState<{ok: boolean; text: string} | null>(null);
-  async function add(e: FormEvent) {
-    e.preventDefault(); const list = ids.split(/[\s,،]+/).map(Number).filter(Boolean); if (!list.length) return;
-    try {await api.put(`/commerce/groups/${group.id}/members`, {user_ids: list}); setIds(''); setMsg({ok: true, text: 'کاربران به گروه منتقل شدند.'}); reload();} catch (err) {setMsg({ok: false, text: errorOf(err).message});}
+  const [q, setQ] = useState(''); const [search, setSearch] = useState('');
+  const found = useLoad<{items: Row[]}>(search ? `/commerce/users?q=${encodeURIComponent(search)}` : null);
+  const [msg, setMsg] = useState<{ok: boolean; text: string} | null>(null);
+  async function add(u: Row) {
+    if (!window.confirm(`«${u.name}» به گروه «${group.name}» منتقل شود؟ اگر عضو گروه دیگری باشد، از آن خارج می‌شود.`)) return;
+    try {await api.put(`/commerce/groups/${group.id}/members`, {user_ids: [u.id]}); setMsg({ok: true, text: `«${u.name}» به گروه اضافه شد.`}); reload();} catch (err) {setMsg({ok: false, text: errorOf(err).message});}
   }
   return <div style={{marginTop: 8}}>
-    <form className="pn-form" onSubmit={add}><label>شناسه‌ی کاربران (با ویرگول جدا کنید)<input value={ids} onChange={e => setIds(e.target.value)} dir="ltr"/></label><button className="pn-btn">افزودن به گروه</button></form>
+    <form className="pn-form" onSubmit={e => {e.preventDefault(); setSearch(q.trim());}}><label>جست‌وجوی کاربر (نام، ایمیل، موبایل یا شناسه)<input value={q} onChange={e => setQ(e.target.value)}/></label><button className="pn-btn">جست‌وجو</button></form>
+    {search && <Async state={found.state}>{d => d.items.length ? <div className="pn-chips" style={{margin: '10px 0'}}>{d.items.map(u => <button key={u.id} onClick={() => add(u)} title="افزودن به گروه">{u.name} — {fa(u.id)}{u.email ? ` — ${u.email}` : ''}</button>)}</div> : <Empty>کاربری پیدا نشد.</Empty>}</Async>}
     <Note msg={msg}/>
     <Async state={state}>{d => <Table rows={d.items} rowKey={r => String(r.user_id)} empty="عضوی ندارد." cols={[{label: 'شناسه', cell: r => fa(r.user_id)}, {label: 'نام', cell: r => r.name}, {label: 'ایمیل', cell: r => <span dir="ltr">{r.email}</span>}]}/>}</Async>
   </div>;
 }
 
+/* Organizations and agencies whose people get this group's prices (when they have no direct membership).
+   Choices come from the existing lists: /organizations and /admin/partners. Removing a link only disables it. */
+function GroupLinks({group}: {group: Row}) {
+  const {state, reload, api} = useLoad<{items: Row[]}>(`/commerce/groups/${group.id}/links`);
+  const orgs = useLoad<Row[]>('/organizations');
+  const partners = useLoad<{agencies: Row[]}>('/admin/partners');
+  const [v, setV] = useState<Row>({party_type: 'organization', party_id: ''});
+  const [msg, setMsg] = useState<{ok: boolean; text: string} | null>(null);
+  const options: Opt = v.party_type === 'organization'
+    ? (orgs.state.kind === 'ready' ? orgs.state.data.map(o => [o.id, `${o.name}${o.status !== 'active' ? ' (غیرفعال)' : ''}`] as [string, string]) : [])
+    : (partners.state.kind === 'ready' ? partners.state.data.agencies.map(a => [a.id, a.name] as [string, string]) : []);
+  async function link(e: FormEvent) {
+    e.preventDefault(); if (!v.party_id) return;
+    try {await api.post(`/commerce/groups/${group.id}/links`, v); setMsg({ok: true, text: 'به گروه وصل شد. اگر قبلاً به گروه دیگری وصل بود، به این گروه منتقل شد.'}); setV({...v, party_id: ''}); reload();}
+    catch (err) {setMsg({ok: false, text: errorOf(err).message});}
+  }
+  async function disable(r: Row) {
+    if (!window.confirm(`اتصال «${r.party_name ?? r.party_id}» به این گروه غیرفعال شود؟ (سابقه حذف نمی‌شود)`)) return;
+    try {await api.post(`/commerce/group-links/${r.id}/disable`, {}); setMsg({ok: true, text: 'غیرفعال شد.'}); reload();} catch (err) {setMsg({ok: false, text: errorOf(err).message});}
+  }
+  return <div style={{marginTop: 8}}>
+    <p className="pn-muted">ترتیب تعیین گروه هر کاربر: عضویت مستقیم، سپس سازمانی که کاربر عضو آن است، سپس آژانس کاربر، و در آخر گروه پیش‌فرض.</p>
+    <form className="pn-form" onSubmit={link}>
+      <label htmlFor="link-type">نوع<select id="link-type" value={v.party_type} onChange={e => setV({party_type: e.target.value, party_id: ''})}><option value="organization">سازمان</option><option value="agency">آژانس همکار</option></select></label>
+      <label htmlFor="link-party">{v.party_type === 'organization' ? 'سازمان' : 'آژانس'}<select id="link-party" required value={v.party_id} onChange={e => setV({...v, party_id: e.target.value})}><option value="">— انتخاب کنید —</option>{options.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
+      <button className="pn-btn">اتصال به گروه</button>
+    </form>
+    {(v.party_type === 'organization' ? orgs.state.kind === 'error' : partners.state.kind === 'error') && <p className="pn-note error">فهرست {v.party_type === 'organization' ? 'سازمان‌ها' : 'آژانس‌ها'} برای این حساب در دسترس نیست.</p>}
+    <Note msg={msg}/>
+    <Async state={state}>{d => <Table rows={d.items} rowKey={r => r.id} empty="سازمان یا آژانسی به این گروه وصل نیست." cols={[
+      {label: 'نوع', cell: r => r.party_type === 'organization' ? 'سازمان' : 'آژانس'}, {label: 'نام', cell: r => r.party_name ?? '—'},
+      {label: 'وضعیت اتصال', cell: r => <Badge status={r.status}/>}, {label: 'از تاریخ', cell: r => dateFa(r.created_at)},
+      {label: '', cell: r => r.status === 'active' ? <button className="pn-btn ghost" onClick={() => disable(r)}>غیرفعال‌کردن</button> : null}]}/>}</Async>
+  </div>;
+}
+
+function StandardGroups({onDone}: {onDone: () => void}) {
+  const {api} = useLoad<unknown>(null);
+  const [msg, setMsg] = useState<{ok: boolean; text: string} | null>(null);
+  async function run() {
+    if (!window.confirm('گروه‌های عمومی، سازمانی، وامی‌پی، اعتباری وچک و طبیعت (بدون قاعدهٔ مارک‌آپ) ساخته شوند؟ گروه‌های موجود تغییر نمی‌کنند.')) return;
+    try {const r = await api.post<Row>('/commerce/groups/standard-set', {}); setMsg({ok: true, text: r?.created?.length ? `ساخته شد: ${r.created.join('، ')}` : 'همهٔ گروه‌ها از قبل وجود داشتند.'}); onDone();}
+    catch (err) {setMsg({ok: false, text: errorOf(err).message});}
+  }
+  return <><button className="pn-btn ghost" onClick={run}>ساخت گروه‌های استاندارد</button><Note msg={msg}/></>;
+}
+
 function Groups() {
   const [open, setOpen] = useState<Row | null>(null);
+  const [view, setView] = useState<'members' | 'links'>('members');
+  const [key, setKey] = useState(0);
+  const toggle = (r: Row, v: 'members' | 'links') => {if (open?.id === r.id && view === v) setOpen(null); else {setOpen(r); setView(v);}};
   return <>
-    <Crud path="/commerce/groups" title="گروه‌های کاربری (سطح قیمت)" blank={{code: '', name: '', description: '', is_default: false, status: 'active'}}
+    <StandardGroups onDone={() => setKey(k => k + 1)}/>
+    <Crud key={key} path="/commerce/groups" title="گروه‌های کاربری (سطح قیمت)" blank={{code: '', name: '', description: '', is_default: false, status: 'active'}}
       fields={[{key: 'code', label: 'کد', required: true, hint: 'لاتین'}, {key: 'name', label: 'نام گروه', required: true}, {key: 'is_default', label: 'گروه پیش‌فرض', type: 'bool'}, {key: 'status', label: 'وضعیت', type: 'select', options: STATUS}, {key: 'description', label: 'توضیح', type: 'textarea', wide: true}]}
       cols={[{label: 'کد', cell: r => <span dir="ltr">{r.code}</span>}, {label: 'نام', cell: r => r.name}, {label: 'پیش‌فرض', cell: r => r.is_default ? 'بله' : '—'}, {label: 'اعضا', cell: r => fa(r.members ?? 0)}, {label: 'وضعیت', cell: r => <Badge status={r.status}/>}]}
-      extra={r => <button className="pn-btn ghost" onClick={() => setOpen(open?.id === r.id ? null : r)}>اعضا</button>}/>
-    {open && <Card title={`اعضای گروه «${open.name}»`}><GroupMembers group={open}/></Card>}
+      extra={r => <><button className="pn-btn ghost" onClick={() => toggle(r, 'members')}>اعضا</button><button className="pn-btn ghost" onClick={() => toggle(r, 'links')}>سازمان‌ها و آژانس‌ها</button></>}/>
+    {open && view === 'members' && <Card title={`اعضای گروه «${open.name}»`}><GroupMembers key={open.id} group={open}/></Card>}
+    {open && view === 'links' && <Card title={`سازمان‌ها و آژانس‌های این گروه — «${open.name}»`}><GroupLinks key={open.id} group={open}/></Card>}
   </>;
 }
 
@@ -99,25 +174,50 @@ function GroupSelect(): Opt {
   return [['', 'همه‌ی کاربران'], ...(state.kind === 'ready' ? state.data.items.map(g => [g.id, g.name] as [string, string]) : [])];
 }
 
+/* Supplier of a markup rule, from the supplier list (/inventory/suppliers). A web-service supplier is matched by its
+   provider_key ("mahan", "nira": the value the flight adapters price with), any other supplier by its id. Several Niira
+   subsystem rows share one key, so they collapse into one choice. If the list is loading or not permitted, the two
+   web-service choices still work. */
+function SupplierSelect(): Opt {
+  const {state} = useLoad<{items: Row[]}>('/inventory/suppliers');
+  const fallback: Opt = [['mahan', 'ماهان (وب‌سرویس)'], ['nira', 'نیرا (وب‌سرویس ایرلاین‌ها)']];
+  const opts: Opt = [['', 'همه‌ی تأمین‌کنندگان']];
+  for (const s of state.kind === 'ready' ? state.data.items : []) {
+    const key = String(s.provider_key || s.id);
+    if (!opts.some(o => o[0] === key)) opts.push([key, s.provider_key ? `${String(s.name)} (وب‌سرویس)` : String(s.name)]);
+  }
+  for (const f of fallback) if (!opts.some(o => o[0] === f[0])) opts.splice(1, 0, f);
+  return opts;
+}
+
 function Markups() {
   const groups = GroupSelect();
+  const suppliers = SupplierSelect();
+  const supplierOpts = (v: string): Opt => v && !suppliers.some(o => o[0] === v) ? [...suppliers, [v, `${v} (ثبت‌شده)`]] : suppliers;
+  const amount = (calc: string, key: string, lbl: string): Field => calc === 'fixed' ? {key, label: `${lbl} (ریال)`, type: 'money'} : {key, label: `${lbl} (درصد)`, type: 'percent', hint: key === 'adult' ? 'مثلاً ۱۵ یعنی ۱۵٪' : undefined};
   const pct = (r: Row, k: string) => r.calc === 'percent' ? `${fa(r[k] / 100)}٪` : money(r[k], 'IRR');
-  return <Crud path="/commerce/markup-rules" title="مارک‌آپ و تخفیف"
+  const [importing, setImporting] = useState(false); const [version, setVersion] = useState(0);
+  return <>
+    <div className="pn-form" style={{justifyContent: 'flex-end', marginBottom: 8}}><button type="button" className="pn-btn ghost" aria-expanded={importing} onClick={() => setImporting(x => !x)}>{importing ? 'بستن ورود از اکسل' : 'ورود از اکسل'}</button></div>
+    {importing && <MarkupImport done={() => setVersion(x => x + 1)}/>}
+    <Crud key={version} path="/commerce/markup-rules" title="مارک‌آپ و تخفیف"
     blank={{title: '', service_type: 'flight', group_id: '', scope: 'any', flight_type: 'any', effect: 'markup', calc: 'percent', basis: 'total', adult: 0, child: 0, infant: 0, round_to: 0, priority: 100, status: 'active'}}
-    toPayload={v => ({...v, group_id: v.group_id || null, cap_amount: v.cap_amount || null, min_stars: v.min_stars || null, valid_from: v.valid_from || null, valid_to: v.valid_to || null})}
-    fromRow={r => ({...r, group_id: r.group_id ?? ''})}
-    fields={[{key: 'title', label: 'عنوان', required: true}, {key: 'service_type', label: 'خدمت', type: 'select', options: SERVICES}, {key: 'group_id', label: 'گروه کاربری', type: 'select', options: groups},
+    toPayload={v => ({...v, adult: v.adult ?? 0, child: v.child ?? 0, infant: v.infant ?? 0, group_id: v.group_id || null, supplier_id: v.supplier_id || null, cap_amount: v.cap_amount || null, min_stars: v.min_stars || null, valid_from: v.valid_from || null, valid_to: v.valid_to || null})}
+    fromRow={r => ({...r, group_id: r.group_id ?? '', supplier_id: r.supplier_id ?? ''})}
+    fields={v => [{key: 'title', label: 'عنوان', required: true}, {key: 'service_type', label: 'خدمت', type: 'select', options: SERVICES}, {key: 'group_id', label: 'گروه کاربری', type: 'select', options: groups},
       {key: 'effect', label: 'نوع', type: 'select', options: [['markup', 'افزایش (مارک‌آپ)'], ['discount', 'تخفیف']]}, {key: 'calc', label: 'محاسبه', type: 'select', options: [['percent', 'درصدی'], ['fixed', 'مبلغ ثابت (ریال)']]},
       {key: 'basis', label: 'مبنا', type: 'select', options: [['total', 'قیمت کل'], ['base', 'نرخ پایه']]},
-      {key: 'adult', label: 'بزرگسال', type: 'number', hint: 'درصد: ۱۰۰ = ۱٪'}, {key: 'child', label: 'کودک', type: 'number'}, {key: 'infant', label: 'نوزاد', type: 'number'},
+      amount(v.calc, 'adult', 'بزرگسال'), amount(v.calc, 'child', 'کودک'), amount(v.calc, 'infant', 'نوزاد'),
       {key: 'scope', label: 'محدوده', type: 'select', options: SCOPE}, {key: 'flight_type', label: 'نوع پرواز', type: 'select', options: FTYPE},
       {key: 'airline_code', label: 'کد ایرلاین', hint: 'مثلاً IR'}, {key: 'origin', label: 'مبدأ (IATA)'}, {key: 'destination', label: 'مقصد (IATA)'},
-      {key: 'city_id', label: 'شهر هتل (شناسه)'}, {key: 'min_stars', label: 'حداقل ستاره', type: 'number'}, {key: 'supplier_id', label: 'تأمین‌کننده (شناسه)'},
+      {key: 'city_id', label: 'شهر هتل (شناسه)'}, {key: 'min_stars', label: 'حداقل ستاره', type: 'number'}, {key: 'supplier_id', label: 'تأمین‌کننده', type: 'select', options: supplierOpts(v.supplier_id ?? '')},
       {key: 'round_to', label: 'گرد کردن به بالا (ریال)', type: 'money'}, {key: 'cap_amount', label: 'سقف مبلغ (ریال)', type: 'money'}, {key: 'priority', label: 'اولویت', type: 'number', hint: 'عدد کمتر = مقدم'},
       {key: 'valid_from', label: 'از تاریخ', type: 'date'}, {key: 'valid_to', label: 'تا تاریخ', type: 'date'}, {key: 'status', label: 'وضعیت', type: 'select', options: STATUS}, {key: 'note', label: 'یادداشت', type: 'textarea', wide: true}]}
     cols={[{label: 'عنوان', cell: r => r.title}, {label: 'خدمت', cell: r => label(SERVICES, r.service_type)}, {label: 'گروه', cell: r => label(groups, r.group_id ?? '')},
+      {label: 'تأمین‌کننده', cell: r => r.supplier_id ? label(suppliers, r.supplier_id) : 'همه'},
       {label: 'شرط', cell: r => [r.airline_code, r.origin && r.destination ? `${r.origin}→${r.destination}` : r.origin || r.destination, r.scope !== 'any' && label(SCOPE, r.scope), r.flight_type !== 'any' && label(FTYPE, r.flight_type), r.min_stars && `${fa(r.min_stars)}★+`].filter(Boolean).join('، ') || 'عمومی'},
-      {label: 'بزرگسال/کودک/نوزاد', cell: r => <span>{r.effect === 'discount' ? '−' : '+'}{pct(r, 'adult')} / {pct(r, 'child')} / {pct(r, 'infant')}</span>}, {label: 'اولویت', cell: r => fa(r.priority)}, {label: 'وضعیت', cell: r => <Badge status={r.status}/>}]}/>;
+      {label: 'بزرگسال/کودک/نوزاد', cell: r => <span>{r.effect === 'discount' ? '−' : '+'}{pct(r, 'adult')} / {pct(r, 'child')} / {pct(r, 'infant')}</span>}, {label: 'اولویت', cell: r => fa(r.priority)}, {label: 'وضعیت', cell: r => <Badge status={r.status}/>}]}/>
+  </>;
 }
 
 function Preview() {
