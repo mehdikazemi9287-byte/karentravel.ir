@@ -2,11 +2,9 @@ import Link from 'next/link';
 import '../../components/solutions/solutions.css';
 import {DemoRequest} from '../../components/solutions/DemoRequest';
 import {FAQ, MODULES, PLANS, STEPS} from '../../components/solutions/content';
+import {seoFor} from '../../lib/seo-pages';
 
-export const metadata = {
-  title: 'راهکارهای کارن تراول برای آژانس‌ها و سازمان‌ها',
-  description: 'سایت و اپ با برند خودتان، اتصال به تأمین‌کنندگان، قرارداد و صندوق، میز فروش، باشگاه مشتریان، پیامک و خروجی فرانگر — روی یک پرونده.',
-};
+export const metadata = seoFor('/solutions');
 const fa = (n: number) => n.toLocaleString('fa-IR');
 
 export default function SolutionsPage() {

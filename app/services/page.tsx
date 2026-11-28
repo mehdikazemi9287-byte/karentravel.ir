@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { JourneyShell } from '../../components/journey/JourneyShell';
 import { customerGroups } from '../../lib/customer-catalog';
 import { HelpHero } from '../../components/customer/HelpCenter';
+import {seoFor} from '../../lib/seo-pages';
+export const metadata = seoFor('/services');
 
 export default async function ServicesPage({searchParams}:{searchParams:Promise<{group?:string}>}){
   const {group}=await searchParams;

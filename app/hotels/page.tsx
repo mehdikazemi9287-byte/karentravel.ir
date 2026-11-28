@@ -1,4 +1,5 @@
 import {JourneyShell} from '../../components/journey/JourneyShell';
 import {StayLanding} from '../../components/marketplace/StayLanding';
-export const metadata={title:'هتل و اقامتگاه',description:'جست‌وجوی هتل و کشف انواع اقامتگاه با بررسی تاریخ، ظرفیت و شرایط اقامت.',alternates:{canonical:'/hotels'}};
+import {seoFor} from '../../lib/seo-pages';
+export const metadata = seoFor('/hotels');
 export default function Page(){return <JourneyShell><StayLanding/></JourneyShell>}

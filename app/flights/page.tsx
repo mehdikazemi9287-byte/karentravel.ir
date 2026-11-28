@@ -3,6 +3,8 @@ import {Suspense} from 'react';
 import {JourneyShell} from '../../components/journey/JourneyShell';
 import {HomeSearchExperience} from '../../components/search/HomeSearchExperience';
 import {AirlineDirectory, AirportDirectory, FlightLanding} from '../../components/catalog/CatalogViews';
+import {seoFor} from '../../lib/seo-pages';
+export const metadata = seoFor('/flights');
 
 // Flight landing: hero + search, popular routes, airline strip, perks, FAQ. The full airline/airport
 // directories (reference data) stay reachable but collapsed, instead of filling the page.

@@ -1,8 +1,12 @@
 import {NextResponse, type NextRequest} from 'next/server';
 import {buildCsp, cspMode, newNonce} from './lib/csp';
+import {siteUrl} from './lib/seo';
 
 /* Per-request nonce CSP (see lib/csp.ts). Only the CSP is set here; the other security headers stay in next.config.mjs. */
 export function proxy(request: NextRequest) {
+  // www.karentravel.ir is a duplicate of the apex: 301 to the canonical origin (nginx does the same in front; this is the fallback).
+  const host = (request.headers.get('host') || '').toLowerCase();
+  if (host.startsWith('www.')) return NextResponse.redirect(new URL(request.nextUrl.pathname + request.nextUrl.search, siteUrl()), 301);
   const nonce = newNonce();
   const base = {isDev: process.env.NODE_ENV === 'development', httpPreview: process.env.KS_CSP_HTTP_PREVIEW === '1', apiOrigin: process.env.KS_CSP_API_ORIGIN || ''};
   const strict = buildCsp({...base, nonce});
@@ -23,6 +27,8 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
+    // Every path on the www host (including robots.txt, sitemap.xml and assets) → apex redirect above.
+    {source: '/:path*', has: [{type: 'host', value: 'www\\..*'}]},
     {
       source: '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico|woff2?|ttf|css|js|map|txt|xml|json|webmanifest)$).*)',
       missing: [

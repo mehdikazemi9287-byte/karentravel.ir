@@ -3,9 +3,10 @@ import {Shell} from '../page';
 import {BlogListView} from '../../components/blog/BlogViews';
 import {BlogListClient} from '../../components/blog/BlogClient';
 import {serverBlog, type BlogList} from '../../lib/blog';
+import {seoFor} from '../../lib/seo-pages';
 
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = {title: 'وبلاگ و راهنمای سفر', description: 'راهنمای مقصدها، نکته‌های سفر، ویزا و مدارک و خبرهای کارن تراول.', alternates: {canonical: '/blog'}};
+export const metadata = seoFor('/blog');
 
 export default async function Page({searchParams}: {searchParams: Promise<{category?: string; tag?: string; page?: string}>}) {
   const sp = await searchParams;

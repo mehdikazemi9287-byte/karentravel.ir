@@ -1,4 +1,5 @@
 import { JourneyShell } from '../../components/journey/JourneyShell';
 import { ReviewsView } from '../../components/operational/EcosystemViews';
-export const metadata={title:'نظرهای تأییدشده',description:'نظرهای مسافران با تفکیک رزرو تأییدشده و پاسخ تأمین‌کننده'};
+import {seoFor} from '../../lib/seo-pages';
+export const metadata = seoFor('/reviews');
 export default function ReviewsPage(){return <JourneyShell><main className="journey-main"><ReviewsView/></main></JourneyShell>}
