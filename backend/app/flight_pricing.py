@@ -81,8 +81,11 @@ class IndicativePricer:
     rounding agree with the final quote). The rule is chosen once per (carrier, origin, destination) — a search can return
     dozens of offers. No VAT here; the final quote (revalidate) is authoritative."""
 
-    def __init__(self, db: Session, tenant_id: int, user_id: Optional[int], supplier_id: str):
+    def __init__(self, db: Session, tenant_id: int, user_id: Optional[int], supplier_id: str, *, group_id=None):
+        """group_id: an already-resolved price group (search-service path: no user identity crosses that boundary);
+        None → resolved from user_id as before."""
         self.db, self.tenant_id, self.user_id, self.supplier_id = db, tenant_id, user_id, supplier_id
+        self._group = {} if group_id is None else {"group_id": group_id}
         self._rules: dict[tuple, object] = {}
         self._scopes: dict[frozenset, str] = {}
 
@@ -98,7 +101,7 @@ class IndicativePricer:
         key = (carrier.upper(), airports[0].upper(), airports[1].upper(), scope)
         if key not in self._rules:
             ctx = pricing_ctx(supplier_id=self.supplier_id, airline_code=carrier, origin=key[1], destination=key[2], scope=scope)
-            self._rules[key] = choose_rule(self.db, self.tenant_id, ctx, user_id=self.user_id)
+            self._rules[key] = choose_rule(self.db, self.tenant_id, ctx, user_id=self.user_id, **self._group)
         return apply_rule(self._rules[key], {"adult": {"count": 1, "total": int(net_adult)}})["lines"][0]["sell"]
 
     def cap(self, legs: list[tuple[str, str, date]], adult_sell: int) -> dict:

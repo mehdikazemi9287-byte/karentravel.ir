@@ -8,6 +8,7 @@ os.environ.setdefault("SEARCH_INTERNAL_TOKEN", "test-token")
 import pytest
 from fastapi.testclient import TestClient
 
+from app import config
 from app import dedup, providers, registry
 from app.cache import _Redis
 from app.cache_keys import search_cache_key
@@ -209,7 +210,8 @@ def test_diagnostics_endpoint_has_no_secrets():
 def test_diagnostics_provider_counts_match_registry():
     r = client.get("/v1/diagnostics").json()
     assert r["providers_enabled"] == len(registry.REGISTRY.all())
-    assert r["providers_connected"] == 1   # only the internal pool is connected today
+    # the internal pool + live Niira/Mahan request-only flights (SEARCH_LIVE_FLIGHT_SUPPLIERS, default on)
+    assert r["providers_connected"] == sum(1 for p in registry.REGISTRY.all() if p.connected) == (2 if config.LIVE_FLIGHT_SUPPLIERS else 1)
 
 
 # ---- malformed provider row classification (Phase 3 explicit guard) ----

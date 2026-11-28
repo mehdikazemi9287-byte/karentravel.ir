@@ -124,6 +124,49 @@ class OfferPoolProvider:
 _POOL = OfferPoolProvider()
 
 
+class LiveFlightSupplierProvider:
+    """Wired, flight only: live Niira / Mahan flights as request-only offers (booking_mode="request", owner decision
+    1405-09-08) from the monolith `POST /internal/search/flight-suppliers`. Separate from the offer pool on purpose, so a
+    slow airline can never time out in-house inventory. Its own httpx timeout is the real bound (a running fan-out thread
+    cannot be cancelled): monolith supplier deadline (8 s) < this timeout < SEARCH_TOTAL_TIMEOUT (12 s) < gateway (15 s).
+    Switch: SEARCH_LIVE_FLIGHT_SUPPLIERS=0 turns it off (rollback without a deploy of code)."""
+
+    key = "flight_suppliers_live"
+    verticals = ("flight",)
+    connected = True
+    timeout_seconds = config.LIVE_FLIGHT_TIMEOUT_SECONDS
+
+    def __init__(self) -> None:
+        self._client = httpx.Client(base_url=config.MONOLITH_BASE_URL, timeout=config.LIVE_FLIGHT_TIMEOUT_SECONDS)
+
+    def supports(self, vertical: str) -> bool:
+        return vertical in self.verticals
+
+    def status(self) -> dict[str, Any]:
+        return {"provider": self.key, "status": "available", "offer_count": 0,
+                "capabilities": ProviderCapabilities(search=True).__dict__}
+
+    def applies(self, req) -> bool:
+        return bool(req.origin and req.destination and (req.filters or {}).get("depart"))
+
+    def fetch(self, vertical: str, req) -> list[dict]:
+        if vertical != "flight" or not self.applies(req):
+            return []
+        payload = {"service_type": "flight", "public": req.public, "filters": req.filters or {}, "travellers": req.travellers,
+                   "origin": req.origin, "destination": req.destination}
+        if req.tenant_ref:
+            payload["tenant_ref"] = req.tenant_ref
+        if getattr(req, "price_group", None):
+            payload["price_group"] = req.price_group
+        headers = {"X-Internal-Token": config.INTERNAL_TOKEN, "X-Correlation-ID": req.correlation_id}
+        r = self._client.post("/internal/search/flight-suppliers", json=payload, headers=headers)
+        r.raise_for_status()
+        return [o for o in r.json().get("offers", []) if (o.get("attributes") or {}).get("booking_mode") == "request"]
+
+
+_LIVE_FLIGHTS = LiveFlightSupplierProvider()
+
+
 def _timed_fetch(p: SearchProviderPort, v: str, req) -> tuple[list[dict], float]:
     t0 = time.monotonic()
     rows = p.fetch(v, req)
@@ -150,8 +193,10 @@ def fan_out(req) -> tuple[dict[str, list[dict]], list[dict]]:
     tasks: list[tuple[str, SearchProviderPort]] = []
     for v in req.verticals:
         for p in REGISTRY.for_vertical(v):
-            if p.connected:
+            if p.connected and getattr(p, "applies", lambda _req: True)(req):
                 tasks.append((v, p))
+            elif p.connected:      # e.g. live flights without origin/date: not attempted, so neither a success nor a failure
+                meta.append({"provider": p.key, "status": "not_applicable", "offer_count": 0, "vertical": v, "latency_ms": None})
             else:
                 meta.append(p.status() | {"vertical": v, "latency_ms": None})
 

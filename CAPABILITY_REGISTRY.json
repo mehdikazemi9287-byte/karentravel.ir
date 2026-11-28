@@ -446,6 +446,13 @@
       "reason": "homepage/footer content slots with draft, publish, revisions and media library at /admin/content",
       "last_verified_at": "2026-11-03",
       "evidence": "backend/tests/test_site_cms.py passes in CI ci-verify/feature2; baseline failures unchanged; migration 20261103_66; released 2026-11-03 to 188.121.123.218, /admin/content and public site-content endpoint verified live"
+    },
+    "flight_public_request_booking": {
+      "status": "PARTIAL",
+      "reason": "SOURCE only (branch feat/public-flight-niira, owner decision 1405-09-08 in docs/product/approvals.md): live Niira/Mahan flights (NIRA_MODE/MAHAN_MODE=live only) listed in /search/results via search-service provider flight_suppliers_live -> /internal/search/flight-suppliers; indicative sell price per tenant/price group, CAO cap enforced, net never sent; booking_mode=request card with «درخواست رزرو» -> /public/sales-desk/requests with a server-signed flight spec -> web_form case in /admin/sales-desk. No payment, hold or issuance. Tested with mocked suppliers only.",
+      "blocker": "Not deployed; not run against live Niira/Mahan; Niira markup rules not yet given by the owner (without a rule the shown price equals the airline fare); card not checked in a browser.",
+      "last_verified_at": "2026-11-28",
+      "evidence": "backend/app/public_flight_suppliers.py; backend/tests/test_public_flight_suppliers.py; search-service/tests/test_live_flight_suppliers.py"
     }
   }
 }

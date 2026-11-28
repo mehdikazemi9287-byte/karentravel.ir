@@ -59,6 +59,25 @@ it is approved, and the rest of the protected surface stays as it was.
 - Files: `app/page.tsx`, `app/root-pages.tsx`, `components/marketplace/ApprovedHomeLower.tsx`, `components/marketplace/ApprovedFigmaHome.tsx` (alt only), `app/layout.tsx`, `app/search/layout.tsx`, `app/globals.css` (one appended rule `.cat-head h1.cat-list-h1`, used only on /tours/search and /tours/destination/*; not on the homepage or search).
 - Evidence: `tests/seo/seo-check.mjs`; report `docs/seo/SEO_REPORT_2026-11-28.md`. Rollback: revert those hunks.
 
+## 1405-09-08 (2026-11-28) — APPROVED by the owner: Niira/Mahan flights in public search with «درخواست رزرو»
+
+- Status: **approved by the owner** (Mehdi Kazemi), in chat, 1405-09-08, relayed by the supervisor. Owner's words:
+  «پروازهای نیرا (و ماهان) در جست‌وجوی عمومی سایت با قیمت فروش نشان داده شوند و مشتری به‌جای خرید آنلاین "درخواست رزرو" بزند؛ کارشناس تماس می‌گیرد و بلیت را صادر می‌کند.»
+- Scope (behaviour; no visual redesign — only existing components and classes):
+  - Flight search results (`/search/results`, vertical=flight, public and signed-in) also list **live** Niira (`NIRA_MODE=live`) and
+    Mahan (`MAHAN_MODE=live`) flights for the searched route and departure day. Sandbox/QAA inventory never appears here.
+  - Price shown = indicative **sell** price per adult (tenant markup for the caller's price group, `flight_pricing.py`); flights
+    above the CAO cap are not listed (PR #119 rule). Net/supplier price never leaves the monolith.
+  - **The one change to the login-for-price rule:** for these request-only flights the indicative sell price is shown to visitors
+    who are not signed in too (labelled «قیمت تقریبی»). Every other result keeps «ورود برای قیمت و رزرو».
+  - These results carry `booking_mode: "request"`. Their card shows one «درخواست رزرو» button (existing `button primary`) instead of
+    price-check/reserve, wishlist/basket and the `/offers/{id}` detail link. It opens the existing sales-desk request form
+    (`TripRequestForm`, `/public/sales-desk/requests`) in place; the request carries a server-signed flight spec (airline, flight
+    number, date/time, route, class, sell price shown) and lands as a `web_form` case in `/admin/sales-desk`.
+    Confirmation text: «درخواست شما ثبت شد؛ کارشناس کارن تراول به‌زودی تماس می‌گیرد.» No payment, hold or ticket issue happens.
+- Not in scope: online purchase/issue of Niira or Mahan tickets; any homepage or search-form visual change; other verticals.
+- Rollback: set `SEARCH_LIVE_FLIGHT_SUPPLIERS=0` on the search service (provider off), or revert the PR.
+
 ## 1405-09-08 (2026-11-28) — APPROVED by the owner: fixed username + password login for staff
 
 - Status: **approved by the owner** (request 1405-09-08: «یک نام کاربری و رمز ثابت» for signing in, because SMS OTP does not arrive — the Kavenegar account is not verified), relayed by the supervisor.

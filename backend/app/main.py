@@ -4109,6 +4109,40 @@ def internal_search_offer_pool(data: _OfferPoolIn, x_internal_token: str = Heade
     return {"service_type": data.service_type, "public": data.public, "offers": offers}
 
 
+class _LiveFlightIn(_OfferPoolIn):
+    service_type: str = Field(default="flight", pattern=r"^flight$")
+    origin: Optional[str] = Field(default=None, max_length=160)
+    destination: Optional[str] = Field(default=None, max_length=160)
+
+
+@app.post("/internal/search/flight-suppliers")
+def internal_search_flight_suppliers(data: _LiveFlightIn, x_internal_token: str = Header(default=""), db: Session = Depends(get_db)) -> dict:
+    """Live Niira/Mahan flights as request-only rows for karenseir-search (owner decision 1405-09-08, docs/product/approvals.md).
+    Same tenant / price-group resolution as the offer pool; sell price only; never raises on a supplier failure
+    (public_flight_suppliers.py)."""
+    if not _SEARCH_INTERNAL_TOKEN or not hmac.compare_digest(x_internal_token, _SEARCH_INTERNAL_TOKEN):
+        raise HTTPException(status_code=401, detail="internal token invalid")
+    from .commerce import CustomerGroup, user_group_id
+    from .public_flight_suppliers import search_rows
+    if data.public:
+        tenant_id = _public_search_identity(db).tenant_id
+    else:
+        slug = (data.tenant_ref or "").strip()
+        tenant = db.scalar(select(Tenant).where(Tenant.slug == slug)) if slug else None
+        if tenant is None:
+            raise HTTPException(status_code=404, detail="tenant not found")
+        set_tenant_context(db, tenant.id)
+        tenant_id = tenant.id
+    group_id = None
+    if not data.public and data.price_group:
+        group_id = db.scalar(select(CustomerGroup.id).where(CustomerGroup.id == data.price_group, CustomerGroup.tenant_id == tenant_id))
+    if group_id is None:
+        group_id = user_group_id(db, tenant_id, None)
+    result = search_rows(db, secret=JWT_SECRET, tenant_id=tenant_id, group_id=group_id, origin=data.origin, destination=data.destination,
+                         filters=data.filters, travellers=data.travellers)
+    return {"service_type": "flight", "public": data.public, "offers": result["offers"], "suppliers": result["suppliers"]}
+
+
 async def _search_service_call(data: UnifiedSearchIn, *, public: bool, tenant_ref: Optional[str], price_group: Optional[str] = None) -> dict:
     """Shared gateway to karenseir-search. The service NEVER receives a raw JWT
     or user record -- only a resolved, minimal SearchContext (tenant slug,
@@ -7112,7 +7146,13 @@ def _sales_desk_public_tenant(db: Session) -> int:
     return tenant.id
 
 
-app.include_router(sales_desk_router(get_db, current_user, role_has_permission, User, _platform_audit, public_tenant=_sales_desk_public_tenant))
+def _verify_flight_request(token: str) -> dict:
+    from .public_flight_suppliers import verify_request
+    return verify_request(JWT_SECRET, token)   # RequestTokenError is a ValueError
+
+
+app.include_router(sales_desk_router(get_db, current_user, role_has_permission, User, _platform_audit, public_tenant=_sales_desk_public_tenant,
+                                     flight_request_verifier=_verify_flight_request))
 
 from .markup_revenue import markup_revenue_router  # noqa: E402  applied markup per service as revenue
 app.include_router(markup_revenue_router(get_db, current_user, role_has_permission))
