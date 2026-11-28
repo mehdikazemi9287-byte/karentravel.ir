@@ -49,3 +49,11 @@ it is approved, and the rest of the protected surface stays as it was.
   the search page or `globals.css`.
 - Files: `components/marketplace/ApprovedFigmaHome.tsx` (`AccountMenu` + two imports), `lib/panel-access.ts` (`roleLinks`).
 - Evidence: `tests/unit/panel-context.cjs` (roleLinks cases). Rollback: revert those hunks.
+
+## 1405-09-07 (2026-11-27) — APPROVED by the owner: merge to `main` deploys to production without a separate approval
+
+- Status: **approved by the owner** in chat (answers: «دسترسی کامل به سرور» and «نه، بدون تأیید منتشر شود»).
+- Scope: the auto-deploy poller in `deploy/autodeploy/` runs the verified `/root/deploy.sh --check` then `/root/deploy.sh`
+  when `origin/main` moves ahead of `/opt/karenseir/DEPLOYED`. The owner's merge on GitHub is the per-release approval.
+  One-way GitHub → server; not a command channel. Never deletes; a failed commit is not retried.
+- Standing owner rule (same day): nothing is ever deleted — on servers, repos, hosts.
