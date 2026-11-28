@@ -94,9 +94,11 @@ def test_price_group_is_validated_against_the_tenant(client):
         assert price(price_group=group) == [10_500_000]
         assert price() == [10_000_000]                                   # group rule does not leak to the tenant default
         assert price(price_group="not-a-group-of-this-tenant") == [10_000_000]
+        _disable(CustomerGroup, group, "disabled")
+        assert price(price_group=group) == [10_500_000]                  # same group as user_group_id() → same price as /search/offers
     finally:
         _disable(MarkupRule, rule)
-        _disable(CustomerGroup, group)
+        _disable(CustomerGroup, group, "disabled")
 
 
 def test_v3_gateway_sends_the_resolved_price_group_only(client, monkeypatch):
