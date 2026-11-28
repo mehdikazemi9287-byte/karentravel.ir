@@ -173,12 +173,20 @@ function GroupSelect(): Opt {
   return [['', 'همه‌ی کاربران'], ...(state.kind === 'ready' ? state.data.items.map(g => [g.id, g.name] as [string, string]) : [])];
 }
 
-/* Supplier of a markup rule: all, the two scheduled-flight connections, then suppliers registered in inventory.
-   If /inventory/suppliers is loading or not permitted, the fixed choices still work. */
+/* Supplier of a markup rule, from the supplier list (/inventory/suppliers). A web-service supplier is matched by its
+   provider_key ("mahan", "nira": the value the flight adapters price with), any other supplier by its id. Several Niira
+   subsystem rows share one key, so they collapse into one choice. If the list is loading or not permitted, the two
+   web-service choices still work. */
 function SupplierSelect(): Opt {
   const {state} = useLoad<{items: Row[]}>('/inventory/suppliers');
-  const fixed: Opt = [['', 'همه‌ی تأمین‌کنندگان'], ['mahan', 'ماهان (وب‌سرویس)'], ['nira', 'نیرا (وب‌سرویس ایرلاین‌ها)']];
-  return [...fixed, ...(state.kind === 'ready' ? state.data.items.filter(s => !fixed.some(f => f[0] === s.id)).map(s => [s.id, s.name] as [string, string]) : [])];
+  const fallback: Opt = [['mahan', 'ماهان (وب‌سرویس)'], ['nira', 'نیرا (وب‌سرویس ایرلاین‌ها)']];
+  const opts: Opt = [['', 'همه‌ی تأمین‌کنندگان']];
+  for (const s of state.kind === 'ready' ? state.data.items : []) {
+    const key = String(s.provider_key || s.id);
+    if (!opts.some(o => o[0] === key)) opts.push([key, s.provider_key ? `${String(s.name)} (وب‌سرویس)` : String(s.name)]);
+  }
+  for (const f of fallback) if (!opts.some(o => o[0] === f[0])) opts.splice(1, 0, f);
+  return opts;
 }
 
 function Markups() {
