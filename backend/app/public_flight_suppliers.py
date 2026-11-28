@@ -273,16 +273,16 @@ def fetch_offers(secret: str, pairs: list[tuple[str, str]], day: date, pax: dict
 
 def dedupe_offers(found: list[tuple[int, str, list[FareOffer]]]) -> list[tuple[str, FareOffer]]:
     """One row per flight. A city with two airports (تهران → THR, IKA) asks a supplier once per pair, and a supplier may answer
-    the same flight for both: the key is provider + carrier + flight number + departure; the first airport pair (THR) wins."""
-    seen: set[tuple] = set()
+    the same flight for both: the key is provider + carrier + flight number + departure; the first airport pair (THR) wins.
+    Several fare classes of one flight from the same pair are different offers and all stay."""
+    first_pair: dict[tuple, int] = {}
     out: list[tuple[str, FareOffer]] = []
-    for _, provider, offers in sorted(found, key=lambda t: t[0]):       # pair order, not thread completion order
+    for i, provider, offers in sorted(found, key=lambda t: t[0]):       # pair order, not thread completion order
         for x in offers:
             s = x.segments[0]
             k = (provider, s.carrier, s.flight_number, s.departs_at.isoformat())
-            if k in seen:
-                continue
-            seen.add(k)
+            if first_pair.setdefault(k, i) != i:
+                continue                                                  # the same flight already came from an earlier pair
             out.append((provider, x))
     return out
 

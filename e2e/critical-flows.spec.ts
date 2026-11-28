@@ -255,10 +255,22 @@ test('connected comparison is explainable and backend-authoritative', async ({ p
 test('unified search results expose freshness and persist saved search', async ({ page, request }) => {
   await createOperationalFixture(request, 'unified-search');
   await uiLogin(page, 'employee@aftab.test');
+  const searches: string[] = [];
+  page.on('request', r => { if (r.method() === 'POST' && /\/search\/v3(\/public)?$/.test(new URL(r.url()).pathname)) searches.push(new URL(r.url()).pathname); });
   await page.getByRole('link', { name: 'جست‌وجوی یکپارچه' }).click();
+  await expect(page.getByLabel('عبارت جست‌وجو')).toBeVisible();
+  await expect.poll(() => searches.length).toBe(1);               // the page's own search: once, signed-in endpoint only
+  expect(searches).toEqual(['/search/v3']);
+  // QA 2026-11-28: typing in the form sends nothing; «جست‌وجو» sends exactly one request and writes the URL
   await page.getByLabel('عبارت جست‌وجو').fill('هتل عملیاتی');
+  await page.waitForTimeout(500);
+  expect(searches.length).toBe(1);
   await page.getByRole('button', { name: 'جست‌وجو', exact: true }).click();
+  await expect(page).toHaveURL(/destination=%D9%87%D8%AA%D9%84/);   // the URL carries the new search (router.replace, no reload)
+  await expect.poll(() => searches.length).toBe(2);
   await expect(page.getByRole('heading', { name: 'هتل عملیاتی 1' }).first()).toBeVisible();
+  await page.waitForTimeout(500);
+  expect(searches.length).toBe(2);                                // one search = one request
   await expect(page.getByText('زنده و تازه', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('موجودی تأییدشده', { exact: true }).first()).toBeVisible();
   await page.getByRole('button', { name: 'ذخیره جست‌وجو' }).click();
@@ -437,7 +449,7 @@ test('saved travel, itinerary, destination and map fallback use tenant APIs', as
   // /destinations lists curated guides; a tenant destination is served at its own slug.
   await page.goto(`/destinations/shiraz-e2e-${suffix}`);
   await expect(page.getByRole('heading', { level: 1, name: 'شیراز E2E' })).toBeVisible();
-  await expect(page.getByText('Offer تازه‌ای برای این مقصد موجود نیست')).toBeVisible();
+  await expect(page.getByText('فعلاً پیشنهاد تازه‌ای برای این مقصد نداریم.')).toBeVisible();
   await page.goto('/map');
-  await expect(page.getByText('در نبود credential نقشه')).toBeVisible();
+  await expect(page.getByText('نقشه هنوز فعال نیست')).toBeVisible();
 });

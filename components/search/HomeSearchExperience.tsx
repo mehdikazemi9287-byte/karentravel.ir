@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../../lib/api/auth-context';
 import { parseTravelIntent, type NLIntent } from '../../lib/domain/nl-intent';
 import { tehranToday } from '../../lib/tehran-today';
+import { nlSearchHref } from '../../lib/search-links';
 
 import { formatJalali, gregorianToJalali, jalaliMonths, jalaliMonthLength, jalaliToIso, persianDigits, todayIso, todayJalali, type JalaliDate } from '../../lib/domain/jalali';
 import { JalaliCalendar } from './JalaliCalendar';
@@ -213,13 +214,9 @@ export function HomeSearchExperience({defaultVertical="flight",presentation}:{de
     if(!nlIntent)return;
     const nlVertical=nlIntent.vertical??'hotel'; const nlIndex=services.findIndex(item=>item.vertical===nlVertical); if(nlIndex>=0)setActive(nlIndex);
     const nlDepart=nlIntent.depart??depart;
-    const params=new URLSearchParams({vertical:nlVertical,origin:nlIntent.origin??'',destination:nlIntent.destination??'',depart:nlDepart,flexibility:nlIntent.flexibility??'exact',adults:String(nlIntent.adults??adults),children:String(nlIntent.children??0),infants:'0',rooms:'1',cabin:'economy',sort:'recommended'});
-    // The sentence carries no return date: a flight is one-way; a stay with «N شب» gets its check-out date.
-    if(nlVertical==='flight')params.set('trip_type','one_way');
-    if((nlVertical==='hotel'||nlVertical==='vacation_rental')&&nlDepart&&nlIntent.nights&&nlIntent.nights>0){const out=new Date(`${nlDepart}T00:00:00Z`);out.setUTCDate(out.getUTCDate()+nlIntent.nights);params.set('return',out.toISOString().slice(0,10))}
-    if(nlIntent.budgetMax)params.set('max_price',String(nlIntent.budgetMax));
-    // Same destination as the form's «جست‌وجو»: the results page (train requests go to the train request form).
-    router.push(nlVertical==='train'?`/trains/request?${params.toString()}`:`/search/results?${params.toString()}`);
+    if(!nlIntent.destination)return;
+    if(nlDepart&&nlDepart<tehranToday()){setNlError('تاریخ سفر گذشته است؛ امروز یا روزهای بعد را بگو.');return}
+    router.push(nlSearchHref(nlIntent,{depart,adults}));
   }
   function changeService(index:number){const previousVertical=service.vertical;setActive(index);setMoreOpen(false);setPopover(null);const next=services[index];if(next.vertical==='visa')setOrigin('');else if(previousVertical==='visa')setOrigin('تهران');setDestination(next.vertical==='hotel'||next.vertical==='vacation_rental'?'یزد':next.vertical==='cruise'?'دبی':next.vertical==='visa'?'فرانسه':next.vertical==='car_rental'?'شیراز':next.vertical==='tour'?'استانبول':next.vertical==='package'?'استانبول':next.vertical==='tourist_transportation'?'شیراز':'شیراز')}
   // trip_type ("یک‌طرفه"/"چندمسیره") is a flight-only concept - changeService()

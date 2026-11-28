@@ -58,3 +58,17 @@ def test_organization_manager_cannot_create_a_sales_case(client):
     for email in (_ensure_manager(), "welfare@aftab.test", "org-admin@aftab.test"):
         assert client.post("/sales-desk/cases", json=body, headers=_h(client, email)).status_code == 403, email
     assert client.post("/sales-desk/cases", json=body, headers=_h(client, "backoffice@aftab.test")).status_code == 201
+
+
+def test_commerce_panel_organization_list_endpoint(client):
+    """/admin/commerce «وصل به گروه» lists organizations from /enterprise/organizations (a list of {id, name, status});
+    /organizations does not exist (QA 2026-11-28)."""
+    h = _h(client, "tenant-admin@aftab.test")
+    name = f"سازمان آزمون گروه قیمت {uuid.uuid4().hex[:6]}"
+    assert client.post("/enterprise/organizations", json={"name": name}, headers=h).status_code == 201
+    r = client.get("/enterprise/organizations", headers=h)
+    assert r.status_code == 200, r.text
+    rows = r.json()
+    assert isinstance(rows, list) and all({"id", "name", "status"} <= set(o) for o in rows)
+    assert name in [o["name"] for o in rows]
+    assert client.get("/organizations", headers=h).status_code == 404

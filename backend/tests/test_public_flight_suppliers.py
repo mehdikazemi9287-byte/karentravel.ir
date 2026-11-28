@@ -369,6 +369,17 @@ def test_two_tehran_airports_give_one_row_per_flight_and_one_status_per_supplier
     assert len(body["offers"]) == 1 and [s["status"] for s in body["suppliers"]] == ["cached"]
 
 
+def test_dedupe_keeps_fare_classes_of_one_pair_and_drops_the_repeat_from_the_next_pair():
+    dep = datetime(2026, 12, 1, 9, tzinfo=timezone.utc)
+
+    def fare(o, rbd):
+        seg = FlightSegment("VR", "2001", o, "MHD", dep, dep + timedelta(minutes=80))
+        return FareOffer("ref", (seg,), 30000000, "IRR", rbd, None, dep)
+    found = [(1, "nira", [fare("IKA", "Y")]), (0, "nira", [fare("THR", "Y"), fare("THR", "B")]), (1, "mahan", [fare("IKA", "Y")])]
+    out = pfs.dedupe_offers(found)
+    assert [(p, x.segments[0].origin, x.fare_basis) for p, x in out] == [("nira", "THR", "Y"), ("nira", "THR", "B"), ("mahan", "IKA", "Y")]
+
+
 def test_supplier_status_prefers_an_answer_over_a_failed_pair():
     st = pfs.supplier_status({"nira": [{"route": "IKA-MHD", "status": "timeout"}, {"route": "THR-MHD", "status": "ok", "offers": 3}],
                               "mahan": [{"route": "IKA-MHD", "status": "error", "error": "X"}, {"route": "THR-MHD", "status": "timeout"}]})

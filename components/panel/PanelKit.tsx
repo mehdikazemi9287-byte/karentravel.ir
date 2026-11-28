@@ -7,6 +7,7 @@ import {usePathname, useRouter} from 'next/navigation';
 import {Fragment, useCallback, useEffect, useState, type ReactNode} from 'react';
 import {useAuth} from '../../lib/api/auth-context';
 import {ApiError} from '../../lib/api/karenseir-client';
+import {loginHref} from '../../lib/search-links';
 import {AccountMenu} from '../marketplace/ApprovedFigmaHome';
 import {AREA_FA, areaFor, canOpen, homeFor, itemFor, mobileTabsFor, navFor, PANEL_ITEMS, ROLE_FA, staffAreasFor, type Area} from '../../lib/panel-access';
 import {orgAllows, orgPagesFor, panelContextsFor, type OrgMembership} from '../../lib/panel-context';
@@ -59,8 +60,7 @@ export function NoAccess({role, path, area}: {role: string; path: string; area: 
     in-app path (safeRedirectTarget). The query is read on click, so server and first client render stay identical. */
 export function LoginLink({className, children}: {className: string; children: ReactNode}) {
   const path = usePathname() ?? '/'; const router = useRouter();
-  const href = '/login?redirect=' + encodeURIComponent(path);
-  return <Link className={className} href={href} onClick={e => {const q = window.location.search; if (q && !e.metaKey && !e.ctrlKey) {e.preventDefault(); router.push('/login?redirect=' + encodeURIComponent(path + q));}}}>{children}</Link>;
+  return <Link className={className} href={loginHref(path)} onClick={e => {const q = window.location.search; if (q && !e.metaKey && !e.ctrlKey) {e.preventDefault(); router.push(loginHref(path, q));}}}>{children}</Link>;
 }
 
 export function PanelShell({area: declared, title, intro, children}: {area: Area; title: string; intro?: string; children: ReactNode}) {
