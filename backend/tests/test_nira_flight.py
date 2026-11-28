@@ -210,9 +210,10 @@ def _nira_rule(**kw):
 
 
 def _drop(model, row_id):
-    from sqlalchemy import delete
+    """Disable (never delete) a test markup rule or price cap."""
+    from sqlalchemy import update
     with SessionLocal() as db:
-        db.execute(delete(model).where(model.id == row_id))
+        db.execute(update(model).where(model.id == row_id).values(status="disabled"))
         db.commit()
 
 

@@ -167,8 +167,9 @@ def test_group_links_resolution_order_and_disable(client):
     assert resolved() == g_org                                   # organization beats agency
     assert client.put(f"/commerce/groups/{g_direct}/members", json={"user_ids": [uid]}, headers=admin).status_code == 200
     assert resolved() == g_direct                                # direct membership beats both
-    with SessionLocal() as db:                                  # test cleanup of the direct membership only (shared test DB)
-        db.delete(db.scalar(select(CustomerGroupMember).where(CustomerGroupMember.tenant_id == tid, CustomerGroupMember.user_id == uid))); db.commit()
+    with SessionLocal() as db:                                  # disable (never delete) the direct membership: the links apply again
+        row = db.scalar(select(CustomerGroupMember).where(CustomerGroupMember.tenant_id == tid, CustomerGroupMember.user_id == uid))
+        row.status = "disabled"; db.commit()
     assert resolved() == g_org
     off = client.post(f"/commerce/group-links/{link.json()['id']}/disable", headers=admin)
     assert off.status_code == 200 and off.json()["status"] == "disabled"
@@ -236,7 +237,7 @@ def test_standard_groups_are_created_once_without_rules(client):
 def test_inventory_search_hides_flight_above_cap(client):
     import json as _json
     from datetime import date, datetime, timedelta, timezone
-    from sqlalchemy import delete
+    from sqlalchemy import update
     from app import operations as m
     from app.charter_blocks import PriceCap
     from app.main import SessionLocal
@@ -268,7 +269,7 @@ def test_inventory_search_hides_flight_above_cap(client):
         assert pc.status_code == 409 and pc.json()["detail"]["code"] == "PRICE_CAP_EXCEEDED"
     finally:
         with SessionLocal() as db:                              # test fixture cleanup (shared test DB)
-            db.execute(delete(PriceCap).where(PriceCap.id == cap_id))
+            db.execute(update(PriceCap).where(PriceCap.id == cap_id).values(status="disabled"))
             for o in db.query(m.Offer).filter(m.Offer.id.in_(ids)):
                 o.status = "inactive"
             db.commit()

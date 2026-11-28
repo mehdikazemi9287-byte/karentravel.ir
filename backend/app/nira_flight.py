@@ -8,8 +8,9 @@ Switch: NIRA_MODE = off (default) | sandbox | live, airlines in NIRA_AIRLINES, p
 Exposed now: status, search and the staff test console (one airline, one call).
 Search price = indicative SELL price per adult: AvailabilityFare net + the tenant markup rule (commerce, supplier_id="nira",
 airline, scope, flight_type="system", origin/destination; shared logic in flight_pricing.py, same as Mahan). With no matching
-rule the sell price equals the net. Each offer carries the CAO adult cap state (`price_cap`); above-cap offers are annotated,
-not hidden (hiding is an open owner decision). Net prices are never sent to customers — only the staff console shows them.
+rule the sell price equals the net. Each offer carries the CAO adult cap state (`price_cap`); offers whose sell price is above
+the cap are never listed (owner decision, PR #119) — staff see only their count (`hidden_over_cap`). Net prices are never
+sent to customers — only the staff console shows them.
 Reservation, ticket issue, cancel and refund are implemented in `NiraClient` and unit-tested, but NOT exposed over HTTP:
 like Mahan, issuing is financial and stays a guarded, disabled path until the owner approves it and payment capture,
 idempotency records and reconciliation are wired.

@@ -10,7 +10,7 @@ from datetime import date, datetime, timedelta, timezone
 
 import httpx
 import pytest
-from sqlalchemy import delete, select
+from sqlalchemy import select, update
 
 from app import mahan_flight as mf
 from app import operations as m
@@ -117,7 +117,7 @@ def airports():
 
 @pytest.fixture()
 def markup():
-    """A fixed 1,000,000 IRR/adult markup for supplier 'mahan' (test rule, removed afterwards)."""
+    """A fixed 1,000,000 IRR/adult markup for supplier 'mahan' (test rule, disabled afterwards)."""
     with SessionLocal() as db:
         tenant_id = db.scalar(select(User.tenant_id).where(User.email == "backoffice@aftab.test"))
         rule = MarkupRule(tenant_id=tenant_id, title="test mahan markup", service_type="flight", supplier_id="mahan", calc="fixed", adult=1_000_000, child=500_000)
@@ -126,7 +126,7 @@ def markup():
         rid = rule.id
     yield tenant_id
     with SessionLocal() as db:
-        db.execute(delete(MarkupRule).where(MarkupRule.id == rid))
+        db.execute(update(MarkupRule).where(MarkupRule.id == rid).values(status="disabled"))
         db.commit()
 
 
@@ -258,7 +258,7 @@ def test_cao_cap_blocks_price_above_cap(client, qaa, markup):
         assert r.status_code == 409 and r.json()["detail"]["code"] == "PRICE_CAP_EXCEEDED"
     finally:
         with SessionLocal() as db:
-            db.execute(delete(PriceCap).where(PriceCap.id == cap_id))
+            db.execute(update(PriceCap).where(PriceCap.id == cap_id).values(status="disabled"))
             db.commit()
 
 
@@ -278,7 +278,7 @@ def test_search_hides_offers_above_cao_cap(client, qaa, markup):
         assert customer.status_code == 200 and "hidden_over_cap" not in customer.json()
     finally:
         with SessionLocal() as db:
-            db.execute(delete(PriceCap).where(PriceCap.id == cap_id))
+            db.execute(update(PriceCap).where(PriceCap.id == cap_id).values(status="disabled"))
             db.commit()
 
 
@@ -411,8 +411,9 @@ def _rules(tenant_id, *specs):
 
 
 def _drop_rules(ids):
+    """Disable (never delete) the test rules so later tests are not priced by them."""
     with SessionLocal() as db:
-        db.execute(delete(MarkupRule).where(MarkupRule.id.in_(ids)))
+        db.execute(update(MarkupRule).where(MarkupRule.id.in_(ids)).values(status="disabled"))
         db.commit()
 
 

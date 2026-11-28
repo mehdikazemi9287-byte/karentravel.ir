@@ -21,7 +21,7 @@ from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import Boolean, ForeignKey, Integer, String, Text, UniqueConstraint, func, select
+from sqlalchemy import Boolean, ForeignKey, Integer, String, Text, UniqueConstraint, func, or_, select
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from . import approvals
@@ -48,6 +48,8 @@ class CustomerGroupMember(OperationalMixin, Base):
     __tablename__ = "commerce_group_members"
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     group_id: Mapped[str] = mapped_column(ForeignKey("commerce_customer_groups.id"), index=True)
+    # active | disabled (migration 81). A disabled row is kept for history and ignored by pricing; setting a group again reactivates it.
+    status: Mapped[str] = mapped_column(String(16), default="active", server_default="active")
     __table_args__ = (UniqueConstraint("tenant_id", "user_id", name="uq_commerce_member_user"),)
 
 
@@ -255,12 +257,13 @@ def _today() -> str:
 
 
 def user_group_id(db: Session, tenant_id: int, user_id: Optional[int]) -> Optional[str]:
-    """Price group of a user, first match wins: direct membership → an active organization the user is assigned to
-    (employee_assignments; the assignment has no status of its own) → an agency the user belongs to (agency_memberships)
-    → the tenant's default group. Links count only when the link and its group are active; several matches → oldest link.
+    """Price group of a user, first match wins: an active direct membership → an active organization the user is assigned to
+    (employee_assignments; the assignment has no status of its own) → an active agency the user belongs to (agency_memberships)
+    → the tenant's default group. A disabled direct membership is ignored (the organization/agency links apply again). Links count only when the link and its group are active; several matches → oldest link.
     Every table is filtered by tenant explicitly (RLS is a second line, not the only one)."""
     if user_id is not None:
-        gid = db.scalar(select(CustomerGroupMember.group_id).where(CustomerGroupMember.tenant_id == tenant_id, CustomerGroupMember.user_id == user_id))
+        gid = db.scalar(select(CustomerGroupMember.group_id).where(CustomerGroupMember.tenant_id == tenant_id, CustomerGroupMember.user_id == user_id,
+                                                                   CustomerGroupMember.status == "active"))
         if gid:
             return gid
         linked = (select(CustomerGroupLink.group_id).join(CustomerGroup, CustomerGroup.id == CustomerGroupLink.group_id)
@@ -274,7 +277,9 @@ def user_group_id(db: Session, tenant_id: int, user_id: Optional[int]) -> Option
         if gid:
             return gid
         gid = db.scalar(linked.join(m.AgencyMembership, m.AgencyMembership.agency_id == CustomerGroupLink.party_id)
-                        .where(CustomerGroupLink.party_type == "agency", m.AgencyMembership.tenant_id == tenant_id, m.AgencyMembership.user_id == user_id)
+                        .join(m.Agency, m.Agency.id == CustomerGroupLink.party_id)
+                        .where(CustomerGroupLink.party_type == "agency", m.AgencyMembership.tenant_id == tenant_id, m.AgencyMembership.user_id == user_id,
+                               m.Agency.tenant_id == tenant_id, m.Agency.status == "active")
                         .order_by(CustomerGroupLink.created_at, CustomerGroupLink.id).limit(1))
         if gid:
             return gid
@@ -288,9 +293,15 @@ def _matches(rule: MarkupRule, ctx: dict, group_id: Optional[str], on: str) -> O
     if rule.valid_from and on < rule.valid_from or rule.valid_to and on > rule.valid_to:
         return None
     score = 0 if rule.service_type == "any" else 1
-    checks = (("group_id", group_id), ("supplier_id", ctx.get("supplier_id")), ("airline_code", (ctx.get("airline_code") or "").upper() or None),
+    checks = (("group_id", group_id), ("airline_code", (ctx.get("airline_code") or "").upper() or None),
               ("origin", (ctx.get("origin") or "").upper() or None), ("destination", (ctx.get("destination") or "").upper() or None),
               ("city_id", ctx.get("city_id")))
+    if rule.supplier_id is not None:
+        # A rule may name the supplier by its id (UUID) or by its web-service provider_key; both name the same supplier.
+        aliases = ctx.get("supplier_aliases")
+        if rule.supplier_id not in (aliases if aliases is not None else {ctx.get("supplier_id")}):
+            return None
+        score += 2
     for field, value in checks:
         want = getattr(rule, field)
         if want is None:
@@ -320,10 +331,24 @@ def _round_up(amount: int, step: int) -> int:
 _RESOLVE = object()
 
 
+def supplier_aliases(db: Session, tenant_id: int, supplier: Optional[str]) -> set:
+    """Every value a markup rule may store for this supplier: the value itself, plus the id and provider_key of the
+    tenant's supplier rows it names (by id, or by provider_key — all subsystem rows of one web service share the key)."""
+    if not supplier:
+        return {None}
+    out = {supplier}
+    for sid, key in db.execute(select(m.Supplier.id, m.Supplier.provider_key).where(
+            m.Supplier.tenant_id == tenant_id, or_(m.Supplier.id == supplier, m.Supplier.provider_key == supplier))).all():
+        out.update(v for v in (sid, key) if v)
+    return out
+
+
 def choose_rule(db: Session, tenant_id: int, ctx: dict, *, user_id: Optional[int] = None, group_id=_RESOLVE) -> Optional[MarkupRule]:
     """group_id: pass an already-resolved price group (search-service pool: no user identity crosses that boundary)."""
     if group_id is _RESOLVE:
         group_id = user_group_id(db, tenant_id, user_id)
+    if "supplier_aliases" not in ctx:
+        ctx = {**ctx, "supplier_aliases": supplier_aliases(db, tenant_id, ctx.get("supplier_id"))}
     on = ctx.get("on_date") or _today()
     rules = db.scalars(select(MarkupRule).where(MarkupRule.tenant_id == tenant_id, MarkupRule.status == "active",
                                                 MarkupRule.service_type.in_((ctx["service_type"], "any")))).all()
@@ -693,7 +718,7 @@ def commerce_router(get_db, current_user, role_has_permission, User, audit=None)
     @api.get("/commerce/groups")
     def list_groups(user=Depends(admin), db: Session = Depends(get_db)):
         rows = db.scalars(select(CustomerGroup).where(CustomerGroup.tenant_id == user.tenant_id).order_by(CustomerGroup.code)).all()
-        counts = dict(db.execute(select(CustomerGroupMember.group_id, func.count()).where(CustomerGroupMember.tenant_id == user.tenant_id).group_by(CustomerGroupMember.group_id)).all())
+        counts = dict(db.execute(select(CustomerGroupMember.group_id, func.count()).where(CustomerGroupMember.tenant_id == user.tenant_id, CustomerGroupMember.status == "active").group_by(CustomerGroupMember.group_id)).all())
         return {"items": [{**_plain(r, GROUP_FIELDS), "members": counts.get(r.id, 0)} for r in rows]}
 
     def _save_group(db, user, row, data):
@@ -723,7 +748,7 @@ def commerce_router(get_db, current_user, role_has_permission, User, audit=None)
     def group_members(group_id: str, user=Depends(admin), db: Session = Depends(get_db)):
         _get(db, CustomerGroup, user.tenant_id, group_id)
         rows = db.execute(select(User.id, User.name, User.email).join(CustomerGroupMember, CustomerGroupMember.user_id == User.id)
-                          .where(CustomerGroupMember.tenant_id == user.tenant_id, CustomerGroupMember.group_id == group_id).order_by(User.id)).all()
+                          .where(CustomerGroupMember.tenant_id == user.tenant_id, CustomerGroupMember.group_id == group_id, CustomerGroupMember.status == "active").order_by(User.id)).all()
         return {"items": [{"user_id": r.id, "name": r.name, "email": r.email} for r in rows]}
 
     @api.put("/commerce/groups/{group_id}/members")
@@ -735,9 +760,9 @@ def commerce_router(get_db, current_user, role_has_permission, User, audit=None)
         for uid in valid:
             row = db.scalar(select(CustomerGroupMember).where(CustomerGroupMember.tenant_id == user.tenant_id, CustomerGroupMember.user_id == uid))
             if row is None:
-                db.add(CustomerGroupMember(tenant_id=user.tenant_id, user_id=uid, group_id=group_id))
+                db.add(CustomerGroupMember(tenant_id=user.tenant_id, user_id=uid, group_id=group_id, status="active"))
             else:
-                row.group_id = group_id
+                row.group_id, row.status = group_id, "active"
         _audit(db, user, "commerce.group.members", group_id, {"count": len(valid)})
         db.commit()
         return {"group_id": group_id, "assigned": len(valid)}
@@ -835,8 +860,9 @@ def commerce_router(get_db, current_user, role_has_permission, User, audit=None)
     async def markup_import(file: UploadFile = File(...), confirm: bool = Form(default=False), user=Depends(admin), db: Session = Depends(get_db)):
         from .markup_import import validate_rules
         from .tabular import TableError, read_table
-        data = await file.read()
-        if len(data) > 2 * 1024 * 1024:
+        limit = 2 * 1024 * 1024
+        data = await file.read(limit + 1)                  # bounded read: a larger upload is never read whole
+        if len(data) > limit:
             raise HTTPException(status_code=413, detail="حجم فایل بیش از ۲ مگابایت است")
         try:
             report = validate_rules(db, user.tenant_id, read_table(file.filename or "", data))

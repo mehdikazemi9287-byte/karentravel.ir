@@ -81,10 +81,25 @@ def parse_percent(raw: str) -> Optional[int]:
         value = Decimal(text)
     except InvalidOperation:
         raise ValueError("درصد عدد نیست")
+    if not value.is_finite():                                   # NaN / Infinity: a row error, never a 500
+        raise ValueError("درصد عدد نیست")
     bps = value * 100
     if value < 0 or bps != bps.to_integral_value():
         raise ValueError("درصد باید مثبت و حداکثر با دو رقم اعشار باشد")
     return int(bps)
+
+
+def excel_percent_fraction(raw: str) -> bool:
+    """True for a bare fraction 0 < v < 1 with no % sign (e.g. 0.05): what an Excel cell with the «Percent» format
+    stores for 5%. Read as-is it would be a 0.05% rule, so the row is rejected with a clear message instead."""
+    text = latin_digits(raw).replace("٫", ".").replace("/", ".").strip()
+    if not text or "%" in text or "٪" in text:
+        return False
+    try:
+        value = Decimal(text)
+    except InvalidOperation:
+        return False
+    return value.is_finite() and 0 < value < 1
 
 
 def parse_amount(raw: str) -> Optional[int]:
@@ -175,6 +190,12 @@ def validate_rules(db: Session, tenant_id: int, rows: list[list[str]]) -> dict:
                 errors.append(f"کد «{get(key)}» باید لاتین باشد (مثل THR یا W5)")
         pct, fix = {}, {}
         for pax in ("adult", "child", "infant"):
+            if excel_percent_fraction(get("pct_" + pax)):
+                errors.append(f"{COLUMNS['pct_' + pax][0]}: مقدار «{get('pct_' + pax)}» کسری است و احتمالاً سلول اکسل قالب «درصد» دارد "
+                              f"(مثلاً 0.05 یعنی ۵٪)؛ قالب سلول را «عدد» کنید و درصد را به صورت عدد کامل بنویسید (مثلاً 5)، "
+                              f"یا اگر واقعاً کمتر از ۱٪ است علامت ٪ را هم بنویسید (مثلاً 0.5٪)")
+                pct[pax] = None
+                continue
             try:
                 pct[pax] = parse_percent(get("pct_" + pax))
             except ValueError as exc:
