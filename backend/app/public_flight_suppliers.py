@@ -113,6 +113,16 @@ def _norm(value: Optional[str]) -> str:
     return normalize_text(value or "")
 
 
+# Cities whose airports carry another municipality in the reference catalogue (OurAirports lists THR and IKA under
+# «پرندک»), so a plain city-name search would miss them. Explicit and short; THR first (domestic flights).
+CITY_AIRPORTS: dict[str, tuple[str, ...]] = {}
+
+
+def _city_airports_init() -> None:
+    for city, codes in (("تهران", ("THR", "IKA")), ("tehran", ("THR", "IKA"))):
+        CITY_AIRPORTS[_norm(city)] = codes
+
+
 def resolve_airports(db: Session, text: Optional[str]) -> list[str]:
     """IATA codes for what the search form sends: a 3-letter code, an airport name, or a city name. Exact (normalized) matches
     only; nothing is guessed. Iranian airports first."""
@@ -125,6 +135,11 @@ def resolve_airports(db: Session, text: Optional[str]) -> list[str]:
     n = _norm(raw)
     if not n:
         return []
+    if not CITY_AIRPORTS:
+        _city_airports_init()
+    alias = [c for c in CITY_AIRPORTS.get(n, ()) if db.get(CatalogAirport, c) is not None]
+    if alias:
+        return alias[:MAX_PAIRS]
     found: list[str] = []
     rows = db.scalars(select(CatalogAirport).where(or_(CatalogAirport.search_text.like(f"%{n}%"), CatalogAirport.city_name == raw,
                                                        CatalogAirport.name_fa == raw)).limit(40)).all()

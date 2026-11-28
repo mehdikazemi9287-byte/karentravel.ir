@@ -312,3 +312,17 @@ def test_city_names_resolve_like_the_shipped_catalog():
         assert pfs.resolve_airports(db, f"فرودگاه آزمون {tag} 1") == [codes[1]]
         assert pfs.resolve_airports(db, codes[0].lower()) == [codes[0]]
         assert pfs.resolve_airports(db, f"آزمون {tag}") == []                 # partial text is not guessed into a city
+
+
+def test_tehran_resolves_to_thr_and_ika_even_when_catalog_city_is_parandak():
+    """The shipped catalogue lists THR and IKA under «پرندک» (OurAirports municipality); «تهران» must still find them."""
+    for code, name in (("THR", "فرودگاه مهرآباد"), ("IKA", "فرودگاه امام خمینی")):
+        with SessionLocal() as db:
+            if db.get(CatalogAirport, code) is None:
+                db.add(CatalogAirport(id=code, name_fa=name, name_en=code, city_id=None, city_name="پرندک", country_code="IR",
+                                      latitude=0.0, longitude=0.0, timezone="Asia/Tehran", airport_type="large_airport",
+                                      scheduled_service=True, search_text=name, source="test"))
+                db.commit()
+    with SessionLocal() as db:
+        assert pfs.resolve_airports(db, "تهران") == ["THR", "IKA"]
+        assert pfs.resolve_airports(db, "Tehran") == ["THR", "IKA"]
