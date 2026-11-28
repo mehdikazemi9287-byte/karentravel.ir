@@ -37,7 +37,7 @@ from . import traveller_identity  # traveller identity table (national code / pa
 from . import approvals  # maker-checker requests (H-1); registers maker_checker_requests
 from .observability import configure_logging, prometheus_metrics, record_business_event, record_request
 from .rate_limit import InMemoryRateLimiter, RedisRateLimiter, fingerprint
-from .security import role_has_permission
+from .security import hash_password, role_has_permission, verify_password
 from . import org_access
 from . import sms_guard  # noqa: E402  global per-destination SMS cap (table registered on Base)
 from .providers import configured_adapter, validate_provider_modes
@@ -79,6 +79,10 @@ class User(Base):
     mobile_e164: Mapped[Optional[str]] = mapped_column(String(16), unique=True, index=True, nullable=True)
     # Reversible deactivation: a disabled account cannot log in, refresh or use an existing token. NULL = active.
     disabled_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Staff-only fixed password (owner request 1405-09-08, docs/product/approvals.md); pbkdf2 via security.hash_password.
+    # NULL = no password login. Set only from the server console (scripts/set_staff_password.py); deferred so the
+    # hash is never loaded with ordinary User queries.
+    password_hash: Mapped[Optional[str]] = mapped_column(String(200), nullable=True, deferred=True)
 class Hotel(Base):
     __tablename__ = "hotels"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -154,6 +158,7 @@ class ServiceRequestIn(BaseModel): request_type: str = Field(pattern="^(cancel|c
 class RefreshIn(BaseModel): refresh_token: str = Field(min_length=32, max_length=512); device_id: Optional[str] = Field(default=None, min_length=8, max_length=200)
 class OTPRequestIn(BaseModel): tenant_slug: str = Field(min_length=2, max_length=64); identifier: str = Field(min_length=3, max_length=160)
 class OTPVerifyIn(BaseModel): tenant_slug: str = Field(min_length=2, max_length=64); challenge_id: str = Field(min_length=36, max_length=36); code: str = Field(pattern=r"^\d{6}$"); device_id: str = Field(min_length=8, max_length=200)
+class PasswordLoginIn(BaseModel): tenant_slug: str = Field(min_length=2, max_length=64); identifier: str = Field(min_length=3, max_length=160); password: str = Field(min_length=1, max_length=256); device_id: str = Field(min_length=8, max_length=200)
 class RegisterRequestIn(BaseModel): mobile: str = Field(min_length=8, max_length=20); name: Optional[str] = Field(default=None, min_length=2, max_length=160)
 class LogoutIn(BaseModel): refresh_token: str = Field(min_length=32, max_length=512)
 class CreditCommandIn(BaseModel): command_id: str = Field(min_length=8, max_length=120); entry_type: str = Field(pattern="^(allocate|reserve|capture|release|reverse_capture)$"); amount: int = Field(gt=0)
@@ -767,6 +772,17 @@ def _otp_throttled(db: Session, tenant_id: int, user_id: int, now: datetime) -> 
     return any(_aware(e) > now + timedelta(minutes=5) - timedelta(seconds=OTP_RESEND_COOLDOWN_SECONDS) for e in recent)
 
 
+def _find_login_user(db: Session, tenant_id: int, identifier: str) -> Optional["User"]:
+    """Resolve a login identifier inside one tenant: a value that normalizes as an Iranian mobile matches mobile_e164,
+    anything else matches email (case-insensitive). Shared by OTP request and staff password login."""
+    from .kavenegar_adapter import normalize_iranian_mobile as _normalize_mobile_receptor
+    identifier = identifier.strip()
+    mobile_receptor = _normalize_mobile_receptor(identifier)
+    if mobile_receptor:
+        return db.scalar(select(User).where(User.tenant_id == tenant_id, User.mobile_e164 == f"+{mobile_receptor}"))
+    return db.scalar(select(User).where(User.tenant_id == tenant_id, User.email == identifier.lower()))
+
+
 @app.post("/auth/otp/request", status_code=status.HTTP_202_ACCEPTED)
 def request_otp(data: OTPRequestIn, request: Request, db: Session = Depends(get_db)) -> dict:
     generic_id = str(uuid.uuid4())
@@ -783,12 +799,7 @@ def request_otp(data: OTPRequestIn, request: Request, db: Session = Depends(get_
     # value now resolves against the real, canonical mobile_e164 column
     # instead of email -- existing email-identified accounts keep working
     # exactly as before.
-    from .kavenegar_adapter import normalize_iranian_mobile as _normalize_mobile_receptor
-    mobile_receptor = _normalize_mobile_receptor(identifier)
-    if mobile_receptor:
-        user = db.scalar(select(User).where(User.tenant_id == tenant.id, User.mobile_e164 == f"+{mobile_receptor}"))
-    else:
-        user = db.scalar(select(User).where(User.tenant_id == tenant.id, User.email == identifier.lower()))
+    user = _find_login_user(db, tenant.id, identifier)
     if user is None or _account_disabled(db, user):
         _secure_hash(f"{generic_id}:000000")
         return {"status": "accepted", "challenge_id": generic_id, "expires_in": 300}
@@ -960,6 +971,75 @@ def verify_otp(data: OTPVerifyIn, request: Request, db: Session = Depends(get_db
     db.commit()
     record_business_event("otp", "verified")
     return {"access_token": token_for(user, tenant), "refresh_token": refresh_token, "token_type": "bearer", "user": {"name": user.name, "role": user.role, "tenant": tenant.name}}
+# Staff password login (owner request 1405-09-08 while SMS delivery is blocked; docs/product/approvals.md,
+# docs/ops/STAFF_PASSWORD_LOGIN.md). Only these roles may hold a password; it is set from the server console only.
+STAFF_PASSWORD_ROLES = frozenset({"backoffice_expert", "finance_operator", "tenant_admin", "platform_admin"})
+PASSWORD_LOGIN_MAX_FAILED = 5
+PASSWORD_LOGIN_LOCK_MINUTES = 15
+# One message and status for every failure (unknown tenant/account, no password, wrong password, locked, disabled):
+# the answer never reveals whether an account exists or has a password.
+PASSWORD_LOGIN_FAILED_DETAIL = "ورود انجام نشد: نام کاربری یا رمز درست نیست، یا حساب موقتاً قفل است."
+# Random hash checked when there is no eligible account, so every attempt costs the same pbkdf2 time.
+_PASSWORD_TIMING_DUMMY = hash_password(secrets.token_urlsafe(32))
+
+
+def _password_login_failed() -> HTTPException:
+    return HTTPException(status_code=401, detail=PASSWORD_LOGIN_FAILED_DETAIL)
+
+
+@app.post("/auth/password/login")
+def password_login(data: PasswordLoginIn, request: Request, db: Session = Depends(get_db)) -> dict:
+    tenant = db.scalar(select(Tenant).where(Tenant.slug == data.tenant_slug))
+    user = None
+    if tenant is not None:
+        set_tenant_context(db, tenant.id)
+        user = _find_login_user(db, tenant.id, data.identifier)
+    stored = user.password_hash if user is not None else None
+    eligible = bool(stored) and user.role in STAFF_PASSWORD_ROLES and not _account_disabled(db, user)
+    password_ok = verify_password(data.password, stored if eligible else _PASSWORD_TIMING_DUMMY) and eligible
+    if tenant is None:
+        record_business_event("password_login", "failed")
+        raise _password_login_failed()
+    device_hash, ip_hash = _request_fingerprints(request, data.device_id)
+    if user is None or not stored:
+        # No password on this account (or no account): never touch the shared OTP lock state, so this endpoint
+        # cannot be used to lock customers out of SMS login.
+        db.add(operational_models.AuthenticationAudit(tenant_id=tenant.id, user_id=None, action="password.login_rejected", device_hash=device_hash, ip_hash=ip_hash))
+        db.commit()
+        record_business_event("password_login", "failed")
+        raise _password_login_failed()
+    auth_state = db.scalar(select(operational_models.AuthenticationState).where(operational_models.AuthenticationState.tenant_id == tenant.id, operational_models.AuthenticationState.user_id == user.id).with_for_update())
+    if auth_state is None:
+        auth_state = operational_models.AuthenticationState(tenant_id=tenant.id, user_id=user.id, failed_attempts=0)
+        db.add(auth_state); db.flush()
+    now = datetime.now(timezone.utc)
+    if auth_state.locked_until and _aware(auth_state.locked_until) > now:
+        db.add(operational_models.AuthenticationAudit(tenant_id=tenant.id, user_id=user.id, action="password.login_locked", device_hash=device_hash, ip_hash=ip_hash))
+        db.commit()
+        record_business_event("password_login", "locked")
+        raise _password_login_failed()
+    if not password_ok:
+        if eligible:  # a disabled or non-staff account with a stale hash is refused without counting
+            auth_state.failed_attempts = (auth_state.failed_attempts or 0) + 1
+            if auth_state.failed_attempts >= PASSWORD_LOGIN_MAX_FAILED:
+                auth_state.locked_until = now + timedelta(minutes=PASSWORD_LOGIN_LOCK_MINUTES)
+        db.add(operational_models.AuthenticationAudit(tenant_id=tenant.id, user_id=user.id, action="password.login_failed" if eligible else "password.login_rejected", device_hash=device_hash, ip_hash=ip_hash))
+        db.commit()
+        record_business_event("password_login", "failed")
+        raise _password_login_failed()
+    if _mfa_enabled(db, tenant.id, user.id):  # same two-step rule as OTP login: the authenticator code completes it at /auth/2fa/verify
+        # The failure counter is NOT reset here: /auth/2fa/verify resets it on success, so a known password cannot be
+        # used to wipe the lock built up by wrong authenticator codes.
+        db.add(operational_models.AuthenticationAudit(tenant_id=tenant.id, user_id=user.id, action="password.verified_mfa_pending", device_hash=device_hash, ip_hash=ip_hash))
+        db.commit()
+        return {"mfa_required": True, "mfa_ticket": _account_security_api.ticket_for(user, tenant, None), "user": {"name": user.name}}
+    auth_state.failed_attempts = 0
+    auth_state.locked_until = None
+    db.add(operational_models.AuthenticationAudit(tenant_id=tenant.id, user_id=user.id, action="password.login_succeeded", device_hash=device_hash, ip_hash=ip_hash))
+    record_business_event("password_login", "succeeded")
+    return _issue_login_session(db, tenant, user, request, data.device_id)  # same session/token issuance as 2FA login; commits
+
+
 @app.post("/auth/refresh")
 def refresh_access(data: RefreshIn, request: Request, db: Session = Depends(get_db)) -> dict:
     session = operational_models.find_refresh_session(db, data.refresh_token)

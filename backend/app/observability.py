@@ -24,7 +24,7 @@ def record_request(method: str, status_code: int, duration_seconds: float) -> No
 
 
 def record_business_event(event: str, status: str) -> None:
-    allowed_events = {"booking", "payment", "refund", "otp", "provider"}
+    allowed_events = {"booking", "payment", "refund", "otp", "password_login", "provider"}
     if event not in allowed_events or not status.replace("_", "").isalnum():
         return
     with _metrics_lock:

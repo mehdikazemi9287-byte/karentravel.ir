@@ -212,6 +212,14 @@
     },
     {
       "method": "POST",
+      "path": "/auth/password/login",
+      "source": "backend/app/main.py (password_login)",
+      "owner": "Backend/QA",
+      "status": "NOT_TESTED",
+      "scope": "source declaration; staff-only fixed password (approvals 1405-09-08); runtime verification required"
+    },
+    {
+      "method": "POST",
       "path": "/auth/refresh",
       "source": "backend/app/main.py:780",
       "owner": "Backend/QA",
