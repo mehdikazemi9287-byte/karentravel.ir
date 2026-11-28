@@ -5,6 +5,7 @@ import {useState, type FormEvent, type ReactNode} from 'react';
 import {Async, Badge, Card, Empty, Stats, Table, dateFa, errorOf, fa, money, useLoad} from './PanelKit';
 import {FundingApprovals} from './FundingApprovals';
 import {newId} from '../../lib/api/karenseir-client';
+import {MarkupImport} from './MarkupImport';
 
 export type Opt = [string, string][];
 export type Field = {key: string; label: string; type?: 'text' | 'number' | 'select' | 'bool' | 'textarea' | 'date' | 'percent' | 'money'; options?: Opt; hint?: string; required?: boolean; wide?: boolean};
@@ -195,7 +196,11 @@ function Markups() {
   const supplierOpts = (v: string): Opt => v && !suppliers.some(o => o[0] === v) ? [...suppliers, [v, `${v} (ثبت‌شده)`]] : suppliers;
   const amount = (calc: string, key: string, lbl: string): Field => calc === 'fixed' ? {key, label: `${lbl} (ریال)`, type: 'money'} : {key, label: `${lbl} (درصد)`, type: 'percent', hint: key === 'adult' ? 'مثلاً ۱۵ یعنی ۱۵٪' : undefined};
   const pct = (r: Row, k: string) => r.calc === 'percent' ? `${fa(r[k] / 100)}٪` : money(r[k], 'IRR');
-  return <Crud path="/commerce/markup-rules" title="مارک‌آپ و تخفیف"
+  const [importing, setImporting] = useState(false); const [version, setVersion] = useState(0);
+  return <>
+    <div className="pn-form" style={{justifyContent: 'flex-end', marginBottom: 8}}><button type="button" className="pn-btn ghost" aria-expanded={importing} onClick={() => setImporting(x => !x)}>{importing ? 'بستن ورود از اکسل' : 'ورود از اکسل'}</button></div>
+    {importing && <MarkupImport done={() => setVersion(x => x + 1)}/>}
+    <Crud key={version} path="/commerce/markup-rules" title="مارک‌آپ و تخفیف"
     blank={{title: '', service_type: 'flight', group_id: '', scope: 'any', flight_type: 'any', effect: 'markup', calc: 'percent', basis: 'total', adult: 0, child: 0, infant: 0, round_to: 0, priority: 100, status: 'active'}}
     toPayload={v => ({...v, adult: v.adult ?? 0, child: v.child ?? 0, infant: v.infant ?? 0, group_id: v.group_id || null, supplier_id: v.supplier_id || null, cap_amount: v.cap_amount || null, min_stars: v.min_stars || null, valid_from: v.valid_from || null, valid_to: v.valid_to || null})}
     fromRow={r => ({...r, group_id: r.group_id ?? '', supplier_id: r.supplier_id ?? ''})}
@@ -211,7 +216,8 @@ function Markups() {
     cols={[{label: 'عنوان', cell: r => r.title}, {label: 'خدمت', cell: r => label(SERVICES, r.service_type)}, {label: 'گروه', cell: r => label(groups, r.group_id ?? '')},
       {label: 'تأمین‌کننده', cell: r => r.supplier_id ? label(suppliers, r.supplier_id) : 'همه'},
       {label: 'شرط', cell: r => [r.airline_code, r.origin && r.destination ? `${r.origin}→${r.destination}` : r.origin || r.destination, r.scope !== 'any' && label(SCOPE, r.scope), r.flight_type !== 'any' && label(FTYPE, r.flight_type), r.min_stars && `${fa(r.min_stars)}★+`].filter(Boolean).join('، ') || 'عمومی'},
-      {label: 'بزرگسال/کودک/نوزاد', cell: r => <span>{r.effect === 'discount' ? '−' : '+'}{pct(r, 'adult')} / {pct(r, 'child')} / {pct(r, 'infant')}</span>}, {label: 'اولویت', cell: r => fa(r.priority)}, {label: 'وضعیت', cell: r => <Badge status={r.status}/>}]}/>;
+      {label: 'بزرگسال/کودک/نوزاد', cell: r => <span>{r.effect === 'discount' ? '−' : '+'}{pct(r, 'adult')} / {pct(r, 'child')} / {pct(r, 'infant')}</span>}, {label: 'اولویت', cell: r => fa(r.priority)}, {label: 'وضعیت', cell: r => <Badge status={r.status}/>}]}/>
+  </>;
 }
 
 function Preview() {
