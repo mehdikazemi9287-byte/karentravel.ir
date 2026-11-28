@@ -46,7 +46,7 @@ export function ApprovedHomeLower() {
         </div>
         <div className="kh-org-art" aria-hidden="true">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={A + 'refOrgDevices.jpg'} alt=""/>
+          <img src={A + 'refOrgDevices.jpg'} alt="خدمات سفر سازمانی کارن تراول روی موبایل و رایانه"/>
         </div>
       </div>
     </section>
@@ -102,6 +102,6 @@ export function ApprovedHomeBento() {
     <h2 id="kh-bento-title">{c.bento.title}{c.bento.title2 ? <><br/>{c.bento.title2}</> : null}</h2>
     {c.bento.tiles.map((t, i) => <Link key={t.href + i} href={t.href} className={`kh-tile ${cls[i] ?? ''}`}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={imageSrc(t.image)} alt="" loading="lazy"/><b>{t.title}</b></Link>)}
+      <img src={imageSrc(t.image)} alt={`نمایی از ${t.title}`} loading="lazy"/><b>{t.title}</b></Link>)}
   </section></div>;
 }

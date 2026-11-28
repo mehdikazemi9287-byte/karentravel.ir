@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { Shell } from '../page';
+import { Shell } from '../root-pages';
 import { destinationGuides } from '../../lib/customer-catalog';
 import {DestinationDirectory} from '../../components/catalog/CatalogViews';
 import {seoFor} from '../../lib/seo-pages';
+import {RelatedLinks} from '../../components/seo/RelatedLinks';
 export const metadata = seoFor('/destinations');
-export default function DestinationsPage(){return <Shell><section className="container customer-page"><span className="eyebrow">ایده‌هایی برای سفر</span><h1>مقصد بعدی شما</h1><p>راهنمای شهرها، جاذبه‌ها و بهترین زمان سفر.</p><div className="customer-grid">{destinationGuides.map(d=><Link className="panel customer-destination" key={d.slug} href={'/destinations/'+d.slug}><Image src={d.image} width={640} height={400} alt={d.name}/><h2>{d.name}</h2><p>{d.caption}</p><span>خواندن راهنمای مقصد ←</span></Link>)}</div><DestinationDirectory/></section></Shell>}
+export default function DestinationsPage(){return <Shell><section className="container customer-page"><span className="eyebrow">ایده‌هایی برای سفر</span><h1>مقصد بعدی شما</h1><p>راهنمای شهرها، جاذبه‌ها و بهترین زمان سفر.</p><div className="customer-grid">{destinationGuides.map(d=><Link className="panel customer-destination" key={d.slug} href={'/destinations/'+d.slug}><Image src={d.image} width={640} height={400} alt={d.name}/><h2>{d.name}</h2><p>{d.caption}</p><span>خواندن راهنمای مقصد ←</span></Link>)}</div><DestinationDirectory/></section><RelatedLinks group="destinations"/></Shell>}

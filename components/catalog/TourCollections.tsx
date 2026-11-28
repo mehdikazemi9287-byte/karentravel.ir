@@ -14,6 +14,7 @@ type Item = {id: string; title: string; origin: string; destination: string; det
 const faN = (n: number) => n.toLocaleString('fa-IR');
 type Festival = {title: string; intro: string; starts_on: string; ends_on: string; image: string; terms: string};
 type Data = {key: CollectionKey; items: Item[]; window?: {from: string; to: string}; festival?: Festival | null};
+export type CollectionData = Data;
 
 const tehranDay = (iso: string) => new Date(iso).toLocaleDateString('en-CA', {timeZone: 'Asia/Tehran'});
 const day = (iso: string) => formatJalali(tehranDay(iso));
@@ -33,12 +34,14 @@ const COPY: Record<Exclude<CollectionKey, 'special' | 'festival' | 'installment'
     empty: 'تورهای نوروزی هنوز توسط برگزارکنندگان ثبت نشده است. درخواست سفر خود را ثبت کنید تا به‌محض ثبت تورها با شما تماس بگیریم.'},
 };
 
-export function TourCollection({collection}: {collection: CollectionKey}) {
+/** `initial` = the collection read on the server (lib/tour-collections-server.ts); the first browser fetch is skipped then. */
+export function TourCollection({collection, initial = null}: {collection: CollectionKey; initial?: Data | null}) {
   const site = useSiteContent();
-  const [data, setData] = useState<Data | null>(null);
+  const [data, setData] = useState<Data | null>(initial);
   const [error, setError] = useState(false);
   const [tick, setTick] = useState(0);
   useEffect(() => {
+    if (initial && tick === 0) return;
     let live = true;
     const base = resolveApiBase(process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000');
     fetch(`${base}/public/tenants/${encodeURIComponent(tenantSlug())}/tour-collections/${collection}`)
@@ -46,7 +49,7 @@ export function TourCollection({collection}: {collection: CollectionKey}) {
       .then((d: Data) => {if (live) {setData(d); setError(false);}})
       .catch(() => {if (live) setError(true);});
     return () => {live = false;};
-  }, [collection, tick]);
+  }, [collection, tick, initial]);
   const fest = data?.festival;
   const copy = collection === 'special'
     ? {eyebrow: 'انتخاب کارشناسان', title: site.special_tours.title, intro: site.special_tours.intro, empty: 'تورهای ویژه‌ی این فصل به‌زودی معرفی می‌شوند.'}

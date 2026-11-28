@@ -1,4 +1,4 @@
-import {Shell} from '../page';
+import {Shell} from '../root-pages';
 import {ContactOptions} from '../../components/customer/CustomerHelp';
 import {Suspense} from 'react';
 import {VenueDirectory} from '../../components/catalog/CatalogViews';

@@ -1,6 +1,6 @@
 import type {Metadata} from 'next';
 import {notFound} from 'next/navigation';
-import {Shell} from '../../page';
+import {Shell} from '../../root-pages';
 import {BlogArticle} from '../../../components/blog/BlogViews';
 import {BlogPostClient} from '../../../components/blog/BlogClient';
 import {blogImage, serverBlog, type BlogPost} from '../../../lib/blog';

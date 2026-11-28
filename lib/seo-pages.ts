@@ -5,7 +5,8 @@ import type {Metadata, MetadataRoute} from 'next';
 import {pageMetadata} from './seo';
 
 type Freq = NonNullable<MetadataRoute.Sitemap[number]['changeFrequency']>;
-export type PublicPage = {path: string; title: string; description: string; changeFrequency: Freq; priority: number; absoluteTitle?: boolean};
+export type PublicPage = {path: string; title: string; description: string; changeFrequency: Freq; priority: number; absoluteTitle?: boolean;
+  /** Reachable but not indexed (and not in the sitemap), e.g. a page whose content needs sign-in. */ noindex?: boolean};
 
 export const PUBLIC_PAGES: PublicPage[] = [
   {path: '/', absoluteTitle: true, title: 'کارن تراول | خرید بلیط هواپیما، قطار، رزرو هتل و تور', changeFrequency: 'daily', priority: 1,
@@ -42,7 +43,7 @@ export const PUBLIC_PAGES: PublicPage[] = [
     description: 'خدمات اخذ ویزای توریستی در کارن تراول؛ مدارک لازم، مدت بررسی و شرایط ویزای کشورهای پرمتقاضی را ببینید و درخواست ویزای خود را با کمک کارشناسان ثبت کنید.'},
   {path: '/car-rental', title: 'اجاره خودرو در سفر', changeFrequency: 'weekly', priority: .6,
     description: 'اجاره خودرو با راننده یا بدون راننده در شهرهای ایران با کارن تراول؛ نوع خودرو، تاریخ تحویل و محل تحویل را انتخاب کنید و درخواست اجاره ثبت کنید.'},
-  {path: '/cruises', title: 'تور کروز و سفر دریایی', changeFrequency: 'weekly', priority: .5,
+  {path: '/cruises', noindex: true, title: 'تور کروز و سفر دریایی', changeFrequency: 'weekly', priority: .5,
     description: 'تور کروز و سفرهای دریایی در کارن تراول؛ مسیرها، مدت سفر و امکانات کشتی‌های تفریحی را ببینید و برای رزرو سفر دریایی و کروز با کارشناسان ما استعلام بگیرید.'},
   {path: '/villas', title: 'اجاره ویلا و اقامتگاه بوم‌گردی', changeFrequency: 'weekly', priority: .7,
     description: 'اجاره ویلا، سوئیت و اقامتگاه بوم‌گردی در شمال، کیش و شهرهای دیگر با کارن تراول؛ ظرفیت، امکانات و قوانین هر اقامتگاه را پیش از رزرو مقایسه کنید.'},
@@ -74,7 +75,7 @@ export const PUBLIC_PAGES: PublicPage[] = [
     description: 'مقایسهٔ گزینه‌های سفر در کارن تراول؛ قیمت نهایی، قوانین کنسلی، امکانات و موقعیت پرواز، هتل و تور را کنار هم ببینید و آگاهانه بهترین گزینه را انتخاب کنید.'},
   {path: '/itineraries', title: 'برنامه‌ریز سفر و برنامه روزانه', changeFrequency: 'monthly', priority: .4,
     description: 'برنامه‌ریز سفر کارن تراول؛ برنامهٔ روزبه‌روز سفرتان را با پرواز، اقامت، گشت و رستوران بچینید و برای هماهنگی خدمات هر روز با کارشناسان سفر در تماس باشید.'},
-  {path: '/reviews', title: 'نظرات مسافران دربارهٔ تورها و هتل‌ها', changeFrequency: 'weekly', priority: .4,
+  {path: '/reviews', noindex: true, title: 'نظرات مسافران دربارهٔ تورها و هتل‌ها', changeFrequency: 'weekly', priority: .4,
     description: 'نظرات تأییدشدهٔ مسافران کارن تراول دربارهٔ تورها، هتل‌ها و خدمات سفر؛ امتیاز هر خدمت، تجربهٔ واقعی مسافران با رزرو تأییدشده و پاسخ تأمین‌کننده را بخوانید.'},
   {path: '/faq', title: 'سؤالات متداول خرید بلیط، هتل و تور', changeFrequency: 'monthly', priority: .5,
     description: 'پاسخ سؤالات متداول مسافران کارن تراول دربارهٔ خرید بلیط هواپیما و قطار، رزرو هتل و تور، پرداخت، استرداد و تغییر رزرو و پیگیری درخواست‌ها از پشتیبانی.'},

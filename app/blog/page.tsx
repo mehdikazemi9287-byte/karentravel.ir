@@ -1,5 +1,5 @@
 import type {Metadata} from 'next';
-import {Shell} from '../page';
+import {Shell} from '../root-pages';
 import {BlogListView} from '../../components/blog/BlogViews';
 import {BlogListClient} from '../../components/blog/BlogClient';
 import {serverBlog, type BlogList} from '../../lib/blog';

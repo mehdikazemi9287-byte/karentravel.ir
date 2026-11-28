@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Shell } from '../../page';
+import { Shell } from '../../root-pages';
 import { ContactOptions } from '../../../components/customer/CustomerHelp';
 import '../../../components/operational/stitch-account-2026-11.css';
 /* Stitch _12 layout (status hero). This page carries no booking data, so it keeps the honest wording: opening it is not

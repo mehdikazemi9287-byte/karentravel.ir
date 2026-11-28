@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { Shell } from '../../page';
+import { Shell } from '../../root-pages';
 import { destinationGuides } from '../../../lib/customer-catalog';
 import { ContactOptions } from '../../../components/customer/CustomerHelp';
 import { DestinationDetailView } from '../../../components/operational/EcosystemViews';

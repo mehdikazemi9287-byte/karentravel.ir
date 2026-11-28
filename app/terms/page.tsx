@@ -1,4 +1,4 @@
-import { Shell } from '../page';
+import { Shell } from '../root-pages';
 import { ContactOptions } from '../../components/customer/CustomerHelp';
 import {seoFor} from '../../lib/seo-pages';
 export const metadata = seoFor('/terms');

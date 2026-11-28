@@ -1,6 +1,6 @@
 import {OfflineRequest} from '../../components/customer/OfflineRequest';
 import {JalaliDateInput} from '../../components/forms/JalaliDateInput';
-import {Shell} from '../page';
+import {Shell} from '../root-pages';
 import {ContactOptions} from '../../components/customer/CustomerHelp';
 import {Suspense} from 'react';
 import {VenueDirectory} from '../../components/catalog/CatalogViews';

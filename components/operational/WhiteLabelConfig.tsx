@@ -51,7 +51,7 @@ export function WhiteLabelConfig() {
     } catch (e) { setNotice(msgOf(e)); }
   }
 
-  if (!session) return <div className="container"><div className="page-hero"><span className="eyebrow">White Label</span><h1>پرتال اختصاصی سازمان</h1><p>برای مشاهده یا پیکربندی هویت برند، دامنه و خدمات مجاز، وارد شوید.</p><a className="button primary" href="/login?redirect=/white-label">ورود سازمانی</a></div></div>;
+  if (!session) return <div className="container"><div className="page-hero"><span className="eyebrow">White Label</span><h2>پرتال اختصاصی سازمان</h2><p>برای مشاهده یا پیکربندی هویت برند، دامنه و خدمات مجاز، وارد شوید.</p><a className="button primary" href="/login?redirect=/white-label">ورود سازمانی</a></div></div>;
   if (err) return <div className="container"><p role="alert" className="rounded-2xl bg-rose-50 p-6 text-rose-700">خطای {err.status}: {err.message}</p></div>;
 
   const services = form.enabled_services || [];
@@ -59,7 +59,7 @@ export function WhiteLabelConfig() {
 
   return <div className="container" style={{ maxWidth: 820 }}>
     <div className="page-hero"><span className="eyebrow">White Label · پیکربندی tenant</span>
-      <h1>هویت برند و خدمات پرتال اختصاصی</h1>
+      <h2>هویت برند و خدمات پرتال اختصاصی</h2>
       <p>{missing ? 'برای این tenant هنوز پیکربندی White Label ثبت نشده است.' : 'پیکربندی واقعی از سرویس tenant دریافت شد.'}
         {!canEdit && ' — فقط مدیر tenant می‌تواند تغییر دهد.'}</p></div>
     {notice && <p role="status" className="mb-4 rounded-xl bg-cyan-50 p-4 text-sm">{notice}</p>}

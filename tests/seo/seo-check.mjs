@@ -5,6 +5,7 @@
 //   expected-origin  the origin robots/sitemap/canonical must use (default https://karentravel.ir)
 // Exit code 1 when a hard rule fails (robots, sitemap, canonical, noindex on a public page, H1 count, status).
 import {writeFileSync, mkdirSync} from 'node:fs';
+import http from 'node:http';
 import {PUBLIC_ROUTES} from './public-routes.mjs';
 
 const args = process.argv.slice(2);
@@ -56,7 +57,8 @@ for (const path of paths) {
   const body = html.replace(/<head>[\s\S]*?<\/head>/, '').replace(/<script[\s\S]*?<\/script>/g, '').replace(/<style[\s\S]*?<\/style>/g, '');
   const h1 = (body.match(/<h1[\s>]/g) || []).length;
   const imgs = [...body.matchAll(/<img\s[^>]*>/g)].map(m => m[0]);
-  const noAlt = imgs.filter(t => { const a = attr(t, 'alt'); return a === null || (a === '' && !/aria-hidden="true"/.test(t)); }).length;
+  // alt="" is allowed only for decorative SVG icons; every photo needs a Persian alt.
+  const noAlt = imgs.filter(t => { const a = attr(t, 'alt'); return a === null || (a === '' && !/\.svg(\?|"|$)/.test(attr(t, 'src') || '')); }).length;
   const text = body.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
   const ld = [...html.matchAll(/<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g)].map(m => { try { const j = JSON.parse(m[1]); return [].concat(j).map(x => x['@type']).join('+'); } catch { return 'INVALID'; } });
   const noindex = /noindex/i.test(robotsMeta || '');
@@ -75,6 +77,25 @@ for (const path of paths) {
   else if (row.descLen < 120 || row.descLen > 160) warn(`${path}: description ${row.descLen} chars (want 120–160)`);
   if (noAlt) fail(`${path}: ${noAlt} <img> without alt`);
   if (text.length < 400) warn(`${path}: only ${text.length} chars of text without JS`);
+}
+
+// --- duplicate addresses answer with a permanent redirect (301/308) to the one canonical address
+const permanent = c => c === 301 || c === 308;
+for (const [from, to] of [['/about', '/contact'], ['/tours/reference', '/tours/search'], ['/tours/', '/tours'], ['/contact/', '/contact']]) {
+  const r = await get(from);
+  if (!permanent(r.status) || !(r.location || '').replace(/^https?:\/\/[^/]+/, '').startsWith(to)) fail(`${from}: ${r.status} → ${r.location}, want permanent redirect to ${to}`);
+}
+// www host → apex (fetch cannot set Host, so a raw request)
+const wwwRes = await new Promise(resolve => { const u = new URL(base + '/tours?x=1'); http.get({host: u.hostname, port: u.port, path: u.pathname + u.search, headers: {host: 'www.karentravel.ir', 'user-agent': UA}}, res => { res.resume(); resolve({status: res.statusCode, location: res.headers.location}); }).on('error', e => resolve({status: 0, location: String(e)})); });
+if (base.startsWith('http://127.0.0.1') || base.startsWith('http://localhost')) {
+  if (wwwRes.status !== 301 || wwwRes.location !== `${origin}/tours?x=1`) fail(`www host: ${wwwRes.status} → ${wwwRes.location}, want 301 → ${origin}/tours?x=1`);
+}
+
+// --- private areas stay noindex (and out of the sitemap)
+for (const path of ['/login', '/register', '/account', '/search', '/search/results', '/admin', '/agency', '/finance', '/trips']) {
+  const r = await get(path);
+  if (r.status === 200 && !/noindex/i.test(metaContent(r.text, 'robots') || '')) fail(`${path}: private page without noindex`);
+  if (smPaths.includes(path)) fail(`sitemap lists private page ${path}`);
 }
 
 // --- a missing page must be a real 404 (and noindex is fine there)
