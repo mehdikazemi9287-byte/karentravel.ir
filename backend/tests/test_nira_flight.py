@@ -235,7 +235,7 @@ def test_live_search_applies_system_domestic_markup_and_never_sends_net(client, 
         _drop(MarkupRule, other)
 
 
-def test_no_rule_means_sell_equals_net_and_cap_is_annotated(client, monkeypatch, transport):
+def test_no_rule_means_sell_equals_net_and_offer_above_cap_is_hidden(client, monkeypatch, transport):
     from sqlalchemy import select
     from app.charter_blocks import PriceCap
     from app.commerce import MarkupRule
@@ -255,8 +255,14 @@ def test_no_rule_means_sell_equals_net_and_cap_is_annotated(client, monkeypatch,
         db.commit()
         cap_id = cap.id
     try:
-        offers = _search(client, h).json()["offers"]
-        assert [(o["indicative_adult_fare"], o["price_cap"]) for o in offers] == [(27500000, "exceeded")]   # annotated, not hidden
+        body = _search(client, h).json()
+        assert body["offers"] == [] and "hidden_over_cap" not in body           # owner decision (PR #119): not listed, no hint to customers
+        staff = _search(client, _login(client, "backoffice@aftab.test")).json()
+        assert staff["offers"] == [] and staff["hidden_over_cap"] == 1
+        with SessionLocal() as db:
+            db.get(PriceCap, cap_id).cap_unit_irr = 28000000
+            db.commit()
+        assert [(o["indicative_adult_fare"], o["price_cap"]) for o in _search(client, h).json()["offers"]] == [(27500000, "ok")]
     finally:
         _drop(PriceCap, cap_id)
         _drop(MarkupRule, rid)

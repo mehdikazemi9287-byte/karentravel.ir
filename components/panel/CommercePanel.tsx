@@ -90,26 +90,81 @@ export function Crud({path, title, fields, cols, blank, toPayload, fromRow, extr
 /* ------------------------------------------------------------------ admin: commercial rules */
 function GroupMembers({group}: {group: Row}) {
   const {state, reload, api} = useLoad<{items: Row[]}>(`/commerce/groups/${group.id}/members`);
-  const [ids, setIds] = useState(''); const [msg, setMsg] = useState<{ok: boolean; text: string} | null>(null);
-  async function add(e: FormEvent) {
-    e.preventDefault(); const list = ids.split(/[\s,،]+/).map(Number).filter(Boolean); if (!list.length) return;
-    try {await api.put(`/commerce/groups/${group.id}/members`, {user_ids: list}); setIds(''); setMsg({ok: true, text: 'کاربران به گروه منتقل شدند.'}); reload();} catch (err) {setMsg({ok: false, text: errorOf(err).message});}
+  const [q, setQ] = useState(''); const [search, setSearch] = useState('');
+  const found = useLoad<{items: Row[]}>(search ? `/commerce/users?q=${encodeURIComponent(search)}` : null);
+  const [msg, setMsg] = useState<{ok: boolean; text: string} | null>(null);
+  async function add(u: Row) {
+    if (!window.confirm(`«${u.name}» به گروه «${group.name}» منتقل شود؟ اگر عضو گروه دیگری باشد، از آن خارج می‌شود.`)) return;
+    try {await api.put(`/commerce/groups/${group.id}/members`, {user_ids: [u.id]}); setMsg({ok: true, text: `«${u.name}» به گروه اضافه شد.`}); reload();} catch (err) {setMsg({ok: false, text: errorOf(err).message});}
   }
   return <div style={{marginTop: 8}}>
-    <form className="pn-form" onSubmit={add}><label>شناسه‌ی کاربران (با ویرگول جدا کنید)<input value={ids} onChange={e => setIds(e.target.value)} dir="ltr"/></label><button className="pn-btn">افزودن به گروه</button></form>
+    <form className="pn-form" onSubmit={e => {e.preventDefault(); setSearch(q.trim());}}><label>جست‌وجوی کاربر (نام، ایمیل، موبایل یا شناسه)<input value={q} onChange={e => setQ(e.target.value)}/></label><button className="pn-btn">جست‌وجو</button></form>
+    {search && <Async state={found.state}>{d => d.items.length ? <div className="pn-chips" style={{margin: '10px 0'}}>{d.items.map(u => <button key={u.id} onClick={() => add(u)} title="افزودن به گروه">{u.name} — {fa(u.id)}{u.email ? ` — ${u.email}` : ''}</button>)}</div> : <Empty>کاربری پیدا نشد.</Empty>}</Async>}
     <Note msg={msg}/>
     <Async state={state}>{d => <Table rows={d.items} rowKey={r => String(r.user_id)} empty="عضوی ندارد." cols={[{label: 'شناسه', cell: r => fa(r.user_id)}, {label: 'نام', cell: r => r.name}, {label: 'ایمیل', cell: r => <span dir="ltr">{r.email}</span>}]}/>}</Async>
   </div>;
 }
 
+/* Organizations and agencies whose people get this group's prices (when they have no direct membership).
+   Choices come from the existing lists: /organizations and /admin/partners. Removing a link only disables it. */
+function GroupLinks({group}: {group: Row}) {
+  const {state, reload, api} = useLoad<{items: Row[]}>(`/commerce/groups/${group.id}/links`);
+  const orgs = useLoad<Row[]>('/organizations');
+  const partners = useLoad<{agencies: Row[]}>('/admin/partners');
+  const [v, setV] = useState<Row>({party_type: 'organization', party_id: ''});
+  const [msg, setMsg] = useState<{ok: boolean; text: string} | null>(null);
+  const options: Opt = v.party_type === 'organization'
+    ? (orgs.state.kind === 'ready' ? orgs.state.data.map(o => [o.id, `${o.name}${o.status !== 'active' ? ' (غیرفعال)' : ''}`] as [string, string]) : [])
+    : (partners.state.kind === 'ready' ? partners.state.data.agencies.map(a => [a.id, a.name] as [string, string]) : []);
+  async function link(e: FormEvent) {
+    e.preventDefault(); if (!v.party_id) return;
+    try {await api.post(`/commerce/groups/${group.id}/links`, v); setMsg({ok: true, text: 'به گروه وصل شد. اگر قبلاً به گروه دیگری وصل بود، به این گروه منتقل شد.'}); setV({...v, party_id: ''}); reload();}
+    catch (err) {setMsg({ok: false, text: errorOf(err).message});}
+  }
+  async function disable(r: Row) {
+    if (!window.confirm(`اتصال «${r.party_name ?? r.party_id}» به این گروه غیرفعال شود؟ (سابقه حذف نمی‌شود)`)) return;
+    try {await api.post(`/commerce/group-links/${r.id}/disable`, {}); setMsg({ok: true, text: 'غیرفعال شد.'}); reload();} catch (err) {setMsg({ok: false, text: errorOf(err).message});}
+  }
+  return <div style={{marginTop: 8}}>
+    <p className="pn-muted">ترتیب تعیین گروه هر کاربر: عضویت مستقیم، سپس سازمانی که کاربر عضو آن است، سپس آژانس کاربر، و در آخر گروه پیش‌فرض.</p>
+    <form className="pn-form" onSubmit={link}>
+      <label htmlFor="link-type">نوع<select id="link-type" value={v.party_type} onChange={e => setV({party_type: e.target.value, party_id: ''})}><option value="organization">سازمان</option><option value="agency">آژانس همکار</option></select></label>
+      <label htmlFor="link-party">{v.party_type === 'organization' ? 'سازمان' : 'آژانس'}<select id="link-party" required value={v.party_id} onChange={e => setV({...v, party_id: e.target.value})}><option value="">— انتخاب کنید —</option>{options.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
+      <button className="pn-btn">اتصال به گروه</button>
+    </form>
+    {(v.party_type === 'organization' ? orgs.state.kind === 'error' : partners.state.kind === 'error') && <p className="pn-note error">فهرست {v.party_type === 'organization' ? 'سازمان‌ها' : 'آژانس‌ها'} برای این حساب در دسترس نیست.</p>}
+    <Note msg={msg}/>
+    <Async state={state}>{d => <Table rows={d.items} rowKey={r => r.id} empty="سازمان یا آژانسی به این گروه وصل نیست." cols={[
+      {label: 'نوع', cell: r => r.party_type === 'organization' ? 'سازمان' : 'آژانس'}, {label: 'نام', cell: r => r.party_name ?? '—'},
+      {label: 'وضعیت اتصال', cell: r => <Badge status={r.status}/>}, {label: 'از تاریخ', cell: r => dateFa(r.created_at)},
+      {label: '', cell: r => r.status === 'active' ? <button className="pn-btn ghost" onClick={() => disable(r)}>غیرفعال‌کردن</button> : null}]}/>}</Async>
+  </div>;
+}
+
+function StandardGroups({onDone}: {onDone: () => void}) {
+  const {api} = useLoad<unknown>(null);
+  const [msg, setMsg] = useState<{ok: boolean; text: string} | null>(null);
+  async function run() {
+    if (!window.confirm('گروه‌های عمومی، سازمانی، وامی‌پی، اعتباری وچک و طبیعت (بدون قاعدهٔ مارک‌آپ) ساخته شوند؟ گروه‌های موجود تغییر نمی‌کنند.')) return;
+    try {const r = await api.post<Row>('/commerce/groups/standard-set', {}); setMsg({ok: true, text: r?.created?.length ? `ساخته شد: ${r.created.join('، ')}` : 'همهٔ گروه‌ها از قبل وجود داشتند.'}); onDone();}
+    catch (err) {setMsg({ok: false, text: errorOf(err).message});}
+  }
+  return <><button className="pn-btn ghost" onClick={run}>ساخت گروه‌های استاندارد</button><Note msg={msg}/></>;
+}
+
 function Groups() {
   const [open, setOpen] = useState<Row | null>(null);
+  const [view, setView] = useState<'members' | 'links'>('members');
+  const [key, setKey] = useState(0);
+  const toggle = (r: Row, v: 'members' | 'links') => {if (open?.id === r.id && view === v) setOpen(null); else {setOpen(r); setView(v);}};
   return <>
-    <Crud path="/commerce/groups" title="گروه‌های کاربری (سطح قیمت)" blank={{code: '', name: '', description: '', is_default: false, status: 'active'}}
+    <StandardGroups onDone={() => setKey(k => k + 1)}/>
+    <Crud key={key} path="/commerce/groups" title="گروه‌های کاربری (سطح قیمت)" blank={{code: '', name: '', description: '', is_default: false, status: 'active'}}
       fields={[{key: 'code', label: 'کد', required: true, hint: 'لاتین'}, {key: 'name', label: 'نام گروه', required: true}, {key: 'is_default', label: 'گروه پیش‌فرض', type: 'bool'}, {key: 'status', label: 'وضعیت', type: 'select', options: STATUS}, {key: 'description', label: 'توضیح', type: 'textarea', wide: true}]}
       cols={[{label: 'کد', cell: r => <span dir="ltr">{r.code}</span>}, {label: 'نام', cell: r => r.name}, {label: 'پیش‌فرض', cell: r => r.is_default ? 'بله' : '—'}, {label: 'اعضا', cell: r => fa(r.members ?? 0)}, {label: 'وضعیت', cell: r => <Badge status={r.status}/>}]}
-      extra={r => <button className="pn-btn ghost" onClick={() => setOpen(open?.id === r.id ? null : r)}>اعضا</button>}/>
-    {open && <Card title={`اعضای گروه «${open.name}»`}><GroupMembers group={open}/></Card>}
+      extra={r => <><button className="pn-btn ghost" onClick={() => toggle(r, 'members')}>اعضا</button><button className="pn-btn ghost" onClick={() => toggle(r, 'links')}>سازمان‌ها و آژانس‌ها</button></>}/>
+    {open && view === 'members' && <Card title={`اعضای گروه «${open.name}»`}><GroupMembers key={open.id} group={open}/></Card>}
+    {open && view === 'links' && <Card title={`سازمان‌ها و آژانس‌های این گروه — «${open.name}»`}><GroupLinks key={open.id} group={open}/></Card>}
   </>;
 }
 

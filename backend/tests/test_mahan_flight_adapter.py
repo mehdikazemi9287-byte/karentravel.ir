@@ -262,6 +262,26 @@ def test_cao_cap_blocks_price_above_cap(client, qaa, markup):
             db.commit()
 
 
+def test_search_hides_offers_above_cao_cap(client, qaa, markup):
+    qaa(AvailFake({}))
+    with SessionLocal() as db:
+        uid = db.scalar(select(User.id).where(User.email == "backoffice@aftab.test"))
+        cap = PriceCap(tenant_id=markup, origin="IKA", destination="BKK", valid_from=date.today(), valid_to=date.today() + timedelta(days=60),
+                       cap_unit_irr=60000000, legal_reference="TEST-CAP", created_by_user_id=uid)
+        db.add(cap)
+        db.commit()
+        cap_id = cap.id
+    try:
+        staff = _search(client, _login(client, "backoffice@aftab.test")).json()
+        assert [o["indicative_adult_fare"] for o in staff["offers"]] == [51000000] and staff["hidden_over_cap"] == 1   # 91,000,000 > cap
+        customer = _search(client, _login(client, "employee@aftab.test"))
+        assert customer.status_code == 200 and "hidden_over_cap" not in customer.json()
+    finally:
+        with SessionLocal() as db:
+            db.execute(delete(PriceCap).where(PriceCap.id == cap_id))
+            db.commit()
+
+
 # ---------------------------------------------------------------- hold / book
 def _hold(client, h, ref, key, total=65000000, pax=None):
     return client.post("/flights/suppliers/mahan/hold", headers={**h, "Idempotency-Key": key},

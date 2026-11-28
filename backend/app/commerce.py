@@ -51,6 +51,17 @@ class CustomerGroupMember(OperationalMixin, Base):
     __table_args__ = (UniqueConstraint("tenant_id", "user_id", name="uq_commerce_member_user"),)
 
 
+class CustomerGroupLink(OperationalMixin, Base):
+    """A whole organization or agency in a price group (owner decision, PR #119). One link per party; disabling keeps the row."""
+    __tablename__ = "commerce_group_links"
+    party_type: Mapped[str] = mapped_column(String(16))                     # organization | agency
+    party_id: Mapped[str] = mapped_column(String(36), index=True)           # organizations.id | agencies.id (same tenant, checked on write)
+    group_id: Mapped[str] = mapped_column(ForeignKey("commerce_customer_groups.id"), index=True)
+    status: Mapped[str] = mapped_column(String(16), default="active")       # active | disabled
+    created_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    __table_args__ = (UniqueConstraint("tenant_id", "party_type", "party_id", name="uq_commerce_group_link_party"),)
+
+
 class MarkupRule(OperationalMixin, Base):
     __tablename__ = "commerce_markup_rules"
     title: Mapped[str] = mapped_column(String(160))
@@ -186,7 +197,7 @@ class SupplierAccount(OperationalMixin, Base):
     __table_args__ = (UniqueConstraint("tenant_id", "supplier_id", name="uq_commerce_supplier_account"),)
 
 
-TABLES = ("commerce_customer_groups", "commerce_group_members", "commerce_markup_rules", "commerce_penalty_rules",
+TABLES = ("commerce_customer_groups", "commerce_group_members", "commerce_group_links", "commerce_markup_rules", "commerce_penalty_rules",
           "commerce_baggage_rules", "commerce_currency_rates", "commerce_treasury_entries", "commerce_treasury_requests",
           "commerce_user_bank_accounts", "commerce_supplier_accounts")
 APPEND_ONLY = ("commerce_treasury_entries",)
@@ -244,8 +255,27 @@ def _today() -> str:
 
 
 def user_group_id(db: Session, tenant_id: int, user_id: Optional[int]) -> Optional[str]:
+    """Price group of a user, first match wins: direct membership → an active organization the user is assigned to
+    (employee_assignments; the assignment has no status of its own) → an agency the user belongs to (agency_memberships)
+    → the tenant's default group. Links count only when the link and its group are active; several matches → oldest link.
+    Every table is filtered by tenant explicitly (RLS is a second line, not the only one)."""
     if user_id is not None:
         gid = db.scalar(select(CustomerGroupMember.group_id).where(CustomerGroupMember.tenant_id == tenant_id, CustomerGroupMember.user_id == user_id))
+        if gid:
+            return gid
+        linked = (select(CustomerGroupLink.group_id).join(CustomerGroup, CustomerGroup.id == CustomerGroupLink.group_id)
+                  .where(CustomerGroupLink.tenant_id == tenant_id, CustomerGroupLink.status == "active",
+                         CustomerGroup.tenant_id == tenant_id, CustomerGroup.status == "active"))
+        gid = db.scalar(linked.join(m.EmployeeAssignment, m.EmployeeAssignment.organization_id == CustomerGroupLink.party_id)
+                        .join(m.Organization, m.Organization.id == CustomerGroupLink.party_id)
+                        .where(CustomerGroupLink.party_type == "organization", m.EmployeeAssignment.tenant_id == tenant_id,
+                               m.EmployeeAssignment.user_id == user_id, m.Organization.tenant_id == tenant_id, m.Organization.status == "active")
+                        .order_by(CustomerGroupLink.created_at, CustomerGroupLink.id).limit(1))
+        if gid:
+            return gid
+        gid = db.scalar(linked.join(m.AgencyMembership, m.AgencyMembership.agency_id == CustomerGroupLink.party_id)
+                        .where(CustomerGroupLink.party_type == "agency", m.AgencyMembership.tenant_id == tenant_id, m.AgencyMembership.user_id == user_id)
+                        .order_by(CustomerGroupLink.created_at, CustomerGroupLink.id).limit(1))
         if gid:
             return gid
     return db.scalar(select(CustomerGroup.id).where(CustomerGroup.tenant_id == tenant_id, CustomerGroup.is_default.is_(True), CustomerGroup.status == "active"))
@@ -408,6 +438,35 @@ class GroupIn(BaseModel):
 
 class MembersIn(BaseModel):
     user_ids: list[int] = Field(max_length=500)
+
+
+class GroupLinkIn(BaseModel):
+    party_type: str = Field(pattern="^(organization|agency)$")
+    party_id: str = Field(min_length=1, max_length=36)
+
+
+# The owner's five empty price groups (PR #119 decision 2: percentages come later — no markup rule is created here).
+STANDARD_GROUPS = (("general", "عمومی", True), ("organizational", "سازمانی", False), ("vamipay", "وامی‌پی", False),
+                   ("credit_vcheck", "اعتباری وچک", False), ("nature", "طبیعت", False))
+
+
+def ensure_standard_groups(db: Session, tenant_id: int) -> dict:
+    """Idempotent and additive: create each standard group that this tenant does not already have by name (or by code).
+    «عمومی» becomes the default only when the tenant has no default group yet. Never edits or removes an existing group."""
+    rows = db.scalars(select(CustomerGroup).where(CustomerGroup.tenant_id == tenant_id)).all()
+    names, codes = {r.name.strip() for r in rows}, {r.code for r in rows}
+    has_default = any(r.is_default for r in rows)
+    created, skipped = [], []
+    for code, name, default in STANDARD_GROUPS:
+        if name in names or code in codes:
+            skipped.append(name)
+            continue
+        db.add(CustomerGroup(tenant_id=tenant_id, code=code, name=name, is_default=default and not has_default, status="active",
+                             description="گروه قیمتی استاندارد؛ قاعدهٔ مارک‌آپ آن را مدیر تعریف می‌کند."))
+        has_default = has_default or default
+        created.append(name)
+    db.flush()
+    return {"created": created, "skipped": skipped}
 
 
 class MarkupIn(BaseModel):
@@ -677,6 +736,62 @@ def commerce_router(get_db, current_user, role_has_permission, User, audit=None)
         _audit(db, user, "commerce.group.members", group_id, {"count": len(valid)})
         db.commit()
         return {"group_id": group_id, "assigned": len(valid)}
+
+    @api.post("/commerce/groups/standard-set")
+    def standard_groups(user=Depends(admin), db: Session = Depends(get_db)):
+        out = ensure_standard_groups(db, user.tenant_id)
+        _audit(db, user, "commerce.group.standard_set", "groups", out)
+        db.commit()
+        return out
+
+    # ---- organizations / agencies linked to a group
+    def _party(db, tenant_id, party_type, party_id):
+        model = m.Organization if party_type == "organization" else m.Agency
+        row = db.scalar(select(model).where(model.id == party_id, model.tenant_id == tenant_id))
+        if row is None:
+            raise HTTPException(status_code=404, detail="سازمان یا آژانس در این مجموعه یافت نشد")
+        return row
+
+    def _link_dict(db, link):
+        model = m.Organization if link.party_type == "organization" else m.Agency
+        party = db.scalar(select(model).where(model.id == link.party_id, model.tenant_id == link.tenant_id))
+        name = None if party is None else (party.name if link.party_type == "organization" else party.display_name)
+        return {"id": link.id, "group_id": link.group_id, "party_type": link.party_type, "party_id": link.party_id, "party_name": name,
+                "party_status": getattr(party, "status", None), "status": link.status,
+                "created_at": link.created_at.isoformat() if link.created_at else None}
+
+    @api.get("/commerce/groups/{group_id}/links")
+    def group_links(group_id: str, user=Depends(admin), db: Session = Depends(get_db)):
+        _get(db, CustomerGroup, user.tenant_id, group_id)
+        rows = db.scalars(select(CustomerGroupLink).where(CustomerGroupLink.tenant_id == user.tenant_id, CustomerGroupLink.group_id == group_id)
+                          .order_by(CustomerGroupLink.status, CustomerGroupLink.created_at)).all()
+        return {"items": [_link_dict(db, r) for r in rows]}
+
+    @api.post("/commerce/groups/{group_id}/links", status_code=201)
+    def add_link(group_id: str, data: GroupLinkIn, user=Depends(admin), db: Session = Depends(get_db)):
+        """One group per organization/agency: linking again moves it to this group and reactivates it (the row is kept)."""
+        _get(db, CustomerGroup, user.tenant_id, group_id)
+        _party(db, user.tenant_id, data.party_type, data.party_id)
+        row = db.scalar(select(CustomerGroupLink).where(CustomerGroupLink.tenant_id == user.tenant_id, CustomerGroupLink.party_type == data.party_type,
+                                                        CustomerGroupLink.party_id == data.party_id))
+        previous = None if row is None else {"group_id": row.group_id, "status": row.status}
+        if row is None:
+            row = CustomerGroupLink(tenant_id=user.tenant_id, party_type=data.party_type, party_id=data.party_id, created_by=user.id)
+            db.add(row)
+        row.group_id, row.status = group_id, "active"
+        db.flush()
+        _audit(db, user, "commerce.group.link", row.id, {"group_id": group_id, "party_type": data.party_type, "party_id": data.party_id, "previous": previous})
+        db.commit()
+        return _link_dict(db, row)
+
+    @api.post("/commerce/group-links/{link_id}/disable")
+    def disable_link(link_id: str, user=Depends(admin), db: Session = Depends(get_db)):
+        row = _get(db, CustomerGroupLink, user.tenant_id, link_id)
+        row.status = "disabled"
+        db.flush()
+        _audit(db, user, "commerce.group.link_disabled", row.id)
+        db.commit()
+        return _link_dict(db, row)
 
     # ---- markup rules
     @api.get("/commerce/markup-rules")

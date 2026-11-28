@@ -3845,7 +3845,8 @@ def _grs_hotel_offers_for_search(*, tenant_id: int, query: str, min_price: Optio
 
 
 @app.post("/search/offers")
-def search_offers(data: OfferSearchIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
+def search_offers(data: OfferSearchIn, user: User = Depends(current_user), db: Session = Depends(get_db), response: Response = None) -> list[dict]:  # type: ignore[assignment]
+    """`response` is injected by FastAPI on POST /search/offers; /search/v2 calls this directly without it."""
     if data.min_price is not None and data.max_price is not None and data.min_price > data.max_price:
         raise HTTPException(status_code=422, detail="بازه قیمت معتبر نیست")
     bounds = data.map_bounds
@@ -3860,6 +3861,7 @@ def search_offers(data: OfferSearchIn, user: User = Depends(current_user), db: S
     rows = db.scalars(statement).all()
     normalized_query = _normalize_search_text(data.query or "")
     results: list[dict] = []
+    hidden_over_cap, caps = 0, {}
     for row in rows:
         attrs = json.loads(row.attributes_json or "{}")
         policy = json.loads(row.policy_json or "{}")
@@ -3884,6 +3886,9 @@ def search_offers(data: OfferSearchIn, user: User = Depends(current_user), db: S
         taxes = max(0, int(attrs.get("taxes", 0) or 0)); fees = max(0, int(attrs.get("fees", 0) or 0)); discounts = max(0, int(attrs.get("discounts", 0) or 0))
         final_price = max(0, row.amount + taxes + fees - discounts)
         final_price, _commercial = _commercial_unit_price(db, user.tenant_id, user.id, row, attrs, final_price)
+        if row.service_type == "flight" and _over_price_cap(db, user.tenant_id, attrs, final_price, caps):
+            hidden_over_cap += 1                                       # owner decision (PR #119): never listed; the offer row is untouched
+            continue
         entity_id = attrs.get("entity_id") or hashlib.sha256(f"{row.service_type}:{_normalize_search_text(row.title)}:{_normalize_search_text(str(attrs.get('city', '')))}".encode()).hexdigest()[:24]
         result = {"id": row.id, "offer_id": row.id, "entity_id": entity_id, "service_type": row.service_type, "title": row.title, "provider": row.provider_key, "provider_status": "supplier_verified" if row.fulfillment_mode == "manual_supplier" else "provider_required", "last_updated_at": observed_at.isoformat(), "observed_at": observed_at.isoformat(), "availability_checked_at": _search_datetime(attrs.get("availability_checked_at"), observed_at).isoformat(), "price_checked_at": _search_datetime(attrs.get("price_checked_at"), observed_at).isoformat(), "freshness_ttl_seconds": ttl_seconds, "freshness": "stale" if stale else "live", "freshness_state": "STALE" if stale else "LIVE", "amount": row.amount, "base_price": row.amount, "taxes": taxes, "fees": fees, "discounts": discounts, "total_amount": final_price, "final_price": final_price, "currency": row.currency, "available": not stale, "availability_state": "REQUIRES_RECHECK" if stale else "CONFIRMED", "inventory_status": "available" if not stale else "stale_unknown", "available_units": row.available_units if not stale else None, "cancellation_policy": cancellation, "policy_verified": policy.get("verified") is True, "quality_score": attrs.get("quality_score", attrs.get("quality")), "review_score": review_score or None, "location": {key: attrs.get(key) for key in ("city", "province", "latitude", "longitude") if attrs.get(key) is not None}, "attributes": attrs, "valid_until": _aware(row.valid_until).isoformat()}
         breakdown = {"price": round(1000000000 / max(result["total_amount"], 1), 4), "reviews": review_score * 10, "flexibility": 10 if cancellation and cancellation.get("refundable") else 0, "policy": 5 if attrs.get("organization_policy_compliant") else 0, "freshness": 0 if stale else 15, "provider_reliability": float(attrs.get("provider_reliability", 5))}
@@ -3894,10 +3899,22 @@ def search_offers(data: OfferSearchIn, user: User = Depends(current_user), db: S
         results.extend(_grs_hotel_offers_for_search(tenant_id=user.tenant_id, query=data.query or "", min_price=data.min_price, max_price=data.max_price, min_review_score=data.min_review_score, refundable=data.refundable, instant_booking=data.instant_booking, check_in=data.check_in, check_out=data.check_out, travellers=data.travellers, db=db))
     sorters = {"price_asc": lambda item: (item["total_amount"], -item["ranking_score"]), "price_desc": lambda item: (-item["total_amount"], -item["ranking_score"]), "review_desc": lambda item: (-(item["review_score"] or 0), item["total_amount"]), "freshness": lambda item: (item["freshness"] != "live", item["last_updated_at"]), "recommended": lambda item: (-item["ranking_score"], item["total_amount"])}
     results.sort(key=sorters[data.sort])
-    criteria = data.model_dump(); criteria["normalized_query"] = normalized_query; criteria["result_count"] = len(results)
+    criteria = data.model_dump(); criteria["normalized_query"] = normalized_query; criteria["result_count"] = len(results); criteria["hidden_over_cap"] = hidden_over_cap
     db.add(operational_models.SearchRequest(tenant_id=user.tenant_id, user_id=user.id, service_type=data.service_type, criteria_json=json.dumps(criteria, sort_keys=True), correlation_id=str(uuid.uuid4())))
     db.commit()
+    if response is not None and role_has_permission(getattr(user, "role", "") or "", "backoffice:read"):
+        response.headers["X-Hidden-Over-Cap"] = str(hidden_over_cap)  # staff only; customers get no hint
     return results
+
+
+def _over_price_cap(db: Session, tenant_id: int, attrs: dict, sell_unit: int, memo: dict) -> bool:
+    """True when the sell price per unit is above the CAO cap for the flight's route and date (same rule as price-check)."""
+    from .charter_blocks import applicable_cap
+    key = (str(attrs.get("origin_code") or attrs.get("origin") or "").upper()[:3], str(attrs.get("destination_code") or attrs.get("destination") or "").upper()[:3],
+           str(attrs.get("flight_date") or attrs.get("departure_time") or "")[:10])
+    if key not in memo:
+        memo[key] = applicable_cap(db, tenant_id, attrs)[0]
+    return memo[key] is not None and sell_unit > memo[key]
 
 
 # ---------------------------------------------------------------------------

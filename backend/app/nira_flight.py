@@ -341,18 +341,21 @@ def nira_flight_router(get_db, current_user, role_has_permission, signing_secret
         offers = adapter.search(q, tz)
         offers = validate_fares(q, offers, lambda code: code in clients, airports.__contains__)   # drop, never repair
         priced = _sell_prices(db, user, offers)                          # DB reads only, after every airline call
+        hidden_over_cap = sum(1 for p in priced if p[1] == "exceeded")
+        kept = [(x, p) for x, p in zip(offers, priced) if p[1] != "exceeded"]   # owner decision (PR #119): above the CAO cap is never listed
         if not offers and adapter.last_airlines and all(a["status"] == "error" for a in adapter.last_airlines):
             out = _unavailable("provider_error")
             out["retryable"] = True
         else:
             out = {"provider": PROVIDER_KEY, "status": "ok", "test_inventory": st["mode"] == "sandbox", "price_state": "INDICATIVE",
                    "price_note": "قیمت تقریبی فروش (هر بزرگسال)؛ قیمت قطعی پس از استعلام نهایی نمایش داده می‌شود.",
-                   "offers": [{"offer_ref": x.provider_offer_ref, "indicative_adult_fare": priced[i][0], "price_cap": priced[i][1], "currency": x.currency,
+                   "offers": [{"offer_ref": x.provider_offer_ref, "indicative_adult_fare": p[0], "price_cap": p[1], "currency": x.currency,
                                "booking_class": x.fare_basis, "expires_at": x.expires_at.isoformat(), "refundable": x.refundable,
                                "segments": [{"carrier": s.carrier, "flight_number": s.flight_number, "origin": s.origin, "destination": s.destination,
-                                             "departs_at": s.departs_at.isoformat(), "arrives_at": s.arrives_at.isoformat()} for s in x.segments]} for i, x in enumerate(offers)]}
+                                             "departs_at": s.departs_at.isoformat(), "arrives_at": s.arrives_at.isoformat()} for s in x.segments]} for x, p in kept]}
         if _is_staff(user):
             out["airlines"] = adapter.last_airlines                       # per-airline outcome: codes and counts only
+            out["hidden_over_cap"] = hidden_over_cap                      # staff only: offers withheld because sell > CAO cap
         return out
 
     @api.post("/flights/suppliers/nira/console/availability")

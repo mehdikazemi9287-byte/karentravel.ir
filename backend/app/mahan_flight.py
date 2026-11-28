@@ -495,13 +495,18 @@ def mahan_flight_router(get_db, current_user, role_has_permission, audit, signin
         pricer = IndicativePricer(db, user.tenant_id, user.id, PROVIDER_KEY)                    # DB reads only, after the Mahan call
         sell = [pricer.adult_sell(AIRLINE, [x.segments[0].origin, x.segments[0].destination] + [s.destination for s in x.segments[1:]], x.total_amount)
                 for x in offers]
+        caps = [pricer.cap([(s.origin, s.destination, s.departs_at.date()) for s in x.segments], sell[i])["cap_state"] for i, x in enumerate(offers)]
         db.rollback()
-        return {"provider": PROVIDER_KEY, "status": "ok", "test_inventory": st["mode"] == "qaa", "price_state": "INDICATIVE",
+        kept = [(x, sell[i]) for i, x in enumerate(offers) if caps[i] != "exceeded"]   # owner decision (PR #119): above the CAO cap is never listed
+        out = {"provider": PROVIDER_KEY, "status": "ok", "test_inventory": st["mode"] == "qaa", "price_state": "INDICATIVE",
                 "price_note": "قیمت تقریبی فروش (هر بزرگسال)؛ قیمت قطعی پس از استعلام نهایی نمایش داده می‌شود.",
-                "offers": [{"offer_ref": x.provider_offer_ref, "indicative_adult_fare": sell[i], "currency": x.currency, "booking_class": x.fare_basis,
+                "offers": [{"offer_ref": x.provider_offer_ref, "indicative_adult_fare": fare, "currency": x.currency, "booking_class": x.fare_basis,
                             "expires_at": x.expires_at.isoformat(), "refundable": x.refundable,
                             "segments": [{"carrier": s.carrier, "flight_number": s.flight_number, "origin": s.origin, "destination": s.destination,
-                                          "departs_at": s.departs_at.isoformat(), "arrives_at": s.arrives_at.isoformat()} for s in x.segments]} for i, x in enumerate(offers)]}
+                                          "departs_at": s.departs_at.isoformat(), "arrives_at": s.arrives_at.isoformat()} for s in x.segments]} for x, fare in kept]}
+        if _is_staff(user):
+            out["hidden_over_cap"] = len(offers) - len(kept)              # staff only: offers withheld because sell > CAO cap
+        return out
 
     @api.post("/flights/suppliers/mahan/revalidate")
     def revalidate(data: RevalidateIn, user=Depends(current_user), db: Session = Depends(get_db)) -> dict:
