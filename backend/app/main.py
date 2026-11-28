@@ -5651,6 +5651,133 @@ def change_user_role(target_user_id: int, data: AdminRoleIn, user: User = Depend
     previous = target.role; target.role = data.role; db.add(AuditEvent(tenant_id=user.tenant_id, actor_id=user.id, action="user.role_changed", entity="user", entity_id=target.id, detail=json.dumps({"from": previous, "to": target.role, "reason": data.reason}, sort_keys=True))); db.add(operational_models.OutboxEvent(tenant_id=user.tenant_id, aggregate_type="user", aggregate_id=str(target.id), event_type="admin.user_role.changed", payload_json=json.dumps({"from": previous, "to": target.role, "actor_id": user.id}, sort_keys=True), correlation_id=str(uuid.uuid4()), idempotency_key=f"role:{target.id}:{uuid.uuid4()}")); db.commit(); return {"id": target.id, "name": target.name, "email": target.email, "role": target.role}
 
 
+
+# ---- /admin user management (PR-9): search + paging, invite by mobile (OTP login, no password), reversible deactivation,
+# price group. GET /admin/users above keeps its old list shape for existing callers.
+class AdminUserCreateIn(BaseModel):
+    name: str = Field(min_length=2, max_length=160)
+    mobile: str = Field(min_length=10, max_length=20)
+    role: str = Field(default="customer", pattern="^(employee|customer|manager|welfare_manager|organization_admin|agency_partner|supplier|backoffice_expert|finance_operator|tenant_admin)$")
+
+
+class AdminUserStatusIn(BaseModel):
+    active: bool
+    reason: str = Field(min_length=3, max_length=500)
+
+
+class AdminUserGroupIn(BaseModel):
+    group_id: Optional[str] = Field(default=None, max_length=36)
+
+
+def _tenant_admin_only(user: User) -> None:
+    if user.role not in {"tenant_admin", "platform_admin"}: raise HTTPException(status_code=403, detail="مدیریت سراسری کاربران فقط برای مدیر مجموعه مجاز است")
+
+
+def _admin_user_row(row: User, me: User, groups: dict) -> dict:
+    group = groups.get(row.id)
+    return {"id": row.id, "name": row.name, "email": None if row.email.endswith("@mobile.karenseir.local") else row.email, "mobile": row.mobile_e164,
+            "role": row.role, "active": row.disabled_at is None, "disabled_at": row.disabled_at.isoformat() if row.disabled_at else None,
+            "price_group": {"id": group[0], "name": group[1]} if group else None,
+            "mutable": row.role not in {"platform_admin", _PUBLIC_SEARCH_IDENTITY_ROLE} and row.id != me.id}
+
+
+def _admin_target(db: Session, user: User, target_user_id: int) -> User:
+    target = db.scalar(select(User).where(User.id == target_user_id, User.tenant_id == user.tenant_id).with_for_update())
+    if target is None: raise HTTPException(status_code=404, detail="کاربر در این مجموعه وجود ندارد")
+    if target.id == user.id: raise HTTPException(status_code=409, detail="تغییر حساب خودتان از این مسیر مجاز نیست")
+    if target.role in {"platform_admin", _PUBLIC_SEARCH_IDENTITY_ROLE}: raise HTTPException(status_code=403, detail="این حساب از پیشخوان مجموعه قابل تغییر نیست")
+    return target
+
+
+def _user_groups(db: Session, tenant_id: int, user_ids: list[int]) -> dict:
+    from .commerce import CustomerGroup, CustomerGroupMember
+    if not user_ids: return {}
+    rows = db.execute(select(CustomerGroupMember.user_id, CustomerGroup.id, CustomerGroup.name).join(CustomerGroup, CustomerGroup.id == CustomerGroupMember.group_id)
+                      .where(CustomerGroupMember.tenant_id == tenant_id, CustomerGroup.tenant_id == tenant_id, CustomerGroupMember.user_id.in_(user_ids))).all()
+    return {uid: (gid, name) for uid, gid, name in rows}
+
+
+@app.get("/admin/users/search")
+def admin_users_search(q: Optional[str] = Query(default=None, max_length=80), status_filter: str = Query(default="all", alias="status", pattern="^(all|active|disabled)$"),
+                       page: int = Query(default=1, ge=1, le=10000), page_size: int = Query(default=25, ge=5, le=100),
+                       user: User = Depends(require_permission("member:manage")), db: Session = Depends(get_db)) -> dict:
+    _tenant_admin_only(user)
+    stmt = select(User).where(User.tenant_id == user.tenant_id, User.role != _PUBLIC_SEARCH_IDENTITY_ROLE)
+    term = (q or "").strip()
+    if term:
+        from .kavenegar_adapter import normalize_iranian_mobile as _normalize_mobile_receptor
+        mobile = _normalize_mobile_receptor(term)
+        like = "%" + term.replace("%", "").replace("_", "") + "%"
+        conditions = [User.name.ilike(like), User.email.ilike(like)]
+        latin = term.translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹", "0123456789"))
+        if mobile: conditions.append(User.mobile_e164 == f"+{mobile}")
+        elif latin.isdigit(): conditions.append(User.mobile_e164.like("%" + latin.lstrip("0") + "%"))
+        from sqlalchemy import or_ as _or
+        stmt = stmt.where(_or(*conditions))
+    if status_filter == "active": stmt = stmt.where(User.disabled_at.is_(None))
+    elif status_filter == "disabled": stmt = stmt.where(User.disabled_at.is_not(None))
+    total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
+    rows = db.scalars(stmt.order_by(User.id.desc()).offset((page - 1) * page_size).limit(page_size)).all()
+    groups = _user_groups(db, user.tenant_id, [r.id for r in rows])
+    return {"items": [_admin_user_row(r, user, groups) for r in rows], "total": total, "page": page, "page_size": page_size}
+
+
+@app.post("/admin/users", status_code=status.HTTP_201_CREATED)
+def admin_create_user(data: AdminUserCreateIn, user: User = Depends(require_permission("member:manage")), db: Session = Depends(get_db)) -> dict:
+    """Invite by mobile: no password is set; the person signs in with the existing OTP login of this tenant."""
+    _tenant_admin_only(user)
+    from .kavenegar_adapter import normalize_iranian_mobile as _normalize_mobile_receptor
+    receptor = _normalize_mobile_receptor(data.mobile)
+    if receptor is None: raise HTTPException(status_code=422, detail="شماره موبایل معتبر نیست")
+    if db.scalar(select(User.id).where(User.tenant_id == user.tenant_id, User.mobile_e164 == f"+{receptor}")):
+        raise HTTPException(status_code=409, detail="این موبایل در همین مجموعه حساب دارد")
+    row = User(tenant_id=user.tenant_id, email=f"{receptor}@mobile.karenseir.local", name=data.name.strip(), role=data.role, mobile_e164=f"+{receptor}")
+    db.add(row)
+    try:
+        db.flush()
+    except IntegrityError:
+        db.rollback()   # mobile_e164 / email are globally unique; another tenant may hold this number (not revealed which)
+        raise HTTPException(status_code=409, detail="این موبایل قبلاً در سامانه ثبت شده است")
+    db.add(AuditEvent(tenant_id=user.tenant_id, actor_id=user.id, action="user.invited", entity="user", entity_id=row.id, detail=json.dumps({"role": row.role}, sort_keys=True)))
+    db.commit()
+    return _admin_user_row(row, user, {})
+
+
+@app.put("/admin/users/{target_user_id}/status")
+def admin_user_status(target_user_id: int, data: AdminUserStatusIn, user: User = Depends(require_permission("member:manage")), db: Session = Depends(get_db)) -> dict:
+    """Deactivate / reactivate (users.disabled_at). Never deletes; a disabled account cannot log in, refresh or use a token."""
+    _tenant_admin_only(user)
+    target = _admin_target(db, user, target_user_id)
+    was_active = target.disabled_at is None
+    if was_active != data.active:
+        target.disabled_at = None if data.active else datetime.now(timezone.utc)
+        db.add(AuditEvent(tenant_id=user.tenant_id, actor_id=user.id, action="user.enabled" if data.active else "user.disabled", entity="user", entity_id=target.id,
+                          detail=json.dumps({"reason": data.reason}, sort_keys=True, ensure_ascii=False)))
+    db.commit()
+    return _admin_user_row(target, user, _user_groups(db, user.tenant_id, [target.id]))
+
+
+@app.put("/admin/users/{target_user_id}/price-group")
+def admin_user_price_group(target_user_id: int, data: AdminUserGroupIn, user: User = Depends(require_permission("member:manage")), db: Session = Depends(get_db)) -> dict:
+    """Direct price-group membership. Membership rows are moved, never deleted; group_id=null moves the user to the
+    tenant's default group (organization/agency links still apply only when there is no direct membership)."""
+    from .commerce import CustomerGroup, CustomerGroupMember
+    _tenant_admin_only(user)
+    target = _admin_target(db, user, target_user_id)
+    gid = data.group_id
+    if gid is None:
+        gid = db.scalar(select(CustomerGroup.id).where(CustomerGroup.tenant_id == user.tenant_id, CustomerGroup.is_default.is_(True), CustomerGroup.status == "active"))
+        if gid is None: raise HTTPException(status_code=422, detail="گروه پیش‌فرض تعریف نشده است؛ یک گروه انتخاب کنید")
+    elif db.scalar(select(CustomerGroup.id).where(CustomerGroup.id == gid, CustomerGroup.tenant_id == user.tenant_id, CustomerGroup.status == "active")) is None:
+        raise HTTPException(status_code=422, detail="گروه قیمتی فعال در این مجموعه پیدا نشد")
+    member = db.scalar(select(CustomerGroupMember).where(CustomerGroupMember.tenant_id == user.tenant_id, CustomerGroupMember.user_id == target.id))
+    previous = member.group_id if member else None
+    if member is None: db.add(CustomerGroupMember(tenant_id=user.tenant_id, user_id=target.id, group_id=gid))
+    else: member.group_id = gid
+    db.add(AuditEvent(tenant_id=user.tenant_id, actor_id=user.id, action="user.price_group_changed", entity="user", entity_id=target.id, detail=json.dumps({"from": previous, "to": gid}, sort_keys=True)))
+    db.commit()
+    return _admin_user_row(target, user, _user_groups(db, user.tenant_id, [target.id]))
+
 def _saved_trip_output(db: Session, row: operational_models.SavedTrip) -> dict:
     items = db.scalars(select(operational_models.SavedTripItem).where(operational_models.SavedTripItem.tenant_id == row.tenant_id, operational_models.SavedTripItem.saved_trip_id == row.id).order_by(operational_models.SavedTripItem.state, operational_models.SavedTripItem.position, operational_models.SavedTripItem.created_at)).all()
     return {"id": row.id, "title": row.title, "status": row.status, "items": [{"id": item.id, "service_type": item.service_type, "source_reference": item.source_reference, "offer_id": item.offer_id, "state": item.state, "position": item.position, "snapshot": json.loads(item.snapshot_json)} for item in items]}
