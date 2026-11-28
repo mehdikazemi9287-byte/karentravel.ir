@@ -161,7 +161,7 @@ export function HomeSearchExperience({defaultVertical="flight",presentation}:{de
     const dismiss=(event:PointerEvent)=>{if(!root?.contains(event.target as Node))setPopover(null)};
     document.addEventListener('pointerdown',dismiss);
     const panel=root?.querySelector<HTMLElement>('.fs-pop');
-    const reveal=()=>{if(!panel)return;const top=panel.getBoundingClientRect().top+window.scrollY-80;window.scrollTo({top:Math.max(0,top),behavior:'instant'})};
+    const reveal=()=>{if(!panel)return;const r=panel.getBoundingClientRect();const vh=window.innerHeight;if(r.bottom>vh-12&&r.top>80){window.scrollBy({top:Math.min(r.bottom-vh+16,r.top-80),behavior:'smooth'})}else if(r.top<72){window.scrollBy({top:r.top-80,behavior:'smooth'})}};
     const frame=window.requestAnimationFrame(reveal);
     const observer=new ResizeObserver(reveal);
     if(panel)observer.observe(panel);
