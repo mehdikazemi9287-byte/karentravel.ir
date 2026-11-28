@@ -94,6 +94,15 @@ export class KarenSeirApi {
     return session;
   }
 
+  /** Staff fixed-password login (docs/ops/STAFF_PASSWORD_LOGIN.md): same session handling as verifyOtp, incl. the MFA step. */
+  async passwordLogin(tenant_slug: string, identifier: string, password: string) {
+    const body = await this.request<AuthSession & { mfa_required?: boolean; mfa_ticket?: string }>('/auth/password/login', { method: 'POST', body: JSON.stringify({ tenant_slug, identifier, password, device_id: this.deviceId }) }, false);
+    if (body.mfa_required && body.mfa_ticket) throw new MfaRequiredError(body.mfa_ticket, tenant_slug);
+    const session = toSession(body);
+    this.setSession(session);
+    return session;
+  }
+
   async verifyMfa(tenant_slug: string, mfa_ticket: string, factor: { code?: string; recovery_code?: string }) {
     const session = toSession(await this.request<AuthSession>('/auth/2fa/verify', { method: 'POST', body: JSON.stringify({ tenant_slug, mfa_ticket, ...factor, device_id: this.deviceId }) }, false));
     this.setSession(session);

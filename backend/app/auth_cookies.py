@@ -3,7 +3,7 @@
 Feature flag: AUTH_COOKIE_MODE=1 (default off -> behaviour is exactly the
 Bearer-only API it was before). When on:
 
-* Login responses (/auth/otp/verify, /auth/2fa/verify, /auth/dev-login) and a
+* Login responses (/auth/otp/verify, /auth/password/login, /auth/2fa/verify, /auth/dev-login) and a
   cookie-driven /auth/refresh set three cookies and DROP the tokens from the
   JSON body, so script running in the page (XSS) cannot read them:
     karenseir_at    access JWT       HttpOnly, SameSite=Lax, Max-Age 15 min
@@ -43,7 +43,7 @@ from typing import Optional
 import jwt
 
 AT, RT, CSRF = "karenseir_at", "karenseir_rt", "karenseir_csrf"
-LOGIN_SUFFIXES = ("/auth/otp/verify", "/auth/2fa/verify", "/auth/dev-login")
+LOGIN_SUFFIXES = ("/auth/otp/verify", "/auth/password/login", "/auth/2fa/verify", "/auth/dev-login")
 REFRESH_SUFFIX, LOGOUT_SUFFIX = "/auth/refresh", "/auth/logout"
 UNSAFE = {"POST", "PUT", "PATCH", "DELETE"}
 SYNTHETIC_PREFIX = "Bearer cookie."  # placeholder the browser client keeps instead of a real token
