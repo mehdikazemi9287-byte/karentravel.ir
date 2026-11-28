@@ -170,8 +170,7 @@ def partner_requests_router(get_db, current_user, audit=None, role_has_permissio
     api = APIRouter(tags=["partner-requests"])
 
     def agent(user=Depends(current_user)):
-        allowed = role_has_permission is not None and any(role_has_permission(user.role, p) for p in ("support:manage", "reservation:manage", "tenant:manage"))
-        if user.role in ("customer", "employee", "supplier", "agency_partner") or not allowed:
+        if role_has_permission is None or not role_has_permission(user.role, "desk:manage"):   # staff only
             raise HTTPException(status_code=403, detail="این بخش برای کارشناسان است")
         return user
 

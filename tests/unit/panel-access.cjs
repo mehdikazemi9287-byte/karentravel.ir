@@ -91,4 +91,10 @@ assert.ok(!withOrg.includes('/account/benefits')&&withOrg.includes('/account/wal
 assert.ok(!A.mobileTabsFor('customer','customer',{orgPanel:true}).some(t=>t.href==='/account/benefits'));
 assert.deepEqual(JSON.parse(JSON.stringify(A.navFor('organization','organization_admin',{orgPanel:true}).map(i=>i.href))),hrefs('organization','organization_admin'));
 assert.equal(A.canOpen('customer','/account/benefits','customer'),true);  // the page itself only links to the organization panel
+// QA 2026-11-28: staff desks (sales/train/partner desks, Safarsaz staff) need desk:manage, never reservation:manage
+const DESKS=['/admin/sales-desk','/admin/train-desk','/admin/partner-requests','/admin/safarsaz'];
+for(const role of ['manager','welfare_manager','organization_admin','customer','employee']){
+  for(const h of DESKS)assert.equal(A.canOpen('admin',h,role),false,`${role} ${h}`);
+  const links=JSON.parse(JSON.stringify(A.roleLinks(role))).map(l=>l[1]);for(const h of DESKS)assert.ok(!links.includes(h),`${role} menu ${h}`);}
+for(const role of ['backoffice_expert','tenant_admin','platform_admin'])for(const h of ['/admin/sales-desk','/admin/train-desk'])assert.equal(A.canOpen('admin',h,role),true,`${role} ${h}`);
 console.log('panel-access: PASS');

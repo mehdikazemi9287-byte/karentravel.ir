@@ -6,6 +6,8 @@ import { AuthSession, KarenSeirApi } from './karenseir-client';
 type AuthContextValue = {
   api: KarenSeirApi;
   session: AuthSession | null;
+  /** false until the stored session has been read (one tick after mount); show no «وارد شوید» and start no search before it. */
+  ready: boolean;
   devLogin(email: string): Promise<AuthSession>;
   requestOtp(tenant: string, identifier: string): ReturnType<KarenSeirApi['requestOtp']>;
   register(mobile: string, name?: string): ReturnType<KarenSeirApi['register']>;
@@ -20,9 +22,10 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const api = useMemo(() => new KarenSeirApi(), []);
   const [session, setSession] = useState<AuthSession | null>(null);
-  useEffect(()=>{const handle=window.setTimeout(()=>setSession(api.getSession()),0);return()=>window.clearTimeout(handle)},[api]);
+  const [ready, setReady] = useState(false);
+  useEffect(()=>{const handle=window.setTimeout(()=>{setSession(api.getSession());setReady(true)},0);return()=>window.clearTimeout(handle)},[api]);
   const value = useMemo<AuthContextValue>(() => ({
-    api, session,
+    api, session, ready,
     async devLogin(email) { const next = await api.devLogin(email); setSession(next); return next; },
     requestOtp(tenant, identifier) { return api.requestOtp(tenant, identifier); },
     register(mobile, name) { return api.register(mobile, name); },
@@ -30,7 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async verifyMfa(tenant, ticket, factor) { const next = await api.verifyMfa(tenant, ticket, factor); setSession(next); return next; },
     async passwordLogin(tenant, identifier, password) { const next = await api.passwordLogin(tenant, identifier, password); setSession(next); return next; },
     async logout() { const pending=api.logout(); setSession(null); await pending; },
-  }), [api, session]);
+  }), [api, session, ready]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

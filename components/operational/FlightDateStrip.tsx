@@ -4,6 +4,7 @@
    so every figure is the engine's own final price — nothing is estimated. Days without offers show «—». */
 import {useState} from 'react';
 import {useAuth} from '../../lib/api/auth-context';
+import {tehranToday} from '../../lib/tehran-today';
 
 type Payload = Record<string, unknown> & {filters: Record<string, unknown>};
 type Res = {entities: {best_offer: {final_price: number}}[]};
@@ -14,7 +15,7 @@ export function FlightDateStrip({depart, returnDate, payload, onPick}: {depart: 
   const {api, session} = useAuth();
   const [prices, setPrices] = useState<Record<string, number | null | 'loading'>>({});
   if (!depart || Number.isNaN(new Date(depart + 'T12:00:00Z').getTime())) return null;
-  const days = [-3, -2, -1, 0, 1, 2, 3].map(o => ({o, date: shift(depart, o)})).filter(d => d.date >= new Date().toISOString().slice(0, 10));
+  const days = [-3, -2, -1, 0, 1, 2, 3].map(o => ({o, date: shift(depart, o)})).filter(d => d.date >= tehranToday());
   async function load() {
     const todo = days.filter(d => d.o !== 0);
     setPrices(Object.fromEntries(todo.map(d => [d.date, 'loading'])));

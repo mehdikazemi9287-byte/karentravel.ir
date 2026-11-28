@@ -180,7 +180,7 @@ def train_requests_router(get_db, current_user, role_has_permission, User, audit
     api = APIRouter(tags=["train-requests"])
 
     def agent(user=Depends(current_user)):
-        if user.role in ("customer", "employee", "supplier", "agency_partner") or not any(role_has_permission(user.role, p) for p in ("support:manage", "reservation:manage", "tenant:manage")):
+        if not role_has_permission(user.role, "desk:manage"):                # staff only; never reservation:manage (customers/org roles)
             raise HTTPException(status_code=403, detail="این بخش برای کارشناسان فروش است")
         return user
 

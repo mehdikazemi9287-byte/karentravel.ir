@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../../lib/api/auth-context';
 import { parseTravelIntent, type NLIntent } from '../../lib/domain/nl-intent';
+import { tehranToday } from '../../lib/tehran-today';
 
 import { formatJalali, gregorianToJalali, jalaliMonths, jalaliMonthLength, jalaliToIso, persianDigits, todayIso, todayJalali, type JalaliDate } from '../../lib/domain/jalali';
 import { JalaliCalendar } from './JalaliCalendar';
@@ -18,8 +19,10 @@ const tripTypes=[['round_trip','رفت‌وبرگشت'],['one_way','یک‌طر�
 /* Radio group with roving tabindex; RTL arrow keys (Left = next). Visual is the existing .fs-seg segmented style. */
 function TripTypeControl({value,onChange}:{value:TripType;onChange:(value:TripType)=>void}){
   const refs=useRef<(HTMLButtonElement|null)[]>([]);
-  function move(from:number,step:number){const next=(from+step+tripTypes.length)%tripTypes.length;onChange(tripTypes[next][0]);refs.current[next]?.focus()}
-  return <div className="fs-seg fs-seg--trip" role="radiogroup" aria-label="نوع سفر">{tripTypes.map(([option,label],index)=><button type="button" role="radio" aria-checked={value===option} tabIndex={value===option?0:-1} ref={element=>{refs.current[index]=element}} className={value===option?'is-active':''} onClick={()=>onChange(option)} onKeyDown={event=>{if(event.key==='ArrowLeft'||event.key==='ArrowDown'){event.preventDefault();move(index,1)}else if(event.key==='ArrowRight'||event.key==='ArrowUp'){event.preventDefault();move(index,-1)}}} key={option}>{label}</button>)}</div>;
+  // «چندمسیره» stays visible but disabled («به‌زودی») until there is a form for the next legs (QA 2026-11-28).
+  const enabled=(option:TripType)=>option!=='multi_city';
+  function move(from:number,step:number){let next=from;do{next=(next+step+tripTypes.length)%tripTypes.length}while(!enabled(tripTypes[next][0])&&next!==from);onChange(tripTypes[next][0]);refs.current[next]?.focus()}
+  return <div className="fs-seg fs-seg--trip" role="radiogroup" aria-label="نوع سفر">{tripTypes.map(([option,label],index)=><button type="button" role="radio" aria-checked={value===option} disabled={!enabled(option)} aria-disabled={!enabled(option)||undefined} title={enabled(option)?undefined:'به‌زودی'} tabIndex={value===option?0:-1} ref={element=>{refs.current[index]=element}} className={value===option?'is-active':''} onClick={()=>{if(enabled(option))onChange(option)}} onKeyDown={event=>{if(event.key==='ArrowLeft'||event.key==='ArrowDown'){event.preventDefault();move(index,1)}else if(event.key==='ArrowRight'||event.key==='ArrowUp'){event.preventDefault();move(index,-1)}}} key={option}>{label}{!enabled(option)&&<small className="fs-soon"> (به‌زودی)</small>}</button>)}</div>;
 }
 type Popover='origin'|'destination'|'dates'|'passengers'|null;
 type SpeechRecognitionResultLike={0:{transcript:string}};
@@ -138,7 +141,7 @@ export function HomeSearchExperience({defaultVertical="flight",presentation}:{de
       returnDate:params.get('return')||'',
       flexibility:params.get('flexibility')||'exact',
       // One-way is the default (like Alibaba / MrBilit); an old link that carries a return date stays round trip.
-      tripType:(params.get('trip_type') as TripType|null)||(params.get('return')?'round_trip':'one_way'),
+      tripType:((params.get('trip_type')==='multi_city'?'one_way':params.get('trip_type')) as TripType|null)||(params.get('return')?'round_trip':'one_way'),
       adults:Number(params.get('adults')||1),
       children:Number(params.get('children')||0),
       infants:Number(params.get('infants')||0),
@@ -209,9 +212,14 @@ export function HomeSearchExperience({defaultVertical="flight",presentation}:{de
   function nlConfirm(){
     if(!nlIntent)return;
     const nlVertical=nlIntent.vertical??'hotel'; const nlIndex=services.findIndex(item=>item.vertical===nlVertical); if(nlIndex>=0)setActive(nlIndex);
-    const params=new URLSearchParams({vertical:nlVertical,origin:nlIntent.origin??'',destination:nlIntent.destination??'',depart:nlIntent.depart??depart,trip_type:'round_trip',flexibility:nlIntent.flexibility??'exact',adults:String(nlIntent.adults??adults),children:String(nlIntent.children??0),infants:'0',rooms:'1',cabin:'economy',sort:'recommended'});
-    if(nlIntent.budgetMax)params.set('filters_max_price',String(nlIntent.budgetMax));
-    router.push(`/?${params.toString()}`);
+    const nlDepart=nlIntent.depart??depart;
+    const params=new URLSearchParams({vertical:nlVertical,origin:nlIntent.origin??'',destination:nlIntent.destination??'',depart:nlDepart,flexibility:nlIntent.flexibility??'exact',adults:String(nlIntent.adults??adults),children:String(nlIntent.children??0),infants:'0',rooms:'1',cabin:'economy',sort:'recommended'});
+    // The sentence carries no return date: a flight is one-way; a stay with «N شب» gets its check-out date.
+    if(nlVertical==='flight')params.set('trip_type','one_way');
+    if((nlVertical==='hotel'||nlVertical==='vacation_rental')&&nlDepart&&nlIntent.nights&&nlIntent.nights>0){const out=new Date(`${nlDepart}T00:00:00Z`);out.setUTCDate(out.getUTCDate()+nlIntent.nights);params.set('return',out.toISOString().slice(0,10))}
+    if(nlIntent.budgetMax)params.set('max_price',String(nlIntent.budgetMax));
+    // Same destination as the form's «جست‌وجو»: the results page (train requests go to the train request form).
+    router.push(nlVertical==='train'?`/trains/request?${params.toString()}`:`/search/results?${params.toString()}`);
   }
   function changeService(index:number){const previousVertical=service.vertical;setActive(index);setMoreOpen(false);setPopover(null);const next=services[index];if(next.vertical==='visa')setOrigin('');else if(previousVertical==='visa')setOrigin('تهران');setDestination(next.vertical==='hotel'||next.vertical==='vacation_rental'?'یزد':next.vertical==='cruise'?'دبی':next.vertical==='visa'?'فرانسه':next.vertical==='car_rental'?'شیراز':next.vertical==='tour'?'استانبول':next.vertical==='package'?'استانبول':next.vertical==='tourist_transportation'?'شیراز':'شیراز')}
   // trip_type ("یک‌طرفه"/"چندمسیره") is a flight-only concept - changeService()
@@ -221,7 +229,7 @@ export function HomeSearchExperience({defaultVertical="flight",presentation}:{de
   // writing trip_type for flight, and gating `return` on the same showReturn
   // flag the date field itself already uses, fixes both at the source.
   function submit(){
-    const today=new Date().toISOString().slice(0,10);
+    const today=tehranToday();
     if(!destination.trim()||(service.origin&&!origin.trim())){setSearchError('مبدأ و مقصد لازم را وارد کنید.');return}
     if(service.origin&&origin.trim()===destination.trim()){setSearchError('مبدأ و مقصد باید متفاوت باشند.');return}
     const dateIssue=!depart||depart<today?`${departLabel} را انتخاب کنید (امروز یا روزهای بعد).`
@@ -246,7 +254,7 @@ export function HomeSearchExperience({defaultVertical="flight",presentation}:{de
     {moreOpen&&<div className="fs-more-menu" role="menu">{moreServices.map(item=>{const index=services.findIndex(x=>x.vertical===item.vertical);return <button type="button" role="menuitem" onClick={()=>changeService(index)} key={item.vertical}><Icon name={item.icon}/>{item.name}</button>})}</div>}
     {discoveryRoute[service.vertical]?<div className="fs-box fs-unavailable"><b>{service.name}</b><p>در صفحهٔ این خدمت، مقصد، تاریخ و شرایط اختصاصی مراجعه را انتخاب کنید.</p><a className="button primary" href={discoveryRoute[service.vertical]}>انتخاب {service.name}</a></div>:service.vertical==='tourist_transportation'||service.vertical==='travel_guide'?<div className="fs-box fs-unavailable"><b>{service.name}</b><p>زمان، ظرفیت و شرایط عرضه‌های ثبت‌شده را در جست‌وجوی این خدمت بررسی کنید.</p><a className="button primary" href={service.vertical==='travel_guide'?'/travel-guides':'/tourist-transport'}>جست‌وجوی {service.name}</a></div>:service.vertical==='bus'?<div className="fs-box fs-unavailable" role="status"><b>{service.name}</b><p>استعلام آنلاین این خدمت هنوز در دسترس نیست. برای بررسی امکان ارائهٔ خدمت تماس بگیرید.</p><ContactOptions/></div>:service.vertical==='package'?<div className="fs-box fs-unavailable" role="status"><b>پرواز + هتل</b><p>رزرو یک‌جای پرواز و هتل هنوز در دسترس نیست. برای راهنمایی برنامه‌ریزی سفر تماس بگیرید.</p><ContactOptions/></div>:<form onSubmit={event=>{event.preventDefault();submit()}} className="fs-box" id="service-search-panel" role="tabpanel" aria-label={`فرم جست‌وجوی ${service.name}`}>
       {/* D11 (owner-approved 1405-08-18): trip type sits above the fields on every presentation (was inside the approved date popover), so one-way needs no return date. */}
-      {service.vertical==='flight'&&<TripTypeControl value={tripType} onChange={value=>{setSearchError('');if(value==='multi_city'){setTripType(value);router.push('/?vertical=flight&trip_type=multi_city&edit=1')}else setTripType(value)}}/>}
+      {service.vertical==='flight'&&<TripTypeControl value={tripType} onChange={value=>{if(value==='multi_city')return;setSearchError('');setTripType(value)}}/>}
       <div className="fs-row">
         <div className={service.origin?'fs-places fs-places--swap':'fs-places'}>
           {service.origin&&<><EntityInput kind="origin" label={originLabel} value={origin} onChange={setOrigin} onSelect={item=>{setOrigin(item.title);setPopover(null)}} open={popover==='origin'} setOpen={()=>setPopover('origin')} vertical={service.vertical}/><button type="button" className="fs-swap" aria-label="جابجایی مبدا و مقصد" onClick={()=>{setOrigin(destination);setDestination(origin)}}><Icon name="swap"/></button></>}

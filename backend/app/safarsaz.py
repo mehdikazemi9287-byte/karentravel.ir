@@ -235,7 +235,7 @@ def safarsaz_router(get_db, current_user, role_has_permission, User, audit=None)
     PARTNER_ROLES = ("supplier", "agency_partner")
 
     def _is_staff(user) -> bool:
-        return user.role not in ("employee", "customer", *PARTNER_ROLES) and any(role_has_permission(user.role, p) for p in ("reservation:manage", "tenant:manage"))
+        return user.role not in ("employee", "customer", *PARTNER_ROLES) and role_has_permission(user.role, "desk:manage")
 
     def _scope(db, user) -> Optional[set[str]]:
         """None = staff (whole tenant); otherwise the organiser (supplier) ids this partner works for:
