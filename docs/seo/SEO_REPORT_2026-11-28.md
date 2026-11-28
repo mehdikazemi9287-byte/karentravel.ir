@@ -14,7 +14,7 @@
 - `npx tsc --noEmit`: بدون خطا.
 - eslint روی فایل‌های تغییرکرده: ۰ خطا (۱۸ هشدار قدیمی `no-img-element`).
 - `npm run build`: موفق (دو بار: با env خالی و با IP اشتباه).
-- `tests/seo/seo-check.mjs`: **گذشت** — ۳۷ صفحهٔ عمومی، ۳۷ آدرس در sitemap، همه 200، canonical درست، یک H1، توضیح ۱۲۰–۱۶۰، بدون تصویر بی‌alt، عنوان یکتا؛ redirectها (/about، /tours/reference، اسلش انتهایی، میزبان www) دائمی؛ صفحات خصوصی noindex؛ صفحهٔ ناموجود 404.
+- `tests/seo/seo-check.mjs`: **گذشت** (یک بار بدون کد Search Console: تگی نیست؛ یک بار با `GOOGLE_SITE_VERIFICATION=test-code-123`: تگ با همان مقدار هست؛ میزبان `www.othertenant.ir` redirect نمی‌شود) — ۳۷ صفحهٔ عمومی، ۳۷ آدرس در sitemap، همه 200، canonical درست، یک H1، توضیح ۱۲۰–۱۶۰، بدون تصویر بی‌alt، عنوان یکتا؛ redirectها (/about، /tours/reference، اسلش انتهایی، میزبان www) دائمی؛ صفحات خصوصی noindex؛ صفحهٔ ناموجود 404.
 - صفحهٔ اصلی محافظت‌شده: HTML بدنه قبل و بعد مقایسه شد؛ تنها تفاوت، مقدار alt پنج تصویر (و اسکریپت داده‌ای JSON-LD که نمایش ندارد) است. ظاهر تغییری ندارد.
 - محدودیت: API در محیط آزمون در دسترس نبود؛ صفحات جزئیات (تور، هتل، مقصد، مقاله، …) و فهرست‌هایی که از API می‌آیند فقط از روی کد بررسی شدند. مرورگر (Playwright) نصب نشد (دسترسی شبکه بسته بود)؛ نمایش موبایل با مرورگر بررسی نشد.
 
@@ -62,7 +62,7 @@
 | /reviews | نظرات مسافران دربارهٔ تورها و هتل‌ها | — | https://karentravel.ir/reviews | ۰ برای مهمان | خیر — محتوا فقط پس از ورود؛ noindex و خارج از sitemap |
 | /cruises | تور کروز و سفر دریایی | — | https://karentravel.ir/cruises | ۱ | خیر — کاتالوگ فقط پس از ورود و بدون تأمین‌کنندهٔ زنده؛ noindex و خارج از sitemap |
 | /about | — | — | — | — | redirect دائمی به /contact (صفحه‌ای ندارد؛ «درباره ما» در فوتر هم به /contact می‌رود) |
-| صفحات جزئیات (`/tours/<id>`، `/hotels/<slug>`، `/destinations/<slug>`، `/blog/<slug>`، `/tours/destination/<place>`، `/places/<id>`، `/visa/<id>`، `/villas/<id>`، `/experience-products/<id>`) | از API | از API | canonical خودِ صفحه | از کامپوننت | بله، بررسی‌نشده با دادهٔ واقعی |
+| صفحات جزئیات (`/tours/<id>`، `/hotels/<slug>`، `/destinations/<slug>`، `/blog/<slug>`، `/tours/destination/<place>`، `/places/<id>`، `/visa/<id>`، `/villas/<id>`، `/experience-products/<id>`) | از API | از API | canonical خودِ صفحه | از کامپوننت | بررسی‌نشده — canonical و noindex در کد درست است، ولی محتوا/H1/عنوان با دادهٔ واقعی API آزموده نشد |
 
 ## ۱۹ مورد چک‌لیست
 
@@ -73,14 +73,14 @@
 | 3 | انجام شد | `lib/seo-pages.ts` فهرست ۳۷ صفحهٔ عمومی؛ sitemap همه را + مسیرهای بلاگ و کاتالوگ API (بدون تکرار و پارامتر) دارد. |
 | 4 | بخشی | فهرست تورهای ویژه، لحظه‌آخری، نوروزی، اقساطی و جشنواره اکنون سمت سرور خوانده می‌شود (`lib/tour-collections-server.ts`). بقیهٔ صفحات عمومی متن اصلی را سمت سرور دارند (۵۰۰ تا ۳۷۰۰ نویسه بدون JS). مانده: جزئیات تور/هتل/ویلا/مقصدِ غیرثابت و `/tours/search` که فهرستشان در مرورگر ساخته می‌شود. |
 | 5 | انجام شد | `metadataBase` از `siteUrl()` و `alternates.canonical` در هر صفحهٔ عمومی و هر صفحهٔ جزئیات؛ canonical در layout ریشه نیست. صفحهٔ اصلی به server wrapper تبدیل شد (`app/page.tsx` + بدنهٔ بدون تغییر در `app/root-pages.tsx`). |
-| 6 | انجام شد در کد | `proxy.ts`: هر درخواست با میزبان `www.` → 301 به `https://karentravel.ir` (شامل robots و sitemap). اسلش انتهایی از قبل 308 بود. `/tours/reference` و `/tours/reference/<id>` از 307 به دائمی تغییر کردند. پیکربندی nginx مخزن (`deploy/nginx.karentravel-https.conf` و `deploy/karenseir-https.sh`) از قبل www→apex دارد؛ روی سرور فایل مدیریت‌شده `/etc/nginx/sites-available/karentravel-https.conf` (یا `/etc/nginx/conf.d/karentravel-https.conf`) است — 200 زندهٔ www یعنی آن مرحلهٔ redirect روی سرور اعمال نشده یا گواهی www ندارد (کار DevOps با تأیید مالک). |
+| 6 | انجام شد در کد | `proxy.ts`: هر درخواست با میزبان `www.karentravel.ir` (فقط همین میزبان؛ دامنه‌های tenant دست نمی‌خورند) → 301 به `https://karentravel.ir` (شامل robots و sitemap). اسلش انتهایی از قبل 308 بود. `/tours/reference` و `/tours/reference/<id>` از 307 به دائمی تغییر کردند. پیکربندی nginx مخزن (`deploy/nginx.karentravel-https.conf` و `deploy/karenseir-https.sh`) از قبل www→apex دارد؛ روی سرور فایل مدیریت‌شده `/etc/nginx/sites-available/karentravel-https.conf` (یا `/etc/nginx/conf.d/karentravel-https.conf`) است — 200 زندهٔ www یعنی آن مرحلهٔ redirect روی سرور اعمال نشده یا گواهی www ندارد (کار DevOps با تأیید مالک). |
 | 7 | انجام شد | همهٔ hrefهای داخلی ثابت با مسیرهای `app/` تطبیق داده شد؛ لینک شکسته‌ای پیدا نشد. |
 | 8 | انجام شد | صفحهٔ یتیم: فقط /cruises و /reviews (هر دو noindex شدند). `components/seo/RelatedLinks.tsx` با anchor فارسی توصیفی روی پرواز، قطار، هتل، تور، مقصدها و ویزا. فوتر/منوی مشترک دست نخورد (روی صفحهٔ اصلی محافظت‌شده دیده می‌شود). |
-| 9 | انجام شد | عنوان یکتا با کلیدواژه برای ۳۷ صفحه + « \| کارن تراول». صفحات جزئیات عنوان را از API می‌گیرند؛ عنوان جایگزین برای حالت بدون API هم اضافه شد. |
-| 10 | انجام شد | توضیح ۱۴۰ تا ۱۵۶ نویسه برای هر صفحهٔ ثابت. |
-| 11 | انجام شد | /white-label (۲ H1 → ۱)، /tours/search و /tours/destination/* (۰ → ۱، با همان ظاهر). بقیه یک H1 داشتند. |
-| 12 | انجام شد | alt فارسی برای کاشی‌های مقصد، تصویر بخش سازمانی و تصاویر هتل صفحهٔ اصلی. آیکون‌های SVG تزئینی alt خالی دارند. |
-| 13 | انجام شد | `TravelAgency` + `WebSite` در layout (نام، دامنه، لوگو، تلفن پشتیبانی از `lib/site-contact.ts`؛ آدرس در کد نبود و نیامد). `TouristTrip` + `BreadcrumbList` در `/tours/<slug>`، `BreadcrumbList` در مقصد و مقاله، `BlogPosting` از قبل بود. `FAQPage` از قبل در /faq. |
+| 9 | انجام شد برای ۳۷ صفحهٔ ثابت | عنوان یکتا با کلیدواژه برای ۳۷ صفحه + « \| کارن تراول». صفحات جزئیات عنوان را از API می‌گیرند؛ عنوان جایگزین برای حالت بدون API هم اضافه شد. |
+| 10 | انجام شد برای صفحات ثابت | توضیح ۱۴۰ تا ۱۵۶ نویسه برای هر صفحهٔ ثابت. |
+| 11 | انجام شد برای صفحات ثابت | /white-label (۲ H1 → ۱؛ تیتر دوم اکنون h2 و کمی کوچک‌تر دیده می‌شود)، /tours/search و /tours/destination/* (۰ → ۱، با همان ظاهر). بقیه یک H1 داشتند. |
+| 12 | انجام شد برای صفحات ثابت | alt فارسی برای کاشی‌های مقصد، تصویر بخش سازمانی و تصاویر هتل صفحهٔ اصلی. آیکون‌های SVG تزئینی alt خالی دارند. |
+| 13 | انجام شد (جزئیات با دادهٔ API آزموده نشد) | `TravelAgency` + `WebSite` در layout (نام، دامنه، لوگو، تلفن پشتیبانی از `lib/site-contact.ts`؛ آدرس در کد نبود و نیامد). `TouristTrip` + `BreadcrumbList` در `/tours/<slug>`، `BreadcrumbList` در مقصد و مقاله، `BlogPosting` از قبل بود. `FAQPage` از قبل در /faq. |
 | 14 | انجام شد | /reviews و /cruises (کم‌محتوا برای مهمان) noindex و خارج از sitemap؛ /about → /contact. چیزی حذف نشد. |
 | 15 | بخشی | viewport (`width=device-width, initial-scale=1`) روی همهٔ صفحات هست؛ RelatedLinks با flex-wrap است. با مرورگر موبایل آزموده نشد (Playwright نصب نشد). |
 | 16 | بخشی | JS بار اول (gzip، بدون polyfills که فقط برای مرورگر قدیمی است): پایه ~۲۲۰ kB برای همه؛ سنگین‌ترین‌ها /events-venues (۲۷۹)، /restaurants (۲۷۸)، /tours/last-minute (۲۷۷) با polyfills. سریع‌سازی: صفحات مجموعهٔ تور دیگر منتظر fetch مرورگر نیستند (فهرست با revalidate ۳۰۰ ثانیه سمت سرور). مانده: `ApprovedHeader` همهٔ صفحات داخلی کل ماژول صفحهٔ اصلی و `HomeSearchExperience` (~۲۰ kB gzip) را بار می‌کند؛ جدا کردنش به فایل محافظت‌شدهٔ `ApprovedFigmaHome.tsx` دست می‌زند و تأیید مالک می‌خواهد. |
@@ -92,10 +92,12 @@
 
 1. متن صفحات جزئیات تور فروشی (`TourDetail`)، هتل (`HotelDetail`)، ویلا و مقصدهای خارج از فهرست ثابت در مرورگر ساخته می‌شود؛ باید مثل بلاگ ابتدا سمت سرور خوانده شود.
 2. `/tours/search` و `/tours` فهرست برنامهٔ تورها را در مرورگر می‌سازند (`useSearchParams`)؛ نسخهٔ اول فهرست را سمت سرور بدهید.
-3. عنوان صفحات `/places/<id>`، `/visa/<id>`، `/villas/<id>`، `/experience-products/<id>` عمومی است (مثلاً «رزرو»)؛ API باید عنوان/توضیح هر مورد را بدهد (مثل `catalogSeo`).
-4. پس از دیپلوی: اجرای `node tests/seo/seo-check.mjs https://karentravel.ir` روی سایت زنده، و بررسی `curl -I https://www.karentravel.ir/` (باید 301 باشد).
-5. جدا کردن `ApprovedHeader` از ماژول صفحهٔ اصلی برای کم کردن JS صفحات داخلی (نیازمند تأیید مالک، فایل محافظت‌شده).
-6. آزمون نمایش موبایل با مرورگر (Playwright) در محیطی که دانلود مرورگر ممکن است.
+3. همهٔ تورهای فروشی `/tours/<uuid>` یک عنوان و توضیح مشترک دارند («جزئیات و رزرو تور»)؛ باید عنوان و توضیح هر تور از API بیاید.
+4. عنوان صفحات `/places/<id>`، `/visa/<id>`، `/villas/<id>`، `/experience-products/<id>` عمومی است (مثلاً «رزرو»)؛ API باید عنوان/توضیح هر مورد را بدهد (مثل `catalogSeo`).
+5. پس از دیپلوی: اجرای `node tests/seo/seo-check.mjs https://karentravel.ir` روی سایت زنده (برای صفحات جزئیاتی که فقط sitemap فهرست می‌کند، H1/توضیح/alt/عنوان تکراری هشدار است نه خطا؛ با `EXPECT_GOOGLE_VERIFICATION=<کد>` تگ Search Console هم بررسی می‌شود)، و بررسی `curl -I https://www.karentravel.ir/` (باید 301 باشد).
+6. جدا کردن `ApprovedHeader` از ماژول صفحهٔ اصلی برای کم کردن JS صفحات داخلی (نیازمند تأیید مالک، فایل محافظت‌شده).
+7. sitemap مسیرهای کاتالوگ را از `NEXT_PUBLIC_API_URL/catalog/sitemap` می‌گیرد (مثل قبل)؛ در این آزمون API نبود، پس ورود این مسیرها به sitemap بررسی‌نشده است.
+8. آزمون نمایش موبایل با مرورگر (Playwright) در محیطی که دانلود مرورگر ممکن است.
 
 ## کارهای مالک
 
@@ -104,6 +106,13 @@
 3. تأیید اعمال redirect www در nginx سرور (و داشتن گواهی برای www).
 4. تصمیم دربارهٔ صفحهٔ «درباره ما»: فعلاً /about به /contact می‌رود؛ اگر صفحهٔ جدا می‌خواهید، متن آن را بدهید.
 5. تصمیم دربارهٔ /reviews و /cruises (اکنون noindex): انتشار عمومی محتوا یا ماندن به همین شکل.
+
+## تغییرات دیدنی (فقط صفحات داخلی غیرمحافظت‌شده)
+
+- بلوک «صفحه‌های مرتبط» (دکمه‌های لینک) پایین صفحات پرواز، قطار، هتل، تور، مقصدها و ویزا.
+- در /white-label تیتر دوم پیکربندی از h1 به h2 تغییر کرد و کمی کوچک‌تر دیده می‌شود.
+- در /tours/search و /tours/destination/* تیتر فهرست h1 شد با همان اندازه و رنگ (کلاس `cat-list-h1`).
+- صفحهٔ اصلی و جست‌وجو: هیچ تغییر دیدنی.
 
 ## یادداشت برای دیپلوی
 

@@ -52,9 +52,9 @@ it is approved, and the rest of the protected surface stays as it was.
 
 ## 1405-09-08 (2026-11-28) — SEO baseline on the homepage (non-visual only)
 
-- Status: requested by the owner as the group SEO rule (`docs/group-knowledge/SEO_BASELINE.md`), relayed by the supervisor; scope limited to changes with no visual effect.
+- Status: **pending owner confirmation** — requested as the group SEO rule (`docs/group-knowledge/SEO_BASELINE.md`), relayed by the supervisor; scope limited to changes with no visual effect.
 - Scope: homepage route split into a server wrapper (`app/page.tsx`) and the unchanged client body (`app/root-pages.tsx`) so it can export metadata
   (title, description, canonical); Persian `alt` on the four destination tiles, the organization image and the two hotel thumbnails; JSON-LD data block in the root layout.
   The rendered homepage HTML was compared before/after: only the `alt` values differ. Search page: a pass-through `app/search/layout.tsx` adds `noindex` only.
-- Files: `app/page.tsx`, `app/root-pages.tsx`, `components/marketplace/ApprovedHomeLower.tsx`, `components/marketplace/ApprovedFigmaHome.tsx` (alt only), `app/layout.tsx`, `app/search/layout.tsx`.
+- Files: `app/page.tsx`, `app/root-pages.tsx`, `components/marketplace/ApprovedHomeLower.tsx`, `components/marketplace/ApprovedFigmaHome.tsx` (alt only), `app/layout.tsx`, `app/search/layout.tsx`, `app/globals.css` (one appended rule `.cat-head h1.cat-list-h1`, used only on /tours/search and /tours/destination/*; not on the homepage or search).
 - Evidence: `tests/seo/seo-check.mjs`; report `docs/seo/SEO_REPORT_2026-11-28.md`. Rollback: revert those hunks.

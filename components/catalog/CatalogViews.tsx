@@ -433,7 +433,7 @@ export function TourCatalog({title = 'برنامهٔ تورهای برگزارش
   const places = useCatalog<{items: Place[]}>('/catalog/places?kind=city&with_image=true&limit=500');
   const cityImg = (name?: string | null) => (name && places.data?.items.find(x => x.name === name || x.name_fa === name)?.image_url) || null;
   return <section className="cat" id="tour-catalog" aria-labelledby="cat-tours-title">
-    <header className="cat-head"><div>{mainHeading ? <h1 id="cat-tours-title">{title}</h1> : <h2 id="cat-tours-title">{title}</h2>}<p>{intro ?? 'برنامه، مقصد، مدت، خدمات و هتل‌های تورهایی که پیش‌تر برگزار شده‌اند. تاریخ حرکت و قیمت جدید فقط با استعلام از برگزارکننده اعلام می‌شود و از این فهرست رزرو انجام نمی‌شود.'}</p></div>
+    <header className="cat-head"><div>{mainHeading ? <h1 id="cat-tours-title" className="cat-list-h1">{title}</h1> : <h2 id="cat-tours-title">{title}</h2>}<p>{intro ?? 'برنامه، مقصد، مدت، خدمات و هتل‌های تورهایی که پیش‌تر برگزار شده‌اند. تاریخ حرکت و قیمت جدید فقط با استعلام از برگزارکننده اعلام می‌شود و از این فهرست رزرو انجام نمی‌شود.'}</p></div>
       <SearchBox value={q} onSubmit={v => set({tq: v || null, tpage: null})} placeholder="نام تور یا مقصد"/></header>
     {data && !presetDestination && data.destinations.length > 0 && <div className="cat-chips" role="group" aria-label="مقصد تور"><button className={!destination ? 'on' : ''} onClick={() => set({destination: null, tpage: null})}>همهٔ مقصدها</button>
       {data.destinations.map(d => <button key={d.id} className={destination === d.id ? 'on' : ''} onClick={() => set({destination: d.id, tpage: null})}>{d.name} <small>{fa(d.count)}</small></button>)}</div>}

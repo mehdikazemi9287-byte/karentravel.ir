@@ -43,7 +43,8 @@ for (const p of smPaths) if (disallowed.some(d => p.startsWith(d))) fail(`sitema
 for (const r of PUBLIC_ROUTES.filter(r => r.sitemap !== false)) if (!smPaths.includes(r.path)) fail(`sitemap misses public page ${r.path}`);
 
 // --- every public page (+ every fixed sitemap entry)
-const paths = [...new Set([...PUBLIC_ROUTES.map(r => r.path), ...smPaths.filter(p => !p.includes('/blog/') || PUBLIC_ROUTES.some(r => r.path === p))])];
+// fixed public pages + every sitemap URL (API detail pages: hard checks for status/noindex/canonical, warnings for content)
+const paths = [...new Set([...PUBLIC_ROUTES.map(r => r.path), ...smPaths])];
 const rows = []; const titles = new Map();
 if (snapshotDir) mkdirSync(snapshotDir, {recursive: true});
 for (const path of paths) {
@@ -70,12 +71,14 @@ for (const path of paths) {
   const want = origin + (path === '/' ? '' : path);
   if (!canonical) fail(`${path}: no canonical`);
   else if (canonical !== want && canonical !== want + '/') fail(`${path}: canonical ${canonical}, want ${want}`);
-  if (h1 !== 1) fail(`${path}: ${h1} <h1> (want exactly 1)`);
+  const soft = !PUBLIC_ROUTES.some(r => r.path === path); // API detail page listed only by the sitemap
+  const check = soft ? warn : fail;
+  if (h1 !== 1) check(`${path}: ${h1} <h1> (want exactly 1)`);
   if (!title.includes('کارن تراول')) warn(`${path}: title without brand: ${title}`);
-  if (titles.has(title)) fail(`${path}: same title as ${titles.get(title)}: ${title}`); else titles.set(title, path);
-  if (!description) fail(`${path}: no meta description`);
+  if (titles.has(title)) check(`${path}: same title as ${titles.get(title)}: ${title}`); else titles.set(title, path);
+  if (!description) check(`${path}: no meta description`);
   else if (row.descLen < 120 || row.descLen > 160) warn(`${path}: description ${row.descLen} chars (want 120–160)`);
-  if (noAlt) fail(`${path}: ${noAlt} <img> without alt`);
+  if (noAlt) check(`${path}: ${noAlt} <img> without alt`);
   if (text.length < 400) warn(`${path}: only ${text.length} chars of text without JS`);
 }
 
@@ -97,6 +100,10 @@ for (const path of ['/login', '/register', '/account', '/search', '/search/resul
   if (r.status === 200 && !/noindex/i.test(metaContent(r.text, 'robots') || '')) fail(`${path}: private page without noindex`);
   if (smPaths.includes(path)) fail(`sitemap lists private page ${path}`);
 }
+
+// --- Search Console tag: present exactly when the env has a code (run with GOOGLE_SITE_VERIFICATION=... to check the "on" case)
+{ const home = await get('/'); const v = metaContent(home.text, 'google-site-verification'); const want = process.env.EXPECT_GOOGLE_VERIFICATION || '';
+  if (want ? v !== want : v !== null) fail(`google-site-verification is ${JSON.stringify(v)}, want ${want ? JSON.stringify(want) : 'no tag'}`); }
 
 // --- a missing page must be a real 404 (and noindex is fine there)
 const missing = await get('/this-page-does-not-exist-seo-check');
