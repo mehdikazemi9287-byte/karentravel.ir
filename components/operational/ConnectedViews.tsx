@@ -295,7 +295,7 @@ export function ConnectedAdmin(){
       <label className="text-sm font-bold">نقش<select name="role" defaultValue="customer" className="mt-1 w-full rounded-xl border p-2">{ADMIN_ROLES.map(r=><option key={r} value={r}>{ROLE_FA[r]??r}</option>)}</select></label>
       <label className="text-sm font-bold">دلیل (برای نقش‌های مدیریتی الزامی)<input name="reason" maxLength={500} className="mt-1 w-full rounded-xl border p-2"/></label>
       <button className="button primary self-end" disabled={busy}>ساخت کاربر</button></form>
-      <p className="mt-2 text-xs text-slate-500">رمز عبوری ساخته نمی‌شود؛ کاربر با موبایل و رمز یک‌بار مصرف (پیامک) وارد می‌شود. برای نقش‌های مدیر مجموعه، کارشناس عملیات، کارشناس مالی و مدیر سازمان، دلیل الزامی است و در سابقهٔ ممیزی ثبت می‌شود.</p></section>
+      <p className="mt-2 text-xs text-slate-500">رمز عبوری ساخته نمی‌شود؛ کاربر با موبایل و رمز یک‌بار مصرف (پیامک) وارد می‌شود. برای نقش‌های مدیر مجموعه، کارشناس عملیات، کارشناس مالی، مدیر سازمان و مدیر رفاه، دلیل الزامی است و در سابقهٔ ممیزی ثبت می‌شود.</p></section>
     <section className="panel mt-5"><form className="flex flex-wrap items-end gap-2" role="search" onSubmit={e=>{e.preventDefault();setPage(1);setQuery(q.trim())}}>
       <label className="grow text-sm font-bold">جست‌وجو (نام، ایمیل یا موبایل)<input value={q} onChange={e=>setQ(e.target.value)} maxLength={80} className="mt-1 w-full rounded-xl border p-2"/></label>
       <label className="text-sm font-bold">وضعیت<select value={status} onChange={e=>{setStatus(e.target.value);setPage(1)}} className="mr-2 rounded-xl border p-2"><option value="all">همه</option><option value="active">فعال</option><option value="disabled">غیرفعال</option></select></label>

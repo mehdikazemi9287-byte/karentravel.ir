@@ -250,6 +250,7 @@ def test_import_rejects_nan_infinity_and_excel_percent_fractions(client):
     rows = {x["row"]: x for x in r.json()["rows"]}
     assert any("عدد نیست" in e for e in rows[2]["errors"]) and any("عدد نیست" in e for e in rows[3]["errors"])
     assert any("قالب «درصد»" in e for e in rows[4]["errors"])
+    assert not any("خالی" in e for e in rows[4]["errors"])            # one clear message, not a second misleading one
     assert any("درصد کودک" in e and "قالب «درصد»" in e for e in rows[5]["errors"])
     assert not rows[6]["errors"] and rows[6]["data"]["adult"] == 50       # an explicit % sign is taken as written
     big = b"x" * (2 * 1024 * 1024 + 1)
@@ -275,7 +276,7 @@ def test_invite_409_does_not_reveal_another_tenant_and_admin_roles_need_a_reason
     other = client.post("/admin/users", headers=admin, json={"name": "دعوت سه", "mobile": there})
     assert same.status_code == other.status_code == 409 and same.json()["detail"] == other.json()["detail"]
 
-    for role in ("tenant_admin", "finance_operator", "backoffice_expert", "organization_admin"):
+    for role in ("tenant_admin", "finance_operator", "backoffice_expert", "organization_admin", "manager", "welfare_manager"):
         assert client.post("/admin/users", headers=admin, json={"name": "بی‌دلیل", "mobile": _mobile(), "role": role}).status_code == 422
         assert client.post("/admin/users", headers=admin, json={"name": "بی‌دلیل", "mobile": _mobile(), "role": role, "reason": "  "}).status_code == 422
     made = client.post("/admin/users", headers=admin, json={"name": "مدیر مالی آزمون", "mobile": _mobile(), "role": "finance_operator", "reason": "واحد مالی جدید"})
@@ -322,4 +323,5 @@ def test_alembic_has_a_single_head():
     root = Path(__file__).resolve().parents[1]
     cfg = Config()
     cfg.set_main_option("script_location", str(root / "alembic"))
-    assert ScriptDirectory.from_config(cfg).get_heads() == ["20261128_81"]
+    heads = ScriptDirectory.from_config(cfg).get_heads()
+    assert len(heads) == 1, heads

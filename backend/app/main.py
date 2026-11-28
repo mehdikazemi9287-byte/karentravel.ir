@@ -5685,9 +5685,10 @@ class AdminUserCreateIn(BaseModel):
     reason: Optional[str] = Field(default=None, max_length=500)   # required for administrative roles (_ADMIN_INVITE_ROLES)
 
 
-# Roles that can manage people, money or the back office of the tenant: inviting someone straight into one of them
-# needs a written reason, kept in the audit trail (same rule as PUT /admin/users/{id}/role, which always needs one).
-_ADMIN_INVITE_ROLES = frozenset({"organization_admin", "backoffice_expert", "finance_operator", "tenant_admin"})
+# Roles that manage people, money, approvals or the back office (security.py: tenant:/member:manage, ledger/settlement,
+# backoffice:read or approval:decide): inviting someone straight into one of them needs a written reason, kept in the
+# audit trail (same rule as PUT /admin/users/{id}/role, which always needs one).
+_ADMIN_INVITE_ROLES = frozenset({"manager", "welfare_manager", "organization_admin", "backoffice_expert", "finance_operator", "tenant_admin"})
 _INVITE_MOBILE_TAKEN = "این شماره موبایل قابل ثبت نیست؛ اگر صاحب شماره حساب دارد، با همان شماره و رمز یک‌بار مصرف وارد شود"
 
 

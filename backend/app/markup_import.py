@@ -194,12 +194,12 @@ def validate_rules(db: Session, tenant_id: int, rows: list[list[str]]) -> dict:
                 errors.append(f"{COLUMNS['pct_' + pax][0]}: مقدار «{get('pct_' + pax)}» کسری است و احتمالاً سلول اکسل قالب «درصد» دارد "
                               f"(مثلاً 0.05 یعنی ۵٪)؛ قالب سلول را «عدد» کنید و درصد را به صورت عدد کامل بنویسید (مثلاً 5)، "
                               f"یا اگر واقعاً کمتر از ۱٪ است علامت ٪ را هم بنویسید (مثلاً 0.5٪)")
-                pct[pax] = None
-                continue
-            try:
-                pct[pax] = parse_percent(get("pct_" + pax))
-            except ValueError as exc:
-                errors.append(f"{COLUMNS['pct_' + pax][0]}: {exc}")
+                pct[pax] = 0                                # 0 (not None): the row is not also reported as «خالی»
+            else:
+                try:
+                    pct[pax] = parse_percent(get("pct_" + pax))
+                except ValueError as exc:
+                    errors.append(f"{COLUMNS['pct_' + pax][0]}: {exc}")
             try:
                 fix[pax] = parse_amount(get("fix_" + pax))
             except ValueError as exc:
@@ -215,7 +215,7 @@ def validate_rules(db: Session, tenant_id: int, rows: list[list[str]]) -> dict:
         for pax in ("adult", "child", "infant"):
             rec[pax] = source.get(pax) or 0
         if rec["calc"] == "percent" and 0 < rec["adult"] < 100:
-            warnings.append("درصد بزرگسال کمتر از ۱٪ است؛ اگر سلول در اکسل قالب «درصد» دارد، عدد را بدون قالب (مثلاً 5) بنویسید")
+            warnings.append("درصد بزرگسال کمتر از ۱٪ است؛ مطمئن شوید همین مقدار مقصود است")
         if rec["calc"] == "percent" and max(rec["adult"], rec["child"], rec["infant"]) > 100000:
             errors.append("درصد بیش از حد مجاز است")
         active = _norm_text(get("active"))
