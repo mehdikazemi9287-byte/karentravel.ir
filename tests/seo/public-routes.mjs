@@ -5,5 +5,5 @@ export const PUBLIC_ROUTES = [
   '/', '/flights', '/trains', '/hotels', '/tours', '/tours/last-minute', '/tours/nowruz', '/tours/installment', '/tours/special',
   '/destinations', '/experiences', '/blog', '/travel-guides', '/visa', '/car-rental', '/villas',
   '/restaurants', '/attractions', '/events-venues', '/pools-sports', '/handicrafts', '/souvenirs', '/tourist-transport', '/festival',
-  '/services', '/solutions', '/faq', '/contact', '/support', '/privacy', '/terms', '/itineraries', '/white-label', '/integrations',
+  '/services', '/solutions', '/faq', '/contact', '/about', '/support', '/privacy', '/terms', '/refund-policy', '/itineraries', '/white-label', '/integrations',
 ].map(path => ({path}));

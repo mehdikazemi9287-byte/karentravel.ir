@@ -1,8 +1,9 @@
 /* Blog presentation, shared by the server pages and the browser fallback. Text is rendered as text only. */
 import Link from 'next/link';
-import {blogImage, faDate, parseBody, type BlogList, type BlogPost, type BlogSummary} from '../../lib/blog';
+import {blogImage, faDate, parseBody, parseInline, type BlogList, type BlogPost, type BlogSummary} from '../../lib/blog';
 
 const fa = (n: number) => n.toLocaleString('fa-IR');
+const Rich = ({text}: {text: string}) => <>{parseInline(text).map((s, i) => s.href ? <Link key={i} href={s.href}>{s.text}</Link> : s.text)}</>;
 
 export function BlogCard({p}: {p: BlogSummary}) {
   return <Link className="blog-card" href={`/blog/${p.slug}`}>
@@ -44,7 +45,7 @@ export function BlogArticle({p, site}: {p: BlogPost; site: string}) {
     {p.cover && <>{/* eslint-disable-next-line @next/next/no-img-element */}<img className="blog-cover" src={blogImage(p.cover)} alt={p.cover_alt || ''}/></>}
     {p.excerpt && <p className="blog-lead">{p.excerpt}</p>}
     <div className="blog-body">{parseBody(p.body).map((b, i) => b.kind === 'h' ? <h2 key={i}>{b.text}</h2>
-      : b.kind === 'ul' ? <ul key={i}>{b.items!.map((x, j) => <li key={j}>{x}</li>)}</ul> : <p key={i}>{b.text}</p>)}</div>
+      : b.kind === 'ul' ? <ul key={i}>{b.items!.map((x, j) => <li key={j}><Rich text={x}/></li>)}</ul> : <p key={i}><Rich text={b.text!}/></p>)}</div>
     {p.tags.length > 0 && <p className="blog-tags">{p.tags.map(t => <Link key={t} href={`/blog?tag=${encodeURIComponent(t)}`}>#{t}</Link>)}</p>}
     <aside className="blog-cta panel"><b>برای این سفر کمک می‌خواهید؟</b><p>مقصد و زمان سفرتان را بگویید تا کارشناسان کارن تراول گزینه‌های موجود را پیشنهاد دهند.</p>
       <Link className="button primary" href="/tours">دیدن تورها</Link> <Link className="button secondary" href="/support">مشاوره‌ی سفر</Link></aside>
