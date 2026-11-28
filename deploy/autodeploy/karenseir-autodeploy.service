@@ -1,0 +1,9 @@
+[Unit]
+Description=KarenSeir auto-deploy from GitHub main
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+Environment=HOME=/root
+ExecStart=/bin/bash /opt/karenseir/autodeploy/karenseir-autodeploy.sh
+TimeoutStartSec=3600
