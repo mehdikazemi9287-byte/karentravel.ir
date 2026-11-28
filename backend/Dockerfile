@@ -12,6 +12,9 @@ COPY catalog_data ./catalog_data
 COPY scripts/catalog ./scripts/catalog
 # Server-console staff password tool only (docs/ops/STAFF_PASSWORD_LOGIN.md); the other scripts stay out of the image.
 COPY scripts/__init__.py scripts/set_staff_password.py ./scripts/
+# Magazine articles and their idempotent importer (scripts/import_blog_posts.py).
+COPY scripts/import_blog_posts.py ./scripts/
+COPY content/blog ./content/blog
 COPY entrypoint.sh ./entrypoint.sh
 ARG GIT_COMMIT=unknown
 ARG BUILD_TIMESTAMP=unknown
