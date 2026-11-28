@@ -39,7 +39,7 @@ export function pageMetadata({title, description, path, absoluteTitle = false, n
 export function organizationLd(phone?: string) {
   return {
     '@context': 'https://schema.org', '@type': 'TravelAgency', '@id': `${siteUrl()}/#organization`,
-    name: SITE_NAME, alternateName: 'Karen Travel', url: siteUrl(), logo: `${siteUrl()}/images/approved-figma/imgComponentLogoMark.svg`,
+    name: SITE_NAME, alternateName: 'Karen Travel', url: siteUrl(), logo: `${siteUrl()}/images/brand/karen-travel-logo-full.png`,
     ...(phone ? {telephone: phone, contactPoint: {'@type': 'ContactPoint', telephone: phone, contactType: 'customer support', availableLanguage: 'fa'}} : {}),
   };
 }
