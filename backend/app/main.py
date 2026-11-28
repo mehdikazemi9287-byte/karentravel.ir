@@ -3981,8 +3981,10 @@ def internal_search_offer_pool(data: _OfferPoolIn, x_internal_token: str = Heade
     )).all()
     from .commerce import CustomerGroup, user_group_id
     group_id = None
-    if not data.public and data.price_group:   # resolved by the /search/v3 gateway from the JWT; must be an active group of this tenant
-        group_id = db.scalar(select(CustomerGroup.id).where(CustomerGroup.id == data.price_group, CustomerGroup.tenant_id == tenant_id, CustomerGroup.status == "active"))
+    if not data.public and data.price_group:   # resolved by the /search/v3 gateway from the JWT; must be a group of this tenant
+        # No status filter: user_group_id() returns a direct membership whatever the group's status, and /search/offers
+        # prices with that group too. The tenant match is the boundary.
+        group_id = db.scalar(select(CustomerGroup.id).where(CustomerGroup.id == data.price_group, CustomerGroup.tenant_id == tenant_id))
     if group_id is None:
         group_id = user_group_id(db, tenant_id, None)   # the tenant's default group (or none)
     caps: dict = {}

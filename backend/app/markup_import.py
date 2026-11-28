@@ -97,15 +97,26 @@ def parse_amount(raw: str) -> Optional[int]:
     return int(text)
 
 
+AMBIGUOUS = "\x00ambiguous"
+
+
+def _put(index: dict, key: str, value: str) -> None:
+    """Two different targets under one name → the name is ambiguous (row error), never a silent first-wins."""
+    if key in index and index[key] != value:
+        index[key] = AMBIGUOUS
+    else:
+        index[key] = value
+
+
 def _supplier_index(db: Session, tenant_id: int) -> dict[str, str]:
     """name / provider_key / id → the value a markup rule stores (provider_key for web services, else the supplier id)."""
     index = {"mahan": "mahan", "ماهان": "mahan", "nira": "nira", "نیرا": "nira"}
     for s in db.scalars(select(m.Supplier).where(m.Supplier.tenant_id == tenant_id)):
         value = s.provider_key or s.id
-        index.setdefault(_norm_text(s.display_name), value)
-        index.setdefault(s.id.lower(), value)
+        _put(index, _norm_text(s.display_name), value)
+        index[s.id.lower()] = value
         if s.provider_key:
-            index.setdefault(s.provider_key, value)
+            index[s.provider_key] = value
     return index
 
 
@@ -118,9 +129,12 @@ def validate_rules(db: Session, tenant_id: int, rows: list[list[str]]) -> dict:
         raise TableError("ستون «درصد بزرگسال» یا «مبلغ ثابت بزرگسال» پیدا نشد؛ از فایل نمونه استفاده کنید")
     groups = {}
     for g in db.scalars(select(CustomerGroup).where(CustomerGroup.tenant_id == tenant_id, CustomerGroup.status == "active")):
-        groups.setdefault(_norm_text(g.name), g.id)
-        groups.setdefault(_norm_text(g.code), g.id)
+        _put(groups, _norm_text(g.name), g.id)
+        _put(groups, _norm_text(g.code), g.id)
     suppliers = _supplier_index(db, tenant_id)
+    from .commerce import MarkupRule
+    existing = {tuple(getattr(r, k) for k in ("service_type", "group_id", "supplier_id", "scope", "flight_type", "airline_code", "origin", "destination"))
+                for r in db.scalars(select(MarkupRule).where(MarkupRule.tenant_id == tenant_id, MarkupRule.status == "active"))}
     seen: dict[tuple, int] = {}
     out = []
     for n, raw in enumerate(rows[1:], start=2):
@@ -136,13 +150,17 @@ def validate_rules(db: Session, tenant_id: int, rows: list[list[str]]) -> dict:
         rec["group_id"] = None
         if group and group != "همه":
             rec["group_id"] = groups.get(group)
-            if rec["group_id"] is None:
+            if rec["group_id"] == AMBIGUOUS:
+                errors.append(f"چند گروه با نام «{get('group')}» هست؛ کد گروه را بنویسید")
+            elif rec["group_id"] is None:
                 errors.append(f"گروه «{get('group')}» در این مجموعه نیست (گروه‌ها خودکار ساخته نمی‌شوند)")
         supplier = _norm_text(get("supplier"))
         rec["supplier_id"] = None
         if supplier and supplier != "همه":
             rec["supplier_id"] = suppliers.get(supplier)
-            if rec["supplier_id"] is None:
+            if rec["supplier_id"] == AMBIGUOUS:
+                errors.append(f"چند تأمین‌کننده با نام «{get('supplier')}» هست؛ شناسهٔ تأمین‌کننده را بنویسید")
+            elif rec["supplier_id"] is None:
                 errors.append(f"تأمین‌کننده «{get('supplier')}» پیدا نشد")
         for key, table, label in (("scope", SCOPE_FA, "داخلی/خارجی"), ("flight_type", FLIGHT_TYPE_FA, "سیستمی/چارتری")):
             value = _norm_text(get(key))
@@ -198,6 +216,8 @@ def validate_rules(db: Session, tenant_id: int, rows: list[list[str]]) -> dict:
                 errors.extend(str(e.get("msg", "")).replace("Value error, ", "") for e in exc.errors())
         if not errors:
             key = tuple(rec.get(k) for k in ("service_type", "group_id", "supplier_id", "scope", "flight_type", "airline_code", "origin", "destination"))
+            if key in existing:
+                warnings.append("قاعدهٔ فعالی با همین شرط‌ها از قبل هست؛ با ثبت این ردیف دو قاعده خواهید داشت")
             if key in seen:
                 warnings.append(f"همان شرط‌های ردیف {seen[key]}؛ هر دو ثبت می‌شوند و قاعدهٔ اول (اولویت یکسان) برنده است")
             else:

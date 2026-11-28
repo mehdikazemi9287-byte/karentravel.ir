@@ -14,10 +14,10 @@ def _h(client, email="tenant-admin@aftab.test"):
     return {"Authorization": "Bearer " + client.post("/auth/dev-login", json={"email": email}).json()["access_token"]}
 
 
-def _group(name):
+def _group(name, code=None):
     with SessionLocal() as db:
         tid = db.scalar(select(User.tenant_id).where(User.email == "tenant-admin@aftab.test"))
-        g = CustomerGroup(tenant_id=tid, code="imp-" + uuid.uuid4().hex[:8], name=name)
+        g = CustomerGroup(tenant_id=tid, code=code or "imp-" + uuid.uuid4().hex[:8], name=name)
         db.add(g); db.commit()
         return g.id
 
@@ -84,3 +84,29 @@ def test_sample_row_and_empty_file_are_rejected(client):
     assert sample["errors"] == 1
     r = client.post("/commerce/markup-rules/import", headers=h, files={"file": ("x.csv", "عنوان\n".encode(), "text/csv")})
     assert r.status_code == 422
+
+
+def test_ambiguous_group_name_is_a_row_error_and_reupload_warns(client):
+    h = _h(client)
+    name = "twin-" + uuid.uuid4().hex[:6]
+    a, b = _group(name), _group("گروه دیگر " + name, code=name)     # one group's name is another group's code
+    row = [f"دوقلو {name}", "", name, "", "", "", "", "", "", "3", "", "", "", "", "", ""]
+    try:
+        r = _upload(client, h, [row]).json()["rows"][0]
+        assert any("چند گروه" in e for e in r["errors"])
+    finally:
+        with SessionLocal() as db:
+            for gid in (a, b):
+                db.get(CustomerGroup, gid).status = "disabled"
+            db.commit()
+    tag = uuid.uuid4().hex[:6]
+    plain = [f"تکرار {tag}", "", "", "", "", "", "", "KIH", "THR", "2", "", "", "", "", "", ""]
+    done = _upload(client, h, [plain], confirm=True).json()
+    try:
+        again = _upload(client, h, [plain]).json()["rows"][0]
+        assert any("از قبل هست" in w for w in again["warnings"]) and not again["errors"]
+    finally:
+        with SessionLocal() as db:
+            for rid in done["rule_ids"]:
+                db.get(MarkupRule, rid).status = "disabled"
+            db.commit()
