@@ -287,3 +287,28 @@ def test_booking_request_lands_in_the_sales_desk_with_flight_details(client, mon
     h = {"Authorization": "Bearer " + client.post("/auth/dev-login", json={"email": "backoffice@aftab.test"}).json()["access_token"]}
     found = client.get("/sales-desk/cases", params={"q": mobile}, headers=h).json()["items"]
     assert [c["id"] for c in found] == [case_id]
+
+
+def test_city_names_resolve_like_the_shipped_catalog():
+    """Shape of build_catalog.py output: a city place + airports linked by city_id (city_name = the place's Persian name),
+    Persian airport names, normalized search_text. Arabic ي/ك variants and the IATA code resolve too; nothing is guessed."""
+    from app.catalog import CatalogPlace, normalize_text
+    tag = uuid.uuid4().hex[:4]
+    city_fa, city_id = f"شهرکی آزمون {tag}", f"ir-test-{tag}"
+    letter = "ABCDEFGHIJKLMNOP"[int(tag[0], 16)]
+    codes = [f"Q{letter}A", f"Q{letter}B"]                                   # IATA codes are letters only
+    with SessionLocal() as db:
+        db.add(CatalogPlace(id=city_id, kind="city", country_code="IR", name_fa=city_fa, name_en=f"Testcity {tag}",
+                            search_text=normalize_text(f"{city_fa} testcity {tag}"), source="test"))
+        for i, code in enumerate(codes):
+            if db.get(CatalogAirport, code) is None:
+                db.add(CatalogAirport(id=code, name_fa=f"فرودگاه آزمون {tag} {i}", name_en=f"Test {tag} {i}", city_id=city_id, city_name=city_fa,
+                                      country_code="IR", latitude=0.0, longitude=0.0, timezone="Asia/Tehran", airport_type="medium_airport",
+                                      scheduled_service=True, search_text=normalize_text(f"فرودگاه آزمون {tag} {i} {code} {city_fa}"), source="test"))
+        db.commit()
+    with SessionLocal() as db:
+        assert set(pfs.resolve_airports(db, city_fa)) == set(codes)
+        assert set(pfs.resolve_airports(db, city_fa.replace("ی", "ي").replace("ک", "ك"))) == set(codes)
+        assert pfs.resolve_airports(db, f"فرودگاه آزمون {tag} 1") == [codes[1]]
+        assert pfs.resolve_airports(db, codes[0].lower()) == [codes[0]]
+        assert pfs.resolve_airports(db, f"آزمون {tag}") == []                 # partial text is not guessed into a city

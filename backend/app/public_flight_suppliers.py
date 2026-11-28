@@ -133,7 +133,9 @@ def resolve_airports(db: Session, text: Optional[str]) -> list[str]:
             found.append(a.id)
     if found:
         return found[:MAX_PAIRS]
-    cities = [p.id for p in db.scalars(select(CatalogPlace).where(CatalogPlace.kind == "city", or_(CatalogPlace.name_fa == raw, CatalogPlace.name_en == raw))).all()]
+    places = db.scalars(select(CatalogPlace).where(CatalogPlace.kind == "city", or_(CatalogPlace.search_text.like(f"%{n}%"), CatalogPlace.name_fa == raw,
+                                                                                     CatalogPlace.name_en == raw)).limit(40)).all()
+    cities = [p.id for p in places if n in (_norm(p.name_fa), _norm(p.name_en))]
     by_city = db.scalars(select(CatalogAirport).where(CatalogAirport.city_id.in_(cities))).all() if cities else []
     by_name = [a for a in rows if _norm(a.city_name) == n]
     ordered = sorted({a.id: a for a in [*by_city, *by_name] if a.scheduled_service is not False}.values(),

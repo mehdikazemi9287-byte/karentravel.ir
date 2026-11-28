@@ -7,7 +7,9 @@ autocomplete. Does NOT own reservation / payment / trip / identity / supplier
 admin. ShadShahr (leisure) stays out of scope — future consumer relationship.
 
 - Runtime: `uvicorn app.main:app` on :8080, own Docker image `karenseir-search:*`.
-- Data source: the monolith `POST /internal/search/offer-pool` (single DB owner).
+- Data source: the monolith `POST /internal/search/offer-pool` (single DB owner); for flights also
+  `POST /internal/search/flight-suppliers` (live Niira/Mahan, request-only offers; provider `flight_suppliers_live`,
+  off with `SEARCH_LIVE_FLIGHT_SUPPLIERS=0`).
 - Contract: `POST /v1/search`, `GET /v1/autocomplete`, `GET /v1/providers`,
   `/health` `/ready` `/version` `/metrics`.
 - Cache: Redis (`SEARCH_REDIS_URL`) with bounded in-memory fallback.
