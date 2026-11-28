@@ -49,4 +49,21 @@ export function parseBody(body: string): Block[] {
   return out;
 }
 
+export type Inline = {text: string; href?: string};
+/** Inline internal links «[متن](/path)» → text and site-path segments. Only same-site paths are linked
+ *  (no scheme, no "//"); anything else stays plain text. Still no HTML is produced. */
+export function parseInline(text: string): Inline[] {
+  const out: Inline[] = [];
+  const re = /\[([^\]\n]{1,120})\]\((\/(?!\/)[A-Za-z0-9\-._~\/?=&#%]{0,200})\)/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) out.push({text: text.slice(last, m.index)});
+    out.push({text: m[1], href: m[2]});
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) out.push({text: text.slice(last)});
+  return out;
+}
+
 export const faDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('fa-IR', {timeZone: 'Asia/Tehran', year: 'numeric', month: 'long', day: 'numeric'}) : '');

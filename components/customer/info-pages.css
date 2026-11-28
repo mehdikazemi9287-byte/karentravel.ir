@@ -1,0 +1,16 @@
+/* Information pages (about, terms, privacy, refund policy): readable text column, policy tables. */
+.info-page{max-width:920px}
+.info-page .info-lead{font-size:1.08rem;color:#4b3d47}
+.info-page .info-section{margin-top:28px}
+.info-page .info-section h2{font-size:1.25rem;font-weight:800}
+.info-page ul{list-style:disc;padding-inline-start:1.4rem;line-height:2;max-width:850px}
+.info-page .info-table-wrap{overflow-x:auto;margin:16px 0}
+.info-page table{border-collapse:collapse;width:100%;min-width:520px;background:#fff;border:1px solid var(--line,#eadfd8);border-radius:14px}
+.info-page th,.info-page td{border:1px solid var(--line,#eadfd8);padding:10px 12px;text-align:start;vertical-align:top;line-height:1.9}
+.info-page th{background:#faf5f1;font-weight:800}
+.info-page .info-contact{margin-top:36px;padding:22px;border-radius:20px}
+.info-page .info-related{margin-top:28px}
+.info-page .info-related ul{display:flex;flex-wrap:wrap;gap:8px 20px;list-style:none;padding:0}
+.info-page .info-related a{text-decoration:underline;text-underline-offset:5px}
+.contact-facts{list-style:disc;padding-inline-start:1.4rem;line-height:2.1;max-width:850px}
+.contact-facts a{text-decoration:underline;text-underline-offset:5px}

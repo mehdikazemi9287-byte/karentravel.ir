@@ -84,7 +84,7 @@ for (const path of paths) {
 
 // --- duplicate addresses answer with a permanent redirect (301/308) to the one canonical address
 const permanent = c => c === 301 || c === 308;
-for (const [from, to] of [['/about', '/contact'], ['/tours/reference', '/tours/search'], ['/tours/', '/tours'], ['/contact/', '/contact']]) {
+for (const [from, to] of [['/about-us', '/about'], ['/tours/reference', '/tours/search'], ['/tours/', '/tours'], ['/contact/', '/contact']]) {
   const r = await get(from);
   if (!permanent(r.status) || !(r.location || '').replace(/^https?:\/\/[^/]+/, '').startsWith(to)) fail(`${from}: ${r.status} → ${r.location}, want permanent redirect to ${to}`);
 }
