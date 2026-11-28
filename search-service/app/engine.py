@@ -237,7 +237,7 @@ def assemble(req, pools: dict[str, list[dict]], provider_meta: list[dict], elaps
         {"type": "nearby_dates", "message": "تاریخ‌های ±۱ روز را بررسی کنید", "fabricated_price": False},
         {"type": "fewer_filters", "message": "برخی فیلترها را حذف کنید", "fabricated_price": False},
     ]
-    failed = [m for m in provider_meta if m["status"] not in ("available", "not_connected")]
+    failed = [m for m in provider_meta if m["status"] not in ("available", "not_connected", "not_applicable")]
     # provider_diagnostics keyed by the real offer provider (parity with monolith)
     diag = [
         {"provider": key, "status": "available", "offer_count": sum(1 for o in offers if o["provider"] == key)}
@@ -258,7 +258,7 @@ def assemble(req, pools: dict[str, list[dict]], provider_meta: list[dict], elaps
         ],
         "search_metadata": {
             "providers_requested": len(provider_meta),
-            "providers_completed": sum(1 for m in provider_meta if m["status"] in ("available", "not_connected")),
+            "providers_completed": sum(1 for m in provider_meta if m["status"] in ("available", "not_connected", "not_applicable")),
             "providers_succeeded": sum(1 for m in provider_meta if m["status"] == "available"),
             "providers_failed": len(failed),
             "partial_results": bool(failed) and bool(entities),

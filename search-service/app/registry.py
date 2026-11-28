@@ -11,7 +11,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .providers import EXTERNAL_PROVIDERS, SearchProviderPort, _POOL
+from . import config
+from .providers import EXTERNAL_PROVIDERS, SearchProviderPort, _LIVE_FLIGHTS, _POOL
 
 
 @dataclass(frozen=True)
@@ -58,5 +59,7 @@ REGISTRY = ProviderRegistry()
 # registered (not hidden) so their truthful not_connected state is always
 # visible in diagnostics and provider_fanout, never silently omitted.
 REGISTRY.register(_POOL, priority=0)
+# priority 5: live Niira/Mahan flights, request-only (booking_mode="request"); off with SEARCH_LIVE_FLIGHT_SUPPLIERS=0.
+REGISTRY.register(_LIVE_FLIGHTS, enabled=config.LIVE_FLIGHT_SUPPLIERS, priority=5)
 for _ext in EXTERNAL_PROVIDERS:
     REGISTRY.register(_ext, priority=10)

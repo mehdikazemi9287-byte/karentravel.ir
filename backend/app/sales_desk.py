@@ -193,6 +193,9 @@ class PublicCaseIn(BaseModel):
     description: Optional[str] = Field(default=None, max_length=1000)
     consent: bool
     website: Optional[str] = Field(default=None, max_length=200)  # honeypot: humans never fill it
+    # «درخواست رزرو» on a request-only flight result: the server-signed flight spec + shown sell price (public_flight_suppliers.py).
+    # The case's trip/description/travel date are then written from the verified spec, never from browser text.
+    flight_request: Optional[str] = Field(default=None, max_length=4000)
 
     @field_validator("mobile")
     @classmethod
@@ -381,7 +384,7 @@ def _month_start(now: datetime) -> datetime:
 
 
 # ---------------------------------------------------------------- router
-def sales_desk_router(get_db, current_user, role_has_permission, User, audit=None, public_tenant=None):
+def sales_desk_router(get_db, current_user, role_has_permission, User, audit=None, public_tenant=None, flight_request_verifier=None):
     """public_tenant(db) -> tenant id that receives the public web form (sets the RLS context); None or raising 503 = intake closed."""
     api = APIRouter(tags=["sales-desk"])
 
@@ -765,6 +768,19 @@ def sales_desk_router(get_db, current_user, role_has_permission, User, audit=Non
             raise HTTPException(status_code=422, detail="برای تماس کارشناس، رضایت لازم است")
         if public_tenant is None:
             raise HTTPException(status_code=503, detail="ثبت درخواست آنلاین هنوز فعال نشده است")
+        flight = None
+        if data.flight_request:
+            if flight_request_verifier is None:
+                raise HTTPException(status_code=503, detail="ثبت درخواست رزرو پرواز هنوز فعال نشده است")
+            try:
+                flight = flight_request_verifier(data.flight_request)
+            except ValueError:
+                raise HTTPException(status_code=422, detail="این پیشنهاد پرواز معتبر نیست یا منقضی شده است؛ دوباره جست‌وجو کنید.")
+            from .public_flight_suppliers import describe
+            trip_line, flight_text = describe(flight)
+            note = (data.description or "").strip()
+            data = data.model_copy(update={"trip": trip_line, "travel_date": str(flight.get("dep", ""))[:10] or None,
+                                           "description": flight_text + (f"\nتوضیح مشتری: {note}" if note else "")})
         tenant_id = public_tenant(db)
         now = utcnow()
         recent = db.scalars(select(SalesCase).where(SalesCase.tenant_id == tenant_id, SalesCase.mobile == data.mobile, SalesCase.channel == "web_form",
@@ -772,7 +788,7 @@ def sales_desk_router(get_db, current_user, role_has_permission, User, audit=Non
         open_case = next((c for c in recent if c.stage in OPEN_STAGES), None)
         if open_case is not None and (len(recent) >= PUBLIC_DAILY_CAP or open_case.trip.strip() == data.trip.strip()):
             _log(db, open_case, None, "message", f"درخواست دوباره از سایت: {data.trip}" + (f" — {data.description}" if data.description else ""),
-                 {"channel": "web_form", "travel_date": data.travel_date, "travellers": data.travellers})
+                 {"channel": "web_form", "travel_date": data.travel_date, "travellers": data.travellers, **({"flight_request": flight} if flight else {})})
             open_case.updated_at = now
             db.commit()
             return {"received": True}
@@ -790,7 +806,9 @@ def sales_desk_router(get_db, current_user, role_has_permission, User, audit=Non
                 case.agent_user_id, nxt.last_assigned_at, assigned_by = nxt.user_id, now, "round_robin"
         db.add(case)
         db.flush()
-        _log(db, case, None, "created", None, {"channel": "web_form", "assigned_by": assigned_by, "agent_user_id": case.agent_user_id, "consent": True})
+        # the desk's case view lists activities (not `description`): the verified flight details go in the created entry too
+        _log(db, case, None, "created", data.description if flight else None, {"channel": "web_form", "assigned_by": assigned_by, "agent_user_id": case.agent_user_id, "consent": True,
+                                               **({"flight_request": flight} if flight else {})})
         db.commit()
         # The visitor gets no case code or agent name: nothing about the desk is disclosed to an anonymous caller.
         return {"received": True}
