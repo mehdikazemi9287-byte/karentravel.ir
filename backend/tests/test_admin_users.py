@@ -68,3 +68,23 @@ def test_old_list_shape_is_kept_and_search_is_admin_only(client):
     legacy = client.get("/admin/users", headers=admin).json()
     assert isinstance(legacy, list) and {"id", "name", "email", "role", "mutable"} <= set(legacy[0])
     assert client.get("/admin/users/search", headers=_h(client, "employee@aftab.test")).status_code == 403
+
+
+def test_invited_user_gets_an_otp_challenge_in_the_admin_tenant(client, monkeypatch):
+    """The login page sends the organization's slug to /auth/otp/request; the invited mobile must resolve there.
+    The SMS adapter is replaced by a stub that accepts; nothing is sent."""
+    from types import SimpleNamespace
+    from app import providers
+    from app.main import Tenant
+    from app.operations import OTPChallenge
+    monkeypatch.setitem(providers.ADAPTERS, "otp", SimpleNamespace(execute=lambda *a, **k: {"ok": True, "reference": "test-stub"}))
+    admin = _h(client, "tenant-admin@aftab.test")
+    mobile = _mobile()
+    u = client.post("/admin/users", headers=admin, json={"name": "ورود آزمون " + uuid.uuid4().hex[:5], "mobile": mobile}).json()
+    with SessionLocal() as db:
+        slug = db.get(Tenant, db.get(User, u["id"]).tenant_id).slug
+    assert client.post("/auth/otp/request", json={"tenant_slug": slug, "identifier": mobile}).status_code == 202
+    with SessionLocal() as db:
+        assert db.scalar(select(OTPChallenge.id).where(OTPChallenge.user_id == u["id"])) is not None
+        db.get(User, u["id"]).disabled_at = datetime.now(timezone.utc)
+        db.commit()
