@@ -1027,12 +1027,14 @@ def password_login(data: PasswordLoginIn, request: Request, db: Session = Depend
         db.commit()
         record_business_event("password_login", "failed")
         raise _password_login_failed()
-    auth_state.failed_attempts = 0
-    auth_state.locked_until = None
     if _mfa_enabled(db, tenant.id, user.id):  # same two-step rule as OTP login: the authenticator code completes it at /auth/2fa/verify
+        # The failure counter is NOT reset here: /auth/2fa/verify resets it on success, so a known password cannot be
+        # used to wipe the lock built up by wrong authenticator codes.
         db.add(operational_models.AuthenticationAudit(tenant_id=tenant.id, user_id=user.id, action="password.verified_mfa_pending", device_hash=device_hash, ip_hash=ip_hash))
         db.commit()
         return {"mfa_required": True, "mfa_ticket": _account_security_api.ticket_for(user, tenant, None), "user": {"name": user.name}}
+    auth_state.failed_attempts = 0
+    auth_state.locked_until = None
     db.add(operational_models.AuthenticationAudit(tenant_id=tenant.id, user_id=user.id, action="password.login_succeeded", device_hash=device_hash, ip_hash=ip_hash))
     record_business_event("password_login", "succeeded")
     return _issue_login_session(db, tenant, user, request, data.device_id)  # same session/token issuance as 2FA login; commits

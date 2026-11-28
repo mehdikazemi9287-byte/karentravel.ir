@@ -77,7 +77,7 @@ def test_wrong_password_unknown_user_no_password_and_other_tenant_answer_identic
         _login(client, no_pw["email"], password),                        # account without a password
         _login(client, u["email"], password, tenant="faraz-industries"),  # right password, other tenant
         _login(client, u["email"], password, tenant="no-such-tenant"),    # unknown tenant
-        _login(client, u["email"], "x"),                                 # short password: 401, not 422
+        _login(client, u["email"], secrets.token_hex(1)),               # short password: 401, not 422
     ]
     for r in responses:
         _assert_generic(r)
@@ -121,8 +121,11 @@ def test_mfa_account_still_needs_the_second_step(client, monkeypatch):
     password = _pw()
     u = _user(password=password)
     monkeypatch.setattr(main, "_mfa_enabled", lambda db, tenant_id, user_id: user_id == u["id"])
+    _assert_generic(_login(client, u["email"], _pw()))  # one failure on record
     body = _login(client, u["email"], password).json()
     assert body.get("mfa_required") is True and body.get("mfa_ticket") and "access_token" not in body
+    with SessionLocal() as db:  # the right password alone does not wipe the failure counter of an MFA account
+        assert db.scalar(select(AuthenticationState).where(AuthenticationState.user_id == u["id"])).failed_attempts == 1
 
 
 def test_password_is_never_loaded_with_ordinary_user_queries():

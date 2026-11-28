@@ -46,7 +46,7 @@ function LoginPageInner() {
   const redirectTarget = safeRedirectTarget(useSearchParams().get('redirect'));
   const [organizationLogin, setOrganizationLogin] = useState(false);
   const [organizationSlug, setOrganizationSlug] = useState('');
-  const tenantSlug = organizationLogin ? organizationSlug : 'karenseir-consumer';
+
   const [identifier, setIdentifier] = useState('');
   const [challengeId, setChallengeId] = useState('');
   const [otp, setOtp] = useState('');
@@ -59,10 +59,11 @@ function LoginPageInner() {
   // from the server console; the session is stored exactly like an OTP login (passwordLogin -> setSession).
   const [passwordMode, setPasswordMode] = useState(false);
   const [password, setPassword] = useState('');
+  const tenantSlug = organizationLogin || passwordMode ? organizationSlug.trim() : 'karenseir-consumer';
   async function loginWithPassword(event: FormEvent) {
     event.preventDefault();
     if(busy)return;setBusy(true);
-    try { const authenticated = await passwordLogin(organizationSlug.trim(), identifier.trim(), password); setPassword(''); finish(authenticated.user?.role); }
+    try { const authenticated = await passwordLogin(tenantSlug, identifier.trim(), password); setPassword(''); finish(authenticated.user?.role); }
     catch (error) {
       if (error instanceof MfaRequiredError) { setPassword(''); setMfaTicket(error.ticket); setMessage('رمز تأیید شد. حالا کد شش‌رقمی برنامه‌ی Google Authenticator را وارد کنید.'); return; }
       setMessage(error instanceof ApiError && error.status === 429 ? 'تعداد تلاش‌ها زیاد است؛ یک دقیقه بعد دوباره تلاش کنید.' : 'ورود انجام نشد: نام کاربری یا رمز درست نیست، یا حساب موقتاً قفل است.');
@@ -104,7 +105,7 @@ function LoginPageInner() {
     catch (error) {
       const status = error instanceof ApiError ? error.status : 0;
       if (status === 423) setMessage('به‌خاطر کدهای اشتباه، حساب تا ۱۵ دقیقه قفل است.');
-      else if (status === 401 && /مهلت/.test(error instanceof Error ? error.message : '')) { setMfaTicket(''); setChallengeId(''); setMessage('مهلت ورود تمام شد؛ دوباره کد پیامکی بگیرید.'); }
+      else if (status === 401 && /مهلت/.test(error instanceof Error ? error.message : '')) { setMfaTicket(''); setChallengeId(''); setMessage(passwordMode ? 'مهلت ورود تمام شد؛ دوباره رمز را وارد کنید.' : 'مهلت ورود تمام شد؛ دوباره کد پیامکی بگیرید.'); }
       else setMessage(useRecovery ? 'کد بازیابی درست نیست یا قبلاً استفاده شده است.' : 'کد برنامه درست نیست؛ ساعت گوشی را بررسی کنید.');
     } finally {setBusy(false)}
   }
