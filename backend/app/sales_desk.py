@@ -389,7 +389,7 @@ def sales_desk_router(get_db, current_user, role_has_permission, User, audit=Non
     api = APIRouter(tags=["sales-desk"])
 
     def agent(user=Depends(current_user)):
-        if not any(role_has_permission(user.role, p) for p in ("support:manage", "reservation:manage", "tenant:manage")) or user.role in ("employee", "customer"):
+        if not role_has_permission(user.role, "desk:manage"):                # staff only; never reservation:manage (customers/org roles)
             raise HTTPException(status_code=403, detail="دسترسی میز فروش لازم است")
         return user
 

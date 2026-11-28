@@ -144,7 +144,8 @@ function TopupForm({agencyId, onDone}: {agencyId: string; onDone: () => void}) {
   const amount = parseRial(f.amount);
   const send = () => act.run(api => api.post(`/agency/${agencyId}/topup-requests`, {amount_irr: amount, bank_reference: f.bank_reference, paid_on: f.paid_on || null, note: f.note || null}, k),
     'درخواست ثبت شد؛ پس از تأیید مالی (دو نفر) به حساب اضافه می‌شود.').then(r => {if (r) {setOpen(false); setF({amount: '', bank_reference: '', paid_on: '', note: ''}); setK(newKey('topup')); onDone();}});
-  return <form className="b2b-section" onSubmit={e => {e.preventDefault(); if (amount > 0) setOpen(true);}}>
+  // The ConfirmMoney dialog is its own <form method="dialog">, so it renders next to this form, never inside it (no nested forms).
+  return <><form className="b2b-section" onSubmit={e => {e.preventDefault(); if (amount > 0) setOpen(true);}}>
     <div className="b2b-choice" role="radiogroup" aria-label="روش شارژ"><label><input type="radio" name="method" defaultChecked/> <span><b>واریز بانکی</b><small>ثبت شمارهٔ پیگیری واریز</small></span></label>
       <label aria-disabled="true"><input type="radio" name="method" disabled/> <span><b>پرداخت آنلاین</b><small>درگاه آژانس هنوز وصل نیست</small></span></label></div>
     <div className="b2b-grid">
@@ -156,9 +157,10 @@ function TopupForm({agencyId, onDone}: {agencyId: string; onDone: () => void}) {
     <div className="as-note info"><b>شارژ پس از تأیید مالی در حساب می‌نشیند.</b> ثبت‌کننده و تأییدکنندهٔ مالی دو نفر متفاوت هستند (maker-checker)؛ تا تأیید، مبلغی به مانده اضافه نمی‌شود.</div>
     <Feedback error={act.error} done={act.done}/>
     <div className="as-actions"><button className="as-btn" type="submit" disabled={act.busy || !(amount > 0)}>ثبت درخواست شارژ</button></div>
+  </form>
     <ConfirmMoney open={open} title="ثبت درخواست شارژ" amount={amount > 0 ? amount : 0} destination="حساب اعتبار آژانس در کارن تراول" reason={<>واریز بانکی، شمارهٔ پیگیری <Ref>{f.bank_reference}</Ref></>}
       twoPerson="این درخواست پس از بررسی و تأیید کارشناس مالی (نفر دوم) اعمال می‌شود." busy={act.busy} error={act.error} confirmLabel="ثبت درخواست" idempotencyKey={k} onConfirm={() => void send()} onClose={() => setOpen(false)}/>
-  </form>;
+  </>;
 }
 function LimitForm({agencyId, current, onDone}: {agencyId: string; current: number; onDone: () => void}) {
   const [f, setF] = useState({limit: '', reason: ''}); const [k, setK] = useState(() => newKey('limit')); const act = useAction(); const v = parseRial(f.limit);

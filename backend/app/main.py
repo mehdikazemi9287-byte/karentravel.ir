@@ -6301,7 +6301,7 @@ def create_checkout(reservation_id: str, data: CheckoutCreateIn, user: User = De
 @app.get("/checkout-sessions/{checkout_id}")
 def get_checkout(checkout_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
     row = db.scalar(select(operational_models.CheckoutSession).where(operational_models.CheckoutSession.id == checkout_id, operational_models.CheckoutSession.tenant_id == user.tenant_id, operational_models.CheckoutSession.user_id == user.id)); reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == row.reservation_id, operational_models.Reservation.tenant_id == user.tenant_id, operational_models.Reservation.user_id == user.id)) if row else None
-    if row is None or reservation is None: raise HTTPException(status_code=404, detail="Checkout در این حساب وجود ندارد")
+    if row is None or reservation is None: raise HTTPException(status_code=404, detail="این مرحلهٔ پرداخت در حساب شما پیدا نشد")
     return _checkout_output(row, reservation)
 
 
@@ -6309,8 +6309,8 @@ def get_checkout(checkout_id: str, user: User = Depends(current_user), db: Sessi
 def advance_checkout(checkout_id: str, step: str, data: CheckoutStepIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
     if step not in {"traveller", "recheck", "policy", "funding", "invoice", "payment", "confirmation"}: raise HTTPException(status_code=404, detail="مرحله checkout وجود ندارد")
     row = db.scalar(select(operational_models.CheckoutSession).where(operational_models.CheckoutSession.id == checkout_id, operational_models.CheckoutSession.tenant_id == user.tenant_id, operational_models.CheckoutSession.user_id == user.id).with_for_update()); reservation = db.scalar(select(operational_models.Reservation).where(operational_models.Reservation.id == row.reservation_id, operational_models.Reservation.tenant_id == user.tenant_id, operational_models.Reservation.user_id == user.id).with_for_update()) if row else None
-    if row is None or reservation is None: raise HTTPException(status_code=404, detail="Checkout در این حساب وجود ندارد")
-    if _aware(row.expires_at) <= datetime.now(timezone.utc): raise HTTPException(status_code=409, detail="Checkout منقضی شده است")
+    if row is None or reservation is None: raise HTTPException(status_code=404, detail="این مرحلهٔ پرداخت در حساب شما پیدا نشد")
+    if _aware(row.expires_at) <= datetime.now(timezone.utc): raise HTTPException(status_code=409, detail="مهلت این مرحلهٔ پرداخت تمام شده است؛ دوباره قیمت را بررسی کنید")
     scope = f"checkout.step.{step}"; request_hash = _secure_hash(f"{checkout_id}:{data.model_dump_json(exclude={'credit_account_id'} if data.credit_account_id is None else set())}"); prior = db.scalar(select(operational_models.IdempotencyKey).where(operational_models.IdempotencyKey.tenant_id == user.tenant_id, operational_models.IdempotencyKey.scope == scope, operational_models.IdempotencyKey.key == data.command_id))
     if prior:
         if prior.request_hash != request_hash: raise HTTPException(status_code=409, detail="کلید تکرار برای مرحله دیگری استفاده شده است")

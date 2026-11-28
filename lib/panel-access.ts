@@ -41,11 +41,11 @@ const R = {
   platform: {roles: ['platform_admin']},                                                              // platform_tenants.platform
   tenantAdmin: {roles: ['tenant_admin', 'platform_admin']},                                           // tenant:manage / TENANT_ADMINS / admin_users
   opsStaff: {anyPermission: ['backoffice:read', 'ledger:read', 'tenant:manage'], notRoles: ['employee', 'customer']},   // ops_console.staff
-  desk: {anyPermission: ['support:manage', 'reservation:manage', 'tenant:manage'], notRoles: PARTNERS_AND_PUBLIC},     // train/partner/sales desk agent
+  desk: {anyPermission: ['desk:manage'], notRoles: PARTNERS_AND_PUBLIC},                               // train/partner/sales desk agent (security.DESK_PERMISSION)
   docs: {anyPermission: ['backoffice:read', 'support:manage', 'tenant:manage'], notRoles: ['employee', 'customer']},     // traveller_documents.staff
   editor: {roles: ['platform_admin', 'tenant_admin', 'backoffice_expert']},                           // site_cms.editor
   catalog: {roles: ['platform_admin', 'backoffice_expert']},                                          // catalog_admin guard
-  safarsazStaff: {anyPermission: ['reservation:manage', 'tenant:manage'], notRoles: PARTNERS_AND_PUBLIC}, // safarsaz._is_staff
+  safarsazStaff: {anyPermission: ['desk:manage'], notRoles: PARTNERS_AND_PUBLIC},                      // safarsaz._is_staff
   backoffice: {anyPermission: ['backoffice:read']},
   mahanStaff: {anyPermission: ['backoffice:read']},                                                   // mahan_flight._is_staff (STAFF_PERMISSION)
   niraStaff: {anyPermission: ['backoffice:read']},                                                    // nira_flight._is_staff (STAFF_PERMISSION)

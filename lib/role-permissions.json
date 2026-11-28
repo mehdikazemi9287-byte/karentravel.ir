@@ -46,6 +46,7 @@
  "backoffice_expert": [
   "approval:decide",
   "backoffice:read",
+  "desk:manage",
   "inventory:publish",
   "invoice:manage",
   "license:verify",
@@ -70,6 +71,7 @@
  "tenant_admin": [
   "backoffice:read",
   "credit:manage",
+  "desk:manage",
   "member:manage",
   "reservation:read",
   "tenant:manage"

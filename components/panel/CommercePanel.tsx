@@ -107,10 +107,10 @@ function GroupMembers({group}: {group: Row}) {
 }
 
 /* Organizations and agencies whose people get this group's prices (when they have no direct membership).
-   Choices come from the existing lists: /organizations and /admin/partners. Removing a link only disables it. */
+   Choices come from the existing lists: /enterprise/organizations and /admin/partners. Removing a link only disables it. */
 function GroupLinks({group}: {group: Row}) {
   const {state, reload, api} = useLoad<{items: Row[]}>(`/commerce/groups/${group.id}/links`);
-  const orgs = useLoad<Row[]>('/organizations');
+  const orgs = useLoad<Row[]>('/enterprise/organizations');           // a list [{id,name,status,members}] (enterprise.py)
   const partners = useLoad<{agencies: Row[]}>('/admin/partners');
   const [v, setV] = useState<Row>({party_type: 'organization', party_id: ''});
   const [msg, setMsg] = useState<{ok: boolean; text: string} | null>(null);

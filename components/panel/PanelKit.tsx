@@ -3,10 +3,11 @@ import '../marketplace/stitch-pages-2026-11.css';
 /* Shared kit for the role panels: one shell, one way to load data, one set of states.
    A value that the backend does not return is shown as unavailable; nothing here invents a figure. */
 import Link from 'next/link';
-import {usePathname} from 'next/navigation';
+import {usePathname, useRouter} from 'next/navigation';
 import {Fragment, useCallback, useEffect, useState, type ReactNode} from 'react';
 import {useAuth} from '../../lib/api/auth-context';
 import {ApiError} from '../../lib/api/karenseir-client';
+import {loginHref} from '../../lib/search-links';
 import {AccountMenu} from '../marketplace/ApprovedFigmaHome';
 import {AREA_FA, areaFor, canOpen, homeFor, itemFor, mobileTabsFor, navFor, PANEL_ITEMS, ROLE_FA, staffAreasFor, type Area} from '../../lib/panel-access';
 import {orgAllows, orgPagesFor, panelContextsFor, type OrgMembership} from '../../lib/panel-context';
@@ -55,8 +56,15 @@ export function NoAccess({role, path, area}: {role: string; path: string; area: 
     <div style={{display: 'flex', gap: 8, flexWrap: 'wrap'}}>{moved && <Link className="pn-btn" href={moved}>رفتن به همین بخش در پنل شما</Link>}<Link className={moved ? 'pn-btn ghost' : 'pn-btn'} href={home}>بازگشت به پنل من</Link></div></div>;
 }
 
+/** «ورود / ثبت‌نام» that brings the visitor back to this page (path + query) after signing in; /login accepts only an
+    in-app path (safeRedirectTarget). The query is read on click, so server and first client render stay identical. */
+export function LoginLink({className, children}: {className: string; children: ReactNode}) {
+  const path = usePathname() ?? '/'; const router = useRouter();
+  return <Link className={className} href={loginHref(path)} onClick={e => {const q = window.location.search; if (q && !e.metaKey && !e.ctrlKey) {e.preventDefault(); router.push(loginHref(path, q));}}}>{children}</Link>;
+}
+
 export function PanelShell({area: declared, title, intro, children}: {area: Area; title: string; intro?: string; children: ReactNode}) {
-  const {session} = useAuth(); const path = usePathname() ?? '';
+  const {session, ready} = useAuth(); const path = usePathname() ?? '';
   const role = (session as {user?: {role?: string}} | null)?.user?.role ?? '';
   // Staff pages declared as 'admin' sit in the operations, finance or administration area by their path (spec §1.1).
   const area = areaFor(declared, path);
@@ -83,7 +91,7 @@ export function PanelShell({area: declared, title, intro, children}: {area: Area
   const current = (href: string) => path === href || (href !== '/agency' && href !== '/admin' && href !== '/finance' && href !== '/organization' && path.startsWith(href + '/'));
   return <div className="pn-page" data-figma-page="129:11966" data-area={area}><a className="skip-link" href="#main-content">پرش به محتوای اصلی</a>
     <header className="pn-page-header"><Link className="pn-page-brand" href="/">کارن تراول</Link>
-      {session?.user ? <AccountMenu variant="panel"/> : <Link className="pn-page-login" href="/login">ورود / ثبت‌نام</Link>}
+      {session?.user ? <AccountMenu variant="panel"/> : ready ? <LoginLink className="pn-page-login">ورود / ثبت‌نام</LoginLink> : null}
     </header><div className="pn" data-area={area}>
     <nav className="pn-nav" id="pn-nav" aria-label={navTitle}><span className="pn-nav-title">{navTitle}</span>
       {contexts.length > 1 && <span className="pn-areas" role="group" aria-label="نوع حساب" data-panel-switcher="">{contexts.map(c => <Link key={c.kind} href={c.href} aria-current={(c.kind === 'personal') === (area === 'customer') ? 'true' : undefined}>{c.label}</Link>)}</span>}
@@ -92,8 +100,8 @@ export function PanelShell({area: declared, title, intro, children}: {area: Area
         <Link href={href} aria-current={current(href) ? 'page' : undefined}>{label}</Link></Fragment>)}
       <span className="pn-nav-foot">{area !== 'customer' && <Link href="/account">حساب من</Link>}{area === 'customer' && role && role !== 'customer' && <Link href={homeFor(role)}>پنل کاری من</Link>}</span>
     </nav>
-    <main className="pn-main" id="main-content" tabIndex={-1}><header className="pn-head"><h1>{allowed || waiting ? nativeTitle : 'دسترسی ندارید'}</h1>{intro && allowed && <p>{intro}</p>}</header>
-      {!session ? <div className="pn-card"><p>برای دیدن این بخش وارد حساب خود شوید.</p><div><Link className="pn-btn" href="/login">ورود / ثبت‌نام</Link></div></div>
+    <main className="pn-main" id="main-content" tabIndex={-1}><header className="pn-head"><h1>{allowed || waiting || !ready ? nativeTitle : 'دسترسی ندارید'}</h1>{intro && allowed && <p>{intro}</p>}</header>
+      {!ready ? <Loading/> : !session ? <div className="pn-card"><p>برای دیدن این بخش وارد حساب خود شوید.</p><div><LoginLink className="pn-btn">ورود / ثبت‌نام</LoginLink></div></div>
         : allowed ? children : waiting ? <Loading/> : <NoAccess role={role} path={path} area={area}/>}
       <Card title="وضعیت و دسترسی"><p className="pn-access-note">اطلاعات تأییدنشده و خدمات متصل‌نشده با وضعیت مشخص نمایش داده می‌شوند.</p><p className="pn-access-note">عملیات فقط با نقش و مجوز همان حساب انجام می‌شود.</p></Card>
     </main></div>

@@ -8,6 +8,10 @@ import secrets
 from typing import FrozenSet
 
 
+# `desk:manage` = the group's own staff desks (sales desk, train desk, partner requests, Safarsaz staff side). Kept apart from
+# `reservation:manage`, which customers and the legacy organization roles also hold for their own bookings (QA 2026-11-28).
+DESK_PERMISSION = "desk:manage"
+
 ROLE_PERMISSIONS: dict[str, FrozenSet[str]] = {
     "employee": frozenset({"reservation:read", "reservation:create", "reservation:manage", "trip:read"}),
     "customer": frozenset({"reservation:read", "reservation:create", "reservation:manage", "trip:read"}),
@@ -19,9 +23,9 @@ ROLE_PERMISSIONS: dict[str, FrozenSet[str]] = {
     "organization_admin": frozenset({"reservation:read", "reservation:create", "reservation:manage", "approval:decide", "trip:read"}),
     "agency_partner": frozenset({"inventory:read", "reservation:fulfill", "agency:manage", "credit:read"}),
     "supplier": frozenset({"inventory:manage", "reservation:fulfill"}),
-    "backoffice_expert": frozenset({"reservation:read", "reservation:manage", "approval:decide", "support:manage", "trip:event:create", "backoffice:read", "invoice:manage", "service_request:decide", "license:verify", "inventory:publish"}),
+    "backoffice_expert": frozenset({"desk:manage", "reservation:read", "reservation:manage", "approval:decide", "support:manage", "trip:event:create", "backoffice:read", "invoice:manage", "service_request:decide", "license:verify", "inventory:publish"}),
     "finance_operator": frozenset({"credit:read", "credit:fund", "ledger:read", "reconciliation:manage", "settlement:manage", "refund:manage", "refund:override", "approval:decide", "invoice:manage", "installment:manage"}),
-    "tenant_admin": frozenset({"tenant:manage", "member:manage", "reservation:read", "credit:manage", "backoffice:read"}),
+    "tenant_admin": frozenset({"desk:manage", "tenant:manage", "member:manage", "reservation:read", "credit:manage", "backoffice:read"}),
     "platform_admin": frozenset({"platform:manage"}),
 }
 

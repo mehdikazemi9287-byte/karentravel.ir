@@ -33,11 +33,34 @@ def setup(monkeypatch):
     with SessionLocal() as db:
         for code, city in (("THR", "تهران"), ("MHD", "مشهد")):
             a = db.get(CatalogAirport, code)
-            if not a.city_name:
+            if a is None:
+                db.add(_airport(code, city))
+                db.flush()
+            elif not a.city_name:
                 a.city_name = city
         db.commit()
     yield
     pfs.clear_cache()
+
+
+def _airport(code, city, name=None):
+    return CatalogAirport(id=code, name_fa=name or f"فرودگاه {code}", name_en=code, city_id=None, city_name=city, country_code="IR",
+                          latitude=0.0, longitude=0.0, timezone="Asia/Tehran", airport_type="large_airport",
+                          scheduled_service=True, search_text=name or code, source="test")
+
+
+def _ensure_tehran_airports():
+    """Both Tehran airports exist (created here when missing; never removed). Tests below pass whether or not another test
+    created IKA before them, because results are deduped and each supplier reports one status."""
+    with SessionLocal() as db:
+        for code, name in (("THR", "فرودگاه مهرآباد"), ("IKA", "فرودگاه امام خمینی")):
+            if db.get(CatalogAirport, code) is None:
+                db.add(_airport(code, "پرندک", name))
+        db.flush()
+        for code in ("THR", "IKA"):
+            if not db.get(CatalogAirport, code).timezone:
+                db.get(CatalogAirport, code).timezone = "Asia/Tehran"
+        db.commit()
 
 
 def _tenant():
@@ -316,13 +339,49 @@ def test_city_names_resolve_like_the_shipped_catalog():
 
 def test_tehran_resolves_to_thr_and_ika_even_when_catalog_city_is_parandak():
     """The shipped catalogue lists THR and IKA under «پرندک» (OurAirports municipality); «تهران» must still find them."""
-    for code, name in (("THR", "فرودگاه مهرآباد"), ("IKA", "فرودگاه امام خمینی")):
-        with SessionLocal() as db:
-            if db.get(CatalogAirport, code) is None:
-                db.add(CatalogAirport(id=code, name_fa=name, name_en=code, city_id=None, city_name="پرندک", country_code="IR",
-                                      latitude=0.0, longitude=0.0, timezone="Asia/Tehran", airport_type="large_airport",
-                                      scheduled_service=True, search_text=name, source="test"))
-                db.commit()
+    _ensure_tehran_airports()
     with SessionLocal() as db:
         assert pfs.resolve_airports(db, "تهران") == ["THR", "IKA"]
         assert pfs.resolve_airports(db, "Tehran") == ["THR", "IKA"]
+
+
+def test_two_tehran_airports_give_one_row_per_flight_and_one_status_per_supplier(client, monkeypatch, transport):
+    """THR-MHD and IKA-MHD are both asked; the same Mahan flight answered for both pairs is listed once; each supplier has
+    one status entry (per-pair outcomes under `routes`)."""
+    _ensure_tehran_airports()
+    asked = []
+
+    class Twice(_StubMahan):
+        def search(self, q, tz=None):
+            asked.append(q.origin)
+            return super().search(q, tz)
+    monkeypatch.setenv("MAHAN_MODE", "live")
+    monkeypatch.setattr(mf, "build_adapter", lambda secret: (Twice(), {"mode": "live", "enabled": True}))
+    _, slug = _tenant()
+    body = _call(client, slug)
+    assert sorted(asked) == ["IKA", "THR"]
+    assert [(r["provider_key"], r["attributes"]["flight_number"]) for r in body["offers"]] == [("mahan", "1061")]
+    assert body["offers"][0]["attributes"]["origin_code"] == "THR"                  # first pair wins, not thread order
+    assert [(s["provider"], s["status"], s["offers"]) for s in body["suppliers"]] == [("mahan", "ok", 2)]
+    assert sorted(r["route"] for r in body["suppliers"][0]["routes"]) == ["IKA-MHD", "THR-MHD"]
+    # served from the cache the second time: still one row and one status
+    body = _call(client, slug)
+    assert len(body["offers"]) == 1 and [s["status"] for s in body["suppliers"]] == ["cached"]
+
+
+def test_dedupe_keeps_fare_classes_of_one_pair_and_drops_the_repeat_from_the_next_pair():
+    dep = datetime(2026, 12, 1, 9, tzinfo=timezone.utc)
+
+    def fare(o, rbd):
+        seg = FlightSegment("VR", "2001", o, "MHD", dep, dep + timedelta(minutes=80))
+        return FareOffer("ref", (seg,), 30000000, "IRR", rbd, None, dep)
+    found = [(1, "nira", [fare("IKA", "Y")]), (0, "nira", [fare("THR", "Y"), fare("THR", "B")]), (1, "mahan", [fare("IKA", "Y")])]
+    out = pfs.dedupe_offers(found)
+    assert [(p, x.segments[0].origin, x.fare_basis) for p, x in out] == [("nira", "THR", "Y"), ("nira", "THR", "B"), ("mahan", "IKA", "Y")]
+
+
+def test_supplier_status_prefers_an_answer_over_a_failed_pair():
+    st = pfs.supplier_status({"nira": [{"route": "IKA-MHD", "status": "timeout"}, {"route": "THR-MHD", "status": "ok", "offers": 3}],
+                              "mahan": [{"route": "IKA-MHD", "status": "error", "error": "X"}, {"route": "THR-MHD", "status": "timeout"}]})
+    assert [(s["provider"], s["status"]) for s in st] == [("mahan", "error"), ("nira", "ok")]
+    assert st[1]["offers"] == 3 and st[0]["error"] == "X"

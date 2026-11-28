@@ -226,51 +226,84 @@ def fetch_offers(secret: str, pairs: list[tuple[str, str]], day: date, pax: dict
     """Validated one-way FareOffers per (provider) over the airport pairs, under one deadline. Never raises."""
     deadline = _deadline()
     started = time.monotonic()
-    results: list[tuple[str, FareOffer]] = []
-    status: list[dict] = []
+    found: list[tuple[int, str, list[FareOffer]]] = []                    # (pair order, provider, offers)
+    routes: dict[str, list[dict]] = {}                                    # provider -> outcome per airport pair
     tasks = []
     for provider, mode, make, airline_exists in _suppliers(secret, deadline):
-        for o, d in pairs:
+        for i, (o, d) in enumerate(pairs):
             if o not in tz or d not in tz or not _eligible(provider, make(), o, d):
                 continue
             key = (provider, mode, o, d, day.isoformat(), pax.get("ADT", 1), pax.get("CHD", 0), pax.get("INF", 0))
             cached = _cache_get(key)
             if cached is not None:
-                results.extend((provider, x) for x in cached)
-                status.append({"provider": provider, "route": f"{o}-{d}", "status": "cached", "offers": len(cached)})
+                found.append((i, provider, cached))
+                routes.setdefault(provider, []).append({"route": f"{o}-{d}", "status": "cached", "offers": len(cached)})
                 continue
-            tasks.append((provider, make, airline_exists, o, d, key))
-    if not tasks:
-        return results, status
+            tasks.append((provider, make, airline_exists, o, d, key, i))
+    if tasks:
+        def run(make: Callable[[], Any], airline_exists: Callable[[str], bool], o: str, d: str) -> list[FareOffer]:
+            adapter = make()
+            q = FlightSearchQuery(o, d, datetime(day.year, day.month, day.day, 12, tzinfo=ZoneInfo(tz[o])), dict(pax))
+            validate_search(q, lambda code: code in tz)
+            offers = adapter.search(q, tz)
+            outcome = getattr(adapter, "last_airlines", None)
+            if not offers and outcome and all(a.get("status") == "error" for a in outcome):
+                raise SupplierDown(provider_of(adapter))
+            return validate_fares(q, offers, airline_exists, lambda code: code in tz)   # drop, never repair
 
-    def run(make: Callable[[], Any], airline_exists: Callable[[str], bool], o: str, d: str) -> list[FareOffer]:
-        adapter = make()
-        q = FlightSearchQuery(o, d, datetime(day.year, day.month, day.day, 12, tzinfo=ZoneInfo(tz[o])), dict(pax))
-        validate_search(q, lambda code: code in tz)
-        offers = adapter.search(q, tz)
-        outcome = getattr(adapter, "last_airlines", None)
-        if not offers and outcome and all(a.get("status") == "error" for a in outcome):
-            raise SupplierDown(provider_of(adapter))
-        return validate_fares(q, offers, airline_exists, lambda code: code in tz)   # drop, never repair
+        pool = ThreadPoolExecutor(max_workers=min(6, len(tasks)))
+        futures = {pool.submit(run, a, ex, o, d): (p, o, d, key, i) for p, a, ex, o, d, key, i in tasks}
+        done, pending = wait(futures, timeout=max(0.1, deadline - (time.monotonic() - started)))
+        for f in done:
+            p, o, d, key, i = futures[f]
+            try:
+                offers = f.result()
+            except Exception as exc:                                      # one supplier's failure never fails the others
+                routes.setdefault(p, []).append({"route": f"{o}-{d}", "status": "error", "error": type(exc).__name__})
+                continue
+            _cache_put(key, offers)
+            found.append((i, p, offers))
+            routes.setdefault(p, []).append({"route": f"{o}-{d}", "status": "ok", "offers": len(offers)})
+        for f in pending:
+            p, o, d, _, _ = futures[f]
+            routes.setdefault(p, []).append({"route": f"{o}-{d}", "status": "timeout"})
+        pool.shutdown(wait=False, cancel_futures=True)
+    return dedupe_offers(found), supplier_status(routes)
 
-    pool = ThreadPoolExecutor(max_workers=min(6, len(tasks)))
-    futures = {pool.submit(run, a, ex, o, d): (p, o, d, key) for p, a, ex, o, d, key in tasks}
-    done, pending = wait(futures, timeout=max(0.1, deadline - (time.monotonic() - started)))
-    for f in done:
-        p, o, d, key = futures[f]
-        try:
-            offers = f.result()
-        except Exception as exc:                                          # one supplier's failure never fails the others
-            status.append({"provider": p, "route": f"{o}-{d}", "status": "error", "error": type(exc).__name__})
-            continue
-        _cache_put(key, offers)
-        results.extend((p, x) for x in offers)
-        status.append({"provider": p, "route": f"{o}-{d}", "status": "ok", "offers": len(offers)})
-    for f in pending:
-        p, o, d, _ = futures[f]
-        status.append({"provider": p, "route": f"{o}-{d}", "status": "timeout"})
-    pool.shutdown(wait=False, cancel_futures=True)
-    return results, status
+
+def dedupe_offers(found: list[tuple[int, str, list[FareOffer]]]) -> list[tuple[str, FareOffer]]:
+    """One row per flight. A city with two airports (تهران → THR, IKA) asks a supplier once per pair, and a supplier may answer
+    the same flight for both: the key is provider + carrier + flight number + departure; the first airport pair (THR) wins.
+    Several fare classes of one flight from the same pair are different offers and all stay."""
+    first_pair: dict[tuple, int] = {}
+    out: list[tuple[str, FareOffer]] = []
+    for i, provider, offers in sorted(found, key=lambda t: t[0]):       # pair order, not thread completion order
+        for x in offers:
+            s = x.segments[0]
+            k = (provider, s.carrier, s.flight_number, s.departs_at.isoformat())
+            if first_pair.setdefault(k, i) != i:
+                continue                                                  # the same flight already came from an earlier pair
+            out.append((provider, x))
+    return out
+
+
+_STATUS_RANK = {"ok": 0, "cached": 1, "error": 2, "timeout": 3}
+
+
+def supplier_status(routes: dict[str, list[dict]]) -> list[dict]:
+    """One status per supplier (not per airport pair): ok/cached if any pair answered, else error, else timeout.
+    The per-pair outcomes stay in `routes`."""
+    out = []
+    for provider, items in routes.items():
+        items = sorted(items, key=lambda r: r["route"])
+        best = min(items, key=lambda r: _STATUS_RANK.get(r["status"], 9))
+        entry: dict = {"provider": provider, "status": best["status"], "routes": items}
+        if best["status"] in ("ok", "cached"):
+            entry["offers"] = sum(r.get("offers", 0) for r in items)
+        if best["status"] == "error":
+            entry["error"] = best.get("error")
+        out.append(entry)
+    return sorted(out, key=lambda e: e["provider"])
 
 
 # ------------------------------------------------------------------------------------------------ rows for karenseir-search

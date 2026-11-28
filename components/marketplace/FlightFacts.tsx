@@ -1,6 +1,7 @@
 import {TransportTime} from './TransportTime';
 import {TripRequestForm} from '../customer/TripRequestForm';
 import {formatJalali} from '../../lib/domain/jalali';
+import {tehranToday} from '../../lib/tehran-today';
 type Props={attributes:Record<string,unknown>;provider:string};
 function fact(value:unknown,fallback='اعلام نشده'){return typeof value==='string'&&value.trim()?value:typeof value==='number'&&Number.isFinite(value)?value.toLocaleString('fa-IR'):fallback}
 export function FlightFacts({attributes:a,provider}:Props){const stops=a.stops;const knownStops=(typeof stops==='number'||typeof stops==='string'&&stops.trim()!=='')&&Number.isInteger(Number(stops))&&Number(stops)>=0;return <div className="flight-facts"><div className="flight-carrier"><span aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M3 12l7 1 8 8 2-1-5-9 6-6-2-2-6 6-9-5-1 2 7 8-1 7"/></svg></span><div><strong>{fact(a.airline,'شرکت هواپیمایی اعلام نشده')}</strong><small>پرواز {fact(a.flight_number)} · {fact(a.cabin??a.cabin_class,'کلاس پرواز اعلام نشده')}</small></div></div><div className="flight-route"><div><b>{fact(a.origin,'مبدأ اعلام نشده')}</b><TransportTime value={a.departure_time} fallback="زمان حرکت اعلام نشده"/></div><div className="flight-duration"><span>{fact(a.duration,'مدت پرواز اعلام نشده')}</span><i aria-hidden="true"/><small>{knownStops?(Number(stops)===0?'بدون توقف':Number(stops).toLocaleString('fa-IR')+' توقف'):'تعداد توقف اعلام نشده'}</small></div><div><b>{fact(a.destination,'مقصد اعلام نشده')}</b><TransportTime value={a.arrival_time} fallback="زمان ورود اعلام نشده"/></div></div><dl className="flight-terms"><div><dt>بار مجاز</dt><dd>{fact(a.baggage,'نیازمند بررسی قوانین نرخ')}</dd></div><div><dt>عرضه‌کننده</dt><dd>{fact(a.supplier_name??a.provider_name,provider||'اعلام نشده')}</dd></div><div><dt>نوع نرخ</dt><dd>{fact(a.fare_type??a.fare_class)}</dd></div></dl><details className="flight-rules"><summary>قوانین نرخ و شرایط پرواز</summary><p>{fact(a.fare_rules,'قوانین کامل این نرخ باید در جزئیات و پیش از تأیید رزرو بررسی شوند.')}</p><p>قیمت و موجودی تا زمان بررسی مجدد قطعی نیستند. مبلغ جریمه و استرداد از شرایط معتبر همین نرخ تعیین می‌شود.</p></details></div>}
@@ -15,7 +16,7 @@ export function SearchRecovery({vertical,origin,destination,depart,returnDate,tr
   const kind=VERTICAL_FA[vertical]||'سفر';
   const route=origin?`${origin} به ${destination}`:destination;
   const trip=[kind,route,depart?`از ${formatJalali(depart)}`:'',returnDate?`تا ${formatJalali(returnDate)}`:''].filter(Boolean).join(' ');
-  const today=new Date();const todayIso=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  const todayIso=tehranToday();
   const canPrev=!!depart&&depart>todayIso;
   return <section className="search-recovery sr-empty" aria-label="بدون نتیجهٔ آنلاین">
     <span className="sr-empty-ic" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M3 12l7 1 8 8 2-1-5-9 6-6-2-2-6 6-9-5-1 2 7 8-1 7"/></svg></span>
