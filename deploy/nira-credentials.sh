@@ -20,7 +20,9 @@ for C in $LIST; do
   [ -z "$U" ] && { echo "  skipped"; continue; }
   read -rsp "  PASSWORD (hidden): " P; echo
   [ -z "$P" ] && { echo "  skipped (no password)"; unset P; continue; }
-  printf '\n# Niira %s (%s)\nNIRA_%s_USER=%s\nNIRA_%s_PASS=%s\n' "$C" "$(date -Iseconds)" "$C" "$U" "$C" "$P" >> "$ENV"
+  case "$P$U" in *\'*) echo "  this value contains a single quote (') — not supported here, skipped; tell Claude"; unset P; continue;; esac
+  # Single quotes: docker compose env_file keeps the value literal (no $ interpolation, no ' #' comment).
+  printf "\n# Niira %s (%s)\nNIRA_%s_USER='%s'\nNIRA_%s_PASS='%s'\n" "$C" "$(date -Iseconds)" "$C" "$U" "$C" "$P" >> "$ENV"
   unset P
   added="$added $C"
   echo "  saved"
