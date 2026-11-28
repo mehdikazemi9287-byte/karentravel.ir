@@ -77,3 +77,13 @@ it is approved, and the rest of the protected surface stays as it was.
     Confirmation text: «درخواست شما ثبت شد؛ کارشناس کارن تراول به‌زودی تماس می‌گیرد.» No payment, hold or ticket issue happens.
 - Not in scope: online purchase/issue of Niira or Mahan tickets; any homepage or search-form visual change; other verticals.
 - Rollback: set `SEARCH_LIVE_FLIGHT_SUPPLIERS=0` on the search service (provider off), or revert the PR.
+
+## 1405-09-08 (2026-11-28) — APPROVED by the owner: fixed username + password login for staff
+
+- Status: **approved by the owner** (request 1405-09-08: «یک نام کاربری و رمز ثابت» for signing in, because SMS OTP does not arrive — the Kavenegar account is not verified), relayed by the supervisor.
+- Scope: staff accounts only (roles `backoffice_expert`, `finance_operator`, `tenant_admin`, `platform_admin`). Customers and organization roles keep SMS OTP only.
+  - Backend: nullable `users.password_hash` (migration `20261128_82`, additive, downgrade refused); `POST /auth/password/login` issues the same session as the existing login (2FA still applies); one generic error; same 5-failure / 15-minute account lock; audit rows `password.*`.
+  - The password is set **only from the server console** (`backend/scripts/set_staff_password.py`, hidden prompt twice); there is no web endpoint to set or reset it. No password or default password exists in code, tests, seed or docs.
+  - Frontend: on `/login` only, a small «ورود کارکنان با رمز» link switches the existing form card to organization + mobile/email + password fields, in the existing styles. Homepage and search are unchanged.
+- Files: `backend/app/main.py`, `backend/app/auth_cookies.py`, `backend/app/observability.py`, `backend/alembic/versions/20261128_82_staff_password_hash.py`, `backend/scripts/set_staff_password.py`, `backend/Dockerfile`, `app/login/page.tsx`, `lib/api/karenseir-client.ts`, `lib/api/auth-context.tsx`.
+- Evidence: `backend/tests/test_staff_password_login.py`. Operator guide: `docs/ops/STAFF_PASSWORD_LOGIN.md`. Rollback: revert the PR (the nullable column stays; NULL = no password login).

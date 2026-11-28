@@ -10,6 +10,8 @@ COPY alembic ./alembic
 COPY alembic.ini ./alembic.ini
 COPY catalog_data ./catalog_data
 COPY scripts/catalog ./scripts/catalog
+# Server-console staff password tool only (docs/ops/STAFF_PASSWORD_LOGIN.md); the other scripts stay out of the image.
+COPY scripts/__init__.py scripts/set_staff_password.py ./scripts/
 COPY entrypoint.sh ./entrypoint.sh
 ARG GIT_COMMIT=unknown
 ARG BUILD_TIMESTAMP=unknown
