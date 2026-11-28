@@ -61,7 +61,7 @@ export function ApprovedFooterLight() {
       <div className="kh-foot-brand">
         <Link href="/" className="kh-foot-logo" aria-label="کارن تراول، صفحه اصلی">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={A + 'imgComponentLogoMark.svg'} alt=""/>کارن تراول</Link>
+          <img src="/images/brand/karen-travel-logo.webp" alt="کارن تراول" width={128} height={70} style={{width:'auto',height:70}}/></Link>
         <p>{c.footer.tagline}</p>
         <p>پشتیبانی: <a href={supportPhone.href} dir="ltr">{supportPhone.display}</a></p>
       </div>

@@ -87,3 +87,13 @@ it is approved, and the rest of the protected surface stays as it was.
   - Frontend: on `/login` only, a small «ورود کارکنان با رمز» link switches the existing form card to organization + mobile/email + password fields, in the existing styles. Homepage and search are unchanged.
 - Files: `backend/app/main.py`, `backend/app/auth_cookies.py`, `backend/app/observability.py`, `backend/alembic/versions/20261128_82_staff_password_hash.py`, `backend/scripts/set_staff_password.py`, `backend/Dockerfile`, `app/login/page.tsx`, `lib/api/karenseir-client.ts`, `lib/api/auth-context.tsx`.
 - Evidence: `backend/tests/test_staff_password_login.py`. Operator guide: `docs/ops/STAFF_PASSWORD_LOGIN.md`. Rollback: revert the PR (the nullable column stays; NULL = no password login).
+
+## 1405-09-08 (2026-11-28) — APPROVED by the owner: new brand logo
+
+- Status: **approved by the owner** in chat («لوگو رو جایگزین کن», with the logo image attached).
+- Scope: the logo in the shared site header (`ApprovedFigmaHome.tsx`, both header variants: the old mark + «کارن تراول» text become
+  one logo image, 52px high), the light footer (`ApprovedHomeLower.tsx`), and the Organization `logo` in JSON-LD (`lib/seo.ts`).
+  Assets: `public/images/brand/karen-travel-logo.{webp,png}` (440px wide, transparent) and `karen-travel-logo-full.png` (852px).
+  Background removed from the owner's PNG; nothing else on the homepage or search page changes. The old mark SVG stays in place.
+- Not in scope: app icons / favicon (need a square cut of the emblem), dark-background placements.
+- Rollback: revert this PR.

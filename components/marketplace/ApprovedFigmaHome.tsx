@@ -13,6 +13,7 @@ const imgIconInstagram = "/images/approved-figma/imgIconInstagram.svg";
 const imgIconTelegram = "/images/approved-figma/imgIconTelegram.svg";
 const imgIconLinkedIn = "/images/approved-figma/imgIconLinkedIn.svg";
 const imgComponentLogoMark = "/images/approved-figma/imgComponentLogoMark.svg";
+const imgBrandLogo = "/images/brand/karen-travel-logo.webp";
 const imgIconDot = "/images/approved-figma/imgIconDot.svg";
 const imgIconPerson = "/images/approved-figma/imgIconPerson.svg";
 const imgIconCompare = "/images/approved-figma/imgIconCompare.svg";
@@ -74,7 +75,7 @@ function ComponentSocialIcon({ className, platform = "Instagram" }: ComponentSoc
   );
 }
 
-function ComponentLogoMark({ className }: { className?: string }) {
+export function ComponentLogoMark({ className }: { className?: string }) {
   return (
     <div className={className || "relative size-[34px]"} data-node-id="66:46" data-name="Component / Logo Mark">
       <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgComponentLogoMark} />
@@ -224,10 +225,10 @@ export default function ApprovedFigmaHome() {
             <ComponentHeaderNavItem className="h-[23px] relative shrink-0 w-[27px]" item="Flight" />
           </div>
           <div className="content-stretch flex gap-[8px] items-center overflow-clip relative shrink-0" data-node-id="45:15" data-name="Logo">
-            <ComponentLogoMark className="relative shrink-0 size-[34px]" />
-            <p className="[word-break:break-word] font-[Vazirmatn] font-bold leading-[normal] relative shrink-0 text-[#3a1b3d] text-[19px] whitespace-nowrap" dir="auto" data-node-id="45:17">
-              <Link href="/" aria-label="کارن تراول، صفحه اصلی">کارن تراول</Link>
-            </p>
+            <Link href="/" aria-label="کارن تراول، صفحه اصلی" className="block shrink-0" data-node-id="45:17">
+              {/* eslint-disable-next-line @next/next/no-img-element -- brand logo (owner-approved 1405-09-08) */}
+              <img src={imgBrandLogo} alt="کارن تراول" width={95} height={52} className="block h-[52px] w-auto" />
+            </Link>
           </div>
         </div>
         <ApprovedHomeHero search={<div className="approved-search-card" data-node-id="48:10" data-name="Search Card"><Suspense fallback={<p role="status">در حال آماده‌سازی جست‌وجو…</p>}><HomeSearchExperience presentation="approved"/></Suspense></div>}/>
@@ -250,10 +251,10 @@ export function ApprovedHeader(){return (<div className="bg-[#fffcf9] content-st
             <ComponentHeaderNavItem className="h-[23px] relative shrink-0 w-[27px]" item="Flight" />
           </div>
           <div className="content-stretch flex gap-[8px] items-center overflow-clip relative shrink-0" data-node-id="45:15" data-name="Logo">
-            <ComponentLogoMark className="relative shrink-0 size-[34px]" />
-            <p className="[word-break:break-word] font-[Vazirmatn] font-bold leading-[normal] relative shrink-0 text-[#3a1b3d] text-[19px] whitespace-nowrap" dir="auto" data-node-id="45:17">
-              <Link href="/" aria-label="کارن تراول، صفحه اصلی">کارن تراول</Link>
-            </p>
+            <Link href="/" aria-label="کارن تراول، صفحه اصلی" className="block shrink-0" data-node-id="45:17">
+              {/* eslint-disable-next-line @next/next/no-img-element -- brand logo (owner-approved 1405-09-08) */}
+              <img src={imgBrandLogo} alt="کارن تراول" width={95} height={52} className="block h-[52px] w-auto" />
+            </Link>
           </div>
         </div>)}
 export function ApprovedFooter(){return <ApprovedFooterLight/>}
