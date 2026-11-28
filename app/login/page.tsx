@@ -7,7 +7,7 @@ import { ApiError, MfaRequiredError } from '../../lib/api/karenseir-client';
 import { useAuth } from '../../lib/api/auth-context';
 import { ContactOptions } from '../../components/customer/CustomerHelp';
 import { roleHome } from '../../lib/role-navigation';
-import { Shell } from '../page';
+import { Shell } from '../root-pages';
 import { MOBILE_VALIDITY, OTP_VALIDITY, persianValidity } from '../../lib/form-validity';
 import { supportPhone } from '../../lib/site-contact';
 

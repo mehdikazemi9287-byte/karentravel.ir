@@ -896,3 +896,5 @@ a.cat-card:hover{box-shadow:0 12px 28px rgba(8,37,61,.12);transform:translateY(-
 .tl-route .cat-thumb .cat-credit{display:none}
 .tour-marketplace .tour-help-links{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin:14px 0 0}
 .tour-marketplace .tour-help-links a{display:inline}
+/* SEO: TourCatalog as a page's H1 (/tours/search, /tours/destination/*) looks exactly like its H2 title. */
+.cat-head h1.cat-list-h1{margin:0 0 4px;font-size:24px;line-height:1.4;color:var(--ink)}@media(max-width:760px){.cat-head h1.cat-list-h1{font-size:20px}}

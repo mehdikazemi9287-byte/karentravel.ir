@@ -1,5 +1,6 @@
 import {Suspense} from 'react';
 import {JourneyShell} from '../../../components/journey/JourneyShell';
 import {TourCatalog} from '../../../components/catalog/CatalogViews';
-export const metadata={title:'جست‌وجوی تور',description:'برنامهٔ تورها بر اساس مقصد، دسته‌بندی، مدت و سال برگزاری. قیمت و تاریخ جدید با استعلام.'};
-export default function Page(){return <JourneyShell><main className="journey-main"><Suspense fallback={<p role="status">در حال دریافت فهرست…</p>}><TourCatalog title="جست‌وجوی برنامهٔ تورها"/></Suspense></main></JourneyShell>}
+import {seoFor} from '../../../lib/seo-pages';
+export const metadata = seoFor('/tours/search');
+export default function Page(){return <JourneyShell><main className="journey-main"><Suspense fallback={<header className="cat-head"><div><h1 className="cat-list-h1">جست‌وجوی برنامهٔ تورها</h1><p role="status">در حال دریافت فهرست…</p></div></header>}><TourCatalog mainHeading title="جست‌وجوی برنامهٔ تورها"/></Suspense></main></JourneyShell>}

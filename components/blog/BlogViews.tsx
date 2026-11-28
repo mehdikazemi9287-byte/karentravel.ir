@@ -35,7 +35,8 @@ export function BlogListView({data, category, tag}: {data: BlogList; category?: 
 export function BlogArticle({p, site}: {p: BlogPost; site: string}) {
   const ld = {'@context': 'https://schema.org', '@type': 'BlogPosting', headline: p.title, description: p.excerpt || undefined,
     datePublished: p.published_at, dateModified: p.updated_at || p.published_at, image: p.cover ? [p.cover.startsWith('/') ? site + p.cover : blogImage(p.cover)] : undefined,
-    mainEntityOfPage: `${site}/blog/${p.slug}`, publisher: {'@type': 'Organization', name: 'کارن تراول'}, inLanguage: 'fa-IR'};
+    mainEntityOfPage: `${site}/blog/${p.slug}`, publisher: {'@type': 'Organization', name: 'کارن تراول', url: site}, inLanguage: 'fa-IR'};
+  const crumbs = {'@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [['کارن تراول', site], ['مجله سفر', `${site}/blog`], [p.title, `${site}/blog/${p.slug}`]].map(([name, item], i) => ({'@type': 'ListItem', position: i + 1, name, item}))};
   return <article className="container customer-page blog-article">
     <nav className="blog-crumbs" aria-label="مسیر"><Link href="/">کارن تراول</Link> / <Link href="/blog">وبلاگ</Link> / <Link href={`/blog?category=${p.category}`}>{p.category_label}</Link></nav>
     <h1>{p.title}</h1>
@@ -48,6 +49,6 @@ export function BlogArticle({p, site}: {p: BlogPost; site: string}) {
     <aside className="blog-cta panel"><b>برای این سفر کمک می‌خواهید؟</b><p>مقصد و زمان سفرتان را بگویید تا کارشناسان کارن تراول گزینه‌های موجود را پیشنهاد دهند.</p>
       <Link className="button primary" href="/tours">دیدن تورها</Link> <Link className="button secondary" href="/support">مشاوره‌ی سفر</Link></aside>
     {p.related.length > 0 && <section className="blog-related"><h2>مطالب مرتبط</h2><div className="blog-grid">{p.related.map(r => <BlogCard key={r.id} p={r}/>)}</div></section>}
-    <script type="application/ld+json" dangerouslySetInnerHTML={{__html: JSON.stringify(ld).replace(/</g, '\\u003c')}}/>
+    <script type="application/ld+json" dangerouslySetInnerHTML={{__html: JSON.stringify([ld, crumbs]).replace(/</g, '\\u003c')}}/>
   </article>;
 }

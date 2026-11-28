@@ -1,6 +1,8 @@
 import { JourneyShell } from '../../components/journey/JourneyShell';
 import { TripRequestForm } from '../../components/customer/TripRequestForm';
 import { HelpHero, HelpPaths, HelpFaq } from '../../components/customer/HelpCenter';
+import {seoFor} from '../../lib/seo-pages';
+export const metadata = seoFor('/contact');
 
 export default function ContactPage(){
   return <JourneyShell><main className="journey-main hc-page">

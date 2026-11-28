@@ -3,6 +3,9 @@ import {Suspense} from 'react';
 import {JourneyShell} from '../../components/journey/JourneyShell';
 import {HomeSearchExperience} from '../../components/search/HomeSearchExperience';
 import {AirlineDirectory, AirportDirectory, FlightLanding} from '../../components/catalog/CatalogViews';
+import {seoFor} from '../../lib/seo-pages';
+import {RelatedLinks} from '../../components/seo/RelatedLinks';
+export const metadata = seoFor('/flights');
 
 // Flight landing: hero + search, popular routes, airline strip, perks, FAQ. The full airline/airport
 // directories (reference data) stay reachable but collapsed, instead of filling the page.
@@ -18,5 +21,5 @@ export default function Page() {
     <details className="fl-dir"><summary>فهرست کامل ایرلاین‌ها</summary><AirlineDirectory/></details>
     <details className="fl-dir"><summary>فهرست فرودگاه‌ها</summary><AirportDirectory/></details>
     <OfflineRequest service="بلیت هواپیما" trip="بلیت هواپیما"/>
-  </main></JourneyShell>;
+  <RelatedLinks group="flights"/></main></JourneyShell>;
 }

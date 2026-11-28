@@ -166,7 +166,7 @@ function ComponentHotelRow({ className, hotel = "Abbasi" }: ComponentHotelRowPro
   return (
     <Link href={isZandiyeh ? "/hotels/zandiyeh-hotel-w999233441" : "/hotels/abbasi-hotel-r4769549"} aria-label={(isZandiyeh ? "هتل زندیه شیراز" : "هتل عباسی اصفهان") + " — مشاهده و استعلام قیمت"} className={className || "content-stretch flex gap-[16px] items-center overflow-clip relative"} id={isZandiyeh ? "node-71_110" : "node-71_109"}>
       <div className="h-[70px] relative rounded-[16px] shrink-0 w-[90px]" id={isZandiyeh ? "node-53_59" : "node-53_51"} data-name="Thumb">
-        <img alt="" className="absolute inset-0 max-w-none object-cover pointer-events-none rounded-[16px] size-full" src={isZandiyeh ? imgThumb1 : imgThumb} />
+        <img alt={isZandiyeh ? "نمای هتل زندیه شیراز" : "نمای هتل عباسی اصفهان"} className="absolute inset-0 max-w-none object-cover pointer-events-none rounded-[16px] size-full" src={isZandiyeh ? imgThumb1 : imgThumb} />
       </div>
       <div className="[word-break:break-word] content-stretch flex flex-col gap-[6px] items-end leading-[normal] overflow-clip relative shrink-0 whitespace-nowrap" id={isZandiyeh ? "node-53_60" : "node-53_52"} data-name="Frame">
         <p className="font-[Vazirmatn] font-semibold relative shrink-0 text-[16px] text-white" dir="auto" id={isZandiyeh ? "node-53_61" : "node-53_53"}>

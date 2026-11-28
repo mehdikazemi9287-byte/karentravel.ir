@@ -1,5 +1,7 @@
-import {Shell} from '../page';
+import {Shell} from '../root-pages';
 import {ContactOptions} from '../../components/customer/CustomerHelp';
 import {Suspense} from 'react';
 import {VenueDirectory} from '../../components/catalog/CatalogViews';
+import {seoFor} from '../../lib/seo-pages';
+export const metadata = seoFor('/travel-guides');
 export default function Page(){return <Shell><section className="container customer-page"><h1>راهنمای سفر</h1><p>راهنمای محلی و تور‌لیدر برای گشت شهری و بازدید از جاذبه‌ها.</p><form action="/search/results" className="panel"><input type="hidden" name="vertical" value="travel_guide"/><label style={{display:'block'}}>شهر<input name="destination" required/></label><label style={{display:'block'}}>تاریخ برنامه<input name="depart" type="date" required/></label><label style={{display:'block'}}>تعداد اعضای گروه<input name="adults" type="number" min={1} max={20} defaultValue={1} required/></label><button className="button primary">جست‌وجوی راهنما</button></form><Suspense fallback={<p role="status">در حال دریافت فهرست…</p>}><VenueDirectory kinds={['tourist_info','museum']} title="مراکز اطلاعات گردشگری و موزه‌ها"/></Suspense><ContactOptions/></section></Shell>}

@@ -22,6 +22,15 @@ const nextConfig = {
   poweredByHeader: false,
   // The installable customer app lives at /app; its route folder is app/customer-app because a nested
   // app/app/ folder fails to compile inside the Docker image (WORKDIR /app -> /app/app/app/page.tsx).
+  // SEO (docs/group-knowledge/SEO_BASELINE.md): duplicate or missing addresses are merged with a permanent redirect,
+  // never deleted. /about has no page of its own; the footer's «درباره ما» already points to /contact.
+  async redirects() {
+    return [
+      {source: '/about', destination: '/contact', permanent: true},
+      {source: '/about-us', destination: '/contact', permanent: true},
+      {source: '/tours/reference', destination: '/tours/search', permanent: true},
+    ];
+  },
   async rewrites() {
     return [
       {source: '/app', destination: '/customer-app'},
