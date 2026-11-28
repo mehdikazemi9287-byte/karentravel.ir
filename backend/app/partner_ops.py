@@ -39,6 +39,13 @@ class AgencyIn(Strict):
 class SupplierIn(Strict):
     display_name: str = Field(min_length=2, max_length=180)
     supplier_type: Literal["hotel", "tour", "transport", "experience", "flight", "other"]
+    provider_key: Optional[str] = Field(default=None, pattern=r"^[a-z0-9_-]{2,40}$")
+    connection_mode: Optional[Literal["dedicated", "shared"]] = None
+    external_ref: Optional[str] = Field(default=None, pattern=r"^[A-Za-z0-9_-]{1,40}$")
+
+
+class SystemSuppliersIn(Strict):
+    connection_mode: Literal["dedicated", "shared"] = "dedicated"
 
 
 class NameIn(Strict):
@@ -149,7 +156,7 @@ def partner_ops_router(get_db, current_user, require_permission, role_has_permis
         names = {h.id: h.name_fa or h.name_en or h.name_local for h in db.scalars(select(CatalogHotel).where(CatalogHotel.id.in_({x.hotel_id for x in links})))} if links else {}
         for x in links: s_hotels.setdefault(x.supplier_id, []).append({"hotel_id": x.hotel_id, "name": names.get(x.hotel_id)})
         by_channel = {a.sales_channel_id: a.id for a in agencies if a.sales_channel_id}
-        return {"suppliers": [{"id": s.id, "name": s.display_name, "type": s.supplier_type, "status": s.status, "lifecycle_status": s.lifecycle_status, "members": s_members.get(s.id, []), "hotels": s_hotels.get(s.id, [])}
+        return {"suppliers": [{"id": s.id, "name": s.display_name, "type": s.supplier_type, "status": s.status, "lifecycle_status": s.lifecycle_status, "provider_key": s.provider_key, "connection_mode": s.connection_mode, "external_ref": s.external_ref, "members": s_members.get(s.id, []), "hotels": s_hotels.get(s.id, [])}
                               for s in db.scalars(select(m.Supplier).where(m.Supplier.tenant_id == t).order_by(m.Supplier.created_at.desc()))],
                 "agencies": [{"id": a.id, "name": a.display_name, "status": a.status, "commission_bps": a.commission_bps, "markup_bps": a.markup_bps, "sales_channel_id": a.sales_channel_id, "credit_account_id": a.credit_account_id, "supplier_id": a.supplier_id, "members": a_members.get(a.id, [])} for a in agencies],
                 "sales_channels": [{"id": c.id, "name": c.name, "type": c.channel_type, "status": c.status, "agency_id": by_channel.get(c.id)} for c in channels],
@@ -205,10 +212,23 @@ def partner_ops_router(get_db, current_user, require_permission, role_has_permis
 
     @router.post("/admin/partners/suppliers", status_code=201)
     def create_supplier(data: SupplierIn, user=Depends(admin), db: Session = Depends(get_db)) -> dict:
-        if db.scalar(select(m.Supplier.id).where(m.Supplier.tenant_id == user.tenant_id, m.Supplier.display_name == data.display_name.strip())): raise HTTPException(status_code=409, detail="تأمین‌کننده‌ای با این نام وجود دارد")
-        row = m.Supplier(tenant_id=user.tenant_id, display_name=data.display_name.strip(), supplier_type=data.supplier_type, status="active"); db.add(row); db.flush()
-        audit(db, user, "supplier.created", "supplier", {"supplier_id": row.id, "type": row.supplier_type}); db.commit()
-        return {"id": row.id, "name": row.display_name}
+        try:
+            row = m.create_supplier(db, tenant_id=user.tenant_id, display_name=data.display_name, supplier_type=data.supplier_type, lifecycle_status="UNSELECTED",
+                                    provider_key=data.provider_key, connection_mode=data.connection_mode, external_ref=data.external_ref, reject_duplicate_name=True)
+        except m.DuplicateSupplier as exc:
+            raise HTTPException(status_code=409, detail=str(exc))
+        audit(db, user, "supplier.created", "supplier", {"supplier_id": row.id, "type": row.supplier_type, "provider_key": row.provider_key}); db.commit()
+        return {"id": row.id, "name": row.display_name, "provider_key": row.provider_key, "connection_mode": row.connection_mode, "external_ref": row.external_ref}
+
+    @router.post("/admin/partners/suppliers/system-connections")
+    def ensure_system_suppliers(data: SystemSuppliersIn, user=Depends(admin), db: Session = Depends(get_db)) -> dict:
+        """Make the Mahan and Niira supplier rows if they are missing (idempotent; existing rows are left as they are)."""
+        rows = m.ensure_system_suppliers(db, user.tenant_id, data.connection_mode)
+        for row, created in rows:
+            if created:
+                audit(db, user, "supplier.created", "supplier", {"supplier_id": row.id, "type": row.supplier_type, "provider_key": row.provider_key})
+        db.commit()
+        return {"items": [{**m.supplier_dict(row), "created": created} for row, created in rows]}
 
     @router.post("/admin/partners/suppliers/{supplier_id}/members", status_code=201)
     def add_supplier_member(supplier_id: str, data: UserIn, user=Depends(admin), db: Session = Depends(get_db)) -> dict:

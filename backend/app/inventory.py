@@ -153,6 +153,9 @@ class InstanceUpdateIn(BaseModel):
 class SupplierIn(BaseModel):
     name: str = Field(min_length=2, max_length=180)
     supplier_type: str = Field(default="airline", pattern="^(airline|charterer|hotel|tour_operator|transport|other)$")
+    provider_key: Optional[str] = Field(default=None, pattern=r"^[a-z0-9_-]{2,40}$")
+    connection_mode: Optional[str] = Field(default=None, pattern="^(dedicated|shared)$")
+    external_ref: Optional[str] = Field(default=None, pattern=r"^[A-Za-z0-9_-]{1,40}$")
 
 
 class TemplateIn(BaseModel):
@@ -334,16 +337,20 @@ def inventory_router(get_db, current_user, role_has_permission, User, audit=None
         if scope is not None:
             q = q.where(m.Supplier.id.in_(scope))
         rows = db.scalars(q.order_by(m.Supplier.display_name)).all()
-        return {"items": [{"id": s.id, "name": s.display_name, "type": s.supplier_type, "status": s.status} for s in rows]}
+        return {"items": [{"id": s.id, "name": s.display_name, "type": s.supplier_type, "status": s.status, "provider_key": s.provider_key,
+                           "connection_mode": s.connection_mode, "external_ref": s.external_ref} for s in rows]}
 
     @api.post("/inventory/suppliers", status_code=201)
     def create_supplier(data: SupplierIn, user=Depends(admin), db: Session = Depends(get_db)):
-        row = m.Supplier(tenant_id=user.tenant_id, supplier_type=data.supplier_type, display_name=data.name.strip(), status="active", lifecycle_status="ACTIVE")
-        db.add(row)
-        db.flush()
+        try:
+            row = m.create_supplier(db, tenant_id=user.tenant_id, display_name=data.name, supplier_type=data.supplier_type,
+                                    provider_key=data.provider_key, connection_mode=data.connection_mode, external_ref=data.external_ref)
+        except m.DuplicateSupplier as exc:
+            raise HTTPException(status_code=409, detail=str(exc))
         _a(db, user, "inventory.supplier.created", row.id)
         db.commit()
-        return {"id": row.id, "name": row.display_name, "type": row.supplier_type, "status": row.status}
+        return {"id": row.id, "name": row.display_name, "type": row.supplier_type, "status": row.status, "provider_key": row.provider_key,
+                "connection_mode": row.connection_mode, "external_ref": row.external_ref}
 
     # ---- series
     @api.get("/inventory/flight-series")
