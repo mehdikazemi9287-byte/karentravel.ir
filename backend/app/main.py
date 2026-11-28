@@ -3932,6 +3932,29 @@ class _OfferPoolIn(BaseModel):
     service_type: str = Field(pattern=ECOSYSTEM_SERVICE_PATTERN)
     public: bool = True
     tenant_ref: Optional[str] = Field(default=None, max_length=120)
+    price_group: Optional[str] = Field(default=None, max_length=64)
+
+
+def _sell_side_pool_offer(db: Session, tenant_id: int, group_id: Optional[str], row, caps: dict) -> Optional[dict]:
+    """Same pricing as /search/offers: commerce markup on the unit price, flights above the CAO cap are dropped
+    (owner decision, PR #119). The returned `amount` is sell-side, so the net never leaves the monolith."""
+    attrs = json.loads(row.attributes_json or "{}")
+    taxes = max(0, int(attrs.get("taxes", 0) or 0)); fees = max(0, int(attrs.get("fees", 0) or 0)); discounts = max(0, int(attrs.get("discounts", 0) or 0))
+    net_final = max(0, row.amount + taxes + fees - discounts)
+    sell_final, _commercial = _commercial_unit_price(db, tenant_id, None, row, attrs, net_final, group_id=group_id)
+    if row.service_type == "flight" and _over_price_cap(db, tenant_id, attrs, sell_final, caps):
+        return None
+    for key in ("net", "net_amount", "net_unit", "net_price", "margin", "markup"):
+        attrs.pop(key, None)
+    return {
+        "id": row.id, "service_type": row.service_type, "title": row.title, "amount": row.amount + (sell_final - net_final),
+        "currency": row.currency, "available_units": row.available_units, "provider_key": row.provider_key,
+        "fulfillment_mode": row.fulfillment_mode,
+        "attributes": attrs, "policy": json.loads(row.policy_json or "{}"),
+        "valid_until": _aware(row.valid_until).isoformat(),
+        "created_at": _aware(row.created_at).isoformat() if row.created_at else None,
+        "updated_at": _aware(row.updated_at).isoformat() if row.updated_at else None,
+    }
 
 
 @app.post("/internal/search/offer-pool")
@@ -3956,15 +3979,14 @@ def internal_search_offer_pool(data: _OfferPoolIn, x_internal_token: str = Heade
         operational_models.Offer.available_units > 0,
         operational_models.Offer.valid_until > now,
     )).all()
-    offers = [{
-        "id": r.id, "service_type": r.service_type, "title": r.title, "amount": r.amount,
-        "currency": r.currency, "available_units": r.available_units, "provider_key": r.provider_key,
-        "fulfillment_mode": r.fulfillment_mode,
-        "attributes": json.loads(r.attributes_json or "{}"), "policy": json.loads(r.policy_json or "{}"),
-        "valid_until": _aware(r.valid_until).isoformat(),
-        "created_at": _aware(r.created_at).isoformat() if r.created_at else None,
-        "updated_at": _aware(r.updated_at).isoformat() if r.updated_at else None,
-    } for r in rows]
+    from .commerce import CustomerGroup, user_group_id
+    group_id = None
+    if not data.public and data.price_group:   # resolved by the /search/v3 gateway from the JWT; must be an active group of this tenant
+        group_id = db.scalar(select(CustomerGroup.id).where(CustomerGroup.id == data.price_group, CustomerGroup.tenant_id == tenant_id, CustomerGroup.status == "active"))
+    if group_id is None:
+        group_id = user_group_id(db, tenant_id, None)   # the tenant's default group (or none)
+    caps: dict = {}
+    offers = [item for item in (_sell_side_pool_offer(db, tenant_id, group_id, r, caps) for r in rows) if item is not None]
     if data.service_type=="tour":
         pairs=db.execute(select(operational_models.TourProduct,operational_models.TourDeparture).join(operational_models.TourDeparture,operational_models.TourDeparture.tour_id==operational_models.TourProduct.id).join(operational_models.Supplier,operational_models.Supplier.id==operational_models.TourProduct.supplier_id).where(operational_models.TourProduct.tenant_id==tenant_id,operational_models.TourDeparture.tenant_id==tenant_id,operational_models.Supplier.tenant_id==tenant_id,operational_models.Supplier.status=="active",operational_models.TourProduct.status=="published",operational_models.TourDeparture.status=="active",operational_models.TourDeparture.booking_deadline>now,operational_models.TourDeparture.remaining>0)).all()
         for tour,departure in pairs:
@@ -3985,7 +4007,7 @@ def internal_search_offer_pool(data: _OfferPoolIn, x_internal_token: str = Heade
     return {"service_type": data.service_type, "public": data.public, "offers": offers}
 
 
-async def _search_service_call(data: UnifiedSearchIn, *, public: bool, tenant_ref: Optional[str]) -> dict:
+async def _search_service_call(data: UnifiedSearchIn, *, public: bool, tenant_ref: Optional[str], price_group: Optional[str] = None) -> dict:
     """Shared gateway to karenseir-search. The service NEVER receives a raw JWT
     or user record -- only a resolved, minimal SearchContext (tenant slug,
     public flag). Falls closed to a truthful error, never a fabricated result."""
@@ -3996,6 +4018,8 @@ async def _search_service_call(data: UnifiedSearchIn, *, public: bool, tenant_re
         "sort": data.sort, "filters": data.filters, "include_stale": data.include_stale,
         "page": data.page, "page_size": data.page_size, "public": public, "tenant_ref": tenant_ref,
     }
+    if price_group:   # part of the search-service cache key, so one group's prices are never served to another
+        payload["price_group"] = price_group
     corr = str(uuid.uuid4())
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
@@ -4023,7 +4047,9 @@ async def search_v3_authenticated_gateway(data: UnifiedSearchIn, user: User = De
     tenant = db.get(Tenant, user.tenant_id)
     if tenant is None:
         raise HTTPException(status_code=404, detail={"code": "TENANT_UNRESOLVED"})
-    return await _search_service_call(data, public=False, tenant_ref=tenant.slug)
+    from .commerce import user_group_id
+    price_group = user_group_id(db, user.tenant_id, user.id)   # group id only; no user identity reaches the search service
+    return await _search_service_call(data, public=False, tenant_ref=tenant.slug, price_group=price_group)
 
 
 _ASSISTANT_SERVICE_URL = os.getenv("ASSISTANT_SERVICE_URL", "http://karenseir-assistant:8080")
@@ -4253,15 +4279,16 @@ def offer_detail(offer_id: str, user: User = Depends(current_user), db: Session 
     return {"booking_detail_url":("/experience-products/"+str(attrs["leisure_product_id"])) if attrs.get("leisure_product_id") else None,"id": offer.id, "title": offer.title, "service_type": offer.service_type, "amount": amount, "currency": offer.currency, "policy": json.loads(offer.policy_json), "attributes": safe_attributes, "valid_until": offer.valid_until.isoformat(), "provider_required": offer.fulfillment_mode == "provider", "available": offer.status == "active" and offer.available_units > 0 and _aware(offer.valid_until) > datetime.now(timezone.utc), "max_units": offer.available_units}
 
 
-def _commercial_unit_price(db: Session, tenant_id: int, user_id: Optional[int], offer, attrs: dict, net_unit: int) -> tuple[int, Optional[dict]]:
-    """Apply the admin's markup/discount rule (commerce module) to one unit; no rule -> net price unchanged."""
+def _commercial_unit_price(db: Session, tenant_id: int, user_id: Optional[int], offer, attrs: dict, net_unit: int, **group) -> tuple[int, Optional[dict]]:
+    """Apply the admin's markup/discount rule (commerce module) to one unit; no rule -> net price unchanged.
+    `group_id=` (optional) is an already-resolved price group, used by the search-service offer pool."""
     from .commerce import quote as _commerce_quote
     airline = attrs.get("airline_code") or (str(attrs.get("flight_number") or "")[:2] or None)
     ctx = {"service_type": "package" if offer.service_type == "flight_hotel" else offer.service_type, "supplier_id": offer.supplier_id,
            "airline_code": airline, "origin": attrs.get("origin_code") or attrs.get("origin"), "destination": attrs.get("destination_code") or attrs.get("destination"),
            "scope": attrs.get("scope") or ("international" if attrs.get("international") else None), "flight_type": attrs.get("flight_type") or attrs.get("fare_type"),
            "city_id": attrs.get("city_id"), "stars": attrs.get("stars")}
-    result = _commerce_quote(db, tenant_id, ctx, {"adult": {"count": 1, "total": net_unit}}, user_id=user_id)
+    result = _commerce_quote(db, tenant_id, ctx, {"adult": {"count": 1, "total": net_unit}}, user_id=user_id, **group)
     if not result["rule"] or not result["lines"]:
         return net_unit, None
     return result["lines"][0]["sell"], {"rule_id": result["rule"]["id"], "net_unit": net_unit, "adjustment": result["lines"][0]["adjustment"]}

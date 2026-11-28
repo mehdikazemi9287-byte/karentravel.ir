@@ -36,6 +36,7 @@ class SearchRequest:
     public: bool = True
     tenant_ref: Optional[str] = None          # slug/id for authenticated context
     correlation_id: str = ""
+    price_group: Optional[str] = None         # sell-side price group (monolith-resolved); never a user id
 
 
 # ---- failure taxonomy ----

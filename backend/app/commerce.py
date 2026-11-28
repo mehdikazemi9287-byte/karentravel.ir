@@ -317,8 +317,13 @@ def _round_up(amount: int, step: int) -> int:
     return -((-amount) // step) * step
 
 
-def choose_rule(db: Session, tenant_id: int, ctx: dict, *, user_id: Optional[int] = None) -> Optional[MarkupRule]:
-    group_id = user_group_id(db, tenant_id, user_id)
+_RESOLVE = object()
+
+
+def choose_rule(db: Session, tenant_id: int, ctx: dict, *, user_id: Optional[int] = None, group_id=_RESOLVE) -> Optional[MarkupRule]:
+    """group_id: pass an already-resolved price group (search-service pool: no user identity crosses that boundary)."""
+    if group_id is _RESOLVE:
+        group_id = user_group_id(db, tenant_id, user_id)
     on = ctx.get("on_date") or _today()
     rules = db.scalars(select(MarkupRule).where(MarkupRule.tenant_id == tenant_id, MarkupRule.status == "active",
                                                 MarkupRule.service_type.in_((ctx["service_type"], "any")))).all()
@@ -359,8 +364,8 @@ def apply_rule(rule: Optional[MarkupRule], fares: dict) -> dict:
             "lines": lines, "net_total": net_total, "sell_total": sell_total, "margin": sell_total - net_total}
 
 
-def quote(db: Session, tenant_id: int, ctx: dict, fares: dict, *, user_id: Optional[int] = None) -> dict:
-    return apply_rule(choose_rule(db, tenant_id, ctx, user_id=user_id), fares)
+def quote(db: Session, tenant_id: int, ctx: dict, fares: dict, *, user_id: Optional[int] = None, group_id=_RESOLVE) -> dict:
+    return apply_rule(choose_rule(db, tenant_id, ctx, user_id=user_id, group_id=group_id), fares)
 
 
 def penalty_for(rule: PenaltyRule, minutes_before: int, fares: dict) -> dict:

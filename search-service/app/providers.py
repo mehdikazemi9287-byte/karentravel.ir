@@ -110,6 +110,8 @@ class OfferPoolProvider:
         payload = {"service_type": vertical, "public": req.public, "filters":req.filters or {}, "travellers":req.travellers}
         if req.tenant_ref:
             payload["tenant_ref"] = req.tenant_ref
+        if getattr(req, "price_group", None):
+            payload["price_group"] = req.price_group
         headers = {"X-Internal-Token": config.INTERNAL_TOKEN, "X-Correlation-ID": req.correlation_id}
         r = self._client.post("/internal/search/offer-pool", json=payload, headers=headers)
         if r.status_code == 503:
