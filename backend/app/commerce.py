@@ -19,7 +19,7 @@ import uuid
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import Boolean, ForeignKey, Integer, String, Text, UniqueConstraint, func, select
 from sqlalchemy.orm import Mapped, Session, mapped_column
@@ -821,6 +821,44 @@ def commerce_router(get_db, current_user, role_has_permission, User, audit=None)
         _audit(db, user, "commerce.markup.saved", row.id)
         db.commit()
         return _plain(row, MARKUP_FIELDS)
+
+    # ---- markup-rule import (PR-7): template, review, confirm (all-or-nothing). Registered before /{rule_id}.
+    @api.get("/commerce/markup-rules/import/template")
+    def markup_import_template(fmt: str = Query(default="xlsx", pattern="^(xlsx|csv)$"), user=Depends(admin)):
+        from .markup_import import TEMPLATE_HEADER, TEMPLATE_SAMPLE
+        from .tabular import write_csv, write_xlsx
+        data = write_xlsx(TEMPLATE_HEADER, TEMPLATE_SAMPLE, "قاعده‌های مارک‌آپ") if fmt == "xlsx" else write_csv(TEMPLATE_HEADER, TEMPLATE_SAMPLE)
+        media = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" if fmt == "xlsx" else "text/csv; charset=utf-8"
+        return Response(content=data, media_type=media, headers={"Content-Disposition": f'attachment; filename="markup-rules-import.{fmt}"'})
+
+    @api.post("/commerce/markup-rules/import")
+    async def markup_import(file: UploadFile = File(...), confirm: bool = Form(default=False), user=Depends(admin), db: Session = Depends(get_db)):
+        from .markup_import import validate_rules
+        from .tabular import TableError, read_table
+        data = await file.read()
+        if len(data) > 2 * 1024 * 1024:
+            raise HTTPException(status_code=413, detail="حجم فایل بیش از ۲ مگابایت است")
+        try:
+            report = validate_rules(db, user.tenant_id, read_table(file.filename or "", data))
+        except (TableError, UnicodeDecodeError) as exc:
+            raise HTTPException(status_code=422, detail=str(exc) if isinstance(exc, TableError) else "فایل CSV باید UTF-8 باشد")
+        if len(report["rows"]) > 2000:
+            raise HTTPException(status_code=422, detail="حداکثر ۲۰۰۰ ردیف در هر فایل")
+        if not confirm:
+            return {"stage": "review", **report}
+        if report["errors"] or not report["rows"]:
+            raise HTTPException(status_code=422, detail={"message": "تا وقتی ردیف خطادار هست چیزی ثبت نمی‌شود", **report})
+        created = []
+        for r in report["rows"]:
+            row = MarkupRule(tenant_id=user.tenant_id)
+            for f in MARKUP_FIELDS:
+                setattr(row, f, r["data"].get(f))
+            db.add(row)
+            db.flush()
+            created.append(row.id)
+        _audit(db, user, "commerce.markup.imported", file.filename or "upload", {"count": len(created), "rule_ids": created[:200]})
+        db.commit()
+        return {"stage": "done", "created": len(created), "rule_ids": created}
 
     @api.post("/commerce/markup-rules", status_code=201)
     def create_markup(data: MarkupIn, user=Depends(admin), db: Session = Depends(get_db)):
